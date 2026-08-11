@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rueda de Casino — Call Simulator (MVP)</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#181c2e; --panel2:#20263f; --line:#2c3352;
+    --ink:#e8ebf7; --muted:#9aa3c4; --accent:#5b8cff;
+    --lead:#ff7a59; --follow:#3fc6a0; --stage:#12162a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);}
+  header{padding:18px 24px;border-bottom:1px solid var(--line);}
+  header h1{margin:0;font-size:19px;font-weight:650;letter-spacing:.2px}
+  header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+  .wrap{display:grid;grid-template-columns:1fr 320px;gap:0;min-height:calc(100vh - 76px)}
+  @media (max-width:880px){.wrap{grid-template-columns:1fr}}
+  .stagewrap{padding:20px;display:flex;flex-direction:column;gap:14px}
+  .stage{background:var(--stage);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  svg{display:block;width:100%;height:auto}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .calls{display:flex;flex-wrap:wrap;gap:8px}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+         padding:9px 14px;border-radius:10px;transition:transform .05s, border-color .15s, background .15s}
+  button:hover{border-color:var(--accent)}
+  button:active{transform:translateY(1px)}
+  button.call{background:#232a45}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#0b1020;font-weight:600}
+  button.ghost{background:transparent}
+  button:disabled{opacity:.32;cursor:not-allowed;border-color:var(--line)}
+  button:disabled:hover{border-color:var(--line)}
+  .posbar{font-size:13px;color:var(--muted);margin-top:2px}
+  .posname{color:var(--ink);font-weight:600}
+  select{font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+         padding:8px 10px;border-radius:10px}
+  label.ctl{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+  .side{border-left:1px solid var(--line);background:var(--panel);padding:18px;display:flex;flex-direction:column;gap:18px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .card h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+  .legend{display:flex;gap:16px;font-size:13px}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+  #log{max-height:150px;overflow:auto;font-size:13px;line-height:1.7}
+  #log .step{color:var(--muted)}
+  #log .move{color:var(--ink);font-weight:600}
+  #log .note{color:var(--muted);font-style:italic}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  .pill{font-size:11px;padding:1px 7px;border-radius:20px}
+  .pill.L{background:rgba(255,122,89,.18);color:var(--lead)}
+  .pill.F{background:rgba(63,198,160,.18);color:var(--follow)}
+  .muted{color:var(--muted);font-size:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+  <h1>Rueda de Casino — Call Simulator <span style="color:var(--muted);font-weight:400">· MVP</span></h1>
+  <p>Step through calls and watch the formation change. Model is a first draft — meant to be corrected against the real dance.</p>
+</header>
+
+<div class="wrap">
+  <div class="stagewrap">
+    <div class="toolbar">
+      <label class="ctl">Couples
+        <select id="couples">
+          <option>4</option><option>6</option><option>8</option>
+        </select>
+      </label>
+      <label class="ctl">Formation
+        <select id="layout">
+          <option value="circle">Rueda (circle)</option>
+          <option value="linea">Línea Moderna</option>
+        </select>
+      </label>
+      <button id="reset" class="ghost">Reset to base</button>
+      <button id="undo" class="ghost">← Undo</button>
+    </div>
+
+    <div class="stage">
+      <svg id="stage" viewBox="0 0 720 520" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="posbar">Formation: <span id="posname" class="posname">Casino position</span></div>
+    <div class="calls" id="calls"></div>
+  </div>
+
+  <aside class="side">
+    <div class="card">
+      <h2>Legend</h2>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--lead)"></span>Leader</span>
+        <span><span class="dot" style="background:var(--follow)"></span>Follower</span>
+      </div>
+      <p class="muted" style="margin:8px 0 0">Number = couple ID (who they started with). The arrow shows the direction each dancer is facing.</p>
+    </div>
+
+    <div class="card">
+      <h2>Call log</h2>
+      <div id="log"></div>
+    </div>
+
+    <div class="card">
+      <h2>Positions (verification)</h2>
+      <table id="postable"><thead>
+        <tr><th>Station</th><th>Leader</th><th>Follower</th></tr>
+      </thead><tbody></tbody></table>
+      <p class="muted" style="margin:8px 0 0">Each station holds exactly one leader + one follower — they're partners right now.</p>
+    </div>
+
+    <div class="card">
+      <h2>What each call does (draft)</h2>
+      <p class="muted" id="calldesc"></p>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ *  DATA MODEL
+ *  A dancer = { id, role:'L'|'F', couple:int, station:int, ring:'in'|'out' }
+ *  - station  : which slot around the wheel / along the line they occupy
+ *  - ring     : leaders start 'in', followers 'out'; some moves swap this
+ *  - couple   : identity tag (never changes) so you can track a person
+ *  Invariant : every station holds exactly one 'L' and one 'F'. Those two
+ *              are partners *right now*. Facing always points at the partner.
+ *
+ *  A CALL is a pure function (dancers, N) -> new dancers (or null = "no
+ *  formation change, returns to base"). Add new calls by adding to CALLS.
+ * ------------------------------------------------------------------ */
+
+const CALLS = {
+  guapea: {
+    label: 'Guapea', desc: 'Basic step in place in Casino position. Nobody changes position or partner.',
+    fn: null
+  },
+  dame: {
+    label: 'Dame',
+    desc: 'Progresses the leader one couple, always ending in Enchufla position facing the new partner. From Casino the follower stays and turns left to face her new leader; from Enchufla she slides past her leader (no turn) while the leader travels on.',
+    requires: ['casino', 'enchufla'], sets: 'enchufla',
+    anim: { duration: 700 },
+    frames: (ds, N, from) => dameToEnchufla(ds, N, 1, from === 'enchufla')
+  },
+  dame_dos: {
+    label: 'Dame Dos',
+    desc: 'Like Dame but the leader progresses two couples (arcing left of followers, right of other leaders). Always ends in Enchufla position facing the new partner.',
+    requires: ['casino', 'enchufla'], sets: 'enchufla',
+    anim: { duration: 820 },
+    frames: (ds, N, from) => dameToEnchufla(ds, N, 2, from === 'enchufla')
+  },
+  dile: {
+    label: 'Dile Que No',
+    desc: 'Only from Enchufla position: leader and follower gather to the point between them (leader turning left, follower right, both facing centre), then orbit 180° to settle into Casino position with the same partner.',
+    requires: ['enchufla'], sets: 'casino',
+    frames: (ds, N) => dileQueNoFull(ds, N),
+    anim: { speed: 0.092, rotSpeed: 0.40 }
+  },
+  enchufla: {
+    label: 'Enchufla (part 1)',
+    desc: 'From Casino position: leader and follower trade places, each heading for the other and bowing left so they just miss as they pass — leader turning right, follower turning left — ending flipped, still facing each other.',
+    requires: ['casino'], sets: 'enchufla',
+    anim: { duration: 700 },
+    frames: (ds, N) => swapMove(ds, N, -180)
+  },
+  vacilala: {
+    label: 'Vacilala',
+    desc: 'From Casino position: the leader moves exactly as in an Enchufla and the follower takes the same path, but instead of a 180° left turn she spins 540° to her right (clockwise) — ending in Enchufla position, facing back toward her partner.',
+    requires: ['casino'], sets: 'enchufla',
+    anim: { duration: 820 },
+    frames: (ds, N) => swapMove(ds, N, 540)
+  },
+  setenta: {
+    label: 'Setenta', desc: 'A pattern figure — hands cross, wraps and unwraps — ending with the same partner in the same spot.',
+    fn: null
+  },
+  sombrero: {
+    label: 'Sombrero', desc: 'The "hat" figure. Partner and position unchanged at the end of the move.',
+    fn: null
+  }
+};
+
+/* ---- layouts: (station, lane, N) -> {x,y} in SVG space ----
+ * lane describes where within a station a dancer stands:
+ *   'ccw' / 'cw'    -> the two sides on the dotted ring (base formation)
+ *   'inner'/'outer' -> radial arrangement after a Dame (inner = toward centre) */
+const W = 720, H = 520, CX = 340, CY = 260;
+let R_RING = 154;                 // wheel radius — recomputed for each couple count
+const R_STEP = 36;
+// Fixed spacing from the 6-couple baseline: the within-couple distance and the
+// between-couple gap stay constant, and the wheel grows/shrinks to fit N couples.
+const W_DIST   = 2 * 154 * Math.sin(12 * Math.PI / 180);   // leader <-> follower centre distance (~64px)
+const GAP_DIST = 2 * 154 * Math.sin(18 * Math.PI / 180);   // follower <-> next leader gap (~95px)
+let DELTA_DEG = 12;               // half the within-couple angle at the current radius
+function computeWheel(n){
+  // Solve  n·(2·asin(W/2R) + 2·asin(G/2R)) = 2π  for R (the spacing wraps once).
+  let lo = 20, hi = 3000;
+  for (let i = 0; i < 60; i++){
+    const R = (lo + hi) / 2;
+    const total = n * (2 * Math.asin(Math.min(1, W_DIST / (2 * R))) + 2 * Math.asin(Math.min(1, GAP_DIST / (2 * R))));
+    if (total > 2 * Math.PI) lo = R; else hi = R;           // total shrinks as R grows
+  }
+  R_RING = (lo + hi) / 2;
+  DELTA_DEG = Math.asin(W_DIST / (2 * R_RING)) * 180 / Math.PI;
+}
+const ARROW_TRANS = 'transform .5s cubic-bezier(.4,0,.2,1)';
+const G_TRANS = 'transform .5s cubic-bezier(.4,0,.2,1)';
+const DOT_R = 20;                 // dancer dot radius (stroke adds ~1px each side)
+const LAYOUTS = {
+  circle(station, lane, N){
+    const theta = -90 + station * 360 / N;
+    const delta = DELTA_DEG;
+    let r = R_RING, a = theta;
+    if (lane === 'cw')        a = theta + delta;                    // clockwise side of the ring
+    else if (lane === 'ccw')  a = theta - delta;                    // anti-clockwise side of the ring
+    else if (lane === 'pickup') a = theta + delta + (360 / N) * 0.15; // just clockwise of the cw follower
+    else if (lane === 'inner') r = R_RING - R_STEP;                 // toward the centre of the wheel
+    else if (lane === 'outer') r = R_RING + R_STEP;                 // outside the wheel
+    a = a * Math.PI / 180;
+    return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
+  },
+  // Línea Moderna: couples sit in a row; each couple down the line is
+  // inverted top-to-bottom relative to its neighbour.
+  linea(station, lane, N){
+    const spacing = Math.min(150, (W - 140) / Math.max(1, N - 1));
+    const x0 = CX - spacing * (N - 1) / 2;
+    const inSide = (lane === 'ccw' || lane === 'inner');
+    const sign = (inSide ? 1 : -1) * (station % 2 === 0 ? 1 : -1);
+    return { x: x0 + station * spacing, y: CY + 60 * sign };
+  }
+};
+
+/* ------------------------------ state ------------------------------ */
+let N = 4, layoutName = 'circle', dancers = [], history = [], stepCount = 0, animating = false;
+let posState = 'casino';                 // 'casino' | 'dile' (Dile Que No position)
+const histPos = [];                      // parallel undo stack for posState
+const POS_NAMES = { casino: 'Casino position', enchufla: 'Enchufla position' };
+let callButtons = {};
+
+function baseState(n){
+  const ds = [];
+  for (let i = 0; i < n; i++){
+    ds.push({ id: 'L' + i, role: 'L', couple: i, station: i, lane: 'ccw' });
+    ds.push({ id: 'F' + i, role: 'F', couple: i, station: i, lane: 'cw'  });
+  }
+  return ds;
+}
+function partnerOf(d, ds){
+  return ds.find(o => o.station === d.station && o.role !== d.role);
+}
+function pos(d){ return d.xy ? d.xy : LAYOUTS[layoutName](d.station, d.lane, N); }
+function projectToRing(p){                       // snap a point onto the dotted rueda line
+  const a = Math.atan2(p.y - CY, p.x - CX);
+  return { x: CX + R_RING * Math.cos(a), y: CY + R_RING * Math.sin(a) };
+}
+
+/* Facing is a property of layout + role (+ couple parity in línea), NOT of
+ * the partner. In Rueda leaders face clockwise round the wheel, followers
+ * anti-clockwise. In Línea Moderna couples alternate up/down down the line. */
+function laneAngleOffset(lane, N){
+  const delta = (360 / N) * 0.2;
+  if (lane === 'cw')  return  delta;
+  if (lane === 'ccw') return -delta;
+  if (lane === 'pickup') return delta + (360 / N) * 0.15;
+  return 0;                        // inner / outer sit at the station angle
+}
+function faceTowardPartner(d, state){
+  const pr = state.find(o => o.station === d.station && o.role !== d.role);
+  if (!pr) return 0;
+  const p = pos(d), pp = pos(pr);          // use actual positions (respects xy overrides)
+  return Math.atan2(pp.y - p.y, pp.x - p.x) * 180 / Math.PI;
+}
+function facingAngle(d){
+  if (typeof d.face === 'number') return d.face;         // frozen explicit angle
+  if (layoutName === 'circle'){
+    if (d.face === 'center'){                            // facing the centre of the wheel
+      const p = pos(d);
+      return Math.atan2(CY - p.y, CX - p.x) * 180 / Math.PI;
+    }
+    // Base: partners face directly towards each other.
+    return faceTowardPartner(d, dancers);
+  }
+  const even = d.station % 2 === 0;
+  const up = (d.role === 'L') ? even : !even;   // even couple: leader up, follower down
+  return up ? -90 : 90;                          // -90 = up, 90 = down (screen coords)
+}
+
+/* Part 1 of Dame: each leader moves back k couples to just clockwise of the
+ * follower behind them (facing her), then everyone turns to face the centre. */
+function damePickup(ds, N, k){
+  // Work from actual current positions so followers never get snapped back to a
+  // grid: each keeps exactly where it stands (important after a Dile Que No).
+  const cur = {};
+  ds.forEach(d => { const p = pos(d); cur[d.id] = { p, ang: Math.atan2(p.y - CY, p.x - CX) }; });
+  // Leader sits just clockwise of the follower so the two dots touch edges but
+  // don't overlap: centre-to-centre = two dot radii (+1px stroke each side).
+  const off = 2 * Math.asin((DOT_R + 1) / R_RING);
+  // Each leader's target: the follower k couples behind, and a pickup point on
+  // the ring just clockwise of her.
+  const target = {};
+  ds.forEach(d => {
+    if (d.role !== 'L') return;
+    const tStation = (d.station - k + N) % N;
+    const tf = ds.find(o => o.role === 'F' && o.station === tStation);
+    const a = cur[tf.id].ang + off;
+    target[d.id] = { tStation, tfId: tf.id, pickup: { x: CX + R_RING * Math.cos(a), y: CY + R_RING * Math.sin(a) } };
+  });
+  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
+  const followerPts = ds.filter(d => d.role === 'F').map(d => ({ id: d.id, pt: projectToRing(cur[d.id].p) }));
+  // Curved travel: straight line pulled toward the centre by `A*sin(pi t)` so it
+  // bows inward at mid-path (0 at both ends, so it still starts/ends on the ring).
+  const travel = (id, t, A) => {
+    const S = cur[id].p, P = target[id].pickup;
+    const x = S.x + (P.x - S.x) * t, y = S.y + (P.y - S.y) * t;
+    const dx = CX - x, dy = CY - y, r = Math.hypot(dx, dy) || 1, b = A * Math.sin(Math.PI * t);
+    return { x: x + dx / r * b, y: y + dy / r * b };
+  };
+  // Pick the smallest inward bow that keeps every travelling leader at least a dot
+  // diameter from every other dot (a leader's own target follower is excluded — it
+  // is meant to end edge-to-edge with her).
+  const CLEAR = 2 * (DOT_R + 1) + 0.5;
+  let bow = 0;
+  for (let A = 0; A <= 60; A += 1){
+    let ok = true;
+    for (let s = 1; s < 24 && ok; s++){
+      const t = s / 24, L = leaderIds.map(id => ({ id, p: travel(id, t, A) }));
+      for (let a = 0; a < L.length && ok; a++){
+        for (const f of followerPts){
+          if (f.id === target[L[a].id].tfId) continue;
+          if (Math.hypot(L[a].p.x - f.pt.x, L[a].p.y - f.pt.y) < CLEAR){ ok = false; break; }
+        }
+        if (ok) for (let b = 0; b < L.length; b++){
+          if (a !== b && Math.hypot(L[a].p.x - L[b].p.x, L[a].p.y - L[b].p.y) < CLEAR){ ok = false; break; }
+        }
+      }
+    }
+    if (ok){ bow = A; break; }
+  }
+  // Travel sub-frames: leaders arc toward the pickup facing the follower the whole
+  // way (turn snaps on the first step, then tracks); followers hold and face centre.
+  const STEPS = 10, frames = [];
+  for (let s = 1; s <= STEPS; s++){
+    const t = s / STEPS;
+    frames.push(ds.map(d => {
+      if (d.role === 'F') return { ...d, xy: projectToRing(cur[d.id].p), face: 'center', turn: 'ccw' };
+      const g = target[d.id], { face, ...rest } = d;
+      return { ...rest, station: g.tStation, xy: travel(d.id, t, bow), snapTurn: s === 1 };
+    }));
+  }
+  // Finally the leaders turn left to face the centre too (Dile Que No position).
+  frames.push(frames[frames.length - 1].map(({ snapTurn, ...d }) => ({ ...d, face: 'center', turn: 'ccw' })));
+  return frames;
+}
+
+const norm360 = a => ((a % 360) + 360) % 360;
+
+/* Enchufla (part 1): leader and follower trade places. Each heads straight for
+ * the other's spot but bows to their left so the two just miss as they cross near
+ * the centre (leader passes clockwise of the follower, follower clockwise of the
+ * leader). Both deviate equally so the midpoint between them stays put. They start
+ * and end facing each other — leader turning right, follower left — ending flipped. */
+// Leader+follower trade places by heading for each other and bowing left to just
+// miss (Enchufla-style path). The leader always turns right 180°; the follower's
+// total turn is `followerRotDeg` (Enchufla = -180 left; Vacilala = +540 right).
+function swapMove(ds, N, followerRotDeg){
+  const leftOf = u => ({ x: u.y, y: -u.x });        // 90° to the dancer's left (screen y-down)
+  const info = {};
+  ds.forEach(d => {
+    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
+    const S = pos(d), T = pos(pr);                   // heads directly to partner's spot
+    const dx = T.x - S.x, dy = T.y - S.y, len = Math.hypot(dx, dy) || 1;
+    info[d.id] = { S, T, left: leftOf({ x: dx / len, y: dy / len }), face0: facingAngle(d), rot: d.role === 'L' ? 180 : followerRotDeg };
+  });
+  // Lateral amplitude that makes the two dots just miss (~one diameter apart) as
+  // they cross. Depends on the couple width, so solve for it from the geometry.
+  const anyL = ds.find(d => d.role === 'L');
+  const anyF = ds.find(o => o.station === anyL.station && o.role === 'F');
+  const D = Math.hypot(pos(anyL).x - pos(anyF).x, pos(anyL).y - pos(anyF).y);
+  const GAP = 2 * (DOT_R + 1) + 0.5;
+  const minGap = A => { let m = Infinity; for (let s = 1; s < 40; s++){ const t = s / 40; m = Math.min(m, Math.hypot(D * (2 * t - 1), 2 * A * Math.sin(Math.PI * t))); } return m; };
+  let amp = 0; for (let a = 0; a <= 80; a += 0.5){ if (minGap(a) >= GAP){ amp = a; break; } }
+  const STEPS = 14, frames = [];
+  for (let step = 1; step <= STEPS; step++){
+    const t = step / STEPS, k = amp * Math.sin(Math.PI * t);
+    frames.push(ds.map(d => {
+      const g = info[d.id];
+      return { ...d,
+        xy: { x: g.S.x + (g.T.x - g.S.x) * t + g.left.x * k, y: g.S.y + (g.T.y - g.S.y) * t + g.left.y * k },
+        face: g.face0 + g.rot * t };
+    }));
+  }
+  return frames;
+}
+
+/* Dile Que No — second half of Dame. From the centre-facing rest position each
+ * couple swaps places: both dancers orbit the point midway between them 180°
+ * anti-clockwise, expanding to base-couple width, and end facing each other.
+ * The follower sweeps ~270° left, the leader ~90° left. */
+/* Dame / Dame Dos from Enchufla (flipped) position — the natural continuation of a
+ * full Enchufla. Both partners move at once. The follower slides into her current
+ * leader's spot, arcing left to pass him and turning right (clockwise) to face
+ * centre. Each leader progresses to the follower k couples anti-clockwise, facing
+ * that new follower the whole way then turning left to centre on arrival — steering
+ * to pass to the LEFT of every follower and to the RIGHT of every other leader so no
+ * dots collide (needed once leaders travel far enough to cross). Ends in Dile Que No. */
+function dameFromEnchufla(ds, N, k){
+  const off = 2 * Math.asin((DOT_R + 1) / R_RING);
+  const norm = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
+  const leftOf = u => ({ x: u.y, y: -u.x });
+  const cur = {}, leaderAt = {}, followerAt = {};
+  ds.forEach(d => { cur[d.id] = pos(d); });
+  ds.forEach(d => { (d.role === 'L' ? leaderAt : followerAt)[d.station] = d.id; });
+  const AMPF = 20, INF = 64;
+  // followers: into their current leader's spot with a small leftward arc
+  const fInfo = {};
+  ds.forEach(d => { if (d.role !== 'F') return;
+    const S = cur[d.id], E = cur[leaderAt[d.station]];
+    fInfo[d.id] = { S, E, left: leftOf(norm({ x: E.x - S.x, y: E.y - S.y })), face0: facingAngle(d) };
+  });
+  const fAt = (id, t) => { const g = fInfo[id], b = AMPF * Math.sin(Math.PI * t); return { x: g.S.x + (g.E.x - g.S.x) * t + g.left.x * b, y: g.S.y + (g.E.y - g.S.y) * t + g.left.y * b }; };
+  // leaders: straight toward the pickup with the follower k couples anti-clockwise
+  const lInfo = {};
+  ds.forEach(d => { if (d.role !== 'L') return;
+    const tSt = (d.station - k + N) % N, fEnd = cur[leaderAt[tSt]];
+    const a = Math.atan2(fEnd.y - CY, fEnd.x - CX) + off;
+    const S = cur[d.id], E = { x: CX + R_RING * Math.cos(a), y: CY + R_RING * Math.sin(a) };
+    lInfo[d.id] = { S, E, n: leftOf(norm({ x: E.x - S.x, y: E.y - S.y })), newFollower: followerAt[tSt], newStation: tSt };
+  });
+  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
+  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
+  const lStr = (id, t) => { const g = lInfo[id]; return { x: g.S.x + (g.E.x - g.S.x) * t, y: g.S.y + (g.E.y - g.S.y) * t }; };
+  // Steering offset: pushed left by nearby followers, right by nearby leaders. The
+  // leader's own target follower is left OUT — they are meant to meet, not avoid,
+  // so she no longer shoves the leader off the line right before the pickup.
+  const raw = (id, t) => { const p = lStr(id, t), nf = lInfo[id].newFollower; let o = 0;
+    followerIds.forEach(fid => { if (fid === nf) return; const x = fAt(fid, t), dd = Math.hypot(x.x - p.x, x.y - p.y); if (dd < INF) o += (INF - dd); });
+    leaderIds.forEach(oid => { if (oid === id) return; const x = lStr(oid, t), dd = Math.hypot(x.x - p.x, x.y - p.y); if (dd < INF) o -= (INF - dd); });
+    return o;
+  };
+  // Sample the offset, pin it to 0 at both ends, then smooth it so the leader's path
+  // is a gentle arc rather than a wiggle that snaps back onto the line.
+  const M = 40, prof = {};
+  leaderIds.forEach(id => {
+    const o = []; for (let i = 0; i <= M; i++) o.push(raw(id, i / M));
+    const a0 = o[0], a1 = o[M]; for (let i = 0; i <= M; i++){ const t = i / M; o[i] -= (1 - t) * a0 + t * a1; }
+    for (let pass = 0; pass < 6; pass++){ const q = o.slice(); for (let i = 1; i < M; i++) o[i] = 0.25 * q[i - 1] + 0.5 * q[i] + 0.25 * q[i + 1]; o[0] = 0; o[M] = 0; }
+    prof[id] = o;
+  });
+  const lAt = (id, scale, t) => { const g = lInfo[id], p = lStr(id, t), i = t * M, i0 = Math.min(M, Math.floor(i)), f = i - i0; const o = (prof[id][i0] * (1 - f) + prof[id][Math.min(M, i0 + 1)] * f) * scale; return { x: p.x + g.n.x * o, y: p.y + g.n.y * o }; };
+  const GAP = 2 * (DOT_R + 1) + 0.5;
+  const minClear = scale => { let m = Infinity; for (let s = 1; s < 60; s++){ const t = s / 60;
+    const all = [...followerIds.map(id => ({ id, r: 'F', p: fAt(id, t) })), ...leaderIds.map(id => ({ id, r: 'L', nf: lInfo[id].newFollower, p: lAt(id, scale, t) }))];
+    for (let a = 0; a < all.length; a++) for (let b = a + 1; b < all.length; b++){
+      if (all[a].r === 'L' && all[b].r === 'F' && all[a].nf === all[b].id) continue;   // leader meeting its target follower is intended
+      if (all[b].r === 'L' && all[a].r === 'F' && all[b].nf === all[a].id) continue;
+      const dd = Math.hypot(all[a].p.x - all[b].p.x, all[a].p.y - all[b].p.y); if (dd < m) m = dd;
+    } } return m; };
+  let scale = 0; for (let sc = 0; sc <= 1.5; sc += 0.01){ if (minClear(sc) >= GAP){ scale = sc; break; } }
+  const fSweep = {};   // follower's clockwise turn to face centre
+  followerIds.forEach(id => { const E = fInfo[id].E; fSweep[id] = norm360(Math.atan2(CY - E.y, CX - E.x) * 180 / Math.PI - fInfo[id].face0); });
+  const STEPS = 16, frames = [];
+  for (let s = 1; s <= STEPS; s++){
+    const t = s / STEPS, P = {};
+    followerIds.forEach(id => P[id] = fAt(id, t)); leaderIds.forEach(id => P[id] = lAt(id, scale, t));
+    frames.push(ds.map(d => {
+      if (d.role === 'F') return { ...d, xy: P[d.id], face: fInfo[d.id].face0 + fSweep[d.id] * t };
+      const nf = P[lInfo[d.id].newFollower];
+      return { ...d, station: lInfo[d.id].newStation, xy: P[d.id], face: Math.atan2(nf.y - P[d.id].y, nf.x - P[d.id].x) * 180 / Math.PI };
+    }));
+  }
+  frames.push(frames[frames.length - 1].map(d => d.role === 'F' ? { ...d, face: 'center' } : { ...d, face: 'center', turn: 'ccw' }));
+  return frames;
+}
+
+/* Dame / Dame Dos — always ends in Enchufla position (leader on the clockwise side of
+ * the couple facing anti-clockwise, follower on the anti-clockwise side facing clockwise),
+ * progressing the leader k couples. The leader always does the travelling, ending a base
+ * couple-width clockwise of his new follower, facing her.
+ *   From CASINO: the follower stays put and just rotates left (anti-clockwise) to face her
+ *     new leader.
+ *   From ENCHUFLA: the follower slides past her current leader on his left (no rotation),
+ *     into his lane, keeping her clockwise facing.
+ * Leaders steer left of followers / right of leaders (smoothed) so no dots collide. */
+function dameToEnchufla(ds, N, k, fromEnch){
+  const DEL = DELTA_DEG * Math.PI / 180;
+  const norm = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
+  const leftOf = u => ({ x: u.y, y: -u.x });
+  const cur = {}, leaderAt = {}, followerAt = {};
+  ds.forEach(d => { cur[d.id] = pos(d); });
+  ds.forEach(d => { (d.role === 'L' ? leaderAt : followerAt)[d.station] = d.id; });
+  const AMPF = 20, INF = 64;
+  const fInfo = {};
+  ds.forEach(d => { if (d.role !== 'F') return;
+    const S = cur[d.id], E = fromEnch ? cur[leaderAt[d.station]] : S;   // Enchufla: slide into leader's lane; Casino: stay
+    fInfo[d.id] = { S, E, left: leftOf(norm({ x: E.x - S.x, y: E.y - S.y })), newLeader: leaderAt[(d.station + k) % N], face0: facingAngle(d) };
+  });
+  const fAt = (id, t) => { const g = fInfo[id]; if (!fromEnch) return g.S; const b = AMPF * Math.sin(Math.PI * t); return { x: g.S.x + (g.E.x - g.S.x) * t + g.left.x * b, y: g.S.y + (g.E.y - g.S.y) * t + g.left.y * b }; };
+  const lInfo = {};
+  ds.forEach(d => { if (d.role !== 'L') return;
+    const tSt = (d.station - k + N) % N, nf = followerAt[tSt], nfEnd = fInfo[nf].E;   // new follower's ending spot
+    const a = Math.atan2(nfEnd.y - CY, nfEnd.x - CX) + 2 * DEL;                        // leader ends a couple-width clockwise of her
+    const E = { x: CX + R_RING * Math.cos(a), y: CY + R_RING * Math.sin(a) };
+    lInfo[d.id] = { S: cur[d.id], E, n: leftOf(norm({ x: E.x - cur[d.id].x, y: E.y - cur[d.id].y })), newFollower: nf, newStation: tSt };
+  });
+  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
+  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
+  const lStr = (id, t) => { const g = lInfo[id]; return { x: g.S.x + (g.E.x - g.S.x) * t, y: g.S.y + (g.E.y - g.S.y) * t }; };
+  const raw = (id, t) => { const p = lStr(id, t), nf = lInfo[id].newFollower; let o = 0;
+    followerIds.forEach(fid => { if (fid === nf) return; const x = fAt(fid, t), dd = Math.hypot(x.x - p.x, x.y - p.y); if (dd < INF) o += (INF - dd); });
+    leaderIds.forEach(oid => { if (oid === id) return; const x = lStr(oid, t), dd = Math.hypot(x.x - p.x, x.y - p.y); if (dd < INF) o -= (INF - dd); });
+    return o;
+  };
+  const M = 40, prof = {};
+  leaderIds.forEach(id => {
+    const o = []; for (let i = 0; i <= M; i++) o.push(raw(id, i / M));
+    const a0 = o[0], a1 = o[M]; for (let i = 0; i <= M; i++){ const t = i / M; o[i] -= (1 - t) * a0 + t * a1; }
+    for (let pass = 0; pass < 6; pass++){ const q = o.slice(); for (let i = 1; i < M; i++) o[i] = 0.25 * q[i - 1] + 0.5 * q[i] + 0.25 * q[i + 1]; o[0] = 0; o[M] = 0; }
+    prof[id] = o;
+  });
+  const lAt = (id, scale, t) => { const g = lInfo[id], p = lStr(id, t), i = t * M, i0 = Math.min(M, Math.floor(i)), f = i - i0; const o = (prof[id][i0] * (1 - f) + prof[id][Math.min(M, i0 + 1)] * f) * scale; return { x: p.x + g.n.x * o, y: p.y + g.n.y * o }; };
+  const GAP = 2 * (DOT_R + 1) + 0.5;
+  const minClear = scale => { let m = Infinity; for (let s = 1; s < 60; s++){ const t = s / 60;
+    const all = [...followerIds.map(id => ({ id, r: 'F', p: fAt(id, t) })), ...leaderIds.map(id => ({ id, r: 'L', nf: lInfo[id].newFollower, p: lAt(id, scale, t) }))];
+    for (let a = 0; a < all.length; a++) for (let b = a + 1; b < all.length; b++){
+      if (all[a].r === 'L' && all[b].r === 'F' && all[a].nf === all[b].id) continue;
+      if (all[b].r === 'L' && all[a].r === 'F' && all[b].nf === all[a].id) continue;
+      const dd = Math.hypot(all[a].p.x - all[b].p.x, all[a].p.y - all[b].p.y); if (dd < m) m = dd;
+    } } return m; };
+  let scale = 0; for (let sc = 0; sc <= 1.5; sc += 0.01){ if (minClear(sc) >= GAP){ scale = sc; break; } }
+  // follower facing: from Enchufla she keeps her facing (no rotation); from Casino she
+  // turns left (anti-clockwise) to face her new leader.
+  // In Enchufla position the follower always faces directly at her leader, so she
+  // ends facing her new leader either way: from Casino she turns left to get there;
+  // from Enchufla she only nudges (shortest) since she is already nearly facing him.
+  const fSweep = {};
+  followerIds.forEach(id => {
+    const nlE = lInfo[fInfo[id].newLeader].E, fE = fInfo[id].E;
+    const target = Math.atan2(nlE.y - fE.y, nlE.x - fE.x) * 180 / Math.PI;
+    fSweep[id] = fromEnch ? ((((target - fInfo[id].face0) % 360) + 540) % 360 - 180)   // shortest
+                          : -norm360(fInfo[id].face0 - target);                         // left / anti-clockwise
+  });
+  const STEPS = 16, frames = [];
+  for (let s = 1; s <= STEPS; s++){
+    const t = s / STEPS, P = {};
+    followerIds.forEach(id => P[id] = fAt(id, t)); leaderIds.forEach(id => P[id] = lAt(id, scale, t));
+    frames.push(ds.map(d => {
+      if (d.role === 'F') return { ...d, xy: P[d.id], face: fInfo[d.id].face0 + fSweep[d.id] * t };
+      const nf = P[lInfo[d.id].newFollower]; return { ...d, station: lInfo[d.id].newStation, xy: P[d.id], face: Math.atan2(nf.y - P[d.id].y, nf.x - P[d.id].x) * 180 / Math.PI, snapTurn: s === 1 };
+    }));
+  }
+  return frames;
+}
+
+/* Dile Que No — now runs from Enchufla position back to Casino. Phase A: leader and
+ * follower gather toward the point between them, the leader turning left (anti-clockwise)
+ * and the follower right (clockwise) until both face the centre. Phase B: the existing
+ * 180° orbit settles them into Casino position. */
+function dileQueNoFull(ds, N){
+  const off = 2 * Math.asin((DOT_R + 1) / R_RING);
+  const cur = {}; ds.forEach(d => cur[d.id] = pos(d));
+  const info = {};
+  ds.forEach(d => {
+    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
+    const p = cur[d.id], pp = cur[pr.id];
+    const thetaC = Math.atan2(Math.sin(Math.atan2(p.y-CY,p.x-CX)) + Math.sin(Math.atan2(pp.y-CY,pp.x-CX)),
+                              Math.cos(Math.atan2(p.y-CY,p.x-CX)) + Math.cos(Math.atan2(pp.y-CY,pp.x-CX)));
+    const endAng = thetaC + (d.role === 'L' ? off / 2 : -off / 2);       // gather off-apart around the centre
+    const E = { x: CX + R_RING * Math.cos(endAng), y: CY + R_RING * Math.sin(endAng) };
+    const faceEnd = Math.atan2(CY - E.y, CX - E.x) * 180 / Math.PI;       // face the centre of the wheel
+    const face0 = facingAngle(d);
+    const sweep = d.role === 'L' ? -norm360(face0 - faceEnd) : norm360(faceEnd - face0);   // leader left, follower right
+    info[d.id] = { S: p, E, face0, sweep };
+  });
+  const STEPS_A = 8, frames = [];
+  for (let s = 1; s <= STEPS_A; s++){
+    const t = s / STEPS_A;
+    frames.push(ds.map(d => { const g = info[d.id]; return { ...d, xy: { x: g.S.x + (g.E.x - g.S.x) * t, y: g.S.y + (g.E.y - g.S.y) * t }, face: g.face0 + g.sweep * t }; }));
+  }
+  const mid = frames[frames.length - 1].map(d => { const { face, ...r } = d; return { ...r, xy: info[d.id].E, face: 'center' }; });
+  const hold = [];                                    // pause in Dile Que No position
+  for (let i = 0; i < 7; i++) hold.push(mid.map(d => ({ ...d })));
+  const saved = dancers; dancers = mid;
+  const orbit = dileQueNo(mid, N);
+  dancers = saved;
+  return frames.concat(hold, orbit);
+}
+
+function dileQueNo(ds, N){
+  const deltaRad = DELTA_DEG * Math.PI / 180;
+  const info = {};
+  ds.forEach(d => {
+    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
+    const p0 = pos(d), pp = pos(pr);
+    const aSelf = Math.atan2(p0.y - CY, p0.x - CX);
+    const aPr   = Math.atan2(pp.y - CY, pp.x - CX);
+    // couple centre angle (mean of the two, wrap-safe); ends are ±delta on the ring
+    const thetaC = Math.atan2(Math.sin(aSelf) + Math.sin(aPr), Math.cos(aSelf) + Math.cos(aPr));
+    const endAng = thetaC + (d.role === 'L' ? -deltaRad : deltaRad);   // leader ends ccw, follower cw
+    const E = { x: CX + R_RING * Math.cos(endAng), y: CY + R_RING * Math.sin(endAng) };
+    const C = { x: (p0.x + E.x) / 2, y: (p0.y + E.y) / 2 };            // centre of this dancer's 180° arc
+    info[d.id] = { E, C, v: { x: p0.x - C.x, y: p0.y - C.y }, face0: facingAngle(d) };
+  });
+  const sweep = {};
+  ds.forEach(d => {
+    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
+    const me = info[d.id].E, ot = info[pr.id].E;
+    const finalFace = Math.atan2(ot.y - me.y, ot.x - me.x) * 180 / Math.PI;
+    sweep[d.id] = norm360(info[d.id].face0 - finalFace);   // anti-clockwise (left) turn amount
+  });
+  const STEPS = 14, frames = [];
+  for (let step = 1; step <= STEPS; step++){
+    const t = step / STEPS, ang = 180 * t * Math.PI / 180;
+    frames.push(ds.map(d => {
+      const g = info[d.id];
+      const dir = { x:  g.v.x * Math.cos(ang) + g.v.y * Math.sin(ang),   // rotate visually anti-clockwise
+                    y: -g.v.x * Math.sin(ang) + g.v.y * Math.cos(ang) };
+      return { ...d, xy: { x: g.C.x + dir.x, y: g.C.y + dir.y }, face: g.face0 - t * sweep[d.id] };
+    }));
+  }
+  return frames;
+}
+
+/* ------------------------------ render ------------------------------ */
+const svg = document.getElementById('stage');
+const NS = 'http://www.w3.org/2000/svg';
+let nodes = {};
+
+function buildNodes(){
+  svg.innerHTML = '';
+  nodes = {};
+  // faint guide (circle or two lines)
+  if (layoutName === 'circle'){
+    const c = document.createElementNS(NS,'circle');
+    c.setAttribute('cx',CX); c.setAttribute('cy',CY); c.setAttribute('r',R_RING);
+    c.setAttribute('fill','none'); c.setAttribute('stroke','#2c3352'); c.setAttribute('stroke-dasharray','4 6');
+    svg.appendChild(c);
+  } else {
+    [CY-60, CY+60].forEach(y=>{
+      const l = document.createElementNS(NS,'line');
+      l.setAttribute('x1',60); l.setAttribute('x2',W-60); l.setAttribute('y1',y); l.setAttribute('y2',y);
+      l.setAttribute('stroke','#2c3352'); l.setAttribute('stroke-dasharray','4 6');
+      svg.appendChild(l);
+    });
+  }
+  dancers.forEach(d=>{
+    const g = document.createElementNS(NS,'g');
+    g.setAttribute('class','dancer');
+    g.style.transition = G_TRANS;
+    const arrowG = document.createElementNS(NS,'g');
+    arrowG.style.transition = ARROW_TRANS;
+    const arrow = document.createElementNS(NS,'path');
+    arrow.setAttribute('d','M 0 -3 L 22 -3 L 22 -7 L 30 0 L 22 7 L 22 3 L 0 3 Z');
+    arrow.setAttribute('fill', d.role==='L' ? '#ff7a59' : '#3fc6a0');
+    arrow.setAttribute('opacity','.55');
+    arrowG.appendChild(arrow);
+    const circ = document.createElementNS(NS,'circle');
+    circ.setAttribute('r',DOT_R);
+    circ.setAttribute('fill', d.role==='L' ? '#ff7a59' : '#3fc6a0');
+    circ.setAttribute('stroke','#0f1220'); circ.setAttribute('stroke-width','2');
+    const txt = document.createElementNS(NS,'text');
+    txt.setAttribute('text-anchor','middle'); txt.setAttribute('dy','5');
+    txt.setAttribute('font-size','15'); txt.setAttribute('font-weight','700');
+    txt.setAttribute('fill','#0f1220'); txt.textContent = d.couple + 1;
+    g.appendChild(arrowG); g.appendChild(circ); g.appendChild(txt);
+    svg.appendChild(g);
+    nodes[d.id] = { g, arrowG };
+  });
+}
+
+function resolveRot(cur, target, dir){
+  if (cur === undefined) return target;
+  if (dir === 'cw')  return cur + ((((target - cur) % 360) + 360) % 360);  // turn right (clockwise)
+  if (dir === 'ccw') return cur - ((((cur - target) % 360) + 360) % 360);  // turn left (anti-clockwise)
+  return cur + (((((target - cur) % 360) + 540) % 360) - 180);             // shortest way
+}
+function render(){
+  dancers.forEach(d=>{
+    const p = pos(d);
+    const n = nodes[d.id];
+    if (!n) return;
+    n.g.style.transform = `translate(${p.x}px,${p.y}px)`;
+    const target = facingAngle(d);
+    if (d.snapTurn){
+      n.rot = target;                              // rotate instantly, no tween...
+      const prev = n.arrowG.style.transition;
+      n.arrowG.style.transition = 'none';
+      n.arrowG.style.transform = `rotate(${n.rot}deg)`;
+      n.arrowG.getBoundingClientRect();            // ...force it to commit now...
+      n.arrowG.style.transition = prev;            // ...then restore whatever was active
+    } else {
+      n.rot = resolveRot(n.rot, target, d.turn);
+      n.arrowG.style.transform = `rotate(${n.rot}deg)`;
+    }
+  });
+  renderTable();
+}
+
+function renderTable(){
+  const tb = document.querySelector('#postable tbody');
+  tb.innerHTML = '';
+  for (let s=0; s<N; s++){
+    const L = dancers.find(d=>d.station===s && d.role==='L');
+    const F = dancers.find(d=>d.station===s && d.role==='F');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${s+1}</td>
+      <td><span class="pill L">C${L? L.couple+1:'–'}</span></td>
+      <td><span class="pill F">C${F? F.couple+1:'–'}</span></td>`;
+    tb.appendChild(tr);
+  }
+}
+
+/* ------------------------------ actions ------------------------------ */
+function doCall(key){
+  if (animating) return;
+  const call = CALLS[key];
+  const from = posState;
+  if (call.requires && !call.requires.includes(from)) return;   // can't do this call from here
+  history.push(dancers.map(d=>({...d})));
+  histPos.push(from);
+  stepCount++;
+  if (call.frames){
+    logLine(call.label);
+    if (call.sets) posState = (typeof call.sets === 'function') ? call.sets(from) : call.sets;
+    playFrames(call.frames(dancers, N, from), call.anim);
+  } else if (call.fn){
+    dancers = call.fn(dancers, N);
+    if (call.sets) posState = (typeof call.sets === 'function') ? call.sets(from) : call.sets;
+    logLine(call.label);
+    render(); updateButtons();
+  } else {
+    logLine(call.label, 'in place — no net move');
+    render(); updateButtons();
+  }
+}
+function updateButtons(){
+  Object.entries(CALLS).forEach(([key, c]) => {
+    const b = callButtons[key];
+    if (b) b.disabled = animating || (!!c.requires && !c.requires.includes(posState));
+  });
+  const pn = document.getElementById('posname');
+  if (pn) pn.textContent = POS_NAMES[posState] || '—';
+}
+// Continuous player: turns a list of keyframes into per-dancer position/rotation
+// timelines and animates them with requestAnimationFrame, so nothing relies on
+// interrupted CSS transitions (which caused jitter). Move-generation is unchanged.
+function playFrames(frames, opts = {}){
+  animating = true; updateButtons();
+  const F = frames.length;
+  const preMove = dancers;
+  const ids = preMove.map(d => d.id);
+  const byId = {}; preMove.forEach(d => byId[d.id] = d);
+  // Waypoint 0 = current state; waypoints 1..F = each keyframe.
+  const P = {}, ROT = {}, SNAP = {}, rprev = {};
+  ids.forEach(id => {
+    P[id] = [pos(byId[id])];
+    ROT[id] = [nodes[id] ? nodes[id].rot : facingAngle(byId[id])];
+    SNAP[id] = [false];
+    rprev[id] = ROT[id][0];
+  });
+  frames.forEach(fr => {
+    dancers = fr;                                   // so pos()/facingAngle() read this keyframe
+    fr.forEach(d => {
+      const target = facingAngle(d);
+      const r = d.snapTurn ? target : resolveRot(rprev[d.id], target, d.turn);
+      P[d.id].push(pos(d)); ROT[d.id].push(r); SNAP[d.id].push(!!d.snapTurn);
+      rprev[d.id] = r;
+    });
+  });
+  dancers = preMove;
+  const finalState = frames[F - 1].map(({ turn, snapTurn, ...rest }) => rest);
+  Object.values(nodes).forEach(n => { n.g.style.transition = 'none'; n.arrowG.style.transition = 'none'; });
+  // Constant-speed timeline: each segment lasts as long as the fastest dancer needs at
+  // a capped speed (translation and rotation), so nothing moves faster than trackable.
+  // Segments with no movement become a real pause.
+  const SPEED = opts.speed || 0.12, ROTSPEED = opts.rotSpeed || 0.55, HOLD = 66;   // px/ms, deg/ms, ms
+  const seg = [];
+  for (let i = 0; i < F; i++){
+    let tr = 0, ro = 0;
+    ids.forEach(id => {
+      const a = P[id][i], b = P[id][i + 1];
+      tr = Math.max(tr, Math.hypot(b.x - a.x, b.y - a.y));
+      if (!SNAP[id][i + 1]) ro = Math.max(ro, Math.abs(ROT[id][i + 1] - ROT[id][i]));
+    });
+    seg.push((tr < 0.5 && ro < 0.5) ? HOLD : Math.max(tr / SPEED, ro / ROTSPEED));
+  }
+  const cum = [0]; for (let i = 0; i < F; i++) cum.push(cum[i] + seg[i]);
+  const dur = Math.max(cum[F], 1);
+  let start = null;
+  const tick = now => {
+    if (start === null) start = now;
+    const el = Math.min(dur, now - start);
+    let sg = 0; while (sg < F - 1 && cum[sg + 1] <= el) sg++;
+    const span = cum[sg + 1] - cum[sg], lt = span > 0 ? (el - cum[sg]) / span : 1;
+    ids.forEach(id => {
+      const n = nodes[id]; if (!n) return;
+      const a = P[id][sg], b = P[id][sg + 1];
+      n.g.style.transform = `translate(${a.x + (b.x - a.x) * lt}px,${a.y + (b.y - a.y) * lt}px)`;
+      const ra = ROT[id][sg], rb = ROT[id][sg + 1];
+      n.rot = SNAP[id][sg + 1] ? rb : ra + (rb - ra) * lt;   // snapped turns jump at segment start
+      n.arrowG.style.transform = `rotate(${n.rot}deg)`;
+    });
+    if (el < dur) requestAnimationFrame(tick);
+    else {
+      dancers = finalState;
+      ids.forEach(id => { if (nodes[id]) nodes[id].rot = ROT[id][F]; });
+      Object.values(nodes).forEach(n => { n.g.style.transition = G_TRANS; n.arrowG.style.transition = ARROW_TRANS; });
+      animating = false;
+      updateButtons();
+    }
+  };
+  requestAnimationFrame(tick);
+}
+function undo(){
+  if (animating || !history.length) return;
+  dancers = history.pop();
+  if (histPos.length) posState = histPos.pop();
+  stepCount = Math.max(0, stepCount-1);
+  logLine('Undo', null, true);
+  render(); updateButtons();
+}
+function reset(){
+  computeWheel(N);
+  dancers = baseState(N);
+  history = []; histPos.length = 0; stepCount = 0; posState = 'casino';
+  document.getElementById('log').innerHTML = '';
+  buildNodes(); render(); updateButtons();
+}
+function logLine(move, note, undo=false){
+  const log = document.getElementById('log');
+  const div = document.createElement('div');
+  const n = undo ? '' : `<span class="step">${stepCount}.</span> `;
+  div.innerHTML = `${n}<span class="move">${move}</span>` + (note?` <span class="note">(${note})</span>`:'');
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+/* ------------------------------ wiring ------------------------------ */
+function buildCallButtons(){
+  const box = document.getElementById('calls');
+  box.innerHTML = '';
+  callButtons = {};
+  Object.entries(CALLS).forEach(([key,c])=>{
+    const b = document.createElement('button');
+    b.className = 'call' + (key==='guapea'?' primary':'');
+    b.textContent = c.label;
+    b.onclick = ()=>doCall(key);
+    b.onmouseenter = ()=>{ document.getElementById('calldesc').textContent = c.desc; };
+    box.appendChild(b);
+    callButtons[key] = b;
+  });
+  document.getElementById('calldesc').textContent = CALLS.dame.desc;
+}
+document.getElementById('couples').onchange = e=>{ N = +e.target.value; reset(); };
+document.getElementById('layout').onchange = e=>{ layoutName = e.target.value; dancers = dancers.map(({ xy, face, ...r }) => r); buildNodes(); render(); };
+document.getElementById('reset').onclick = reset;
+document.getElementById('undo').onclick = undo;
+
+buildCallButtons();
+reset();
+</script>
+</body>
+</html>
