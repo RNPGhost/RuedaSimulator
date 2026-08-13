@@ -51,6 +51,13 @@ couples." A single call names different movement behaviour for each group; the e
 group's dancers and runs the right movement for each. This replaces today's "one generator, rotated N
 times" model, which only expresses the fully-symmetric case.
 
+**The anchor is the cantante.** One leader is the *cantante* (the caller); the cantante and their partner
+are **always couple 1** for every call, and couples are numbered clockwise from them. So group predicates
+("even/odd from couple 1", …) are **positional** — resolved against the current arrangement relative to
+the cantante's spoke — and because progressions shuffle partners, the *dancer* who is "follower 1"
+(the cantante's current partner) changes constantly through the dance. The cantante leader is fixed; the
+numbering rotates with the formation around them.
+
 ### Timing & overlap (the beat timeline)
 
 The Rueda runs on a continuous 8-count; calls land on a "1". A call schedules its movements on an
@@ -61,10 +68,22 @@ The Rueda runs on a continuous 8-count; calls land on a "1". A call schedules it
 > that same "1", the **leaders** do their usual Dame progression starting on beat 7 — so the leaders' Dame
 > overlaps in time with the followers' still-running Mujeres Arriba progression.
 
-So the scheduler model is: a movement has a beat length and a start beat; different dancers' movements can
-overlap on the clock; the path engine must produce natural, collision-free motion **across whatever is
+So the scheduler model is: a movement has a **beat length** (variants may differ in length) and a **start
+beat** that need not be 1 (a 2-beat Dame starts on 7 to land at the end of 8); different dancers' movements
+can overlap on the clock; the path engine must produce natural, collision-free motion **across whatever is
 concurrently in flight**, not just within one movement. (Today: partial — `startBeatOf` already back-times
 a Dame so its closing Dile lands on beat 1.)
+
+**Concurrency invariant (confirmed):** at most **one movement per dancer** at a time. When two calls meet,
+exactly three things can happen:
+
+1. **Overlap** — the two movements are split leaders-vs-followers, so different dancers run concurrently
+   (Mujeres Arriba's follower progression overlapping the leaders' Dame). No dancer is ever double-booked.
+2. **Interrupt** — one movement interrupts another before it finishes.
+3. **Queue** — the next movement waits until the current one completes.
+
+Per-dancer timelines therefore never self-overlap; the engine's only cross-dancer job is collision-free
+paths over each beat window.
 
 ## Near-term milestones (before the overhaul)
 
@@ -111,14 +130,17 @@ The path engine is not a rewrite-from-zero; the pieces are accreting:
 
 ## Open questions (next round)
 
-- **Timeline granularity & the concurrency invariant.** Is the rule "at most one movement per *dancer* at
-  a time, but different dancers may overlap"? How is a movement's motion authored against a clock it might
-  share — does the path engine plan all concurrently-active movements *together* over each beat window?
-- **Group predicates.** What's the closed set of selectors (clockwise parity from an anchor, ring
-  membership, distance-from-centre, …)? Is the anchor/"start point" user-chosen per call?
+*Resolved:* concurrency invariant = one movement per dancer, three composition modes (overlap /
+interrupt / queue); anchor = the cantante (always couple 1), positional clockwise numbering; movements
+carry a length + start beat.
+
 - **Group hierarchy geometry.** Can a group's centre be an arbitrary point, or always a parent spoke
   position? How are inter-group clearances handled when groups scale independently?
 - **Variable passing widths.** What can the engine vary automatically (lane radius, dip depth, timing
   within a beat window) before it must ask the user to change a pass-side?
 - **Standard-movement library.** Which built-ins are canonical (Enchufla, Dile Que No, Vacilala, Adios,
   Exhibela, …), and are they themselves expressed in the same declarative model, or privileged code?
+- **Interrupt semantics.** When a movement interrupts another, does the interrupted movement snap to a
+  clean state, or blend? Which movements are interruptible, and at which beats?
+- **Path-editing UX.** How does the user see and adjust a path — toggle pass-sides on a rendered preview,
+  reorder passes, nudge a coarse waypoint?
