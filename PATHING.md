@@ -47,10 +47,23 @@ onto the midway spoke), so neither the leader dips to the inner lane nor do the 
 
 ## Follower path
 
-A follower is "being passed" only if she sits inside some leader's travel (that leader isn't her new
-one). A **passed** follower bows to the **outer** lane just far enough to clear, timed to be out of the
-way as her passing leader goes by, then returns to her line. **Followers who aren't passed never dip**
-— they travel straight to their own spot (e.g. in a Dame from Casino, no follower dips).
+A follower dips **only when she'd otherwise crowd a passing leader**, and only as much as she needs to.
+Detection is **clearance-based**: she is flagged for any non-partner leader whose path her *intended*
+(no-dip) line comes within the lane clearance of — this catches a leader's straight cut-in as he leaves a
+close old partner, which a purely angular "is she inside his sweep" test misses. **Followers who never
+crowd anyone never dip** (e.g. a Dame from Casino). Her dip is **distance-reactive** (she eases out as a
+passer approaches within the reaction band and is fully out by the lane clearance, so the bow covers the
+pass *wherever* it happens), and its **amplitude is solved**, not fixed:
+
+- The engine finds the **smallest dip that keeps her ≥ the lane clearance from every passer** across the
+  whole move (coarse scan, then bisect). Naturalness cost rises monotonically with dip depth, so
+  minimal-feasible is also the **calmest** — this is the metric's solver role, applied live.
+- She may bow **past** the nominal lane (amplitude > 1) when the geometry demands it — e.g. when the
+  leader leaving his old partner is still near the ring at the crossing, the lane alone leaves them ~33px
+  apart. She does a little more work; **no leader path changes**, so the fix stays confined to the
+  followers that would otherwise brush.
+- A stationary follower passed by **2+** leaders holds out on one plateau (no bobbing) as before.
+
 (Dame Pequeña from Exhibela: the otherwise-stationary follower dips out to make room for the leader
 passing inside her, then comes straight back to where she was.)
 

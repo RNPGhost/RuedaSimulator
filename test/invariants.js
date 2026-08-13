@@ -341,6 +341,35 @@ function run() {
     const sharp  = T.pathNaturalness(arc(t => bell(t, 0.82, 0.10)), null, base).cost;
     nChecks++; check(sharp > gentle && gentle > 0, `naturalness: late-sharp (${sharp.toFixed(2)}) should exceed gentle (${gentle.toFixed(2)}) > 0`);
   }
+  // (e) Guardrail: no follower's evasion should be violent. Every movement, from every valid position,
+  //     is scored evaded-vs-intended; the worst dip must stay under NAT_MAX (a runaway dodge = a bug).
+  const NAT_MAX = 1.8;
+  for (const key of T.keys().movements) {
+    for (const from of POSITIONS) {
+      if (!T.validFrom(key, from)) continue;
+      for (const n of NS) {
+        const { ev, iv } = capPair(() => T.captureMovement(key, from, n, 0));
+        if (!ev || ev.length < 3) continue;
+        const w = diffNat(ev, iv);
+        nChecks++; check(w.cost <= NAT_MAX, `naturalness guardrail: ${key}|${from}|n${n} evasion too violent (cost ${w.cost.toFixed(2)} > ${NAT_MAX}, ${w.id})`);
+      }
+    }
+  }
+  // (f) The grande Dame-from-Exhibela brush fix: the Dame that closes each grande compound (run from the
+  //     Exhibela state, on the sparse outer ring) must clear the collision floor AND stay calm. This is
+  //     the case that motivated the solver — a plain from-rest capture never reproduces it.
+  for (const opener of ['enchufla_grande', 'adios_grande']) {
+    for (const n of NS) {
+      const run = () => T.captureLineaMovementFrom([opener], 'dame_grande', n);
+      const ev = run().frames; if (!ev) continue;
+      let minC = Infinity;
+      for (const f of ev) { const m = minPairDist(f); if (m < minC) minC = m; }
+      nChecks++; check(minC >= GAP, `grande brush: dame after ${opener} n${n} collides (minClear ${minC.toFixed(1)} < ${GAP})`);
+      T.setNoEvade(true); const iv = run().frames; T.setNoEvade(false);
+      const w = diffNat(ev, iv);
+      nChecks++; check(w.cost <= NAT_MAX, `grande brush: dame after ${opener} n${n} evasion too violent (cost ${w.cost.toFixed(2)} > ${NAT_MAX})`);
+    }
+  }
 
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');

@@ -963,49 +963,87 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
     else { const rS = _rad(g.S), rE = _rad(g.E);                                              // nobody to pass — go directly along the ring
       lAtId[id] = t => { const te = _smooth(t), a = g.aS + g.sweep * te, r = rS + (rE - rS) * te; return _polar(a, r); }; }
   });
-  // Follower base travel; she only dips if she's actually passed.
+  const shortA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  const WIN = 0.5;                                        // rad — angular window for the stationary hold-out plateau
+  const STEPS = 16;
+  // Evasion clearance target and reaction band. A follower keeps at least CLEAR_TGT (centre-distance)
+  // from every passing leader; she is fully out by the time an approaching leader is CLEAR_TGT away and
+  // starts easing out at REACT_FAR — a *distance* trigger, so the dip covers the pass wherever it
+  // actually happens (including a leader's straight cut-in near his new partner, which an angle-only
+  // trigger misses — the sparse-outer-ring brush).
+  const CLEAR_FLR = 2 * (DOT_R + 1);                      // hard collision floor (matches the test GAP)
+  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);             // aim: the lane-to-lane clearance
+  const REACT_FAR = CLEAR_TGT + 1.4 * DOT_R;              // start easing out this far from a passer
+  // Follower kinematics + who might pass her (start from the angular set, then add anyone her intended
+  // path actually crowds — that is what catches the brush).
   const fPar = {};
   ds.forEach(d => { if (d.role !== 'F') return; const g = fInfo[d.id];
     const sweepB = directedSweep(_ang(g.S), _ang(g.E), fDelta * Math.PI / N);
-    const passers = passedBy[d.id];
-    // A follower who doesn't travel angularly but is passed by 2+ leaders holds out on the far lane
-    // for the whole run rather than bobbing back between each passer. A progressing follower dips per
-    // passer so she can ride her own line between them.
-    const holdOut = Math.abs(sweepB) < 1e-6 && passers.length >= 2;
-    fPar[d.id] = { aS: _ang(g.S), rS: _rad(g.S), rE: _rad(g.E), dips: passedFol.has(d.id),
-      sweepB, holdOut, passers };
+    fPar[d.id] = { aS: _ang(g.S), rS: _rad(g.S), rE: _rad(g.E), sweepB,
+      newLeader: newLeaderOf[g.newStation], passers: passedBy[d.id].slice(), scale: 1 };
   });
-  const shortA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
-  const WIN = 0.5;                                        // rad — how near (angularly) a leader must be to dip the follower
-  const STEPS = 16, frames = [];
+  const folBase = (g, t) => { const te = _smooth(t); return { aB: g.aS + g.sweepB * te, rB: g.rS + (g.rE - g.rS) * te }; };
+  const endEnvAt = t => _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08));   // 0 at both ends so the landing stays exact
+  // Leader positions sampled finely (for detection + the dip solver), and at the render frames.
+  const NSMP = 40, smpT = [];
+  for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
+  const Lsmp = smpT.map(t => { const P = {}; leaderIds.forEach(id => P[id] = lAtId[id](t)); return P; });
+  // Add clearance-detected passers: any leader (not her new partner) her *intended* path crowds.
+  followerIds.forEach(id => { const g = fPar[id], have = new Set(g.passers);
+    for (let s = 0; s < NSMP; s++){ const { aB, rB } = folBase(g, smpT[s]); const fx = _polar(aB, rB);
+      leaderIds.forEach(lid => { if (lid === g.newLeader || have.has(lid)) return;
+        if (Math.hypot(Lsmp[s][lid].x - fx.x, Lsmp[s][lid].y - fx.y) < CLEAR_TGT){ g.passers.push(lid); have.add(lid); }
+      });
+    }
+    g.dips = g.passers.length > 0;
+    g.holdOut = Math.abs(g.sweepB) < 1e-6 && g.passers.length >= 2;   // stationary, 2+ passers: one plateau, no bobbing
+  });
+  // Reactive dip shape in [0,1]: 1 when a passer sits at CLEAR_TGT (fully out), 0 at REACT_FAR.
+  const proxAt = (g, t, Lpos) => {
+    if (!g.dips) return 0;
+    const { aB, rB } = folBase(g, t), fx = _polar(aB, rB);
+    if (g.holdOut){
+      let leadS = -Infinity, tailS = Infinity;
+      g.passers.forEach(lid => { const sgn = Math.sign(lInfo[lid].sweep) * shortA(_ang(Lpos[lid]) - aB);
+        if (sgn > leadS) leadS = sgn; if (sgn < tailS) tailS = sgn; });
+      const rise = _smooth(Math.max(0, Math.min(1, (leadS + 2 * WIN) / WIN)));
+      const fall = 1 - _smooth(Math.max(0, Math.min(1, (tailS - WIN) / WIN)));
+      return Math.min(rise, fall);
+    }
+    let prox = 0;
+    g.passers.forEach(lid => { const d = Math.hypot(Lpos[lid].x - fx.x, Lpos[lid].y - fx.y);
+      const p = _smooth(Math.max(0, Math.min(1, (REACT_FAR - d) / (REACT_FAR - CLEAR_TGT))));
+      if (p > prox) prox = p; });
+    return prox;
+  };
+  const folPoint = (g, t, Lpos, scale) => { const { aB, rB } = folBase(g, t);
+    return _polar(aB, rB + scale * proxAt(g, t, Lpos) * endEnvAt(t) * (folDipR - rB)); };
+  // Solve each dipping follower's amplitude: the *smallest* scale that keeps her ≥ CLEAR_TGT from every
+  // passer across the whole move (the calmest dip that still clears). Naturalness rises monotonically
+  // with scale, so minimal-feasible = minimal-cost. Saturates at 1 if geometry can't reach the target.
+  const worstClear = (g, scale) => { let m = Infinity;
+    for (let s = 0; s < NSMP; s++){ const p = folPoint(g, smpT[s], Lsmp[s], scale);
+      g.passers.forEach(lid => { const d = Math.hypot(Lsmp[s][lid].x - p.x, Lsmp[s][lid].y - p.y); if (d < m) m = d; }); }
+    return m; };
+  // Dip amplitude 1 rides the nominal lane; when leaving a close old partner the leader is still near
+  // the ring at the crossing, so the lane alone can leave them ~33px apart. We let her dip *past* the
+  // lane (scale up to MAX_SCALE) — she does a little more work to clear — which keeps every leader path
+  // and every already-clearing follower untouched, and confines the change to the followers that brush.
+  const MAX_SCALE = 2.6, SCAN = 0.1;
+  followerIds.forEach(id => { const g = fPar[id]; if (!g.dips){ g.scale = 0; return; }
+    let pass = null;                                                      // coarse scan up for the first scale that clears
+    for (let sc = 0; sc <= MAX_SCALE + 1e-9; sc += SCAN){ if (worstClear(g, sc) >= CLEAR_TGT){ pass = sc; break; } }
+    if (pass === null){ g.scale = MAX_SCALE; return; }                    // best effort; the collision test flags any residue
+    let lo = Math.max(0, pass - SCAN), hi = pass;                         // refine down to the minimal clearing amplitude
+    for (let it = 0; it < 10; it++){ const mid = (lo + hi) / 2; if (worstClear(g, mid) >= CLEAR_TGT) hi = mid; else lo = mid; }
+    g.scale = hi;
+  });
+  // Render.
+  const frames = [];
   for (let s = 1; s <= STEPS; s++){
-    const t = s / STEPS, te = _smooth(t), P = {};
+    const t = s / STEPS, P = {};
     leaderIds.forEach(id => P[id] = lAtId[id](t));
-    // followers dip out (or in, afuera) in response to where the passing leaders actually are now
-    const endEnv = _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08));   // 0 at both ends so the landing stays exact
-    followerIds.forEach(id => { const g = fPar[id];
-      const aB = g.aS + g.sweepB * te, rB = g.rS + (g.rE - g.rS) * te;
-      let prox = 0;
-      if (g.dips) {
-        if (g.holdOut) {
-          // Stationary follower with 2+ passers: rise onto the far lane as the first leader approaches
-          // and stay there until the last has cleared — one plateau, no bobbing between passes.
-          // `s` is each passer's signed angular progress relative to her, in that leader's travel sense:
-          // s<0 approaching, s≈0 passing, s>0 gone. Rise tracks the front-runner, fall the straggler.
-          let leadS = -Infinity, tailS = Infinity;
-          g.passers.forEach(lid => { const s = Math.sign(lInfo[lid].sweep) * shortA(_ang(P[lid]) - aB);
-            if (s > leadS) leadS = s; if (s < tailS) tailS = s; });
-          // Fully out one WIN-angle BEFORE the front-runner reaches her; stay out until the straggler
-          // is one WIN-angle PAST her — so she never shares the line with a passing leader.
-          const rise = _smooth(Math.max(0, Math.min(1, (leadS + 2 * WIN) / WIN)));
-          const fall = 1 - _smooth(Math.max(0, Math.min(1, (tailS - WIN) / WIN)));
-          prox = Math.min(rise, fall);
-        } else {
-          g.passers.forEach(lid => { const p = Math.exp(-((shortA(_ang(P[lid]) - aB) / WIN) ** 2)); if (p > prox) prox = p; });
-        }
-      }
-      P[id] = _polar(aB, rB + (NAT_NOEVADE ? 0 : prox) * endEnv * (folDipR - rB));
-    });
+    followerIds.forEach(id => { const g = fPar[id]; P[id] = folPoint(g, t, P, NAT_NOEVADE ? 0 : g.scale); });
     frames.push(ds.map(d => {
       if (d.role === 'F'){ const g = fInfo[d.id], nl = newLeaderOf[g.newStation], nlp = nl ? P[nl] : null;
         const face = nlp ? Math.atan2(nlp.y - P[d.id].y, nlp.x - P[d.id].x) * 180 / Math.PI : g.face0;

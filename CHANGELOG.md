@@ -3,6 +3,26 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v95 — Universal Dame evasion solver (fixes the grande Dame-from-Exhibela brush)
+- **The follower dip is now solved, not hard-coded.** In `dameToEnchufla` the old "passed followers bow
+  to the full lane" rule is replaced by: (1) **clearance-based detection** — a follower is flagged if her
+  *intended* path comes within the lane clearance of any non-partner leader (the old angular test missed
+  the leader's straight cut-in as he leaves a close old partner, which is what brushed on the sparse outer
+  ring); (2) a **minimal-amplitude solver** — for each flagged follower, a coarse-scan-then-bisect finds
+  the *smallest* dip that keeps her ≥ the lane clearance from every passer across the whole move.
+  Naturalness rises monotonically with dip depth, so minimal-feasible = calmest (the metric's solver role).
+- **She may dip *past* the nominal lane when needed** (scale up to 2.6). When a leader leaves his old
+  partner he is still near the ring at the crossing, so the lane alone left them ~33px apart; letting the
+  follower do a little more work clears it **without touching any leader path** — so every leader path and
+  every already-clearing follower is untouched, and the change is confined to the followers that brushed.
+- **Result:** the Dame that closes each grande compound (Enchufla/Adios/Adios Hermana/La Familia Grande),
+  run from Exhibela, now clears at **≥42.9px** (was 33.4–36.5) against the 42px floor, at naturalness
+  ≤1.26. Every collision, occupancy, grid-exact and facing invariant still holds (727 checks).
+- **Guardrails added** (invariants §18e/§18f): every movement's worst evasion must stay under NAT_MAX=1.8,
+  and the grande brush cases must clear the floor *and* stay calm — locking the fix and catching any future
+  runaway dodge. Golden re-baselined: only `dame|exhibela` at n4/n6 shifted (sub-pixel dip refinements);
+  all other cases byte-identical. 12 visual scenes unchanged.
+
 ## v94 — Path-naturalness metric (solver objective + guardrail)
 - **New `pathNaturalness(pts, dts, baseline)`** — one number for how *unnatural* a dancer's evasion
   feels, built to drive the upcoming universal Dame-dip fix. It scores the **evasion residual**
