@@ -1,0 +1,408 @@
+# Calling — rules and engine
+
+This document describes how **calls** and **movements** work in the simulator, and the rules
+the engine follows when it plays a call out. It's the reference to reapply whenever we add a
+new movement or a new call, so the behaviour stays consistent. It should be kept in step with
+the code in `index.html` (the `MOVEMENTS` registry, the `CALLS` registry, and the call engine).
+
+## Two concepts: movements and calls
+
+A **movement** is a physical figure — a specific set of paths and orientations that changes the
+wheel from one standard position to another (or leaves it where it was). Movements are the
+things that are actually animated. They are defined once and reused. Examples: the Dame
+movement, the Dile Que No movement, the Enchufla movement.
+
+A **call** is a word (or short phrase) the caller shouts. A call does not itself move anyone;
+it *indicates a movement or a sequence of movements*. Crucially, the same call can indicate
+different movements depending on the position the dancers are in when it's called. Examples:
+Dame, Enchufla, con Exhibela.
+
+The interface reflects this split: a **Movements** panel fires any single movement on its own
+(for testing), and a **Calls** panel issues calls, which the engine plays out with the rules
+below.
+
+## Positions
+
+There are two standard on-ring positions, each with the partners facing each other:
+
+- **Casino** — leader on the anti-clockwise side, follower on the clockwise side. This is the
+  resting position; a call normally starts from here.
+- **Exhibela** — the mirror of Casino (leader clockwise, follower anti-clockwise).
+
+In the code the position state is `posState`, whose values are `'casino'`, `'exhibela'`,
+`'afuera'`, `'afuera_exhibela'`, and `'dile'`. Each entry in the `POSITIONS` table records its
+`variant` (casino ↔ exhibela stance), `inverted` (afuera) flag, and UI `name`.
+
+A given Exhibela can be **transient** (the dancers are only passing through it on the way back
+to Casino) or, in principle, **resting/permanent** (a move deliberately parks them there). By
+default every Exhibela is treated as transient. No movement currently declares a permanent
+Exhibela; if one ever should, that's an explicit property to add.
+
+- **Dile Que No position** (`posState === 'dile'`) — a **resting** position that is neither
+  Casino nor Exhibela: both partners sit on the couple's **midpoint spoke**, the leader on the
+  **outer** lane (just outside the ring) facing the centre, the follower on the **inner** lane
+  (just inside the ring) facing perpendicular to the spoke (clockwise round the wheel). You enter
+  it with the **4-beat Dile Que No** (`dile4`) from Exhibela. It does not default to anything — the
+  wheel rests here until the next movement (e.g. **Mujeres Arriba**) is called. It uses the
+  formation's `outer`/`inner` lanes, so `pos()` and grid-exactness work through `slot()` as usual.
+
+- **Afuera Casino** (`posState === 'afuera'`) — a **resting** position that *looks* exactly like
+  Exhibela (leader clockwise, follower anti-clockwise, on the ring) but **behaves like an
+  inside-out Casino**. You enter it with the **Enchufla Afuera** call. It is not transient, so it
+  does **not** default to a Dile Que No — the wheel stays afuera until an un-flip move is called
+  (to be defined later). All calls possible from Casino are meant to be possible from Afuera
+  Casino too, but danced **inverted** (see below).
+
+### The afuera inversion (contract — entry built, inverted moves pending)
+
+When the wheel is afuera, every figure is the **same figure point-reflected (180°), not
+mirrored** — handedness is preserved. Concretely, relative to the normal version:
+
+- **Progression flips.** A move that would take the leader to the next partner *anti-clockwise*
+  instead takes him *clockwise*, and vice versa (in code, the progression `k → −k`).
+- **Inside ↔ outside flips.** Anywhere a figure steps toward the centre it now steps outward, and
+  vice versa (the couple starts offset 180° because afuera looks like Exhibela).
+- **Spins keep their direction.** An afuera Enchufla still rotates the couple clockwise, the
+  follower still turns to her left — individual turn directions are unchanged. (This is what makes
+  it an inversion, not a mirror.)
+
+There are **two afuera positions**, mirroring the normal pair: `'afuera'` (**Afuera Casino**, looks
+like Exhibela, behaves like Casino, a resting position) and `'afuera_enchufla'` (**Afuera
+Exhibela**, looks like Casino, behaves like a transient Exhibela). `virtualPos()` maps each afuera
+position to the normal one whose rules it follows, so the engine (validity, defaults, `sets`) reuses
+all the normal logic.
+
+**How it's implemented.** In-couple figures (Enchufla, Adios, Vacilala, Reverse/Leader's Enchufla,
+Exhibela, Dile Que No) are inverted **generically** by `afueraFrames()`: it runs the normal
+generator on a per-couple **180° point-reflection** of the wheel (about each couple's midpoint), then
+reflects the frames back (+180° to facings). Because a 180° rotation preserves handedness, spins keep
+direction while inside↔outside and the Casino↔Exhibela look both flip — exactly the contract above,
+and exact to the pixel (an afuera Enchufla is the normal Enchufla point-reflected).
+
+**Progressing figures.** Dame and Dame Dos handle afuera inside `dameToEnchufla` via an `afuera`
+flag: it reverses the progression (`k → −k`, so the leader goes to the couple *clockwise*) and ends
+him on the opposite side of his new follower; the steering and facings read live positions, so they
+adapt automatically. Verified: the leader progresses clockwise, every couple ends at the right width
+facing correctly, and it's collision-free at 4/6/8 couples (the Dame Dos steering cap was raised so
+the tighter afuera path still clears).
+
+**Calls.** All Casino calls now run from **Afuera Casino** too (gating maps through `virtualPos`), so
+Dame, Enchufla, Setenta, the Adios family, La Familia, etc. all work afuera and loop back to Afuera
+Casino, progressing the wheel *clockwise*.
+
+**Compounds.** The **Dile Que No y Dame / Dame Dos** compounds now invert too (`dileQueNoYDame`
+takes an `afuera` flag: progression `k → −k`, inside↔outside swapped for the gather and the
+follower's circle, leader faces away from centre on the pause). So merging a Dame into a pending Dile
+Que No works while afuera — including calling several Dames in a row.
+
+**Afuera / Adentro (relabel moves).** Two 0-beat, no-animation movements flip the wheel's frame in
+place (the dots don't move): **Afuera** turns Casino → Afuera Exhibela and Exhibela → Afuera Casino;
+**Adentro** is the inverse (Afuera Casino → Exhibela, Afuera Exhibela → Casino). They cross between
+the normal and afuera frames, so they match their raw `requires` (flagged `relabel: true`), and
+`playMovement` finalises them instantly. **Enchufla Afuera** is now `enchufla → leader's right turn →
+afuera`; the new **Enchufla Adentro** (callable only from Afuera Casino) is `enchufla → leader's
+right turn → adentro`, un-flipping the wheel back to normal Casino.
+
+**Status.** The afuera world is complete: enter with Enchufla Afuera, dance any call inside-out
+(progressing clockwise), and leave with Enchufla Adentro.
+
+### Spoke configs (phase)
+
+The couples' **midpoint spokes** always rest on exactly one of **two configurations**, tracked by a
+global `phase` (0 or 1). Phase 0 is the base grid (spokes at `-90 + station·360/N`); phase 1 is
+offset by **half a couple-spacing** (`+180/N`), so each phase-1 spoke sits exactly halfway between
+phase-0 spokes. `LAYOUTS.circle` bakes the phase into every rest position, so nothing drifts.
+
+A **single Dame** (odd progression) **flips the phase**: the leader and follower travel *toward each
+other* and meet at the spoke midway between their two old couples (the other config). A **Dame Dos**
+(even progression) keeps the phase — the leader travels the full two couples to the follower's spoke.
+In-couple figures (Enchufla, Dile Que No, …) keep the couple on its spoke, so they never change
+phase. Afuera mirrors all of this (the follower progresses the other way). *(Status: the plain Dame /
+Dame Dos are on this model and land exactly on the grid; the Dile Que No y Dame **compounds** are not
+yet reworked onto it — that's the next step.)*
+
+### The Exhibela line
+
+Each dancer has an **Exhibela line**: the line through the centre of that dancer, parallel to
+the line joining the couple's **midpoint** (the point directly between the leader and follower)
+to the **centre of the wheel**. Because the partners sit symmetrically on the ring, that
+midpoint→centre line is radial, so each dancer's Exhibela line is (very nearly) radial —
+equivalently, perpendicular to the line joining the two partners. Several figures keep a dancer
+travelling along their Exhibela line: the Exhibela movement, and the opening of the Dile Que No.
+(This definition assumes the couple starts in a standard on-ring Exhibela; if a figure begins
+from a different orientation the line is still "through the dancer, parallel to the couple
+midpoint→centre line," but the inward/outward sense may differ.)
+
+### The midpoint spoke
+
+The **midpoint spoke** is the single radial line from the **centre of the wheel** through the
+couple's **start midpoint** (the point directly between the leader and follower at the start of
+the move). Unlike the two Exhibela lines (one through each dancer, parallel to this and offset to
+either side), the midpoint spoke is the shared centre line between the partners. Both dancers'
+Exhibela lines are parallel to it. Dile Que No y Dame uses it: on beat 3 both partners step off
+their own Exhibela lines onto the midpoint spoke.
+
+## The core default rule
+
+> Unless a movement explicitly leaves the wheel in a resting Exhibela, any time the dancers
+> reach a (transient) Exhibela with nothing else called, they default to a **Dile Que No**,
+> which returns them to Casino.
+
+This is why a call's sequence usually does **not** list the trailing Dile Que No — it happens
+automatically. So:
+
+- The **Dame** call = the Dame movement, then (by the default rule) a Dile Que No. Net: the
+  leader progresses one couple and the wheel returns to Casino.
+- The **Enchufla** call = the Enchufla movement, then a Dame movement, then (by the default
+  rule) a Dile Que No.
+
+At Casino with nothing queued, the default is simply to **rest** and wait for the next call.
+
+## Rueda Línea Moderna (second formation)
+
+Selected from the layout dropdown (even couple counts only). The wheel becomes **two concentric
+rings** sharing `m = N/2` spokes: the **inner** ring is a proper m-couple rueda in **Afuera Casino**;
+each **outer** couple sits on the same spoke, one exact 2-couple-wheel further out, so every
+inner+outer pair forms a perfect little **pequeña** wheel. Couples are numbered clockwise, inner
+1,3,5… and outer 2,4,6…, with couple 1 & 2 sharing the first spoke. Resting `posState` is `linea`;
+the two spoke configs (phase) work exactly as in the circle.
+
+Calls compose the existing circle figures via the **wheel-context seam** (`runOnWheel`), so no new
+choreography is written — only how the dancers are grouped:
+
+- **Grande calls** (`grandeFrames`): the whole outer ring dances the figure as a normal m-couple
+  rueda and the whole inner ring dances the **afuera** version, at the same time and in lockstep.
+  They flip the shared phase iff the underlying figure does (Dame yes, Enchufla no), and both rings
+  land on the offset config so they stay spoke-aligned. Transient state `linea_ex`; the default close
+  is **Dile Que No Grande**. Live: *Dame Grande*, *Enchufla Grande*.
+- **Pequeña calls** (`pequenaFrames`): the wheel is treated as `m` little 2-couple ruedas (one
+  inner+outer pair each). Both couples are plain Casino inside the mini-wheel (the inner couple's
+  afuera look is the 180° flip the mini-centre already provides). Every **Dame → Dame Pequeña**, so
+  there's **no phase change**; personnel rotate but the ring slots stay put — after an Enchufla
+  Pequeña the outer leader is the new inner leader. Transient state `linea_pex`; the default close is
+  **Dile Que No Pequeña**. Live: *Dame Pequeña*, *Enchufla Pequeña*.
+
+The geometry lives in `FORMATIONS.linea` (`compute` derives the inner/outer radii + within-couple
+angles; `slot` places a dancer; `miniCenter` gives each pequeña wheel's centre). Circle calls/movements
+gate off while in Línea, and vice versa.
+
+## Decision points, queue, and the two modes
+
+As a call plays, the engine keeps a **queue** of the movements still to run for the current
+call. After each movement finishes, the engine reaches a **decision point**: it works out what
+would happen next — the next queued movement, or (if the queue is empty) the position default
+(Dile Que No at a transient Exhibela, rest at Casino).
+
+There are two **modes** for how decision points are resolved:
+
+- **Live** — the sequence flows through automatically. You can issue further calls at any
+  time; a diverting call (con Exhibela) takes effect at the next **interruption point** (see
+  below), not immediately. This mirrors how a caller shouts a call a measure ahead, and is
+  meant for practising calling.
+- **Step** — the engine pauses at each **interruption point** and waits. You either make a
+  call (overriding the default) or stay **silent**, which takes the default. Committed
+  junctures in between play through automatically. This is for stepping through each branch.
+
+Note the first movement of a call you have just issued runs immediately (you already made that
+call); the pausing/diverting applies to the interruption points that follow.
+
+## Interruption points
+
+Interrupting calls don't happen just anywhere in the middle of a movement chain. They take
+effect only at **interruption points**: the junctures right **before a Dame** or right
+**before a Dile Que No**. Everywhere else the chain is *committed* and simply runs through.
+
+Concretely, a decision point is an interruption point when the movement about to run is a Dame
+(`dame` / `dame_dos`) or a Dile Que No (`dile`) — see the `INTERRUPTIBLE` set in the code. In
+Live mode a diverting call is held until the next such point; in Step mode the engine pauses
+only at these points. In between, committed movements play automatically.
+
+Example — the **Setenta** call from Casino is `Vacilala → Adios → Enchufla → Leader's Enchufla
+→ Enchufla`, then (by default) a Dile Que No. The dancers pass through Exhibela several times,
+but none of those are before a Dame, and the only Dile Que No is the closing default — so the
+whole chain has exactly **one** interruption point, right before that closing Dile Que No. A
+con Exhibela called at any point during Setenta therefore lands its Exhibela movement after the
+last Enchufla and before the Dile Que No, wherever in the chain it was actually shouted.
+
+## Interrupts: adding to vs forgetting
+
+A call issued while a sequence is already running can either **add to** it or **divert** it:
+
+- **Adding to** (a normal call queued in Live mode) appends its movements after the current
+  ones.
+- **Diverting** (a modifier such as *con Exhibela*) replaces the pending plan. The rest of the
+  interrupted call is **forgotten**.
+
+Worked example — **Enchufla, interrupted by con Exhibela**: the Enchufla call plans
+`enchufla → dame → (default) dile`. If con Exhibela is called before the dancers reach Exhibela,
+then when they arrive (after the Enchufla movement) they do an **Exhibela** movement instead of
+the Dame. After the Exhibela they are back in Exhibela with **no plan left** — the Enchufla's
+Dame has been forgotten — so silence defaults to a **Dile Que No** back to Casino. The net
+sequence is `enchufla → exhibela → dile`, and the leader does not progress.
+
+In the code, *con Exhibela* is implemented by setting the queue to `['exhibela']` (replacing
+whatever was pending), not by prepending to it.
+
+**Dame / Dame Dos over a pending Dile Que No.** If a Dame (or Dame Dos) is called when the next
+movement would be a Dile Que No, the two **merge**: instead of a plain Dile Que No the dancers
+do a **Dile Que No y Dame** (or **Dile Que No y Dame Dos**) — the compound figure that opens
+like a Dile Que No but turns it into a progression. In Live mode the Dame is held (like con
+Exhibela) until the next Dile Que No point; in Step mode, call it at the pause whose default is a
+Dile Que No. (So during an Enchufla — `enchufla → dame → dile` — a Dame gives
+`enchufla → dame → dile_dame → dile`.)
+
+## Timing (beats)
+
+Movements are timed in **beats** (salsa is counted in 8-beat measures). Each movement declares a
+`beats` value — a number, or a function of the starting position. A movement plays over
+`beats × ms-per-beat`; the tempo (ms-per-beat) is set by the speed slider (0.2× … 1× … 2× of a
+base tempo). So beats give the *relative* timing between movements and the slider sets the
+absolute tempo.
+
+Most movements distribute their beats internally in proportion to how far each part moves
+(constant-speed pacing, scaled to the total). A movement that needs specific internal timing
+returns `{ frames, segBeats }` from its frames function instead of a bare array, where
+`segBeats[i]` is the beats for segment *i* and the array sums to the movement's `beats`:
+
+- **Exhibela** — 8 beats: each of its 4 stages takes 2 beats (out-and-back over the first 4
+  beats, the other out-and-back over the last 4).
+- **Dile Que No** — 8 beats: 1 beat for the step off the ring, 1 back, 1 to finish the
+  Exhibela-line moves, a 1-beat pause, then 4 beats for the closing orbit.
+- **Dile Que No y Dame / Dame Dos** — 8 beats. Beats 1–4 are the **first 4 beats of a plain Dile
+  Que No** (out along the Exhibela line and back), then on **beat 3 both partners move onto the
+  midpoint spoke** and pause on 4, landing **equidistant either side of where the spoke meets the
+  ring** — follower just inside, leader just outside, spaced far enough apart not to collide (they
+  approach the spoke during beat 3, so the spacing is set by that approach, not just the pause).
+  The follower faces perpendicular to the spoke (≈ clockwise), the leader faces the centre. Beats
+  5–8: the leader heads **straight for the Exhibela spot beside the follower one couple (two for
+  Dame Dos) anti-clockwise**, facing her, adding a **single gentle arc only if needed** to stay
+  clear — he bows to his right, so every leader keeps to the right of the others (they all bow
+  together and never meet) and to the left of the followers they pass. For one couple he goes dead
+  straight; even two couples is a slight bow, except the 4-couple Dame Dos (a straight swap to the
+  opposite side) which needs a larger — but still single, smooth — arc. Meanwhile the follower
+  walks **~¾ of a circle** through her spoke point, its mirror the same depth just outside the
+  ring, and back to her own spot, facing her travel direction then turning to her new leader.
+
+Beat counts so far:
+
+| Movement | Beats |
+|----------|-------|
+| Dame (from Casino) | 2 |
+| Dame (from Exhibela) | 4 |
+| Dame Dos | 4 |
+| Enchufla, Vacilala, Adios, Reverse Enchufla, Leader's Enchufla | 4 |
+| Exhibela | 8 (4 + 4) |
+| Dile Que No | 8 (1 + 1 + 1 + 1 pause + 4) |
+| Dile Que No y Dame / Dame Dos | 8 (first 4 of the Dile Que No + 4 for the progression) |
+
+## Measure placement (start beats)
+
+As well as how long a movement lasts, the engine tracks **where in the 8-beat measure we are**
+— a beat cursor, shown large over the stage (with an 8-pip strip). It **free-runs like a
+metronome**: the beat keeps advancing in real time even when idle, and movements sync to it. So
+a call issued mid-beat waits (holding on the spot) until its start beat comes around. (The base
+tempo is 400 ms/beat at the 1× slider position; the slider scales it 0.2×…2×.)
+
+- **Almost all calls start their first movement on beat 1.** After a call the dancers finish
+  their current movement (or keep holding on the spot) until the next 1, then begin.
+- **Casino Dames are back-loaded** to end on beat 8, ready for a Dile Que No on the next 1:
+  **Dame from Casino starts on beat 7** (2 beats → 7–8) and **Dame Dos from Casino starts on
+  beat 5** (4 beats → 5–8). (Dame Dos from Casino is rare.)
+- **Mid-chain movements run contiguously** — in Enchufla the Enchufla is beats 1–4 and the Dame
+  is 5–8. The **auto-default Dile Que No snaps to beat 1**, so a chain whose explicit moves end
+  mid-measure (Setenta ends on beat 4) holds on the spot until the next 1, then does it.
+- **con is the exception to "keep completing the current move".** Because *con* means "with"
+  (dance the figure with your current partner), the Dame is **not** danced on 5–8; the dancers
+  hold on the spot until the next 1, then do the con figure. So a con during an Enchufla gives
+  `enchufla (1–4) → hold (5–8) → exhibela (next 1–8) → dile`.
+
+Start beats come from `startBeatOf(key, from)`; the lead-in hold before a snapped movement is a
+real timed hold in `playFrames`, and the beat cursor is rounded to whole beats each movement.
+
+The **Stop beat / Start beat** button freezes or restarts the metronome; restarting resets the
+count to beat 1 (useful for lining the simulator up with a track).
+
+## Data shapes (in `index.html`)
+
+A **movement** entry in `MOVEMENTS`:
+
+```
+key: {
+  label:    'Dame',                         // shown on the button / log
+  desc:     '…',                            // hover text
+  requires: ['casino', 'enchufla'],         // positions it can start from
+  sets:     'enchufla',                     // ending position; or a fn(from) => position
+  beats:    2,                              // duration in beats; or a fn(from) => beats
+  frames:   (ds, N, from) => …,             // keyframes, or { frames, segBeats } for explicit
+}                                            //   internal timing (segBeats[i] = beats of segment i)
+```
+
+A **call** entry in `CALLS`, one of three forms:
+
+```
+// a normal call: expands to a sequence of movement keys
+dame:     { label: 'Dame', desc: '…', from: ['casino'], seq: ['dame'] }
+
+// a modifier / divert (behaviour is special-cased in issueCall)
+con_exhibela: { label: 'con Exhibela', desc: '…', modifier: true }
+
+// a placeholder whose movements aren't defined yet
+setenta:  { label: 'Setenta', desc: '…', from: ['casino'], placeholder: true }
+```
+
+The engine functions to know: `nextMovement()` (what would happen next — queued, default, or
+nothing), `step()` (decision point: pause in Step, auto-continue in Live), `proceed()` (run the
+next movement now), `runMovement()` (animate one movement then reach the next decision point),
+`issueCall()` (expand a call / queue / divert), `takeDefault()` (silence).
+
+## How to add a new **movement**
+
+1. Write the geometry as a pure function `(ds, N, from) => frames`, where each frame is the
+   dancer list with `xy` / `face` (and optional `turn`, `snapTurn`). Reuse the existing helpers
+   and follow the established conventions (dots never overlap — keep centre-to-centre ≥ one dot
+   diameter; end exactly on the ring / at standard lanes where appropriate; verify endpoints and
+   clearances numerically before wiring it in).
+2. Add an entry to `MOVEMENTS` with `label`, `desc`, `requires`, `sets`, `frames`, and (if
+   needed) `anim`.
+3. It appears in the Movements panel automatically and can be fired on its own for testing.
+
+## How to add a new **call**
+
+1. Make sure every movement the call needs already exists in `MOVEMENTS`.
+2. Add an entry to `CALLS` with `label`, `desc`, `from` (the positions it can be called from),
+   and `seq` (the list of movement keys it expands to). **Do not** append the trailing Dile Que
+   No — the default rule adds it when the sequence lands in a transient Exhibela. List only the
+   movements the call explicitly performs.
+3. If the call is a **modifier/divert** (like con Exhibela), give it `modifier: true` and add
+   its divert behaviour to `issueCall` (currently con Exhibela is the only one; generalise the
+   special-case if we add more).
+4. If the call should leave the wheel resting in Exhibela rather than defaulting to Dile Que No,
+   that needs the "permanent Exhibela" concept, which isn't built yet — flag it when it comes up.
+
+## Current calls
+
+| Call | From | Expands to | Notes |
+|------|------|-----------|-------|
+| Dame | Casino | Dame → (default) Dile Que No | Progresses one couple; merges with a pending Dile Que No into a Dile Que No y Dame |
+| Dame Dos | Casino | Dame Dos → (default) Dile Que No | Progresses two couples; merges with a pending Dile Que No into a Dile Que No y Dame Dos |
+| Enchufla | Casino | Enchufla → Dame → (default) Dile Que No | |
+| Setenta | Casino | Vacilala → Adios → Enchufla → Leader's Enchufla → Enchufla → (default) Dile Que No | No change of partner; one interruption point, before the closing Dile Que No |
+| Adios | Casino | Adios → Dame → (default) Dile Que No | Progresses one couple |
+| Adios con la Hermana | Casino | Adios → Leader's Enchufla → Enchufla → Dame → (default) Dile Que No | Progresses one couple. **One full call despite the "con"** — not a con-Exhibela-style interrupt |
+| La Familia | Casino | Adios → Leader's Enchufla → Enchufla → Adios → Adios → Dame → (default) Dile Que No | Progresses one couple |
+| Enchufla Afuera | Casino | Enchufla → Leader's Right Turn → Afuera | Lands in **Afuera Casino** and rests there — no default Dile Que No |
+| Enchufla Adentro | Afuera Casino | Enchufla → Leader's Right Turn → Adentro | Un-flips the wheel back to normal **Casino** |
+| con Exhibela | (during a call) | diverts to an Exhibela at the next interruption point, forgetting the rest | Modifier / divert |
+
+The **Afuera** and **Adentro** movements (0-beat, no-animation frame flips) are also available on the
+Movements panel: Afuera from Casino/Exhibela, Adentro from either afuera position.
+
+## Open conventions / things to decide as we go
+
+- Which calls may start from Exhibela as well as Casino (currently Dame and Enchufla start only
+  from Casino).
+- Whether a non-modifier call issued mid-sequence should *add to* or *divert* (currently
+  non-modifiers add, only con Exhibela diverts).
+- Whether the interruption points should ever be anything other than "before a Dame" and
+  "before a Dile Que No" (that's the current `INTERRUPTIBLE` set).
+- Which, if any, movements/calls leave a **resting** (permanent) Exhibela.

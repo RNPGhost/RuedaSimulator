@@ -11,16 +11,46 @@
     --lead:#ff7a59; --follow:#3fc6a0; --stage:#12162a;
   }
   *{box-sizing:border-box}
+  html,body{height:100%}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-       background:var(--bg);color:var(--ink);}
-  header{padding:18px 24px;border-bottom:1px solid var(--line);}
-  header h1{margin:0;font-size:19px;font-weight:650;letter-spacing:.2px}
-  header p{margin:4px 0 0;color:var(--muted);font-size:13px}
-  .wrap{display:grid;grid-template-columns:1fr 320px;gap:0;min-height:calc(100vh - 76px)}
-  @media (max-width:880px){.wrap{grid-template-columns:1fr}}
-  .stagewrap{padding:20px;display:flex;flex-direction:column;gap:14px}
-  .stage{background:var(--stage);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  svg{display:block;width:100%;height:auto}
+       background:var(--bg);color:var(--ink);
+       height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+  header{padding:10px 20px;border-bottom:1px solid var(--line);flex:0 0 auto}
+  header h1{margin:0;font-size:17px;font-weight:650;letter-spacing:.2px}
+  header p{margin:3px 0 0;color:var(--muted);font-size:12px}
+  /* Full-viewport layout: stage flexes to fill; the Calls panel is always pinned/visible.
+     Landscape → Calls on the right; Portrait → Calls at the bottom. The page never scrolls. */
+  #app{flex:1 1 auto;min-height:0;display:flex}
+  .stagewrap{flex:1 1 auto;min-width:0;min-height:0;padding:12px 14px;
+             display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  .stage{flex:1 1 auto;min-height:0;background:var(--stage);border:1px solid var(--line);
+         border-radius:14px;overflow:hidden;position:relative}
+  svg{display:block;width:100%;height:100%}
+  .side{flex:0 0 340px;border-left:1px solid var(--line);background:var(--panel);
+        display:flex;flex-direction:column;min-height:0}
+  .calls-pin{flex:0 0 auto;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .side-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+  @media (orientation:portrait){
+    #app{flex-direction:column}
+    .side{flex:0 0 auto;max-height:42vh;border-left:none;border-top:1px solid var(--line)}
+    .calls-pin{border-bottom:1px solid var(--line)}
+    /* Trim vertical chrome so the wheel keeps as much height as possible. */
+    header p{display:none}
+    header{padding:8px 16px}
+    .stagewrap{padding:8px 10px;gap:6px}
+    .toolbar{gap:6px}
+    .toolbar label.ctl,.toolbar button,.toolbar select{font-size:12px}
+    .toolbar button{padding:6px 10px}
+    .modebar{margin:2px 0}
+  }
+  /* Short landscape screens (e.g. phone held sideways): trim vertical chrome so everything still fits. */
+  @media (orientation:landscape) and (max-height:560px){
+    header p{display:none}
+    header{padding:8px 16px}
+    .stagewrap{padding:8px 10px;gap:6px}
+    .toolbar button{padding:6px 10px}
+    .side{flex-basis:300px}
+  }
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .calls{display:flex;flex-wrap:wrap;gap:8px}
   button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
@@ -37,12 +67,11 @@
   select{font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
          padding:8px 10px;border-radius:10px}
   label.ctl{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
-  .side{border-left:1px solid var(--line);background:var(--panel);padding:18px;display:flex;flex-direction:column;gap:18px}
   .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
   .card h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
   .legend{display:flex;gap:16px;font-size:13px}
   .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
-  #log{max-height:150px;overflow:auto;font-size:13px;line-height:1.7}
+  #log{max-height:120px;overflow:auto;font-size:13px;line-height:1.6}
   #log .step{color:var(--muted)}
   #log .move{color:var(--ink);font-weight:600}
   #log .note{color:var(--muted);font-style:italic}
@@ -53,6 +82,31 @@
   .pill.L{background:rgba(255,122,89,.18);color:var(--lead)}
   .pill.F{background:rgba(63,198,160,.18);color:var(--follow)}
   .muted{color:var(--muted);font-size:12px;line-height:1.5}
+  .modebar{display:flex;align-items:center;gap:8px;margin:6px 0 2px}
+  .modebar .modelabel{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px}
+  .modebtn{padding:6px 12px;border-radius:8px;background:var(--panel2);font-size:13px}
+  .modebtn.active{background:var(--accent);color:#0b1020;border-color:var(--accent);font-weight:600}
+  .section{margin-top:12px}
+  .sectitle{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 7px}
+  .sectitle .hint{text-transform:none;letter-spacing:0;font-size:11px;opacity:.75}
+  .decision{margin:12px 0;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;
+            background:rgba(91,140,255,.08);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .decision .dtext{font-size:13px;color:var(--ink)}
+  button.silence{background:#2a3150}
+  .beatbig{position:absolute;top:6px;right:18px;font-size:72px;line-height:1;font-weight:800;
+           color:var(--accent);opacity:.92;font-variant-numeric:tabular-nums;pointer-events:none;
+           text-shadow:0 2px 14px rgba(0,0,0,.55)}
+  .nowplaying{position:absolute;top:12px;left:18px;font-size:15px;font-weight:600;color:var(--ink);
+              pointer-events:none;max-width:60%;text-shadow:0 2px 12px rgba(0,0,0,.55)}
+  .nowplaying .np-call{color:var(--accent)}
+  .nowplaying .np-move{color:var(--ink)}
+  #queueList .qmove{color:var(--ink);font-size:13px;line-height:1.7}
+  #queueList .qnum{color:var(--muted);font-size:12px}
+  #queueList .qempty{color:var(--muted);font-size:12px;font-style:italic}
+  .beatstrip{display:flex;justify-content:center;margin-top:2px}
+  .beatpips{display:flex;gap:8px}
+  .beatpips span{width:30px;height:9px;border-radius:5px;background:var(--line);transition:background .06s}
+  .beatpips span.on{background:var(--accent)}
 </style>
 </head>
 <body>
@@ -61,8 +115,8 @@
   <p>Step through calls and watch the formation change. Model is a first draft — meant to be corrected against the real dance.</p>
 </header>
 
-<div class="wrap">
-  <div class="stagewrap">
+<div id="app">
+  <main class="stagewrap">
     <div class="toolbar">
       <label class="ctl">Couples
         <select id="couples">
@@ -75,44 +129,74 @@
           <option value="linea">Línea Moderna</option>
         </select>
       </label>
+      <label class="ctl">Speed
+        <input type="range" id="speed" min="0" max="1" step="0.01" value="0.5" style="width:120px;vertical-align:middle">
+        <span id="speedval" class="muted">1.0×</span>
+      </label>
+      <button id="beatToggle" class="ghost">⏸ Stop beat</button>
       <button id="reset" class="ghost">Reset to base</button>
       <button id="undo" class="ghost">← Undo</button>
     </div>
 
     <div class="stage">
-      <svg id="stage" viewBox="0 0 720 520" preserveAspectRatio="xMidYMid meet"></svg>
+      <svg id="stage" viewBox="85 5 510 510" preserveAspectRatio="xMidYMid meet"></svg>
+      <div id="nowplaying" class="nowplaying"></div>
+      <div id="beatbig" class="beatbig">1</div>
     </div>
 
+    <div class="beatstrip"><div id="beatpips" class="beatpips"></div></div>
     <div class="posbar">Formation: <span id="posname" class="posname">Casino position</span></div>
-    <div class="calls" id="calls"></div>
-  </div>
+
+    <div class="modebar">
+      <span class="modelabel">Mode</span>
+      <button id="modeLive" class="modebtn">Live · queue calls</button>
+      <button id="modeStep" class="modebtn">Step · pause for calls</button>
+    </div>
+
+    <div id="decision" class="decision" style="display:none">
+      <span class="dtext" id="decisionText"></span>
+      <button id="silenceBtn" class="silence">Silence</button>
+    </div>
+  </main>
 
   <aside class="side">
-    <div class="card">
-      <h2>Legend</h2>
-      <div class="legend">
-        <span><span class="dot" style="background:var(--lead)"></span>Leader</span>
-        <span><span class="dot" style="background:var(--follow)"></span>Follower</span>
+    <div class="calls-pin">
+      <div class="sectitle">Calls</div>
+      <div class="calls" id="callButtons"></div>
+    </div>
+
+    <div class="side-scroll">
+      <div class="section" style="margin-top:0">
+        <div class="sectitle">Movements <span class="hint">— fire one at a time to test</span></div>
+        <div class="calls" id="moveButtons"></div>
       </div>
-      <p class="muted" style="margin:8px 0 0">Number = couple ID (who they started with). The arrow shows the direction each dancer is facing.</p>
-    </div>
 
-    <div class="card">
-      <h2>Call log</h2>
-      <div id="log"></div>
-    </div>
+      <div class="card">
+        <h2>Queue <span class="hint">— called, not yet executed</span></h2>
+        <div id="queueList"></div>
+      </div>
 
-    <div class="card">
-      <h2>Positions (verification)</h2>
-      <table id="postable"><thead>
-        <tr><th>Station</th><th>Leader</th><th>Follower</th></tr>
-      </thead><tbody></tbody></table>
-      <p class="muted" style="margin:8px 0 0">Each station holds exactly one leader + one follower — they're partners right now.</p>
-    </div>
+      <div class="card">
+        <h2>Call log</h2>
+        <div id="log"></div>
+      </div>
 
-    <div class="card">
-      <h2>What each call does (draft)</h2>
-      <p class="muted" id="calldesc"></p>
+      <div class="card">
+        <h2>Positions (verification)</h2>
+        <table id="postable"><thead>
+          <tr><th>Station</th><th>Leader</th><th>Follower</th></tr>
+        </thead><tbody></tbody></table>
+        <p class="muted" style="margin:8px 0 0">Each station holds exactly one leader + one follower — they're partners right now.</p>
+      </div>
+
+      <div class="card">
+        <h2>Legend</h2>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--lead)"></span>Leader</span>
+          <span><span class="dot" style="background:var(--follow)"></span>Follower</span>
+        </div>
+        <p class="muted" style="margin:8px 0 0">Number = couple ID (who they started with). The arrow shows the direction each dancer is facing.</p>
+      </div>
     </div>
   </aside>
 </div>
@@ -131,114 +215,401 @@
  *  formation change, returns to base"). Add new calls by adding to CALLS.
  * ------------------------------------------------------------------ */
 
-const CALLS = {
-  guapea: {
-    label: 'Guapea', desc: 'Basic step in place in Casino position. Nobody changes position or partner.',
-    fn: null
-  },
+const MOVEMENTS = {
   dame: {
     label: 'Dame',
-    desc: 'Progresses the leader one couple, always ending in Enchufla position facing the new partner. From Casino the follower stays and turns left to face her new leader; from Enchufla she slides past her leader (no turn) while the leader travels on.',
-    requires: ['casino', 'enchufla'], sets: 'enchufla',
+    desc: 'Progresses the leader one couple, ending in Exhibela facing the new partner. Leader and follower now travel toward each other and meet at the spoke midway between their two old couples — so the wheel flips to the other of its two spoke configs and lands exactly on the grid (no drift). The follower progresses clockwise (anti-clockwise afuera) to the meeting spoke.',
+    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true, flipsPhase: true,
     anim: { duration: 700 },
-    frames: (ds, N, from) => dameToEnchufla(ds, N, 1, from === 'enchufla')
+    beats: (from) => virtualPos(from) === 'casino' ? 2 : 4,
+    frames: (ds, N, from) => dameToEnchufla(ds, N, 1, virtualPos(from) === 'exhibela', isAfuera(from))
   },
   dame_dos: {
     label: 'Dame Dos',
-    desc: 'Like Dame but the leader progresses two couples (arcing left of followers, right of other leaders). Always ends in Enchufla position facing the new partner.',
-    requires: ['casino', 'enchufla'], sets: 'enchufla',
+    desc: 'Like Dame but the leader progresses two couples (arcing left of followers, right of other leaders). Always ends in Exhibela position facing the new partner.',
+    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
     anim: { duration: 820 },
-    frames: (ds, N, from) => dameToEnchufla(ds, N, 2, from === 'enchufla')
+    beats: 4,
+    frames: (ds, N, from) => dameToEnchufla(ds, N, 2, virtualPos(from) === 'exhibela', isAfuera(from))
+  },
+  dame_pequena: {
+    label: 'Dame Pequena',
+    desc: 'Progresses the leader one couple WITHOUT changing the spoke config — the couples stay on the same midpoint spokes, only the pairing shifts. From Exhibela the follower stays put and the leader travels the whole way to the next follower (a Dame where the leader does all the work). From Casino the follower does a Reverse Adios across her own spoke (turning 180° anti-clockwise) while the leader travels the larger distance to the next follower’s spoke. Ends in Exhibela at the same spokes. Afuera it inverts inside-out (progression clockwise, lanes swapped), ending in Afuera Exhibela. (Meant for Rueda / Línea Moderna work; not yet used as a call.)',
+    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
+    anim: { duration: 820 },
+    beats: 4,
+    frames: (ds, N, from) => damePequena(ds, N, virtualPos(from) === 'exhibela', isAfuera(from))
   },
   dile: {
     label: 'Dile Que No',
-    desc: 'Only from Enchufla position: leader and follower gather to the point between them (leader turning left, follower right, both facing centre), then orbit 180° to settle into Casino position with the same partner.',
-    requires: ['enchufla'], sets: 'casino',
+    desc: "From Exhibela: both open with the first three Exhibela stages along their Exhibela lines (leader dips in/back/out facing the follower throughout; follower steps out turning 90° right to the centre, back, then in turning 90° left to the tangent), then a 180° anti-clockwise orbit settles them into Casino — the follower turning a further 180° left to face her leader.",
+    requires: ['exhibela'], sets: 'casino',
+    beats: 8,
     frames: (ds, N) => dileQueNoFull(ds, N),
     anim: { speed: 0.092, rotSpeed: 0.40 }
   },
+  dile_dame: {
+    label: 'Dile Que No y Dame',
+    desc: 'Both dance beats 1–2 of a Dile Que No (out along the Exhibela line and back), then on beat 3 move onto the midpoint spoke (the radial from the wheel centre through the couple’s start midpoint) and pause on 4 — landing equidistant either side of where the spoke meets the ring (follower just inside, leader just outside, far enough apart not to collide): the follower facing perpendicular to the spoke (≈ clockwise), the leader facing the centre. On 5–8 the leader does a straight Dame to his new follower one couple anti-clockwise (facing her); meanwhile the follower walks about three-quarters of a circle through her spoke point, its mirror just outside the ring, and back to her own spot, facing her direction of travel then turning to her new leader. Ends in Exhibela position, leaders progressed one couple.',
+    requires: ['exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
+    beats: 8,
+    frames: (ds, N, from) => dileQueNoYDame(ds, N, 1, isAfuera(from)),
+    anim: { speed: 0.10, rotSpeed: 0.42 }
+  },
+  dile_dame_dos: {
+    label: 'Dile Que No y Dame Dos',
+    desc: 'Exactly like Dile Que No y Dame, but on 5–8 the leader travels to the follower two couples anti-clockwise instead of one. Same opening (both move onto the midpoint spoke and pause), same follower three-quarter circle back to her own spot; the leader heads straight for his new Exhibela spot with a single gentle arc (bowing to his right, keeping right of the other leaders) just large enough to stay clear. Ends in Exhibela position.',
+    requires: ['exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
+    beats: 8,
+    frames: (ds, N, from) => dileQueNoYDame(ds, N, 2, isAfuera(from)),
+    anim: { speed: 0.10, rotSpeed: 0.42 }
+  },
+  dile4: {
+    label: 'Dile Que No (4)',
+    desc: 'The 4-beat opening of a Dile Que No, danced on its own from Exhibela: beats 1-2 dip out along the Exhibela line and back, beat 3 step onto the couple’s midpoint spoke (leader to the outer lane just outside the ring, follower to the inner lane just inside), pause on beat 4 — leader facing the centre, follower facing perpendicular to the spoke. Ends in the Dile Que No position (no progression, no phase change).',
+    requires: ['exhibela'], sets: 'dile', entryOnly: true,
+    beats: 4,
+    frames: (ds, N) => dileQueNo4(ds, N),
+    anim: { speed: 0.10, rotSpeed: 0.42 }
+  },
+  mujeres: {
+    label: 'Mujeres Arriba',
+    desc: 'From the Dile Que No position: the women advance. Each follower progresses one partnership clockwise to the next couple’s Exhibela spot (doing all the travelling, staying inside the ring), while each leader retraces his 4-beat Dile Que No in reverse back to his own Exhibela spot, facing the centre then turning right to meet his new follower. Ends in Exhibela — leaders not progressed, the pairing shifted by one, no phase change.',
+    requires: ['dile'], sets: 'exhibela', progresses: true, entryOnly: true,
+    beats: 4,
+    frames: (ds, N) => mujeresArriba(ds, N),
+    anim: { speed: 0.10, rotSpeed: 0.42 }
+  },
   enchufla: {
-    label: 'Enchufla (part 1)',
-    desc: 'From Casino position: leader and follower trade places, each heading for the other and bowing left so they just miss as they pass — leader turning right, follower turning left — ending flipped, still facing each other.',
-    requires: ['casino'], sets: 'enchufla',
+    label: 'Enchufla',
+    desc: 'Leader and follower trade places, each heading for the other and bowing left so they just miss as they pass — leader turning right, follower turning left — ending flipped, still facing each other. Canonically from Casino (→ Exhibela); also allowed from Exhibela (→ Casino) for free play.',
+    requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
     anim: { duration: 700 },
+    beats: 4,
     frames: (ds, N) => swapMove(ds, N, -180)
   },
   vacilala: {
     label: 'Vacilala',
-    desc: 'From Casino position: the leader moves exactly as in an Enchufla and the follower takes the same path, but instead of a 180° left turn she spins 540° to her right (clockwise) — ending in Enchufla position, facing back toward her partner.',
-    requires: ['casino'], sets: 'enchufla',
+    desc: 'The leader moves exactly as in an Enchufla and the follower takes the same path, but instead of a 180° left turn she spins 540° to her right (clockwise) — ending flipped, facing back toward her partner. Canonically from Casino (→ Exhibela); also allowed from Exhibela (→ Casino) for free play.',
+    requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
     anim: { duration: 820 },
+    beats: 4,
     frames: (ds, N) => swapMove(ds, N, 540)
   },
-  setenta: {
-    label: 'Setenta', desc: 'A pattern figure — hands cross, wraps and unwraps — ending with the same partner in the same spot.',
-    fn: null
+  adios: {
+    label: 'Adios',
+    desc: 'Partners swap places, each turning 180° to their right (clockwise), just missing in the middle. From Casino it ends in Exhibela position; from Exhibela it ends back in Casino — the same movement either way, toggling the wheel between the two.',
+    requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
+    anim: { duration: 780 },
+    beats: 4,
+    frames: (ds, N) => swapMove(ds, N, 180)
   },
-  sombrero: {
-    label: 'Sombrero', desc: 'The "hat" figure. Partner and position unchanged at the end of the move.',
-    fn: null
+  reverse_adios: {
+    label: 'Reverse Adios',
+    desc: 'The exact opposite of an Adios: partners swap places along the mirror-image path (bowing to the right so they just miss in the middle), each turning 180° to their left (anti-clockwise) — the reverse of the Adios turn. From Exhibela it ends back in Casino; from Casino it ends in Exhibela — the same movement either way, toggling the wheel between the two.',
+    requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
+    anim: { duration: 780 },
+    beats: 4,
+    frames: (ds, N) => swapMove(ds, N, -180, -180, 'right')
+  },
+  reverse_enchufla: {
+    label: 'Reverse Enchufla',
+    desc: 'The exact opposite of an Enchufla: leader and follower trade places along the mirror-image path (bowing right, just missing in the middle) — the leader turning left, the follower right — ending flipped, facing each other. Canonically from Exhibela (→ Casino); also allowed from Casino (→ Exhibela) for free play.',
+    requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
+    anim: { duration: 700 },
+    beats: 4,
+    frames: (ds, N) => swapMove(ds, N, 180, -180, 'right')
+  },
+  leaders_enchufla: {
+    label: "Leader's Enchufla",
+    desc: 'An Enchufla with the roles swapped — the leader does what the follower does in a normal Enchufla (turning 180° left) and the follower does what the leader does (turning 180° right), both bowing left to just miss. Canonically from Exhibela (→ Casino); also allowed from Casino (→ Exhibela) for free play.',
+    requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
+    anim: { duration: 700 },
+    beats: 4,
+    frames: (ds, N) => swapMove(ds, N, 180, -180, 'left')
+  },
+  exhibela: {
+    label: 'Exhibela',
+    desc: 'A showy figure danced in place from Exhibela position. The couple never leaves two fixed parallel lines (each perpendicular to the line joining the partners). The leader faces the follower throughout, dipping in then out along his line; the follower steps out turning 90° to her right to face along her line, returns, continues, then spins 270° right back to the start. Ends exactly where it began.',
+    requires: ['exhibela'], sets: 'exhibela',
+    beats: 8,
+    frames: (ds, N) => exhibela(ds, N),
+    anim: { speed: 0.075, rotSpeed: 0.42 }
+  },
+  leaders_right_turn: {
+    label: "Leader's Right Turn",
+    desc: 'Danced in place: the follower stays put and does not rotate while the leader turns a full 360° to his right (clockwise) on the spot, ending exactly where and how he began. Used inside Enchufla Afuera / Enchufla Adentro; also allowed on its own from Casino or Exhibela (the position is unchanged either way).',
+    requires: ['casino', 'exhibela'], sets: (from) => from,
+    beats: 4,
+    frames: (ds, N) => leadersRightTurn(ds, N),
+    anim: { speed: 0.10, rotSpeed: 0.5 }
+  },
+  afuera: {
+    label: 'Afuera',
+    desc: 'Turn the wheel inside-out with no movement (0 beats): Casino becomes Afuera Exhibela, and Exhibela becomes Afuera Casino. A pure re-labelling — the dots do not move — that switches the wheel into the inverted (afuera) frame.',
+    requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'afuera_exhibela' : 'afuera', relabel: true,
+    beats: 0,
+    frames: (ds, N) => [ds.map(d => ({ ...d }))]
+  },
+  adentro: {
+    label: 'Adentro',
+    desc: 'The inverse of Afuera, with no movement (0 beats): Afuera Casino becomes Exhibela, and Afuera Exhibela becomes Casino. A pure re-labelling that returns the wheel to the normal (inside) frame.',
+    requires: ['afuera', 'afuera_exhibela'], sets: (from) => from === 'afuera_exhibela' ? 'casino' : 'exhibela', relabel: true,
+    beats: 0,
+    frames: (ds, N) => [ds.map(d => ({ ...d }))]
   }
+};
+
+/* ------------------------------------------------------------------ *
+ *  Línea Moderna movements, generated from the circle movements.
+ *  A GRANDE variant runs the circle figure on both rings (outer normal,
+ *  inner afuera) via grandeFrames — same phase behaviour as the circle
+ *  figure. A PEQUEÑA variant runs it in the mini 2-couple wheels via
+ *  pequenaFrames, with every Dame → Dame Pequeña and no phase change.
+ *  Circle position ↔ Línea state: casino↔linea, exhibela↔linea_ex (grande)
+ *  / linea_pex (pequeña). grandeFrames/pequenaFrames are hoisted below.
+ * ------------------------------------------------------------------ */
+(function buildLineaMovements(){
+  const gMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_ex' : v;
+  const gUn  = l => l === 'linea' ? 'casino' : 'exhibela';
+  const pMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_pex' : v;
+  const pUn  = l => l === 'linea' ? 'casino' : 'exhibela';
+  const mapSets = (sets, map, un) => (typeof sets === 'function') ? (from) => map(sets(un(from))) : map(sets);
+  const mapBeats = (beats, un) => (typeof beats === 'function') ? (from) => beats(un(from)) : beats;
+  // circle keys that get Línea versions (the figures used by the ported calls)
+  const KEYS = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'dame', 'dame_dos', 'dile'];
+  for (const key of KEYS){
+    const m = MOVEMENTS[key];
+    MOVEMENTS[key + '_grande'] = {
+      label: m.label + ' Grande', linea: true,
+      requires: m.requires.map(gMap), sets: mapSets(m.sets, gMap, gUn),
+      progresses: m.progresses, flipsPhase: m.flipsPhase,
+      beats: mapBeats(m.beats, gUn), anim: m.anim,
+      frames: (ds, N, from) => grandeFrames(key, from),
+    };
+    // pequeña: a Dame becomes a Dame Pequeña (progress one couple within the mini-wheel, no phase flip)
+    const pKey = (key === 'dame' || key === 'dame_dos') ? 'dame_pequena' : key;
+    const pm = MOVEMENTS[pKey];
+    MOVEMENTS[key + '_peq'] = {
+      label: m.label + ' Pequeña', linea: true,
+      requires: m.requires.map(pMap), sets: mapSets(m.sets, pMap, pUn),
+      progresses: m.progresses,                                   // never flips phase
+      beats: mapBeats(pm.beats, pUn), anim: pm.anim,
+      frames: (ds, N, from) => pequenaFrames(pKey, from),
+    };
+  }
+})();
+
+/* ------------------------------------------------------------------ *
+ *  CALLS — a call is a word the caller shouts; it expands into a
+ *  sequence of MOVEMENTS (which movements can depend on the starting
+ *  position). After a call's movements finish, if the dancers are in a
+ *  transient Exhibela with nothing else queued, they default to a Dile
+ *  Que No back to Casino.
+ * ------------------------------------------------------------------ */
+const CALLS = {
+  dame:     { label: 'Dame',     desc: 'Call from Casino: the Dame movement, then (by default) a Dile Que No back to Casino — the leader progresses one couple. Called when a Dile Que No is already the next movement, it merges into a Dile Que No y Dame.', from: ['casino', 'afuera'], seq: ['dame'] },
+  dame_dos: { label: 'Dame Dos', desc: 'Call: like Dame but the leader progresses two couples. Called when a Dile Que No is already the next movement, it merges into a Dile Que No y Dame Dos.', from: ['casino', 'afuera'], seq: ['dame_dos'] },
+  enchufla: { label: 'Enchufla', desc: 'Call from Casino: an Enchufla movement, then a Dame, then (by default) a Dile Que No back to Casino.', from: ['casino', 'afuera'], seq: ['enchufla', 'dame'] },
+  con_exhibela: { label: 'con Exhibela', desc: 'Modifier: diverts the dancers to an Exhibela movement when they next reach Exhibela, forgetting whatever the current call had planned next. Afterwards they default to a Dile Que No.', modifier: true },
+  setenta:  { label: 'Setenta', desc: "Call from Casino: Vacilala, Adios, Enchufla, Leader's Enchufla, Enchufla, then (by default) a Dile Que No. No change of partner. The only interruption point is right before the closing Dile Que No.", from: ['casino', 'afuera'], seq: ['vacilala', 'adios', 'enchufla', 'leaders_enchufla', 'enchufla'] },
+  adios:    { label: 'Adios', desc: 'Call from Casino: Adios, Dame, then (by default) a Dile Que No back to Casino. Progresses the leader one couple.', from: ['casino', 'afuera'], seq: ['adios', 'dame'] },
+  adios_hermana: { label: 'Adios con la Hermana', desc: "Call from Casino: Adios, Leader's Enchufla, Enchufla, Dame, then (by default) a Dile Que No. Progresses the leader one couple. (Despite the “con”, this is one full call — not a con-Exhibela-style interrupt.)", from: ['casino', 'afuera'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'dame'] },
+  la_familia: { label: 'La Familia', desc: "Call from Casino: Adios, Leader's Enchufla, Enchufla, Adios, Adios, Dame, then (by default) a Dile Que No. Progresses the leader one couple.", from: ['casino', 'afuera'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'adios', 'adios', 'dame'] },
+  enchufla_afuera: { label: 'Enchufla Afuera', desc: "Call from Casino: an Enchufla, a Leader's Right Turn, then Afuera — leaving the wheel in the new Afuera Casino position (it looks like Exhibela but behaves like an inside-out Casino). No default Dile Que No: the wheel stays afuera.", from: ['casino'], seq: ['enchufla', 'leaders_right_turn', 'afuera'] },
+  enchufla_adentro: { label: 'Enchufla Adentro', desc: "Call from Afuera Casino only: an (afuera) Enchufla, a Leader's Right Turn, then Adentro — un-flipping the wheel back to normal Casino position.", from: ['afuera'], seq: ['enchufla', 'leaders_right_turn', 'adentro'] },
+  mujeres_arriba: { label: 'Mujeres Arriba', desc: 'Call from Exhibela: a 4-beat Dile Que No into the Dile Que No position, then Mujeres Arriba — the women each progress one couple clockwise to a new partner while the men return to their own spots. Ends in Exhibela (a default Dile Que No then closes back to Casino).', from: ['exhibela'], seq: ['dile4', 'mujeres'] },
+  // --- Rueda Línea Moderna calls (all from the resting 'linea' state) ---
+  // Progressing figures get a GRANDE (whole rings, standard Dame, phase as usual) and a PEQUEÑA (mini
+  // wheels, Dame → Dame Pequeña, no phase change). Each closes with a default Dile Que No (grande/peq).
+  dame_grande:    { label: 'Dame Grande',    lm: true, desc: 'Línea: Dame on both rings at once (each progresses one couple, shared phase flips), then a Dile Que No Grande.', from: ['linea'], seq: ['dame_grande'] },
+  dame_pequena:   { label: 'Dame Pequeña',   lm: true, desc: 'Línea: Dame Pequeña in every mini 2-couple wheel (no phase change), then a Dile Que No Pequeña. The outer leader becomes the new inner leader.', from: ['linea'], seq: ['dame_peq'] },
+  dame_dos_grande:  { label: 'Dame Dos Grande',  lm: true, desc: 'Línea: Dame Dos on both rings at once (each progresses two couples), then a Dile Que No Grande.', from: ['linea'], seq: ['dame_dos_grande'] },
+  dame_dos_pequena: { label: 'Dame Dos Pequeña', lm: true, desc: 'Línea: within each mini 2-couple wheel a Dame Pequeña (two-couple progression is just the local swap), then a Dile Que No Pequeña.', from: ['linea'], seq: ['dame_dos_peq'] },
+  enchufla_grande:  { label: 'Enchufla Grande',  lm: true, desc: 'Línea: Enchufla then Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['enchufla_grande', 'dame_grande'] },
+  enchufla_pequena: { label: 'Enchufla Pequeña', lm: true, desc: 'Línea: Enchufla then Dame Pequeña in every mini 2-couple wheel, then a Dile Que No Pequeña. The outer leader ends as the new inner leader.', from: ['linea'], seq: ['enchufla_peq', 'dame_peq'] },
+  adios_grande:   { label: 'Adios Grande',   lm: true, desc: 'Línea: Adios then Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios_grande', 'dame_grande'] },
+  adios_pequena:  { label: 'Adios Pequeña',  lm: true, desc: 'Línea: Adios then Dame Pequeña in every mini 2-couple wheel, then a Dile Que No Pequeña.', from: ['linea'], seq: ['adios_peq', 'dame_peq'] },
+  adios_hermana_grande:  { label: 'Adios con la Hermana Grande',  lm: true, desc: 'Línea (grande): Adios, Leader’s Enchufla, Enchufla, Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios_grande', 'leaders_enchufla_grande', 'enchufla_grande', 'dame_grande'] },
+  adios_hermana_pequena: { label: 'Adios con la Hermana Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios_peq', 'leaders_enchufla_peq', 'enchufla_peq', 'dame_peq'] },
+  la_familia_grande:  { label: 'La Familia Grande',  lm: true, desc: 'Línea (grande): Adios, Leader’s Enchufla, Enchufla, Adios, Adios, Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios_grande', 'leaders_enchufla_grande', 'enchufla_grande', 'adios_grande', 'adios_grande', 'dame_grande'] },
+  la_familia_pequena: { label: 'La Familia Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios_peq', 'leaders_enchufla_peq', 'enchufla_peq', 'adios_peq', 'adios_peq', 'dame_peq'] },
+  // Non-progressing figure → a single Línea call (danced on the whole rings).
+  setenta_lm: { label: 'Setenta (Línea)', lm: true, desc: 'Línea: Vacilala, Adios, Enchufla, Leader’s Enchufla, Enchufla on both rings — no partner change — then a Dile Que No Grande.', from: ['linea'], seq: ['vacilala_grande', 'adios_grande', 'enchufla_grande', 'leaders_enchufla_grande', 'enchufla_grande'] }
 };
 
 /* ---- layouts: (station, lane, N) -> {x,y} in SVG space ----
  * lane describes where within a station a dancer stands:
  *   'ccw' / 'cw'    -> the two sides on the dotted ring (base formation)
  *   'inner'/'outer' -> radial arrangement after a Dame (inner = toward centre) */
-const W = 720, H = 520, CX = 340, CY = 260;
+const W = 720, H = 520;
+let CX = 340, CY = 260;           // wheel centre — mutable so a sub-wheel context can relocate it (Línea Moderna)
 let R_RING = 154;                 // wheel radius — recomputed for each couple count
+let BASE_ANG = -90;               // angle of station 0's spoke (−90 = straight up); a wheel context can rotate it
 const R_STEP = 36;
 // Fixed spacing from the 6-couple baseline: the within-couple distance and the
 // between-couple gap stay constant, and the wheel grows/shrinks to fit N couples.
 const W_DIST   = 2 * 154 * Math.sin(12 * Math.PI / 180);   // leader <-> follower centre distance (~64px)
 const GAP_DIST = 2 * 154 * Math.sin(18 * Math.PI / 180);   // follower <-> next leader gap (~95px)
 let DELTA_DEG = 12;               // half the within-couple angle at the current radius
-function computeWheel(n){
-  // Solve  n·(2·asin(W/2R) + 2·asin(G/2R)) = 2π  for R (the spacing wraps once).
+// Sizing the wheel to the couple count is the circle formation's job (FORMATIONS.circle.compute).
+// Always the circle solve for now; layout-dispatched sizing arrives when Línea becomes a real formation.
+function computeWheel(n){ FORMATIONS[layoutName].compute(n); }
+// Pure wheel-radius solve: the R for which n couples (each W_DIST wide) plus n gaps (GAP_DIST) wrap
+// the circle exactly. No side effects (unlike circle.compute, which also sets the globals).
+function solveWheelR(n){
   let lo = 20, hi = 3000;
   for (let i = 0; i < 60; i++){
     const R = (lo + hi) / 2;
     const total = n * (2 * Math.asin(Math.min(1, W_DIST / (2 * R))) + 2 * Math.asin(Math.min(1, GAP_DIST / (2 * R))));
-    if (total > 2 * Math.PI) lo = R; else hi = R;           // total shrinks as R grows
+    if (total > 2 * Math.PI) lo = R; else hi = R;
   }
-  R_RING = (lo + hi) / 2;
-  DELTA_DEG = Math.asin(W_DIST / (2 * R_RING)) * 180 / Math.PI;
+  return (lo + hi) / 2;
 }
 const ARROW_TRANS = 'transform .5s cubic-bezier(.4,0,.2,1)';
 const G_TRANS = 'transform .5s cubic-bezier(.4,0,.2,1)';
 const DOT_R = 20;                 // dancer dot radius (stroke adds ~1px each side)
-const LAYOUTS = {
-  circle(station, lane, N){
-    const theta = -90 + station * 360 / N;
-    const delta = DELTA_DEG;
-    let r = R_RING, a = theta;
-    if (lane === 'cw')        a = theta + delta;                    // clockwise side of the ring
-    else if (lane === 'ccw')  a = theta - delta;                    // anti-clockwise side of the ring
-    else if (lane === 'pickup') a = theta + delta + (360 / N) * 0.15; // just clockwise of the cw follower
-    else if (lane === 'inner') r = R_RING - R_STEP;                 // toward the centre of the wheel
-    else if (lane === 'outer') r = R_RING + R_STEP;                 // outside the wheel
-    a = a * Math.PI / 180;
-    return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
+/* A Formation owns the geometry of one layout: where each (station, lane) slot sits, how the wheel
+ * sizes to the couple count, and the faint guide drawn behind the dancers. Movements and rendering
+ * reach geometry through here rather than hard-coding a layout.
+ * (Refactor Phase 2: the seam is established. The shared globals CX/CY/R_RING/DELTA_DEG/phase are
+ * still module-level and read directly by the generators; folding those in comes in later phases.) */
+const FORMATIONS = {
+  circle: {
+    // Slot: where (station, lane) sits. The wheel rests in one of two configs: phase 0 (base) or
+    // phase 1, whose midpoint spokes sit halfway between phase-0 spokes (offset 180/N degrees).
+    slot(station, lane, N, ph){
+      const theta = BASE_ANG + station * 360 / N + (ph === undefined ? phase : ph) * 180 / N;
+      const delta = DELTA_DEG;
+      let r = R_RING, a = theta;
+      if (lane === 'cw')        a = theta + delta;                    // clockwise side of the ring
+      else if (lane === 'ccw')  a = theta - delta;                    // anti-clockwise side of the ring
+      else if (lane === 'pickup') a = theta + delta + (360 / N) * 0.15; // just clockwise of the cw follower
+      else if (lane === 'inner') r = R_RING - R_STEP;                 // toward the centre of the wheel
+      else if (lane === 'outer') r = R_RING + R_STEP;                 // outside the wheel
+      a = a * Math.PI / 180;
+      return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
+    },
+    // Size the wheel to N couples: solve n·(2·asin(W/2R)+2·asin(G/2R))=2π for R (the spacing wraps once).
+    compute(n){
+      R_RING = solveWheelR(n);
+      DELTA_DEG = Math.asin(W_DIST / (2 * R_RING)) * 180 / Math.PI;
+    },
+    // Faint dashed ring behind the dancers.
+    guide(svg){
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', CX); c.setAttribute('cy', CY); c.setAttribute('r', R_RING);
+      c.setAttribute('fill', 'none'); c.setAttribute('stroke', '#2c3352'); c.setAttribute('stroke-dasharray', '4 6');
+      svg.appendChild(c);
+    },
   },
-  // Línea Moderna: couples sit in a row; each couple down the line is
-  // inverted top-to-bottom relative to its neighbour.
-  linea(station, lane, N){
-    const spacing = Math.min(150, (W - 140) / Math.max(1, N - 1));
-    const x0 = CX - spacing * (N - 1) / 2;
-    const inSide = (lane === 'ccw' || lane === 'inner');
-    const sign = (inSide ? 1 : -1) * (station % 2 === 0 ? 1 : -1);
-    return { x: x0 + station * spacing, y: CY + 60 * sign };
-  }
+  // Rueda Línea Moderna: two concentric rings sharing m = N/2 spokes. Inner ring (afuera Casino) is a
+  // proper m-couple rueda; each outer couple sits on the same spoke, one exact 2-couple-wheel out, so
+  // every inner+outer pair forms a perfect little 2-couple "pequeña" wheel. Stations 0..m-1 are the
+  // inner couples (by spoke); stations m..2m-1 are the outer couples (same spokes). Couple ids: inner
+  // even (shown 1,3,5…), outer odd (shown 2,4,6…). See LM (geometry) below.
+  linea: {
+    slot(station, lane, N, ph){
+      const g = LM, m = g.m;
+      const inner = station < m, spoke = inner ? station : station - m;
+      const p = (ph === undefined ? phase : ph);
+      const th = (-90 + spoke * 360 / m + p * 180 / m) * Math.PI / 180;   // two configs, like the circle
+      const R = inner ? g.Ri : g.Ro, d = inner ? g.di : g.doO;
+      const a = th + (lane === 'cw' ? d : lane === 'ccw' ? -d : 0);
+      return { x: CX + R * Math.cos(a), y: CY + R * Math.sin(a) };
+    },
+    compute(n){
+      const m = n / 2, W = W_DIST;
+      const R2x = solveWheelR(2), d2x = Math.asin(W / (2 * R2x));    // textbook 2-couple wheel (reference)
+      const Ri = solveWheelR(m), di = Math.asin(W / (2 * Ri));       // inner ring = proper m-couple rueda
+      const innerMid = Ri * Math.cos(di);                           // inner couple midpoint radius
+      // Ring separation. LM_GAP = 1 → each inner+outer pair is a *textbook* 2-couple wheel (couples are
+      // GAP_DIST apart); LM_GAP < 1 pulls the outer ring in, making the mini-wheels a bit smaller and the
+      // outer couples angularly wider (which is what lets the grande Dame-from-exhibela clear). The four
+      // dancers of a pair are always a rectangle (each W/2 off the spoke), so the mini-wheel stays a
+      // perfect circle at any separation.
+      const sep = LM_GAP * 2 * R2x * Math.cos(d2x);
+      const outerMid = innerMid + sep, mcR = innerMid + sep / 2;
+      const R2 = Math.hypot(sep / 2, W / 2), d2 = Math.asin(W / (2 * R2));   // actual mini-wheel
+      const Ro = Math.hypot(outerMid, W / 2), doO = Math.asin((W / 2) / Ro); // outer ring
+      LM = { m, R2, d2, Ri, di, mcR, Ro, doO };
+      R_RING = Ro; DELTA_DEG = doO * 180 / Math.PI;                  // sane fallbacks for any circle-based code
+    },
+    // Mini-wheel centre for spoke k (radius mcR along the spoke, at the current phase) — used by the
+    // guide and by pequeña composition.
+    miniCenter(spoke, ph){ const p = (ph === undefined ? phase : ph); const th = (-90 + spoke * 360 / LM.m + p * 180 / LM.m) * Math.PI / 180; return { x: CX + LM.mcR * Math.cos(th), y: CY + LM.mcR * Math.sin(th) }; },
+    guide(svg){
+      const ring = r => { const c = document.createElementNS(NS, 'circle');
+        c.setAttribute('cx', CX); c.setAttribute('cy', CY); c.setAttribute('r', r);
+        c.setAttribute('fill', 'none'); c.setAttribute('stroke', '#2c3352'); c.setAttribute('stroke-dasharray', '4 6');
+        svg.appendChild(c); };
+      ring(LM.Ri); ring(LM.Ro);
+      for (let k = 0; k < LM.m; k++){ const mc = FORMATIONS.linea.miniCenter(k);
+        const c = document.createElementNS(NS, 'circle');
+        c.setAttribute('cx', mc.x); c.setAttribute('cy', mc.y); c.setAttribute('r', LM.R2);
+        c.setAttribute('fill', 'none'); c.setAttribute('stroke', '#3a2f66'); c.setAttribute('stroke-dasharray', '2 5');
+        svg.appendChild(c); }
+    },
+  },
 };
+// Línea Moderna geometry, filled by FORMATIONS.linea.compute(n): {m, R2, d2, Ri, di, mcR, Ro, doO}.
+let LM = { m: 2, R2: 57, d2: 0.6, Ri: 57, di: 0.6, mcR: 105, Ro: 146, doO: 0.2 };
+let LM_GAP = 1;   // outer-ring separation as a fraction of a textbook 2-couple wheel (1 = exact mini-wheels)
 
 /* ------------------------------ state ------------------------------ */
 let N = 4, layoutName = 'circle', dancers = [], history = [], stepCount = 0, animating = false;
+let speedMul = 1;             // tempo multiplier from the slider (0.2×…1×…2×, 1 = base tempo)
+const BASE_MS_PER_BEAT = 400; // base musical tempo; a movement lasts (its beats) × ms-per-beat
+let beatCursor = 0;           // total beats danced so far; (beatCursor % 8) is the current beat of the measure
+let justIssued = false;       // the next movement is the first of a freshly-issued call → snap to its start beat
+let beatRunning = true;       // is the metronome ticking?
+let animGen = 0;              // bumped to abort an in-flight animation (e.g. on Reset)
 let posState = 'casino';                 // 'casino' | 'dile' (Dile Que No position)
+let phase = 0;                           // which of the two spoke configs the wheel rests in (0 or 1)
 const histPos = [];                      // parallel undo stack for posState
-const POS_NAMES = { casino: 'Casino position', enchufla: 'Enchufla position' };
-let callButtons = {};
+const histPhase = [];                    // parallel undo stack for phase
+/* Resting positions, decomposed into fields so engine logic reads structure instead of branching on
+ * strings: `variant` is the couple's stance (casino ↔ exhibela), `inverted` is the inside-out (afuera)
+ * flag, `virtual` is the non-inverted position whose rules an afuera position follows, `name` is the UI
+ * label. (This also retires the old overload where 'enchufla' named both a position and a movement.) */
+const POSITIONS = {
+  casino:          { variant: 'casino',   inverted: false, virtual: 'casino',   name: 'Casino position' },
+  exhibela:        { variant: 'exhibela', inverted: false, virtual: 'exhibela', name: 'Exhibela position' },
+  afuera:          { variant: 'casino',   inverted: true,  virtual: 'casino',   name: 'Afuera Casino position' },
+  afuera_exhibela: { variant: 'exhibela', inverted: true,  virtual: 'exhibela', name: 'Afuera Exhibela position' },
+  // Dile Que No position: both dancers on the couple's midpoint spoke — leader on the OUTER lane
+  // (outside the ring) facing the centre, follower on the INNER lane (inside the ring) facing
+  // perpendicular to the spoke (clockwise). Reached by the 4-beat Dile Que No; a resting state.
+  dile:            { variant: 'dile',     inverted: false, virtual: 'dile',     name: 'Dile Que No position' },
+  // Rueda Línea Moderna resting state (two rings). Its own variant so no circle default (Dile Que No)
+  // fires and circle-only calls/movements gate off from it.
+  linea:           { variant: 'linea',    inverted: false, virtual: 'linea',    name: 'Línea Moderna' },
+  // Transient exhibela-like Línea state (both rings exhibela) — between a grande figure and its close.
+  // `virtual` points at itself so a movement's function-based `sets` (e.g. Adios's toggle) can tell
+  // linea from linea_ex (resolveSets passes virtualPos(from)).
+  linea_ex:        { variant: 'linea',    inverted: false, virtual: 'linea_ex',  name: 'Línea Moderna (exhibela)' },
+  // Transient state mid-pequeña: each mini 2-couple wheel is in exhibela.
+  linea_pex:       { variant: 'linea',    inverted: false, virtual: 'linea_pex', name: 'Línea Moderna (pequeña)' },
+};
+const INVERTED_OF = { casino: 'afuera', exhibela: 'afuera_exhibela' };   // entering afuera from a non-inverted position
+let callBtns = {}, moveBtns = {};
+// call engine state
+let mode = 'live';            // 'live' (queue calls freely) | 'step' (pause at each decision point)
+let queue = [];               // pending movement keys for the current call + its continuations
+let queueCalls = [];          // parallel to queue: the call label that owns each queued movement (kept in lockstep)
+let engineActive = false;     // a call sequence (including the auto Dile Que No) is underway
+let awaiting = false;         // step mode: paused at a decision point waiting for a call / silence
+let pendingDefault = null;    // the movement 'silence' would run at the current pause
+let pendingInterrupt = null;  // a diverting call (con Exhibela) waiting to apply at the next interruption point
+let currentCallLabel = null;  // the call whose movement is running NOW (null = a raw movement / idle)
+let currentMoveLabel = null;  // the movement currently animating (null = idle) — shown top-left as "Call: Movement"
+const histQueue = [];         // parallel undo stack for the queue
+const histQueueCalls = [];    // parallel undo stack for queueCalls
+// Interruption points: a call only takes effect right before a Dame or before a Dile Que No.
+const INTERRUPTIBLE = new Set(['dame', 'dame_dos', 'dile']);
 
 function baseState(n){
+  if (layoutName === 'linea') return lineaBaseState(n);
   const ds = [];
   for (let i = 0; i < n; i++){
     ds.push({ id: 'L' + i, role: 'L', couple: i, station: i, lane: 'ccw' });
@@ -246,25 +617,49 @@ function baseState(n){
   }
   return ds;
 }
-function partnerOf(d, ds){
-  return ds.find(o => o.station === d.station && o.role !== d.role);
+// Línea Moderna base state: n couples (n even) split into m = n/2 inner (afuera Casino) + m outer
+// (Casino), one inner+outer pair per spoke. Inner couples are ids 0,2,4… at stations 0..m-1; outer
+// couples are ids 1,3,5… at stations m..2m-1 (same spoke k = station-m). Lanes give each couple its
+// resting look: inner = afuera Casino (leader on the cw side), outer = Casino (leader on the ccw side).
+function lineaBaseState(n){
+  const m = n / 2, ds = [];
+  for (let k = 0; k < m; k++){
+    const ic = 2 * k, oc = 2 * k + 1;                 // inner / outer couple ids (0-indexed; shown +1)
+    ds.push({ id: 'L' + ic, role: 'L', couple: ic, station: k,     lane: 'cw'  });   // inner (afuera Casino) leader
+    ds.push({ id: 'F' + ic, role: 'F', couple: ic, station: k,     lane: 'ccw' });   // inner follower
+    ds.push({ id: 'L' + oc, role: 'L', couple: oc, station: m + k, lane: 'ccw' });   // outer (Casino) leader
+    ds.push({ id: 'F' + oc, role: 'F', couple: oc, station: m + k, lane: 'cw'  });   // outer follower
+  }
+  return ds;
 }
-function pos(d){ return d.xy ? d.xy : LAYOUTS[layoutName](d.station, d.lane, N); }
-function projectToRing(p){                       // snap a point onto the dotted rueda line
-  const a = Math.atan2(p.y - CY, p.x - CX);
-  return { x: CX + R_RING * Math.cos(a), y: CY + R_RING * Math.sin(a) };
+function pos(d){ return d.xy ? d.xy : FORMATIONS[layoutName].slot(d.station, d.lane, N); }
+
+/* ------------------------------------------------------------------ *
+ *  Wheel context — the geometry the circle movement generators read
+ *  from module scope (centre, radius, within-couple angle, phase, couple
+ *  count, spoke-0 angle) plus the dancers array and active layout. A
+ *  composite formation (Línea Moderna) runs an existing circle generator
+ *  against a *sub-wheel* by swapping these to that sub-wheel, running the
+ *  generator (synchronously), then restoring. `runOnWheel` guarantees the
+ *  restore even if the generator throws.
+ * ------------------------------------------------------------------ */
+function wheelContext(){ return { CX, CY, R_RING, DELTA_DEG, phase, N, BASE_ANG, layoutName, dancers }; }
+function setWheelContext(c){
+  CX = c.CX; CY = c.CY; R_RING = c.R_RING; DELTA_DEG = c.DELTA_DEG;
+  phase = c.phase; N = c.N; BASE_ANG = c.BASE_ANG; layoutName = c.layoutName; dancers = c.dancers;
+}
+// Run `gen()` (a circle movement generator) with the geometry globals + dancers set to a sub-wheel.
+// `ctx` overrides any of {CX,CY,R_RING,DELTA_DEG,phase,N,BASE_ANG}; layout is forced to 'circle' so
+// pos()/slot() use circle geometry. Returns whatever gen() returns (frames or {frames,segBeats}).
+function runOnWheel(ctx, subDancers, gen){
+  const saved = wheelContext();
+  try { setWheelContext({ ...saved, ...ctx, layoutName: 'circle', dancers: subDancers }); return gen(); }
+  finally { setWheelContext(saved); }
 }
 
 /* Facing is a property of layout + role (+ couple parity in línea), NOT of
  * the partner. In Rueda leaders face clockwise round the wheel, followers
  * anti-clockwise. In Línea Moderna couples alternate up/down down the line. */
-function laneAngleOffset(lane, N){
-  const delta = (360 / N) * 0.2;
-  if (lane === 'cw')  return  delta;
-  if (lane === 'ccw') return -delta;
-  if (lane === 'pickup') return delta + (360 / N) * 0.15;
-  return 0;                        // inner / outer sit at the station angle
-}
 function faceTowardPartner(d, state){
   const pr = state.find(o => o.station === d.station && o.role !== d.role);
   if (!pr) return 0;
@@ -281,76 +676,8 @@ function facingAngle(d){
     // Base: partners face directly towards each other.
     return faceTowardPartner(d, dancers);
   }
-  const even = d.station % 2 === 0;
-  const up = (d.role === 'L') ? even : !even;   // even couple: leader up, follower down
-  return up ? -90 : 90;                          // -90 = up, 90 = down (screen coords)
-}
-
-/* Part 1 of Dame: each leader moves back k couples to just clockwise of the
- * follower behind them (facing her), then everyone turns to face the centre. */
-function damePickup(ds, N, k){
-  // Work from actual current positions so followers never get snapped back to a
-  // grid: each keeps exactly where it stands (important after a Dile Que No).
-  const cur = {};
-  ds.forEach(d => { const p = pos(d); cur[d.id] = { p, ang: Math.atan2(p.y - CY, p.x - CX) }; });
-  // Leader sits just clockwise of the follower so the two dots touch edges but
-  // don't overlap: centre-to-centre = two dot radii (+1px stroke each side).
-  const off = 2 * Math.asin((DOT_R + 1) / R_RING);
-  // Each leader's target: the follower k couples behind, and a pickup point on
-  // the ring just clockwise of her.
-  const target = {};
-  ds.forEach(d => {
-    if (d.role !== 'L') return;
-    const tStation = (d.station - k + N) % N;
-    const tf = ds.find(o => o.role === 'F' && o.station === tStation);
-    const a = cur[tf.id].ang + off;
-    target[d.id] = { tStation, tfId: tf.id, pickup: { x: CX + R_RING * Math.cos(a), y: CY + R_RING * Math.sin(a) } };
-  });
-  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
-  const followerPts = ds.filter(d => d.role === 'F').map(d => ({ id: d.id, pt: projectToRing(cur[d.id].p) }));
-  // Curved travel: straight line pulled toward the centre by `A*sin(pi t)` so it
-  // bows inward at mid-path (0 at both ends, so it still starts/ends on the ring).
-  const travel = (id, t, A) => {
-    const S = cur[id].p, P = target[id].pickup;
-    const x = S.x + (P.x - S.x) * t, y = S.y + (P.y - S.y) * t;
-    const dx = CX - x, dy = CY - y, r = Math.hypot(dx, dy) || 1, b = A * Math.sin(Math.PI * t);
-    return { x: x + dx / r * b, y: y + dy / r * b };
-  };
-  // Pick the smallest inward bow that keeps every travelling leader at least a dot
-  // diameter from every other dot (a leader's own target follower is excluded — it
-  // is meant to end edge-to-edge with her).
-  const CLEAR = 2 * (DOT_R + 1) + 0.5;
-  let bow = 0;
-  for (let A = 0; A <= 60; A += 1){
-    let ok = true;
-    for (let s = 1; s < 24 && ok; s++){
-      const t = s / 24, L = leaderIds.map(id => ({ id, p: travel(id, t, A) }));
-      for (let a = 0; a < L.length && ok; a++){
-        for (const f of followerPts){
-          if (f.id === target[L[a].id].tfId) continue;
-          if (Math.hypot(L[a].p.x - f.pt.x, L[a].p.y - f.pt.y) < CLEAR){ ok = false; break; }
-        }
-        if (ok) for (let b = 0; b < L.length; b++){
-          if (a !== b && Math.hypot(L[a].p.x - L[b].p.x, L[a].p.y - L[b].p.y) < CLEAR){ ok = false; break; }
-        }
-      }
-    }
-    if (ok){ bow = A; break; }
-  }
-  // Travel sub-frames: leaders arc toward the pickup facing the follower the whole
-  // way (turn snaps on the first step, then tracks); followers hold and face centre.
-  const STEPS = 10, frames = [];
-  for (let s = 1; s <= STEPS; s++){
-    const t = s / STEPS;
-    frames.push(ds.map(d => {
-      if (d.role === 'F') return { ...d, xy: projectToRing(cur[d.id].p), face: 'center', turn: 'ccw' };
-      const g = target[d.id], { face, ...rest } = d;
-      return { ...rest, station: g.tStation, xy: travel(d.id, t, bow), snapTurn: s === 1 };
-    }));
-  }
-  // Finally the leaders turn left to face the centre too (Dile Que No position).
-  frames.push(frames[frames.length - 1].map(({ snapTurn, ...d }) => ({ ...d, face: 'center', turn: 'ccw' })));
-  return frames;
+  // Línea Moderna: partners (same couple = same station) face each other, same as the circle rest.
+  return faceTowardPartner(d, dancers);
 }
 
 const norm360 = a => ((a % 360) + 360) % 360;
@@ -360,17 +687,23 @@ const norm360 = a => ((a % 360) + 360) % 360;
  * the centre (leader passes clockwise of the follower, follower clockwise of the
  * leader). Both deviate equally so the midpoint between them stays put. They start
  * and end facing each other — leader turning right, follower left — ending flipped. */
-// Leader+follower trade places by heading for each other and bowing left to just
-// miss (Enchufla-style path). The leader always turns right 180°; the follower's
-// total turn is `followerRotDeg` (Enchufla = -180 left; Vacilala = +540 right).
-function swapMove(ds, N, followerRotDeg){
-  const leftOf = u => ({ x: u.y, y: -u.x });        // 90° to the dancer's left (screen y-down)
+// Leader+follower trade places by heading for each other and bowing to one side so
+// they just miss as they cross. `leaderRotDeg` / `followerRotDeg` are each dancer's
+// total turn, and `side` is which way both bow.
+//   Enchufla        : leader +180 (right), follower -180 (left), bow left.
+//   Vacilala        : leader +180 (right), follower +540 (right), bow left.
+//   Reverse Enchufla: leader -180 (left),  follower +180 (right), bow right — the
+//                     exact time-reverse of an Enchufla (mirror path, mirror turns).
+function swapMove(ds, N, followerRotDeg, leaderRotDeg = 180, side = 'left'){
+  const perpOf = side === 'right'
+    ? u => ({ x: -u.y, y:  u.x })                    // 90° to the dancer's right
+    : u => ({ x:  u.y, y: -u.x });                   // 90° to the dancer's left (screen y-down)
   const info = {};
   ds.forEach(d => {
     const pr = ds.find(o => o.station === d.station && o.role !== d.role);
     const S = pos(d), T = pos(pr);                   // heads directly to partner's spot
     const dx = T.x - S.x, dy = T.y - S.y, len = Math.hypot(dx, dy) || 1;
-    info[d.id] = { S, T, left: leftOf({ x: dx / len, y: dy / len }), face0: facingAngle(d), rot: d.role === 'L' ? 180 : followerRotDeg };
+    info[d.id] = { S, T, perp: perpOf({ x: dx / len, y: dy / len }), face0: facingAngle(d), rot: d.role === 'L' ? leaderRotDeg : followerRotDeg };
   });
   // Lateral amplitude that makes the two dots just miss (~one diameter apart) as
   // they cross. Depends on the couple width, so solve for it from the geometry.
@@ -386,239 +719,781 @@ function swapMove(ds, N, followerRotDeg){
     frames.push(ds.map(d => {
       const g = info[d.id];
       return { ...d,
-        xy: { x: g.S.x + (g.T.x - g.S.x) * t + g.left.x * k, y: g.S.y + (g.T.y - g.S.y) * t + g.left.y * k },
+        xy: { x: g.S.x + (g.T.x - g.S.x) * t + g.perp.x * k, y: g.S.y + (g.T.y - g.S.y) * t + g.perp.y * k },
         face: g.face0 + g.rot * t };
     }));
   }
   return frames;
 }
 
-/* Dile Que No — second half of Dame. From the centre-facing rest position each
- * couple swaps places: both dancers orbit the point midway between them 180°
- * anti-clockwise, expanding to base-couple width, and end facing each other.
- * The follower sweeps ~270° left, the leader ~90° left. */
-/* Dame / Dame Dos from Enchufla (flipped) position — the natural continuation of a
- * full Enchufla. Both partners move at once. The follower slides into her current
- * leader's spot, arcing left to pass him and turning right (clockwise) to face
- * centre. Each leader progresses to the follower k couples anti-clockwise, facing
- * that new follower the whole way then turning left to centre on arrival — steering
- * to pass to the LEFT of every follower and to the RIGHT of every other leader so no
- * dots collide (needed once leaders travel far enough to cross). Ends in Dile Que No. */
-function dameFromEnchufla(ds, N, k){
-  const off = 2 * Math.asin((DOT_R + 1) / R_RING);
-  const norm = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
+/* Exhibela — a showy figure danced in place from Exhibela position. The couple never
+ * leaves two fixed parallel lines, each perpendicular to the line joining the partners:
+ * the leader stays on the line through his start, the follower on hers. `p` is the shared
+ * perpendicular (the leader's left, which points toward the centre in Exhibela).
+ *   Leader : stage 1 dips left/inward along his line, stage 2 back, stage 3 out the other
+ *            way, stage 4 back — facing the follower the whole time.
+ *   Follower: stage 1 steps out (her left) and turns 90° right to face along her line,
+ *            stage 2 returns (still facing along the line), stage 3 continues the same way
+ *            inward, stage 4 spins 270° right while returning to the start.
+ * Every dancer ends exactly where and how it began. */
+function exhibela(ds, N){
   const leftOf = u => ({ x: u.y, y: -u.x });
-  const cur = {}, leaderAt = {}, followerAt = {};
-  ds.forEach(d => { cur[d.id] = pos(d); });
-  ds.forEach(d => { (d.role === 'L' ? leaderAt : followerAt)[d.station] = d.id; });
-  const AMPF = 20, INF = 64;
-  // followers: into their current leader's spot with a small leftward arc
-  const fInfo = {};
-  ds.forEach(d => { if (d.role !== 'F') return;
-    const S = cur[d.id], E = cur[leaderAt[d.station]];
-    fInfo[d.id] = { S, E, left: leftOf(norm({ x: E.x - S.x, y: E.y - S.y })), face0: facingAngle(d) };
+  const AL = 26, AF = 30;                        // leader / follower "slight" travel (px)
+  const info = {};
+  ds.forEach(d => {
+    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
+    const S = pos(d), PP = pos(pr);
+    const L0 = d.role === 'L' ? S : PP, F0 = d.role === 'L' ? PP : S;
+    const dx = F0.x - L0.x, dy = F0.y - L0.y, len = Math.hypot(dx, dy) || 1;
+    const u = { x: dx / len, y: dy / len };      // leader -> follower
+    const p = leftOf(u);                         // shared perpendicular (leader's left)
+    const fa0 = Math.atan2(-u.y, -u.x) * 180 / Math.PI;   // follower's start facing (at leader)
+    info[d.id] = { S, p, fa0 };
   });
-  const fAt = (id, t) => { const g = fInfo[id], b = AMPF * Math.sin(Math.PI * t); return { x: g.S.x + (g.E.x - g.S.x) * t + g.left.x * b, y: g.S.y + (g.E.y - g.S.y) * t + g.left.y * b }; };
-  // leaders: straight toward the pickup with the follower k couples anti-clockwise
-  const lInfo = {};
-  ds.forEach(d => { if (d.role !== 'L') return;
-    const tSt = (d.station - k + N) % N, fEnd = cur[leaderAt[tSt]];
-    const a = Math.atan2(fEnd.y - CY, fEnd.x - CX) + off;
-    const S = cur[d.id], E = { x: CX + R_RING * Math.cos(a), y: CY + R_RING * Math.sin(a) };
-    lInfo[d.id] = { S, E, n: leftOf(norm({ x: E.x - S.x, y: E.y - S.y })), newFollower: followerAt[tSt], newStation: tSt };
+  const STEPS = 12, frames = [];
+  [1, 2, 3, 4].forEach(stage => {
+    for (let k = 1; k <= STEPS; k++){
+      const s = k / STEPS;
+      // signed offset along p for this stage: leader scaled by AL, follower by AF.
+      let lOff, fOff;
+      if (stage === 1){ lOff =  s;         fOff = -s;        }
+      if (stage === 2){ lOff =  1 - s;     fOff = -(1 - s);  }
+      if (stage === 3){ lOff = -s;         fOff =  s;        }
+      if (stage === 4){ lOff = -(1 - s);   fOff =  1 - s;    }
+      frames.push(ds.map(d => {
+        const g = info[d.id];
+        if (d.role === 'L'){
+          return { ...d, _L: true, xy: { x: g.S.x + g.p.x * AL * lOff, y: g.S.y + g.p.y * AL * lOff } };
+        }
+        let face;
+        if (stage === 1) face = g.fa0 + 90 * s;
+        else if (stage === 2 || stage === 3) face = g.fa0 + 90;
+        else face = g.fa0 + 90 + 270 * s;
+        return { ...d, xy: { x: g.S.x + g.p.x * AF * fOff, y: g.S.y + g.p.y * AF * fOff }, face, turn: 'cw' };
+      }));
+    }
   });
-  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
-  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
-  const lStr = (id, t) => { const g = lInfo[id]; return { x: g.S.x + (g.E.x - g.S.x) * t, y: g.S.y + (g.E.y - g.S.y) * t }; };
-  // Steering offset: pushed left by nearby followers, right by nearby leaders. The
-  // leader's own target follower is left OUT — they are meant to meet, not avoid,
-  // so she no longer shoves the leader off the line right before the pickup.
-  const raw = (id, t) => { const p = lStr(id, t), nf = lInfo[id].newFollower; let o = 0;
-    followerIds.forEach(fid => { if (fid === nf) return; const x = fAt(fid, t), dd = Math.hypot(x.x - p.x, x.y - p.y); if (dd < INF) o += (INF - dd); });
-    leaderIds.forEach(oid => { if (oid === id) return; const x = lStr(oid, t), dd = Math.hypot(x.x - p.x, x.y - p.y); if (dd < INF) o -= (INF - dd); });
-    return o;
-  };
-  // Sample the offset, pin it to 0 at both ends, then smooth it so the leader's path
-  // is a gentle arc rather than a wiggle that snaps back onto the line.
-  const M = 40, prof = {};
-  leaderIds.forEach(id => {
-    const o = []; for (let i = 0; i <= M; i++) o.push(raw(id, i / M));
-    const a0 = o[0], a1 = o[M]; for (let i = 0; i <= M; i++){ const t = i / M; o[i] -= (1 - t) * a0 + t * a1; }
-    for (let pass = 0; pass < 6; pass++){ const q = o.slice(); for (let i = 1; i < M; i++) o[i] = 0.25 * q[i - 1] + 0.5 * q[i] + 0.25 * q[i + 1]; o[0] = 0; o[M] = 0; }
-    prof[id] = o;
+  // leader faces the follower's actual position in every frame
+  frames.forEach(fr => {
+    const fBy = {};
+    fr.forEach(d => { if (d.role === 'F') fBy[d.station] = d.xy; });
+    fr.forEach(d => {
+      if (d._L){ const f = fBy[d.station]; d.face = Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI; delete d._L; }
+    });
   });
-  const lAt = (id, scale, t) => { const g = lInfo[id], p = lStr(id, t), i = t * M, i0 = Math.min(M, Math.floor(i)), f = i - i0; const o = (prof[id][i0] * (1 - f) + prof[id][Math.min(M, i0 + 1)] * f) * scale; return { x: p.x + g.n.x * o, y: p.y + g.n.y * o }; };
-  const GAP = 2 * (DOT_R + 1) + 0.5;
-  const minClear = scale => { let m = Infinity; for (let s = 1; s < 60; s++){ const t = s / 60;
-    const all = [...followerIds.map(id => ({ id, r: 'F', p: fAt(id, t) })), ...leaderIds.map(id => ({ id, r: 'L', nf: lInfo[id].newFollower, p: lAt(id, scale, t) }))];
-    for (let a = 0; a < all.length; a++) for (let b = a + 1; b < all.length; b++){
-      if (all[a].r === 'L' && all[b].r === 'F' && all[a].nf === all[b].id) continue;   // leader meeting its target follower is intended
-      if (all[b].r === 'L' && all[a].r === 'F' && all[b].nf === all[a].id) continue;
-      const dd = Math.hypot(all[a].p.x - all[b].p.x, all[a].p.y - all[b].p.y); if (dd < m) m = dd;
-    } } return m; };
-  let scale = 0; for (let sc = 0; sc <= 1.5; sc += 0.01){ if (minClear(sc) >= GAP){ scale = sc; break; } }
-  const fSweep = {};   // follower's clockwise turn to face centre
-  followerIds.forEach(id => { const E = fInfo[id].E; fSweep[id] = norm360(Math.atan2(CY - E.y, CX - E.x) * 180 / Math.PI - fInfo[id].face0); });
-  const STEPS = 16, frames = [];
-  for (let s = 1; s <= STEPS; s++){
-    const t = s / STEPS, P = {};
-    followerIds.forEach(id => P[id] = fAt(id, t)); leaderIds.forEach(id => P[id] = lAt(id, scale, t));
-    frames.push(ds.map(d => {
-      if (d.role === 'F') return { ...d, xy: P[d.id], face: fInfo[d.id].face0 + fSweep[d.id] * t };
-      const nf = P[lInfo[d.id].newFollower];
-      return { ...d, station: lInfo[d.id].newStation, xy: P[d.id], face: Math.atan2(nf.y - P[d.id].y, nf.x - P[d.id].x) * 180 / Math.PI };
-    }));
-  }
-  frames.push(frames[frames.length - 1].map(d => d.role === 'F' ? { ...d, face: 'center' } : { ...d, face: 'center', turn: 'ccw' }));
-  return frames;
+  // 8 beats total: each of the 4 stages takes 2 beats (uniform across its frames).
+  return { frames, segBeats: frames.map(() => 2 / STEPS) };
 }
 
-/* Dame / Dame Dos — always ends in Enchufla position (leader on the clockwise side of
- * the couple facing anti-clockwise, follower on the anti-clockwise side facing clockwise),
- * progressing the leader k couples. The leader always does the travelling, ending a base
- * couple-width clockwise of his new follower, facing her.
- *   From CASINO: the follower stays put and just rotates left (anti-clockwise) to face her
- *     new leader.
- *   From ENCHUFLA: the follower slides past her current leader on his left (no rotation),
- *     into his lane, keeping her clockwise facing.
- * Leaders steer left of followers / right of leaders (smoothed) so no dots collide. */
-function dameToEnchufla(ds, N, k, fromEnch){
-  const DEL = DELTA_DEG * Math.PI / 180;
+/* ------------------------------------------------------------------ *
+ *  PATHING ROUTER  (see PATHING.md)
+ *  Shared rules for how progressing dancers travel between their (already-decided) start and end
+ *  spots. A leader rides a concentric passing lane, then cuts straight to his partner once the line
+ *  is clear; a passed follower bows to the opposite lane and back. `leaderOuter` swaps the lanes for
+ *  afuera / Dile-Que-No-position. Endpoints are supplied by the caller and never changed here.
+ * ------------------------------------------------------------------ */
+const PATH_CLEAR = 1.5;                                  // Δ anti-collision margin (px): lane gap = 2·(DOT_R+Δ),
+                                                         // kept just over one dancer diameter (2·DOT_R)
+const _ang = p => Math.atan2(p.y - CY, p.x - CX);
+const _rad = p => Math.hypot(p.x - CX, p.y - CY);
+const _polar = (a, r) => ({ x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) });
+const _smooth = t => t * t * (3 - 2 * t);                // smoothstep — gentle ease in and out
+
+/* ------------------------------------------------------------------ *
+ *  Path naturalness — a single cost for how *unnatural* one dancer's
+ *  evasion feels while getting out of the way. It scores the EVASION
+ *  RESIDUAL (how the path departs from the line she'd have danced anyway),
+ *  not the raw path — so a legitimately curved figure (a tight Dile orbit,
+ *  a Dame turn) reads as calm, and only the extra push-off to dodge a
+ *  passer costs anything. Three ingredients, each the residual's position,
+ *  speed and acceleration, normalised to O(1) so they combine:
+ *    · deviation — how far off her intended line she is pushed (peak |e|)
+ *    · quickness — how fast that push-off builds/releases (peak |e'|)
+ *    · abruptness — how sharply the push whips (peak |e''|)
+ *  Lower = calmer. Used to pick evasive dips (the calmest that still clears)
+ *  and as a test guardrail. `pts` are per-frame {x,y}; `dts` per-frame beat
+ *  durations (uniform if omitted); `baseline` is the no-evasion path she'd
+ *  have taken — the residual is measured from it. Without a baseline the
+ *  straight start→end chord is used, so a dead-straight move still scores 0
+ *  but any bulge registers (only meaningful when the intended line is straight).
+ * ------------------------------------------------------------------ */
+let NAT_NOEVADE = false;                                 // debug: force followers to skip the evasive dip (intended-path capture)
+const NAT_W = { dev: 1.0, spd: 1.0, acc: 1.0 };          // term weights
+function pathNaturalness(pts, dts, baseline){
+  const n = pts.length;
+  if (n < 3) return { deviation: 0, speed: 0, accel: 0, D: 0, S: 0, A: 0, cost: 0 };
+  const dt = i => (dts && dts[i] != null && dts[i] > 1e-9) ? dts[i] : 1;   // beats for the step landing on frame i
+  // Intended line: the supplied no-evasion path, else the straight chord she'd walk with no dodging.
+  const base = baseline || pts.map((_, i) => { const a = pts[0], b = pts[n-1], f = n > 1 ? i / (n-1) : 0;
+    return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f }; });
+  const e = pts.map((p, i) => ({ x: p.x - base[i].x, y: p.y - base[i].y }));   // evasion residual
+  let deviation = 0;
+  for (const v of e){ const m = Math.hypot(v.x, v.y); if (m > deviation) deviation = m; }
+  const ev = [];                                                              // residual velocity (px / beat)
+  for (let i = 1; i < n; i++) ev.push({ x: (e[i].x - e[i-1].x) / dt(i), y: (e[i].y - e[i-1].y) / dt(i) });
+  let speed = 0;
+  for (const v of ev){ const m = Math.hypot(v.x, v.y); if (m > speed) speed = m; }
+  let accel = 0;                                                             // residual acceleration (px / beat²)
+  for (let i = 1; i < ev.length; i++){ const h = dt(i + 1);
+    const m = Math.hypot(ev[i].x - ev[i-1].x, ev[i].y - ev[i-1].y) / h; if (m > accel) accel = m; }
+  // Normalising scales (a couple width for distance; a couple width per beat / per beat² for the rates)
+  // so ordinary evasions land under ~1 and jerky ones well above.
+  const D = deviation / W_DIST, S = speed / W_DIST, A = accel / W_DIST;
+  const cost = NAT_W.dev * D + NAT_W.spd * S + NAT_W.acc * A;
+  return { deviation, speed, accel, D, S, A, cost };
+}
+function passLanes(){
+  const mid = R_RING * Math.cos(DELTA_DEG * Math.PI / 180);   // couple-midpoint radius (just inside the ring)
+  const d = DOT_R + PATH_CLEAR;
+  return { mid, inner: mid - d, outer: mid + d };
+}
+// Snap the raw start->end angle onto the branch nearest the intended (directed) travel `base` radians.
+function directedSweep(aS, aE, base){
+  let s = aE - aS; while (s - base > Math.PI) s -= 2 * Math.PI; while (s - base < -Math.PI) s += 2 * Math.PI; return s;
+}
+// Resample a polyline into a u∈[0,1] -> point function, parameterised by arc length.
+function arcLenPath(pts){
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const total = cum[cum.length - 1] || 1;
+  return u => { const target = Math.max(0, Math.min(1, u)) * total;
+    let i = 1; while (i < pts.length && cum[i] < target) i++;
+    if (i >= pts.length) return pts[pts.length - 1];
+    const seg = cum[i] - cum[i - 1] || 1, f = (target - cum[i - 1]) / seg;
+    return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f }; };
+}
+// Leader path: dip onto the lane, ride the concentric arc until within `cutAngle` of the destination
+// angle, then cut straight in to E. Staying on the track until near E keeps the straight cut-in short
+// so it never crosses the wheel (which is what made leaders collide on near-diametric progressions).
+// Returns t∈[0,1] -> point (eased).
+function leaderTrackPath(S, E, laneR, sweep, cutAngle){
+  const aS = _ang(S), rS = _rad(S), aE = aS + sweep, sgn = sweep >= 0 ? 1 : -1;
+  // Cut in for the last part of the trip — a fraction of the sweep, capped at a half-couple — so even
+  // a short single-Dame still commits to the lane through the middle (where it crosses its old partner).
+  const aRel = aE - sgn * Math.min(Math.abs(sweep) * 0.35, cutAngle);
+  const pts = [S];
+  const arcSpan = Math.abs(aRel - aS) || 1e-6;
+  const rampF = Math.min(0.4, 0.28 / arcSpan);            // commit to the lane within ~0.28 rad — before the
+                                                          // first follower he passes, so tight lanes still clear
+  const nArc = Math.max(1, Math.round((arcSpan / (Math.abs(sweep) || 1)) * 24));
+  for (let i = 1; i <= nArc; i++){ const f = i / nArc, a = aS + (aRel - aS) * f;
+    const r = f < rampF ? rS + (laneR - rS) * _smooth(f / rampF) : laneR; pts.push(_polar(a, r)); }
+  pts.push(E);
+  const at = arcLenPath(pts);
+  return t => at(_smooth(t));
+}
+// Passed-follower path: base arc S->E with a Gaussian bow toward `dipR` peaking at `tPass` (0 at the
+// ends so S/E are exact); if dipR is null she just travels the base arc. Returns eased t -> point.
+function followerBowPath(S, E, sweepBase, dipR, tPass){
+  const aS = _ang(S), rS = _rad(S), rE = _rad(E);
+  const w = 0.5, bell = x => Math.exp(-(((x - tPass) / w) ** 2));
+  const g0 = bell(0), g1 = bell(1);
+  const raw = t => { const a = aS + sweepBase * t, r = rS + (rE - rS) * t;
+    let bump = 0; if (dipR != null){ const g = bell(t); bump = (dipR - r) * (g - ((1 - t) * g0 + t * g1)); }
+    return _polar(a, r + bump); };
+  return t => raw(_smooth(t));
+}
+
+/* Dame / Dame Dos — progresses the leader k couples and lands the whole wheel exactly on the spoke
+ * grid (no drift). Endpoints (who pairs with whom, the two-config flip, the exact grid spots) are
+ * computed here; the PATHS between them come from the pathing router above: leaders ride the inner
+ * lane and cut straight to the new partner, passed followers bow to the outer lane and back. */
+function dameToEnchufla(ds, N, k, fromEnch, afuera){
+  const dir = afuera ? -1 : 1;                                 // afuera progresses the other way
+  const leaderEndLane = afuera ? 'ccw' : 'cw', folEndLane = afuera ? 'cw' : 'ccw';   // end orientation (Exhibela / afuera-Exhibela)
   const norm = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
   const leftOf = u => ({ x: u.y, y: -u.x });
   const cur = {}, leaderAt = {}, followerAt = {};
-  ds.forEach(d => { cur[d.id] = pos(d); });
+  // Spoke bookkeeping in HALF-spacings: h = 2*station + phaseBefore. The global phase is already
+  // flipped for odd k, so recover phaseBefore, shift each dancer's h, and read the new station back
+  // off h. This makes the direction consistent regardless of which config we started in: a single
+  // Dame always moves the leader one half-spacing anti-clockwise and the follower one clockwise.
+  const twoN = 2 * N, phaseBefore = phase ^ (k & 1);
+  // Resting starts must be read at the PRE-flip phase. When a dancer has no live xy (e.g. the first
+  // Dame right after a reset), pos() would fall through to the formation slot with the already-flipped global
+  // phase and place the start in the wrong config — a visible jump. Pin the start to phaseBefore.
+  ds.forEach(d => { cur[d.id] = d.xy ? d.xy : FORMATIONS.circle.slot(d.station, d.lane, N, phaseBefore); });
   ds.forEach(d => { (d.role === 'L' ? leaderAt : followerAt)[d.station] = d.id; });
-  const AMPF = 20, INF = 64;
-  const fInfo = {};
+  const INF = 110;
+  const lDelta = (k & 1) ? -k * dir : -2 * k * dir;   // single Dame: half a couple; Dame Dos: full k couples
+  const fDelta = (k & 1) ? k * dir : 0;               // single Dame: the other half; Dame Dos: stays
+  const newSt = (st, delta) => { const nh = (((2 * st + phaseBefore + delta) % twoN) + twoN) % twoN; return (nh - phase) / 2; };
+  // followers travel along the ring to their exact new grid spot (clockwise; afuera anti-clockwise)
+  const fInfo = {}, folByNewSt = {};
   ds.forEach(d => { if (d.role !== 'F') return;
-    const S = cur[d.id], E = fromEnch ? cur[leaderAt[d.station]] : S;   // Enchufla: slide into leader's lane; Casino: stay
-    fInfo[d.id] = { S, E, left: leftOf(norm({ x: E.x - S.x, y: E.y - S.y })), newLeader: leaderAt[(d.station + k) % N], face0: facingAngle(d) };
-  });
-  const fAt = (id, t) => { const g = fInfo[id]; if (!fromEnch) return g.S; const b = AMPF * Math.sin(Math.PI * t); return { x: g.S.x + (g.E.x - g.S.x) * t + g.left.x * b, y: g.S.y + (g.E.y - g.S.y) * t + g.left.y * b }; };
-  const lInfo = {};
-  ds.forEach(d => { if (d.role !== 'L') return;
-    const tSt = (d.station - k + N) % N, nf = followerAt[tSt], nfEnd = fInfo[nf].E;   // new follower's ending spot
-    const a = Math.atan2(nfEnd.y - CY, nfEnd.x - CX) + 2 * DEL;                        // leader ends a couple-width clockwise of her
-    const E = { x: CX + R_RING * Math.cos(a), y: CY + R_RING * Math.sin(a) };
-    lInfo[d.id] = { S: cur[d.id], E, n: leftOf(norm({ x: E.x - cur[d.id].x, y: E.y - cur[d.id].y })), newFollower: nf, newStation: tSt };
+    const ns = newSt(d.station, fDelta), S = cur[d.id], E = FORMATIONS.circle.slot(ns, folEndLane, N);
+    let a0 = Math.atan2(S.y - CY, S.x - CX), a1 = Math.atan2(E.y - CY, E.x - CX), da = a1 - a0;
+    while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+    const rS = Math.hypot(S.x - CX, S.y - CY), rE = Math.hypot(E.x - CX, E.y - CY);
+    fInfo[d.id] = { S, E, a0, da, rS, rE, newStation: ns, face0: facingAngle(d) };
+    folByNewSt[ns] = d.id;
   });
   const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
   const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
-  const lStr = (id, t) => { const g = lInfo[id]; return { x: g.S.x + (g.E.x - g.S.x) * t, y: g.S.y + (g.E.y - g.S.y) * t }; };
-  const raw = (id, t) => { const p = lStr(id, t), nf = lInfo[id].newFollower; let o = 0;
-    followerIds.forEach(fid => { if (fid === nf) return; const x = fAt(fid, t), dd = Math.hypot(x.x - p.x, x.y - p.y); if (dd < INF) o += (INF - dd); });
-    leaderIds.forEach(oid => { if (oid === id) return; const x = lStr(oid, t), dd = Math.hypot(x.x - p.x, x.y - p.y); if (dd < INF) o -= (INF - dd); });
-    return o;
-  };
-  const M = 40, prof = {};
-  leaderIds.forEach(id => {
-    const o = []; for (let i = 0; i <= M; i++) o.push(raw(id, i / M));
-    const a0 = o[0], a1 = o[M]; for (let i = 0; i <= M; i++){ const t = i / M; o[i] -= (1 - t) * a0 + t * a1; }
-    for (let pass = 0; pass < 6; pass++){ const q = o.slice(); for (let i = 1; i < M; i++) o[i] = 0.25 * q[i - 1] + 0.5 * q[i] + 0.25 * q[i + 1]; o[0] = 0; o[M] = 0; }
-    prof[id] = o;
+  // Pathing lanes: leader rides the inner lane (outer when afuera); passed followers bow to the other.
+  const lanes = passLanes();
+  const leaderOuter = !!afuera;
+  const leaderLaneR = leaderOuter ? lanes.outer : lanes.inner;
+  const folDipR     = leaderOuter ? lanes.inner : lanes.outer;
+  // Leader endpoints.
+  const lInfo = {};
+  ds.forEach(d => { if (d.role !== 'L') return;
+    const ns = newSt(d.station, lDelta), S = cur[d.id], E = FORMATIONS.circle.slot(ns, leaderEndLane, N);
+    const sweep = directedSweep(_ang(S), _ang(E), lDelta * Math.PI / N);
+    lInfo[d.id] = { S, E, sweep, aS: _ang(S), newStation: ns, newFollower: folByNewSt[ns] };
   });
-  const lAt = (id, scale, t) => { const g = lInfo[id], p = lStr(id, t), i = t * M, i0 = Math.min(M, Math.floor(i)), f = i - i0; const o = (prof[id][i0] * (1 - f) + prof[id][Math.min(M, i0 + 1)] * f) * scale; return { x: p.x + g.n.x * o, y: p.y + g.n.y * o }; };
-  const GAP = 2 * (DOT_R + 1) + 0.5;
-  const minClear = scale => { let m = Infinity; for (let s = 1; s < 60; s++){ const t = s / 60;
-    const all = [...followerIds.map(id => ({ id, r: 'F', p: fAt(id, t) })), ...leaderIds.map(id => ({ id, r: 'L', nf: lInfo[id].newFollower, p: lAt(id, scale, t) }))];
-    for (let a = 0; a < all.length; a++) for (let b = a + 1; b < all.length; b++){
-      if (all[a].r === 'L' && all[b].r === 'F' && all[a].nf === all[b].id) continue;
-      if (all[b].r === 'L' && all[a].r === 'F' && all[b].nf === all[a].id) continue;
-      const dd = Math.hypot(all[a].p.x - all[b].p.x, all[a].p.y - all[b].p.y); if (dd < m) m = dd;
-    } } return m; };
-  let scale = 0; for (let sc = 0; sc <= 1.5; sc += 0.01){ if (minClear(sc) >= GAP){ scale = sc; break; } }
-  // follower facing: from Enchufla she keeps her facing (no rotation); from Casino she
-  // turns left (anti-clockwise) to face her new leader.
-  // In Enchufla position the follower always faces directly at her leader, so she
-  // ends facing her new leader either way: from Casino she turns left to get there;
-  // from Enchufla she only nudges (shortest) since she is already nearly facing him.
-  const fSweep = {};
-  followerIds.forEach(id => {
-    const nlE = lInfo[fInfo[id].newLeader].E, fE = fInfo[id].E;
-    const target = Math.atan2(nlE.y - fE.y, nlE.x - fE.x) * 180 / Math.PI;
-    fSweep[id] = fromEnch ? ((((target - fInfo[id].face0) % 360) + 540) % 360 - 180)   // shortest
-                          : -norm360(fInfo[id].face0 - target);                         // left / anti-clockwise
+  const newLeaderOf = {}; leaderIds.forEach(id => { newLeaderOf[lInfo[id].newStation] = id; });
+  // A follower is "passed" by a leader when her angle falls strictly inside his sweep and she isn't
+  // his new partner. Only then does the leader take the lane, and only then does she dip out of it.
+  // (A single Dame from Casino passes nobody, so nobody uses the lanes — everyone travels directly.)
+  const TAU = 2 * Math.PI;
+  const fracIn = (aF, aS, sweep) => { if (sweep === 0) return -1; let rel = ((aF - aS) % TAU + TAU) % TAU; if (sweep < 0) rel -= TAU; return rel / sweep; };
+  const passedFol = new Set();
+  const passedBy = {}; followerIds.forEach(fid => passedBy[fid] = []);   // which leaders pass each follower
+  leaderIds.forEach(id => { const g = lInfo[id];
+    g.passes = false;
+    followerIds.forEach(fid => { if (fid === g.newFollower) return;
+      const f = fracIn(_ang(fInfo[fid].S), g.aS, g.sweep);
+      if (f > 0.05 && f < 0.95) { g.passes = true; passedFol.add(fid); passedBy[fid].push(id); }
+    });
   });
+  const lAtId = {};
+  leaderIds.forEach(id => { const g = lInfo[id];
+    if (g.passes) lAtId[id] = leaderTrackPath(g.S, g.E, leaderLaneR, g.sweep, Math.PI / N);   // ride the lane, cut in near E
+    else { const rS = _rad(g.S), rE = _rad(g.E);                                              // nobody to pass — go directly along the ring
+      lAtId[id] = t => { const te = _smooth(t), a = g.aS + g.sweep * te, r = rS + (rE - rS) * te; return _polar(a, r); }; }
+  });
+  // Follower base travel; she only dips if she's actually passed.
+  const fPar = {};
+  ds.forEach(d => { if (d.role !== 'F') return; const g = fInfo[d.id];
+    const sweepB = directedSweep(_ang(g.S), _ang(g.E), fDelta * Math.PI / N);
+    const passers = passedBy[d.id];
+    // A follower who doesn't travel angularly but is passed by 2+ leaders holds out on the far lane
+    // for the whole run rather than bobbing back between each passer. A progressing follower dips per
+    // passer so she can ride her own line between them.
+    const holdOut = Math.abs(sweepB) < 1e-6 && passers.length >= 2;
+    fPar[d.id] = { aS: _ang(g.S), rS: _rad(g.S), rE: _rad(g.E), dips: passedFol.has(d.id),
+      sweepB, holdOut, passers };
+  });
+  const shortA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  const WIN = 0.5;                                        // rad — how near (angularly) a leader must be to dip the follower
   const STEPS = 16, frames = [];
   for (let s = 1; s <= STEPS; s++){
-    const t = s / STEPS, P = {};
-    followerIds.forEach(id => P[id] = fAt(id, t)); leaderIds.forEach(id => P[id] = lAt(id, scale, t));
+    const t = s / STEPS, te = _smooth(t), P = {};
+    leaderIds.forEach(id => P[id] = lAtId[id](t));
+    // followers dip out (or in, afuera) in response to where the passing leaders actually are now
+    const endEnv = _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08));   // 0 at both ends so the landing stays exact
+    followerIds.forEach(id => { const g = fPar[id];
+      const aB = g.aS + g.sweepB * te, rB = g.rS + (g.rE - g.rS) * te;
+      let prox = 0;
+      if (g.dips) {
+        if (g.holdOut) {
+          // Stationary follower with 2+ passers: rise onto the far lane as the first leader approaches
+          // and stay there until the last has cleared — one plateau, no bobbing between passes.
+          // `s` is each passer's signed angular progress relative to her, in that leader's travel sense:
+          // s<0 approaching, s≈0 passing, s>0 gone. Rise tracks the front-runner, fall the straggler.
+          let leadS = -Infinity, tailS = Infinity;
+          g.passers.forEach(lid => { const s = Math.sign(lInfo[lid].sweep) * shortA(_ang(P[lid]) - aB);
+            if (s > leadS) leadS = s; if (s < tailS) tailS = s; });
+          // Fully out one WIN-angle BEFORE the front-runner reaches her; stay out until the straggler
+          // is one WIN-angle PAST her — so she never shares the line with a passing leader.
+          const rise = _smooth(Math.max(0, Math.min(1, (leadS + 2 * WIN) / WIN)));
+          const fall = 1 - _smooth(Math.max(0, Math.min(1, (tailS - WIN) / WIN)));
+          prox = Math.min(rise, fall);
+        } else {
+          g.passers.forEach(lid => { const p = Math.exp(-((shortA(_ang(P[lid]) - aB) / WIN) ** 2)); if (p > prox) prox = p; });
+        }
+      }
+      P[id] = _polar(aB, rB + (NAT_NOEVADE ? 0 : prox) * endEnv * (folDipR - rB));
+    });
     frames.push(ds.map(d => {
-      if (d.role === 'F') return { ...d, xy: P[d.id], face: fInfo[d.id].face0 + fSweep[d.id] * t };
+      if (d.role === 'F'){ const g = fInfo[d.id], nl = newLeaderOf[g.newStation], nlp = nl ? P[nl] : null;
+        const face = nlp ? Math.atan2(nlp.y - P[d.id].y, nlp.x - P[d.id].x) * 180 / Math.PI : g.face0;
+        return { ...d, station: g.newStation, xy: P[d.id], face }; }
       const nf = P[lInfo[d.id].newFollower]; return { ...d, station: lInfo[d.id].newStation, xy: P[d.id], face: Math.atan2(nf.y - P[d.id].y, nf.x - P[d.id].x) * 180 / Math.PI, snapTurn: s === 1 };
     }));
   }
   return frames;
 }
 
-/* Dile Que No — now runs from Enchufla position back to Casino. Phase A: leader and
- * follower gather toward the point between them, the leader turning left (anti-clockwise)
- * and the follower right (clockwise) until both face the centre. Phase B: the existing
- * 180° orbit settles them into Casino position. */
-function dileQueNoFull(ds, N){
-  const off = 2 * Math.asin((DOT_R + 1) / R_RING);
-  const cur = {}; ds.forEach(d => cur[d.id] = pos(d));
-  const info = {};
-  ds.forEach(d => {
-    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
-    const p = cur[d.id], pp = cur[pr.id];
-    const thetaC = Math.atan2(Math.sin(Math.atan2(p.y-CY,p.x-CX)) + Math.sin(Math.atan2(pp.y-CY,pp.x-CX)),
-                              Math.cos(Math.atan2(p.y-CY,p.x-CX)) + Math.cos(Math.atan2(pp.y-CY,pp.x-CX)));
-    const endAng = thetaC + (d.role === 'L' ? off / 2 : -off / 2);       // gather off-apart around the centre
-    const E = { x: CX + R_RING * Math.cos(endAng), y: CY + R_RING * Math.sin(endAng) };
-    const faceEnd = Math.atan2(CY - E.y, CX - E.x) * 180 / Math.PI;       // face the centre of the wheel
-    const face0 = facingAngle(d);
-    const sweep = d.role === 'L' ? -norm360(face0 - faceEnd) : norm360(faceEnd - face0);   // leader left, follower right
-    info[d.id] = { S: p, E, face0, sweep };
-  });
-  const STEPS_A = 8, frames = [];
-  for (let s = 1; s <= STEPS_A; s++){
-    const t = s / STEPS_A;
-    frames.push(ds.map(d => { const g = info[d.id]; return { ...d, xy: { x: g.S.x + (g.E.x - g.S.x) * t, y: g.S.y + (g.E.y - g.S.y) * t }, face: g.face0 + g.sweep * t }; }));
-  }
-  const mid = frames[frames.length - 1].map(d => { const { face, ...r } = d; return { ...r, xy: info[d.id].E, face: 'center' }; });
-  const hold = [];                                    // pause in Dile Que No position
-  for (let i = 0; i < 7; i++) hold.push(mid.map(d => ({ ...d })));
-  const saved = dancers; dancers = mid;
-  const orbit = dileQueNo(mid, N);
-  dancers = saved;
-  return frames.concat(hold, orbit);
-}
+/* Dame Pequena — progresses the leader one couple WITHOUT changing the spoke config: the couples stay
+ * on exactly the same midpoint spokes, only the pairing shifts by one, so it always ends in Exhibela
+ * at the current spokes (no phase flip). It behaves differently by starting position:
+ *   From Exhibela: the follower stays put and the leader travels the whole way to the next follower's
+ *     spoke — a Dame where the leader does all the work.
+ *   From Casino: the follower does a Reverse Adios (swapping across her own spoke to her leader's old
+ *     spot, turning 180° anti-clockwise) while the leader travels the larger distance to the next
+ *     follower's spoke, forming Exhibela at that follower's spoke.
+ * Afuera inverts it inside-out: the progression runs clockwise, the Exhibela lanes swap, and the
+ * follower's bow mirrors — landing in Afuera Exhibela. Leaders steer clear of everyone. */
+function damePequena(ds, N, fromEnch, afuera){
+  const norm = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
+  const leftOf  = u => ({ x:  u.y, y: -u.x });
+  const rightOf = u => ({ x: -u.y, y:  u.x });
+  const faceOf = d => (typeof d.face === 'number') ? d.face : facingAngle(d);   // actual current facing (afuera-safe)
+  const step = afuera ? 1 : -1;                        // progression: anti-clockwise normally, clockwise afuera
+  const leaderEndLane = afuera ? 'ccw' : 'cw';         // Exhibela / Afuera-Exhibela leader lane
+  const folTargetLane = afuera ? 'cw'  : 'ccw';        // her Exhibela / Afuera-Exhibela spot (her leader's old spot)
+  const bow = afuera ? leftOf : rightOf;               // Reverse-Adios bow side (mirrors afuera)
+  const cur = {};
+  ds.forEach(d => { cur[d.id] = d.xy ? d.xy : FORMATIONS.circle.slot(d.station, d.lane, N, phase); });
+  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
+  const leaderIds   = ds.filter(d => d.role === 'L').map(d => d.id);
+  const folByStation = {}; ds.forEach(d => { if (d.role === 'F') folByStation[d.station] = d.id; });
+  const nextFolSt = s => (((s + step) % N) + N) % N;   // leader at station s -> follower one couple along
+  const INF = 110;
 
-function dileQueNo(ds, N){
-  const deltaRad = DELTA_DEG * Math.PI / 180;
-  const info = {};
-  ds.forEach(d => {
-    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
-    const p0 = pos(d), pp = pos(pr);
-    const aSelf = Math.atan2(p0.y - CY, p0.x - CX);
-    const aPr   = Math.atan2(pp.y - CY, pp.x - CX);
-    // couple centre angle (mean of the two, wrap-safe); ends are ±delta on the ring
-    const thetaC = Math.atan2(Math.sin(aSelf) + Math.sin(aPr), Math.cos(aSelf) + Math.cos(aPr));
-    const endAng = thetaC + (d.role === 'L' ? -deltaRad : deltaRad);   // leader ends ccw, follower cw
-    const E = { x: CX + R_RING * Math.cos(endAng), y: CY + R_RING * Math.sin(endAng) };
-    const C = { x: (p0.x + E.x) / 2, y: (p0.y + E.y) / 2 };            // centre of this dancer's 180° arc
-    info[d.id] = { E, C, v: { x: p0.x - C.x, y: p0.y - C.y }, face0: facingAngle(d) };
+  // Follower paths: stay put (from Exhibela) or a Reverse Adios across her own spoke (from Casino).
+  const fInfo = {};
+  ds.forEach(d => { if (d.role !== 'F') return;
+    const S = cur[d.id];
+    if (fromEnch){ fInfo[d.id] = { kind: 'stay', S, station: d.station, face0: faceOf(d) }; }
+    else {
+      const T = FORMATIONS.circle.slot(d.station, folTargetLane, N);   // her Exhibela spot = her leader's old spot (same spoke)
+      fInfo[d.id] = { kind: 'radios', S, T, station: d.station, perp: bow(norm({ x: T.x - S.x, y: T.y - S.y })), face0: faceOf(d) };
+    }
   });
-  const sweep = {};
-  ds.forEach(d => {
-    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
-    const me = info[d.id].E, ot = info[pr.id].E;
-    const finalFace = Math.atan2(ot.y - me.y, ot.x - me.x) * 180 / Math.PI;
-    sweep[d.id] = norm360(info[d.id].face0 - finalFace);   // anti-clockwise (left) turn amount
+  // Reverse-adios bow amplitude (couple-width based), only used from Casino.
+  let famp = 0;
+  if (!fromEnch){
+    const anyL = ds.find(d => d.role === 'L'), anyF = folByStation[anyL.station];
+    const D = Math.hypot(cur[anyL.id].x - cur[anyF].x, cur[anyL.id].y - cur[anyF].y), GAPf = 2 * (DOT_R + 1) + 0.5;
+    const minGap = A => { let m = Infinity; for (let s = 1; s < 40; s++){ const t = s / 40; m = Math.min(m, Math.hypot(D * (2 * t - 1), 2 * A * Math.sin(Math.PI * t))); } return m; };
+    for (let a = 0; a <= 80; a += 0.5){ if (minGap(a) >= GAPf){ famp = a; break; } }
+  }
+  const fAt = (id, t) => { const g = fInfo[id]; if (g.kind === 'stay') return g.S;
+    const k = famp * Math.sin(Math.PI * t);
+    return { x: g.S.x + (g.T.x - g.S.x) * t + g.perp.x * k, y: g.S.y + (g.T.y - g.S.y) * t + g.perp.y * k }; };
+
+  // Leader endpoints + track path (rides the inner lane, outer when afuera; config unchanged).
+  const lInfo = {};
+  ds.forEach(d => { if (d.role !== 'L') return;
+    const ns = nextFolSt(d.station), S = cur[d.id], E = FORMATIONS.circle.slot(ns, leaderEndLane, N);
+    lInfo[d.id] = { S, E, sweep: directedSweep(_ang(S), _ang(E), step * 2 * Math.PI / N),   // one full couple along
+      newStation: ns, newFollower: folByStation[ns] };
   });
-  const STEPS = 14, frames = [];
-  for (let step = 1; step <= STEPS; step++){
-    const t = step / STEPS, ang = 180 * t * Math.PI / 180;
+  const newLeaderOf = {}; leaderIds.forEach(id => { newLeaderOf[lInfo[id].newStation] = id; });
+  const lanes = passLanes(), leaderOuter = !!afuera;
+  const leaderLaneR = leaderOuter ? lanes.outer : lanes.inner, folDipR = leaderOuter ? lanes.inner : lanes.outer;
+  const lAtId = {};
+  leaderIds.forEach(id => { const g = lInfo[id]; lAtId[id] = leaderTrackPath(g.S, g.E, leaderLaneR, g.sweep, Math.PI / N); });
+  // Reverse-Adios followers (from Casino) spin anti-clockwise onto their new leader.
+  ds.forEach(d => { if (d.role !== 'F') return; const g = fInfo[d.id]; if (g.kind !== 'radios') return;
+    const nl = newLeaderOf[d.station], El = nl ? lInfo[nl].E : g.T;
+    g.sweep = norm360(g.face0 - Math.atan2(El.y - g.T.y, El.x - g.T.x) * 180 / Math.PI);
+  });
+  const shortA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  const WIN = 0.5;
+  const STEPS = 16, frames = [];
+  for (let s = 1; s <= STEPS; s++){
+    const t = s / STEPS, endEnv = _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08)), P = {};
+    leaderIds.forEach(id => P[id] = lAtId[id](t));
+    followerIds.forEach(id => { const g = fInfo[id];
+      if (g.kind === 'radios'){ const kk = famp * Math.sin(Math.PI * t);
+        P[id] = { x: g.S.x + (g.T.x - g.S.x) * t + g.perp.x * kk, y: g.S.y + (g.T.y - g.S.y) * t + g.perp.y * kk }; }
+      else {                                             // stay put, but dip out of a passing leader's way
+        const aB = _ang(g.S), rB = _rad(g.S), arriving = newLeaderOf[g.station];
+        let prox = 0; leaderIds.forEach(lid => { if (lid === arriving) return;
+          const p = Math.exp(-((shortA(_ang(P[lid]) - aB) / WIN) ** 2)); if (p > prox) prox = p; });
+        P[id] = _polar(aB, rB + prox * endEnv * (folDipR - rB));
+      }
+    });
     frames.push(ds.map(d => {
-      const g = info[d.id];
-      const dir = { x:  g.v.x * Math.cos(ang) + g.v.y * Math.sin(ang),   // rotate visually anti-clockwise
-                    y: -g.v.x * Math.sin(ang) + g.v.y * Math.cos(ang) };
-      return { ...d, xy: { x: g.C.x + dir.x, y: g.C.y + dir.y }, face: g.face0 - t * sweep[d.id] };
+      if (d.role === 'F'){ const g = fInfo[d.id];
+        if (g.kind === 'stay'){ const nl = newLeaderOf[g.station], nlp = nl ? P[nl] : null;
+          const face = nlp ? Math.atan2(nlp.y - P[d.id].y, nlp.x - P[d.id].x) * 180 / Math.PI : g.face0;
+          return { ...d, xy: P[d.id], face }; }
+        return { ...d, xy: P[d.id], face: g.face0 - g.sweep * t };   // Reverse Adios: anti-clockwise onto new leader
+      }
+      const nf = P[lInfo[d.id].newFollower];
+      return { ...d, station: lInfo[d.id].newStation, xy: P[d.id], face: Math.atan2(nf.y - P[d.id].y, nf.x - P[d.id].x) * 180 / Math.PI, snapTurn: s === 1 };
     }));
   }
   return frames;
+}
+
+/* Dile Que No — Exhibela -> Casino. Both dancers open with the first three stages of an
+ * Exhibela along their Exhibela lines (the line through each dancer parallel to the
+ * couple-midpoint→wheel-centre radial): the leader dips in, back, then out; the follower steps
+ * out (turning 90° right to face the centre), back, then in (turning 90° left to face the
+ * tangent). Then a 180° anti-clockwise orbit settles them into Casino. The leader faces the
+ * follower the whole time; the follower turns a further 180° left through the orbit to finish
+ * facing her leader. */
+// Dile Que No orbit flattening: pulls each dancer toward the straight start→end line at mid-turn
+// (endpoints and the 180° facing turn unchanged), so the couple stays tighter through the turn. Applied
+// to every 8-beat Dile Que No — it keeps the plain-rueda look and is what lets the Línea Moderna Dile
+// (two radially-adjacent groups) clear instead of bulging into each other.
+const DILE_PINCH = 0.6;
+function dileQueNoFull(ds, N){
+  const DEL = DELTA_DEG * Math.PI / 180, AL = 16, AF = 18;   // Exhibela-line travel in the opening (kept small)
+  const rotCCW = (v, a) => ({ x: v.x * Math.cos(a) + v.y * Math.sin(a), y: -v.x * Math.sin(a) + v.y * Math.cos(a) });
+  const info = {};
+  ds.forEach(d => {
+    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
+    const S = pos(d), PP = pos(pr);
+    const L0 = d.role === 'L' ? S : PP, F0 = d.role === 'L' ? PP : S;
+    const mx = (L0.x + F0.x) / 2, my = (L0.y + F0.y) / 2;
+    const inA = Math.atan2(CY - my, CX - mx);
+    const inward = { x: Math.cos(inA), y: Math.sin(inA) };               // Exhibela line direction (toward centre)
+    const aL0 = Math.atan2(L0.y - CY, L0.x - CX), aF0 = Math.atan2(F0.y - CY, F0.x - CX);
+    const thetaC = Math.atan2(Math.sin(aL0) + Math.sin(aF0), Math.cos(aL0) + Math.cos(aF0));
+    const endAng = thetaC + (d.role === 'L' ? -DEL : DEL);               // leader -> ccw lane, follower -> cw lane (Casino)
+    const casEnd = { x: CX + R_RING * Math.cos(endAng), y: CY + R_RING * Math.sin(endAng) };
+    const amp = d.role === 'L' ? AL : AF;
+    const orbitStart = d.role === 'L'
+      ? { x: S.x - amp * inward.x, y: S.y - amp * inward.y }             // leader ends stage 3 slightly outside
+      : { x: S.x + amp * inward.x, y: S.y + amp * inward.y };            // follower ends stage 3 slightly inside
+    const oc = { x: (orbitStart.x + casEnd.x) / 2, y: (orbitStart.y + casEnd.y) / 2 };
+    const ov = { x: orbitStart.x - oc.x, y: orbitStart.y - oc.y };
+    info[d.id] = { role: d.role, S, inward, amp, oc, ov, face0: facingAngle(d) };
+  });
+
+  const SS = 8, SO = 16, PH = 4, frames = [];
+  const stagePos = (g, stage, s) => {
+    const dir = g.role === 'L' ? 1 : -1;                                 // leader dips inward first, follower outward
+    const off = stage === 1 ? dir * g.amp * s : stage === 2 ? dir * g.amp * (1 - s) : -dir * g.amp * s;
+    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off };
+  };
+  [1, 2, 3].forEach(stage => {
+    for (let k = 1; k <= SS; k++){
+      const s = k / SS;
+      frames.push(ds.map(d => {
+        const g = info[d.id], p = stagePos(g, stage, s);
+        if (g.role === 'F'){
+          const face = stage === 1 ? g.face0 + 90 * s : stage === 2 ? g.face0 + 90 : g.face0 + 90 - 90 * s;
+          return { ...d, xy: p, face, turn: stage === 1 ? 'cw' : (stage === 3 ? 'ccw' : undefined) };
+        }
+        return { ...d, xy: p, _L: true };
+      }));
+    }
+  });
+  const held = frames[frames.length - 1].map(d => ({ ...d }));           // 1-beat pause at the end of the Exhibela-line moves
+  for (let i = 0; i < PH; i++) frames.push(held.map(d => ({ ...d })));
+  for (let k = 1; k <= SO; k++){
+    const s = k / SO, ang = Math.PI * s;                                 // 180° anti-clockwise
+    frames.push(ds.map(d => {
+      const g = info[d.id]; let dir = rotCCW(g.ov, ang);
+      {                                                                  // flatten the bulge toward the start→end chord
+        const L = Math.hypot(g.ov.x, g.ov.y) || 1, ux = g.ov.x / L, uy = g.ov.y / L, px = -uy, py = ux;
+        const along = dir.x * ux + dir.y * uy, perp = (dir.x * px + dir.y * py) * (1 - DILE_PINCH);
+        dir = { x: along * ux + perp * px, y: along * uy + perp * py };
+      }
+      const p = { x: g.oc.x + dir.x, y: g.oc.y + dir.y };
+      if (g.role === 'F') return { ...d, xy: p, face: g.face0 - 180 * s, turn: 'ccw' };   // 180° left -> faces leader
+      return { ...d, xy: p, _L: true };
+    }));
+  }
+  // leader faces the follower's live position in every frame
+  frames.forEach(fr => {
+    const fpos = {}; fr.forEach(d => { if (d.role === 'F') fpos[d.station] = d.xy; });
+    fr.forEach(d => { if (d._L){ const f = fpos[d.station]; d.face = Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI; delete d._L; } });
+  });
+  // Beats: stages 1-3 take 1 each, then a 1-beat pause, then the 4-beat orbit (8 total).
+  const segBeats = [];
+  for (let i = 0; i < 3 * SS; i++) segBeats.push(1 / SS);
+  for (let i = 0; i < PH; i++) segBeats.push(1 / PH);
+  for (let i = 0; i < SO; i++) segBeats.push(4 / SO);
+  return { frames, segBeats };
+}
+
+/* Dile Que No y Dame — both dancers dance beats 1-2 of a Dile Que No (out along the Exhibela
+ * line and back), then on beat 3 move onto the MIDPOINT SPOKE (the radial line from the wheel
+ * centre through the couple's start midpoint) and pause on 4: the follower on the spoke facing
+ * perpendicular to it (≈ clockwise round the wheel), the leader on the spoke facing the centre.
+ * Their beat-3 spoke points are the perpendicular projections onto the spoke of where they used
+ * to finish beat 4. On 5-8 the leader proceeds to his new follower one couple anti-clockwise
+ * (Dame-style, facing her); the follower walks ~3/4 of a circle through her spoke point, its
+ * mirror just outside the ring, and back to her own start spot — facing her travel direction,
+ * then turning to her new leader at the end. Ends in a clean Exhibela, leaders progressed k. */
+function dileQueNoYDame(ds, N, k = 1, afuera = false){
+  const AL = 16, AF = 18, TWO = 2 * Math.PI, HALF = DOT_R + 8;   // beat-3 offset each side of the ring on the spoke (kept just clear through the whole approach)
+  const kk = afuera ? -k : k, io = afuera ? -1 : 1;   // afuera: progress the other way, and swap inside<->outside
+  const short = a => ((a + 180) % 360 + 360) % 360 - 180;
+  const spot = {}; ds.forEach(d => spot[d.id] = pos(d));
+  const stationF = {}, stationL = {};
+  ds.forEach(d => { (d.role === 'F' ? stationF : stationL)[d.station] = d.id; });
+  const circ3 = (A, B, C) => {
+    const d = 2 * (A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
+    const A2 = A.x*A.x+A.y*A.y, B2 = B.x*B.x+B.y*B.y, C2 = C.x*C.x+C.y*C.y;
+    const O = { x: (A2*(B.y-C.y)+B2*(C.y-A.y)+C2*(A.y-B.y)) / d, y: (A2*(C.x-B.x)+B2*(A.x-C.x)+C2*(B.x-A.x)) / d };
+    return { O, rho: Math.hypot(A.x - O.x, A.y - O.y) };
+  };
+
+  const info = {};
+  ds.forEach(d => {
+    const st = d.station, S = spot[d.id];
+    const pr = ds.find(o => o.station === st && o.role !== d.role);
+    const L0 = d.role === 'L' ? S : spot[pr.id], F0 = d.role === 'L' ? spot[pr.id] : S;
+    const M0 = { x: (L0.x + F0.x) / 2, y: (L0.y + F0.y) / 2 };
+    const inA = Math.atan2(CY - M0.y, CX - M0.x);
+    const inward = { x: Math.cos(inA), y: Math.sin(inA) };          // toward centre (Exhibela-line direction)
+    const out = { x: -inward.x, y: -inward.y };
+    const Xs = { x: CX + R_RING * out.x, y: CY + R_RING * out.y };   // where the midpoint spoke meets the ring
+    const amp = d.role === 'L' ? AL : AF;
+    if (d.role === 'F'){
+      const Pf   = { x: Xs.x + io * HALF * inward.x, y: Xs.y + io * HALF * inward.y };  // beat-3 spoke point (inside normally, outside afuera)
+      const Pout = { x: Xs.x - io * HALF * inward.x, y: Xs.y - io * HALF * inward.y };  // same distance the other side of the ring
+      const { O, rho } = circ3(Pf, Pout, F0);
+      const aA = Math.atan2(Pf.y - O.y, Pf.x - O.x), aB = Math.atan2(Pout.y - O.y, Pout.x - O.x), aC = Math.atan2(F0.y - O.y, F0.x - O.x);
+      const nrm = x => ((x % TWO) + TWO) % TWO;
+      const dAB = nrm(aB - aA), dAC = nrm(aC - aA);
+      let dir, sweep; if (dAB < dAC){ dir = 1; sweep = dAC; } else { dir = -1; sweep = TWO - dAC; }
+      const perpFace = Math.atan2(out.x, -out.y) * 180 / Math.PI;     // ⟂ spoke, clockwise round the wheel (tcw = (-out.y, out.x))
+      const newLeaderFace = Math.atan2(L0.y - F0.y, L0.x - F0.x) * 180 / Math.PI;
+      info[d.id] = { role: 'F', S, F0, inward, amp, face0: facingAngle(d), spoke: Pf, O, rho, aA, dir, sweep, perpFace, newLeaderFace };
+    } else {
+      const Pl = { x: Xs.x - io * HALF * inward.x, y: Xs.y - io * HALF * inward.y };  // beat-3 spoke point (outside normally, inside afuera)
+      const ns = (((st - kk) % N) + N) % N;
+      info[d.id] = { role: 'L', S, inward, amp, spoke: Pl, orbitStart: Pl, End: spot[stationL[ns]], newStation: ns, nfId: stationF[ns] };
+    }
+  });
+  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
+  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
+
+  // beats 1-2: out along the Exhibela line and back; beat 3: move onto the midpoint spoke; beat 4: pause
+  const stagePos = (g, stage, s) => {
+    if (stage === 3) return { x: g.S.x + (g.spoke.x - g.S.x) * s, y: g.S.y + (g.spoke.y - g.S.y) * s };
+    const off = io * (g.role === 'L' ? 1 : -1) * g.amp * (stage === 1 ? s : 1 - s);   // afuera: dip out instead of in (and vice versa)
+    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off };
+  };
+  // follower beats 5-8: ~3/4 circle through her spoke point, its outside-the-ring mirror, and her own spot
+  const folTravel = (g, t) => { const a = g.aA + g.dir * g.sweep * t; return { x: g.O.x + g.rho * Math.cos(a), y: g.O.y + g.rho * Math.sin(a) }; };
+  // leader beats 5-8: head straight for the Exhibela spot beside his new follower, with a single
+  // gentle arc (one half-sine bow) only as large as needed to clear. He bows to his RIGHT, so every
+  // leader keeps to the right of the others (all bow together and never meet) and passes to the left
+  // of the followers he goes by.
+  const normv = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
+  const rightOf = u => ({ x: -u.y, y: u.x }), leftOf = u => ({ x: u.y, y: -u.x });   // 90° to the leader's right / left
+  const setNrm = dfn => leaderIds.forEach(id => { const g = info[id]; g.nrm = dfn(normv({ x: g.End.x - g.orbitStart.x, y: g.End.y - g.orbitStart.y })); });
+  const lStr = (id, t) => { const g = info[id]; return { x: g.orbitStart.x + (g.End.x - g.orbitStart.x) * t, y: g.orbitStart.y + (g.End.y - g.orbitStart.y) * t }; };
+  const leaderBow = (id, t, A) => { const g = info[id], p = lStr(id, t), b = A * Math.sin(Math.PI * t); return { x: p.x + g.nrm.x * b, y: p.y + g.nrm.y * b }; };
+  const GAPc = 2 * (DOT_R + 1) + 0.5;
+  const clearWith = travelFn => { let m = Infinity;
+    for (let s = 1; s < 60; s++){ const t = s / 60;
+      // Every dancer ends a couple-width apart here, so no pair (target follower included) should
+      // ever come within a dot-clearance of another during the travel.
+      const all = [...followerIds.map(id => ({ id, p: folTravel(info[id], t) })), ...leaderIds.map(id => ({ id, p: travelFn(id, t) }))];
+      for (let a = 0; a < all.length; a++) for (let b = a + 1; b < all.length; b++){
+        const dd = Math.hypot(all[a].p.x - all[b].p.x, all[a].p.y - all[b].p.y); if (dd < m) m = dd;
+      }
+    } return m; };
+  const solveBow = () => { for (let A = 0; A <= 260; A += 1){ if (clearWith((id, t) => leaderBow(id, t, A)) >= GAPc) return { A, ok: true }; } return { A: 260, ok: false }; };
+  // Prefer bowing to the leaders' right (all bow together, keeping right of each other); if that
+  // can't clear (e.g. the afuera 4-couple diametric swap), bow left instead.
+  setNrm(rightOf); let best = solveBow();
+  if (!best.ok){ setNrm(leftOf); const alt = solveBow(); if (alt.ok) best = alt; else setNrm(rightOf); }
+  let leaderAt;
+  if (best.ok){ const bowA = best.A; leaderAt = (id, t) => leaderBow(id, t, bowA); }
+  else {
+    // A single bow can't separate a diametric swap (e.g. the 4-couple Dame Dos): fall back to a
+    // shared outer arc — all leaders sweep the same way around the wheel, keeping constant spacing.
+    leaderIds.forEach(id => { const g = info[id], oS = g.orbitStart;
+      g.aOut = Math.atan2(oS.y - CY, oS.x - CX); g.rOut = Math.hypot(oS.x - CX, oS.y - CY);
+      let dA = Math.atan2(g.End.y - CY, g.End.x - CX) - g.aOut; dA = ((dA % TWO) + TWO) % TWO; if (dA > 0) dA -= TWO; g.dAng = dA; });
+    const arcAt = (id, OUT, t) => { const g = info[id], ang = g.aOut + g.dAng * t, r = g.rOut + (R_RING - g.rOut) * t + OUT * Math.sin(Math.PI * t); return { x: CX + r * Math.cos(ang), y: CY + r * Math.sin(ang) }; };
+    let OUT = 0; for (let o = 0; o <= 260; o += 2){ if (clearWith((id, t) => arcAt(id, OUT, t)) >= GAPc){ OUT = o; break; } OUT = o; }
+    leaderAt = (id, t) => arcAt(id, OUT, t);
+  }
+
+  // assemble frames
+  const SS = 8, PH = 4, NT = 32, frames = [], segBeats = [];
+  const push = (mapper, bps) => { frames.push(ds.map(mapper)); segBeats.push(bps); };
+  // Beats 2-3 are one back-and-onward move (out-spot -> start -> spoke). Split their 2 beats by
+  // path length so the dancers keep a roughly constant speed across both instead of dawdling on
+  // the short beat 2 and rushing the long beat 3. Beat 1 (out) and the beat-4 pause are unchanged.
+  let sd2 = 0, sd3 = 0;
+  ds.forEach(d => { const g = info[d.id]; sd2 += g.amp; sd3 += Math.hypot(g.spoke.x - g.S.x, g.spoke.y - g.S.y); });
+  const B2 = 2 * sd2 / (sd2 + sd3), B3 = 2 * sd3 / (sd2 + sd3);
+  const stageBeats = [1, B2, B3];
+  [1, 2, 3].forEach(stage => { const bb = stageBeats[stage - 1] / SS; for (let j = 1; j <= SS; j++){ const s = j / SS;
+    push(d => ({ ...d, xy: stagePos(info[d.id], stage, s) }), bb); } });
+  for (let j = 0; j < PH; j++) push(d => ({ ...d, xy: stagePos(info[d.id], 3, 1) }), 1 / PH);   // beat-4 pause
+  for (let j = 1; j <= NT; j++){ const t = j / NT;
+    push(d => { const g = info[d.id];
+      if (g.role === 'F') return { ...d, xy: folTravel(g, t) };
+      return { ...d, station: g.newStation, xy: leaderAt(d.id, t) }; }, 4 / NT); }
+
+  const openCount = 3 * SS + PH;
+  // leaders: face their current follower (beats 1-2), turn to the centre by beat 3 and hold (beat 4),
+  // then face their new follower through the travel.
+  frames.forEach((fr, fi) => {
+    const fpos = {}; fr.forEach(d => { if (d.role === 'F') fpos[d.station] = d.xy; });
+    fr.forEach(d => { if (d.role !== 'L') return;
+      const toC = Math.atan2(io * (CY - d.xy.y), io * (CX - d.xy.x)) * 180 / Math.PI;   // afuera: face away from centre
+      if (fi < 2 * SS){ const f = fpos[d.station]; d.face = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; }
+      else if (fi < 3 * SS){ const f = fpos[d.station], ff = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; d.face = ff + short(toC - ff) * ((fi - 2 * SS + 1) / SS); }
+      else if (fi < openCount){ d.face = toC; }
+      else { const f = fpos[info[d.id].newStation]; d.face = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; }
+    });
+  });
+  // followers: beats 1-2 turn to the centre and hold; beat 3 turn to ⟂-spoke (clockwise) and pause on 4;
+  // travel: face the direction of travel, then a final turn to the new leader over the last part of the circle.
+  const turnStart = openCount + Math.round(NT * 0.72);
+  followerIds.forEach(id => {
+    const g = info[id];
+    let prev = null, travelAtTurn = g.perpFace;
+    frames.forEach((fr, fi) => {
+      const d = fr.find(x => x.id === id);
+      let face;
+      if (fi < SS) face = g.face0 + 90 * ((fi + 1) / SS);                                 // out, turn 90° right to centre
+      else if (fi < 2 * SS) face = g.face0 + 90;                                           // back, hold facing centre
+      else if (fi < 3 * SS){ const st0 = g.face0 + 90; face = st0 + short(g.perpFace - st0) * ((fi - 2 * SS + 1) / SS); }  // onto spoke, turn to ⟂-spoke
+      else if (fi < openCount) face = g.perpFace;                                          // beat-4 pause
+      else {
+        let tf = prev ? Math.atan2(d.xy.y - prev.y, d.xy.x - prev.x) * 180 / Math.PI : g.perpFace;
+        if (fi < turnStart){ face = tf; travelAtTurn = tf; }
+        else { const u = (fi - turnStart) / Math.max(1, frames.length - 1 - turnStart); const sm = u * u * (3 - 2 * u);
+               face = travelAtTurn + short(g.newLeaderFace - travelAtTurn) * sm; }
+      }
+      d.face = face; prev = d.xy;
+    });
+  });
+  return { frames, segBeats };
+}
+
+/* 4-beat Dile Que No (Exhibela -> Dile Que No position). The opening of a Dile Que No y Dame, danced
+ * on its own: beats 1-2 dip out along the Exhibela line and back; beat 3 step onto the couple's
+ * midpoint spoke — leader to the OUTER lane (just outside the ring), follower to the INNER lane (just
+ * inside) — and pause on beat 4. The leader faces his follower through beats 1-2, turns to face the
+ * centre by beat 3 and holds; the follower turns 90° right to the centre on beat 1, holds, then turns
+ * to perpendicular-to-the-spoke (clockwise) on beat 3 and holds. Ends in the Dile Que No position —
+ * no progression, no phase change. */
+function dileQueNo4(ds, N){
+  const AL = 16, AF = 18;                                    // Exhibela-line dip amplitudes
+  const short = a => ((a + 180) % 360 + 360) % 360 - 180;
+  const info = {};
+  ds.forEach(d => {
+    const st = d.station, S = pos(d);
+    const pr = ds.find(o => o.station === st && o.role !== d.role);
+    const L0 = d.role === 'L' ? S : pos(pr), F0 = d.role === 'L' ? pos(pr) : S;
+    const M0 = { x: (L0.x + F0.x) / 2, y: (L0.y + F0.y) / 2 };
+    const inA = Math.atan2(CY - M0.y, CX - M0.x);
+    const inward = { x: Math.cos(inA), y: Math.sin(inA) };   // toward centre (Exhibela-line direction)
+    const out = { x: -inward.x, y: -inward.y };
+    const spoke = FORMATIONS.circle.slot(st, d.role === 'L' ? 'outer' : 'inner', N);   // Dile-position target
+    const perpFace = Math.atan2(out.x, -out.y) * 180 / Math.PI;   // ⟂ spoke, clockwise round the wheel
+    info[d.id] = { role: d.role, S, inward, amp: d.role === 'L' ? AL : AF, spoke, face0: facingAngle(d), perpFace };
+  });
+  const stagePos = (g, stage, s) => {
+    if (stage === 3) return { x: g.S.x + (g.spoke.x - g.S.x) * s, y: g.S.y + (g.spoke.y - g.S.y) * s };
+    const off = (g.role === 'L' ? 1 : -1) * g.amp * (stage === 1 ? s : 1 - s);   // leader dips in, follower out
+    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off };
+  };
+  const SS = 8, PH = 4, frames = [], segBeats = [];
+  const push = (mapper, bps) => { frames.push(ds.map(mapper)); segBeats.push(bps); };
+  // Beats 2-3 (back, then onward onto the spoke) split by path length so the speed stays even.
+  let sd2 = 0, sd3 = 0;
+  ds.forEach(d => { const g = info[d.id]; sd2 += g.amp; sd3 += Math.hypot(g.spoke.x - g.S.x, g.spoke.y - g.S.y); });
+  const B2 = 2 * sd2 / (sd2 + sd3), B3 = 2 * sd3 / (sd2 + sd3), stageBeats = [1, B2, B3];
+  [1, 2, 3].forEach(stage => { const bb = stageBeats[stage - 1] / SS; for (let j = 1; j <= SS; j++){ const s = j / SS;
+    push(d => ({ ...d, xy: stagePos(info[d.id], stage, s) }), bb); } });
+  for (let j = 0; j < PH; j++) push(d => ({ ...d, xy: stagePos(info[d.id], 3, 1) }), 1 / PH);   // beat-4 pause
+  // leaders: face their follower (beats 1-2), turn to the centre by beat 3, hold on 4.
+  frames.forEach((fr, fi) => {
+    const fpos = {}; fr.forEach(d => { if (d.role === 'F') fpos[d.station] = d.xy; });
+    fr.forEach(d => { if (d.role !== 'L') return;
+      const toC = Math.atan2(CY - d.xy.y, CX - d.xy.x) * 180 / Math.PI;
+      if (fi < 2 * SS){ const f = fpos[d.station]; d.face = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; }
+      else if (fi < 3 * SS){ const f = fpos[d.station], ff = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; d.face = ff + short(toC - ff) * ((fi - 2 * SS + 1) / SS); }
+      else d.face = toC;
+    });
+  });
+  // followers: turn 90° right to the centre on beat 1 and hold; turn to ⟂-spoke on beat 3, hold on 4.
+  frames.forEach((fr, fi) => {
+    fr.forEach(d => { if (d.role !== 'F') return; const g = info[d.id];
+      let face;
+      if (fi < SS) face = g.face0 + 90 * ((fi + 1) / SS);
+      else if (fi < 2 * SS) face = g.face0 + 90;
+      else if (fi < 3 * SS){ const st0 = g.face0 + 90; face = st0 + short(g.perpFace - st0) * ((fi - 2 * SS + 1) / SS); }
+      else face = g.perpFace;
+      d.face = face;
+    });
+  });
+  return { frames, segBeats };
+}
+
+/* Mujeres Arriba (Dile Que No position -> Exhibela). The women advance: every follower progresses one
+ * partnership CLOCKWISE to the next couple's Exhibela spot, doing ALL the travelling so the spokes and
+ * the phase stay put. Each leader — having just danced a 4-beat Dile Que No — retraces it in reverse,
+ * from his outer spoke point straight back to his OWN Exhibela spot on the ring, facing the centre the
+ * whole way and turning to his RIGHT (clockwise) to meet his new follower as he arrives. Ends in
+ * Exhibela: leaders NOT progressed, the pairing shifted by one, no phase change. */
+function mujeresArriba(ds, N){
+  const short = a => ((a + 180) % 360 + 360) % 360 - 180;
+  const cw = a => ((a % 360) + 360) % 360;                   // clockwise (increasing-angle) turn amount, screen coords
+  const cur = {}; ds.forEach(d => cur[d.id] = d.xy ? d.xy : FORMATIONS.circle.slot(d.station, d.lane, N));
+  const leaderByStation = {}; ds.forEach(d => { if (d.role === 'L') leaderByStation[d.station] = d.id; });
+  const nextSt = s => (((s + 1) % N) + N) % N;               // one couple clockwise (station increases)
+  // Leaders: back to their OWN Exhibela spot (cw lane); no progression. New partner = the follower
+  // arriving at this station (her end spot is this station's ccw lane).
+  const lInfo = {};
+  ds.forEach(d => { if (d.role !== 'L') return;
+    lInfo[d.id] = { S: cur[d.id], E: FORMATIONS.circle.slot(d.station, 'cw', N),
+      newFolEnd: FORMATIONS.circle.slot(d.station, 'ccw', N) };
+  });
+  // Followers: progress one couple clockwise to the next station's ccw (Exhibela follower) spot. New
+  // leader = the one who stays at that station (its cw lane).
+  const fInfo = {};
+  ds.forEach(d => { if (d.role !== 'F') return;
+    const ns = nextSt(d.station), S = cur[d.id], E = FORMATIONS.circle.slot(ns, 'ccw', N);
+    fInfo[d.id] = { S, E, aS: _ang(S), rS: _rad(S), rE: _rad(E),
+      sweep: directedSweep(_ang(S), _ang(E), 2 * Math.PI / N), newStation: ns,
+      newLeaderEnd: FORMATIONS.circle.slot(ns, 'cw', N), face0: facingAngle(d) };
+  });
+  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
+  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
+  const RISE = 0.55;                                         // followers stay deep, then rise to the ring over the last part
+  const lAt = (id, t) => { const g = lInfo[id], te = _smooth(t); return { x: g.S.x + (g.E.x - g.S.x) * te, y: g.S.y + (g.E.y - g.S.y) * te }; };
+  const fAt = (id, t) => { const g = fInfo[id], te = _smooth(t), a = g.aS + g.sweep * te;
+    const rise = _smooth(Math.max(0, Math.min(1, (t - RISE) / (1 - RISE))));
+    return _polar(a, g.rS + (g.rE - g.rS) * rise); };
+  const STEPS = 24, frames = [], segBeats = [];
+  for (let s = 1; s <= STEPS; s++){
+    const t = s / STEPS, P = {};
+    leaderIds.forEach(id => P[id] = lAt(id, t));
+    followerIds.forEach(id => P[id] = fAt(id, t));
+    frames.push(ds.map(d => {
+      if (d.role === 'L'){ const g = lInfo[d.id];
+        const toC = Math.atan2(CY - P[d.id].y, CX - P[d.id].x) * 180 / Math.PI;
+        const fin = Math.atan2(g.newFolEnd.y - g.E.y, g.newFolEnd.x - g.E.x) * 180 / Math.PI;
+        const u = _smooth(Math.max(0, Math.min(1, (t - 0.62) / 0.38)));   // hold on the centre, then turn CW to the new partner
+        const face = toC + cw(fin - toC) * u;
+        return { ...d, station: d.station, xy: P[d.id], face }; }
+      const g = fInfo[d.id];
+      return { ...d, station: g.newStation, xy: P[d.id] };   // facing filled in below
+    }));
+  }
+  // followers: face the direction of travel, then turn to the new leader over the last part.
+  const turnStart = Math.round(STEPS * 0.7);
+  followerIds.forEach(id => {
+    const g = fInfo[id]; let prev = g.S;
+    frames.forEach((fr, fi) => {
+      const d = fr.find(x => x.id === id);
+      const travel = Math.atan2(d.xy.y - prev.y, d.xy.x - prev.x) * 180 / Math.PI;
+      const fin = Math.atan2(g.newLeaderEnd.y - g.E.y, g.newLeaderEnd.x - g.E.x) * 180 / Math.PI;
+      let face = travel;
+      if (fi >= turnStart){ const u = _smooth((fi - turnStart) / Math.max(1, STEPS - 1 - turnStart)); face = travel + short(fin - travel) * u; }
+      d.face = face; prev = d.xy;
+    });
+  });
+  for (let i = 0; i < STEPS; i++) segBeats.push(4 / STEPS);
+  return { frames, segBeats };
+}
+
+/* Leader's Right Turn — a 4-beat figure danced in place. The follower stays exactly put and does
+ * not rotate; the leader holds his spot and turns a full 360° to his right (clockwise), ending
+ * facing exactly the way he began. Nothing moves position. Danced after an Enchufla it leaves the
+ * couple looking like Exhibela, but in the new Afuera Casino position (an inside-out Casino). */
+function leadersRightTurn(ds, N){
+  const STEPS = 12, frames = [];
+  const face0 = {}; ds.forEach(d => { if (d.role === 'L') face0[d.id] = facingAngle(d); });
+  for (let s = 1; s <= STEPS; s++){
+    frames.push(ds.map(d => {
+      if (d.role === 'L'){ const f = s === STEPS ? face0[d.id] : face0[d.id] + 360 * (s / STEPS); return { ...d, face: f, turn: 'cw' }; }
+      return { ...d };                                   // follower unchanged (fixed spot, faces her partner)
+    }));
+  }
+  return { frames, segBeats: frames.map(() => 4 / STEPS) };
 }
 
 /* ------------------------------ render ------------------------------ */
@@ -629,20 +1504,7 @@ let nodes = {};
 function buildNodes(){
   svg.innerHTML = '';
   nodes = {};
-  // faint guide (circle or two lines)
-  if (layoutName === 'circle'){
-    const c = document.createElementNS(NS,'circle');
-    c.setAttribute('cx',CX); c.setAttribute('cy',CY); c.setAttribute('r',R_RING);
-    c.setAttribute('fill','none'); c.setAttribute('stroke','#2c3352'); c.setAttribute('stroke-dasharray','4 6');
-    svg.appendChild(c);
-  } else {
-    [CY-60, CY+60].forEach(y=>{
-      const l = document.createElementNS(NS,'line');
-      l.setAttribute('x1',60); l.setAttribute('x2',W-60); l.setAttribute('y1',y); l.setAttribute('y2',y);
-      l.setAttribute('stroke','#2c3352'); l.setAttribute('stroke-dasharray','4 6');
-      svg.appendChild(l);
-    });
-  }
+  FORMATIONS[layoutName].guide(svg);            // faint guide (circle or two lines), owned by the formation
   dancers.forEach(d=>{
     const g = document.createElementNS(NS,'g');
     g.setAttribute('class','dancer');
@@ -711,41 +1573,334 @@ function renderTable(){
 }
 
 /* ------------------------------ actions ------------------------------ */
-function doCall(key){
-  if (animating) return;
-  const call = CALLS[key];
-  const from = posState;
-  if (call.requires && !call.requires.includes(from)) return;   // can't do this call from here
-  history.push(dancers.map(d=>({...d})));
-  histPos.push(from);
+// Afuera ("inside-out") positions mirror the normal two: 'afuera' (Afuera Casino, looks like Exhibela)
+// behaves like Casino; 'afuera_exhibela' (Afuera Exhibela, looks like Casino) behaves like Exhibela.
+// virtualPos maps an afuera position to the normal one whose rules it follows (from the POSITIONS table).
+const virtualPos = p => POSITIONS[p].virtual;
+const isAfuera = p => POSITIONS[p].inverted;
+const resolveSets = (mv, from) => {
+  if (mv.relabel) return (typeof mv.sets === 'function') ? mv.sets(from) : mv.sets;   // afuera/adentro: use the real from, cross frames
+  const v = (typeof mv.sets === 'function') ? mv.sets(virtualPos(from)) : mv.sets;
+  if (isAfuera(from) && INVERTED_OF[v]) return INVERTED_OF[v];                          // stay inside-out
+  return v;
+};
+// A movement is valid from p. Relabel moves (Afuera/Adentro) match their raw requires (they cross
+// between the normal and afuera frames). While afuera, entry-only and not-yet-afuera moves are
+// blocked; everything else maps through virtualPos.
+const validFrom = (key, p) => {
+  const m = MOVEMENTS[key]; if (!m) return false;
+  if (m.relabel) return m.requires.includes(p);
+  if (isAfuera(p)) return !m.entryOnly && (!m.progresses || m.afueraReady) && m.requires.includes(virtualPos(p));
+  return m.requires.includes(p);
+};
+
+// Which beat of the measure a movement starts on when it's snapped to the grid.
+// Most start on 1; Dame from Casino starts on 7 and Dame Dos from Casino on 5 (so both end on 8).
+// Which beat of the measure a movement snaps to when it's the first of a call. A progressing Dame-type
+// figure that closes into a Dile Que No should END on beat 8 (so the Dile lands on beat 1), i.e. start
+// on beat 9 − its beat count (Dame from Casino = 2 beats → 7; a 4-beat Dame/Dame Grande/Pequeña → 5).
+// Everything else starts on 1.
+const DAME_KEYS = new Set(['dame', 'dame_dos', 'dame_grande', 'dame_peq', 'dame_pequena']);
+function startBeatOf(key, from){
+  if (DAME_KEYS.has(key)){ const mv = MOVEMENTS[key];
+    const beats = typeof mv.beats === 'function' ? mv.beats(from) : (mv.beats || 4);
+    return ((9 - beats - 1) % 8 + 8) % 8 + 1;
+  }
+  return 1;
+}
+function showBeat(b0){
+  const b = ((Math.floor(b0) % 8) + 8) % 8;                       // 0-indexed beat of the measure
+  const big = document.getElementById('beatbig'); if (big) big.textContent = b + 1;
+  const pips = document.getElementById('beatpips');
+  if (pips) for (let i = 0; i < pips.children.length; i++) pips.children[i].classList.toggle('on', i === b);
+}
+
+// Inside-out (afuera) version of an IN-COUPLE figure: run the normal generator on a per-couple
+// 180° point-reflection of the wheel (about each couple's midpoint), then reflect the frames back.
+// A 180° rotation preserves handedness, so every spin keeps its direction while inside<->outside
+// and the Casino<->Exhibela look both flip, and the couple faces map by +180°. (In-couple only —
+// progressing figures like Dame handle afuera in their own generators.)
+function afueraFrames(mv, dsReal, N, from){
+  const P = {}, ctr = {};
+  dsReal.forEach(d => P[d.id] = pos(d));
+  dsReal.forEach(d => { const pr = dsReal.find(o => o.station === d.station && o.role !== d.role);
+    ctr[d.id] = { x: (P[d.id].x + P[pr.id].x) / 2, y: (P[d.id].y + P[pr.id].y) / 2 }; });
+  const refl = (id, p) => ({ x: 2 * ctr[id].x - p.x, y: 2 * ctr[id].y - p.y });
+  const swapLane = l => l === 'cw' ? 'ccw' : l === 'ccw' ? 'cw' : l;
+  const virt = dsReal.map(d => ({ ...d, xy: refl(d.id, P[d.id]), lane: swapLane(d.lane), face: (typeof d.face === 'number') ? d.face + 180 : d.face }));
+  const saved = dancers; dancers = virt;
+  let out; try { out = mv.frames(virt, N, virtualPos(from)); } finally { dancers = saved; }
+  const vframes = Array.isArray(out) ? out : out.frames;
+  const segBeats = Array.isArray(out) ? null : out.segBeats;
+  const frames = vframes.map(fr => fr.map(d => {
+    const o = { ...d, xy: refl(d.id, d.xy || P[d.id]), lane: swapLane(d.lane) };
+    if (typeof d.face === 'number') o.face = d.face + 180;
+    return o;
+  }));
+  return segBeats ? { frames, segBeats } : frames;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Línea Moderna — GRANDE composition. A grande movement runs an ordinary
+ *  circle movement on the whole outer ring (as a normal m-couple rueda) and
+ *  on the whole inner ring (as an afuera m-couple rueda) at the same time,
+ *  through the wheel-context seam, then merges the two rings' frames. Because
+ *  both rings dance the same movement, the frame counts and beat timing match
+ *  1:1. Endpoints land on the Línea grid (the ring context's circle.slot
+ *  reproduces linea.slot exactly), so nothing drifts.
+ * ------------------------------------------------------------------ */
+// Each Línea resting/transient state maps to the circle sub-position of the two rings.
+const LINEA_SUB = {
+  linea:    { outer: 'casino',   inner: 'afuera' },           // rest
+  linea_ex: { outer: 'exhibela', inner: 'afuera_exhibela' },  // both rings exhibela-like
+};
+function grandeFrames(circleKey, from){
+  const m = LM.m, mv = MOVEMENTS[circleKey], sub = LINEA_SUB[from];
+  const all = dancers;
+  const mkSub = (list, isOuter) => list.map(d => ({ id: d.id, role: d.role, couple: d.couple,
+    station: isOuter ? d.station - m : d.station, lane: d.lane,
+    xy: d.xy ? d.xy : pos(d), face: (typeof d.face === 'number') ? d.face : facingAngle(d) }));
+  const innerSub = mkSub(all.filter(d => d.station < m), false);
+  const outerSub = mkSub(all.filter(d => d.station >= m), true);
+  const runRing = (subDs, R, dDeg, fromPos) => runOnWheel(
+    { CX, CY, R_RING: R, DELTA_DEG: dDeg, N: m, BASE_ANG: -90, phase }, subDs,
+    () => { const useAfuera = isAfuera(fromPos) && !mv.progresses && !mv.relabel;
+      const out = useAfuera ? afueraFrames(mv, subDs, m, fromPos) : mv.frames(subDs, m, fromPos);
+      return Array.isArray(out) ? { frames: out, segBeats: null } : out; });
+  const inO = runRing(innerSub, LM.Ri, LM.di * 180 / Math.PI, sub.inner);
+  const outO = runRing(outerSub, LM.Ro, LM.doO * 180 / Math.PI, sub.outer);
+  const F = Math.max(inO.frames.length, outO.frames.length), frames = [];
+  for (let i = 0; i < F; i++){
+    const inf = inO.frames[Math.min(i, inO.frames.length - 1)];
+    const of  = outO.frames[Math.min(i, outO.frames.length - 1)];
+    frames.push(inf.map(d => ({ ...d })).concat(of.map(d => ({ ...d, station: d.station + m }))));
+  }
+  const segBeats = inO.segBeats || outO.segBeats || null;
+  return segBeats ? { frames, segBeats } : frames;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Línea Moderna — PEQUEÑA composition. Instead of two big rings, the wheel
+ *  is treated as m little 2-couple ruedas, one per spoke: the outer couple +
+ *  the inner couple that share it, centred at their midpoint. Both are plain
+ *  (non-afuera) inside the mini-wheel — the inner couple's afuera look is just
+ *  a 180° flip, which the mini-centre (sitting outside it) already provides,
+ *  so its mini-lane is the swap of its ring lane. Dame → Dame Pequeña; no
+ *  phase change. Each mini-wheel runs the ordinary circle move; frames merge.
+ * ------------------------------------------------------------------ */
+const LINEA_SUB_PEQ = { linea: 'casino', linea_pex: 'exhibela' };
+function pequenaFrames(circleKey, from){
+  const m = LM.m, mv = MOVEMENTS[circleKey], fromPos = LINEA_SUB_PEQ[from];
+  const swap = l => l === 'cw' ? 'ccw' : l === 'ccw' ? 'cw' : l;
+  const byStation = {}; dancers.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
+  const cur = d => d.xy ? d.xy : pos(d), fc = d => (typeof d.face === 'number') ? d.face : facingAngle(d);
+  const wheels = []; let Fcount = 0, segB = null;
+  for (let k = 0; k < m; k++){
+    const sub = [];
+    byStation[m + k].forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 0, lane: d.lane,        xy: cur(d), face: fc(d) })); // outer -> mini station 0
+    byStation[k].forEach(d     => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 1, lane: swap(d.lane),  xy: cur(d), face: fc(d) })); // inner -> mini station 1 (lane swapped)
+    const mc = FORMATIONS.linea.miniCenter(k);
+    const thk = -90 + k * 360 / m + phase * 180 / m;
+    const out = runOnWheel({ CX: mc.x, CY: mc.y, R_RING: LM.R2, DELTA_DEG: LM.d2 * 180 / Math.PI, N: 2, BASE_ANG: thk, phase: 0 }, sub,
+      () => { const o = mv.frames(sub, 2, fromPos); return Array.isArray(o) ? { frames: o, segBeats: null } : o; });
+    wheels.push(out); Fcount = Math.max(Fcount, out.frames.length); segB = segB || out.segBeats;
+  }
+  const frames = [];
+  for (let i = 0; i < Fcount; i++){
+    const merged = [];
+    for (let k = 0; k < m; k++){ const wf = wheels[k].frames[Math.min(i, wheels[k].frames.length - 1)];
+      wf.forEach(d => { const outer = d.station === 0;
+        merged.push({ ...d, station: outer ? m + k : k, lane: outer ? d.lane : swap(d.lane) }); }); }
+    frames.push(merged);
+  }
+  return segB ? { frames, segBeats: segB } : frames;
+}
+
+// Resolve a movement's frames + beat timing and animate it (leadBeats = a lead-in hold on the spot).
+function playMovement(mv, from, onDone, leadBeats = 0){
+  if (mv.relabel || mv.beats === 0){ render(); renderTable(); updateUI(); if (onDone) onDone(); return; }   // 0-beat, no animation
+  const out = (isAfuera(from) && !mv.progresses && !mv.relabel) ? afueraFrames(mv, dancers, N, from) : mv.frames(dancers, N, from);
+  const fr = Array.isArray(out) ? out : out.frames;
+  const segBeats = Array.isArray(out) ? null : out.segBeats;
+  const beats = typeof mv.beats === 'function' ? mv.beats(from) : (mv.beats || 4);
+  playFrames(fr, mv.anim, onDone, { beats, segBeats, leadBeats });
+}
+
+// Run one movement (a physical figure), then continue the engine at the next decision point.
+function runMovement(key, fromQueue, note, leadBeats){
+  if (fromQueue && queue[0] === key){                // consume this movement — and adopt its owning call
+    queue.shift();
+    const c = queueCalls.shift();
+    if (c !== undefined) currentCallLabel = c;        // a queued default (empty queueCalls) keeps the current call
+  }
+  const mv = MOVEMENTS[key], from = posState;
+  history.push(dancers.map(d => ({ ...d }))); histPos.push(from);
+  histQueue.push(queue.slice()); histQueueCalls.push(queueCalls.slice()); histPhase.push(phase);
   stepCount++;
-  if (call.frames){
-    logLine(call.label);
-    if (call.sets) posState = (typeof call.sets === 'function') ? call.sets(from) : call.sets;
-    playFrames(call.frames(dancers, N, from), call.anim);
-  } else if (call.fn){
-    dancers = call.fn(dancers, N);
-    if (call.sets) posState = (typeof call.sets === 'function') ? call.sets(from) : call.sets;
-    logLine(call.label);
-    render(); updateButtons();
-  } else {
-    logLine(call.label, 'in place — no net move');
-    render(); updateButtons();
+  currentMoveLabel = mv.label;                     // top-left "now playing"
+  logLine(mv.label, note);
+  posState = resolveSets(mv, from);
+  // Lock in resting positions BEFORE flipping the config: a phase flip changes what pos() returns for
+  // any dancer without a live xy (e.g. the first move right after a reset), which would otherwise move
+  // the animation's start point onto the new grid and cause a visible lurch.
+  if (mv.flipsPhase){ dancers.forEach(d => { if (!d.xy) d.xy = pos(d); }); phase ^= 1; }
+  engineActive = true;
+  playMovement(mv, from, step, leadBeats || 0);
+}
+
+// What the dancers would do next on their own: a queued figure, the Exhibela default, or rest.
+function nextMovement(){
+  while (queue.length && !validFrom(queue[0], posState)){ queue.shift(); queueCalls.shift(); }
+  if (queue.length) return queue[0];
+  if (POSITIONS[posState].variant === 'exhibela') return 'dile';   // transient (Afuera) Exhibela -> default Dile Que No
+  if (posState === 'linea_ex') return 'dile_grande';   // Línea exhibela-like -> default grande Dile Que No back to rest
+  if (posState === 'linea_pex') return 'dile_peq';     // mid-pequeña -> default pequeña Dile Que No back to rest
+  return null;                                         // Casino / Línea rest, nothing queued -> rest
+}
+// Decision point reached after a movement. Calls only take effect at interruption points
+// (right before a Dame or before a Dile Que No); other junctures just run through.
+function step(){
+  if (animating) return;
+  const nk = nextMovement();
+  if (nk === null){ engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null; currentCallLabel = null; currentMoveLabel = null; updateUI(); return; }
+  if (!INTERRUPTIBLE.has(nk)){ proceed(); return; }         // committed juncture — run through
+  if (mode === 'step'){ awaiting = true; pendingDefault = nk; engineActive = true; updateUI(); return; }
+  if (pendingInterrupt === 'con_exhibela'){                 // live: apply a called divert here
+    pendingInterrupt = null; queue = ['exhibela']; queueCalls = ['con Exhibela']; justIssued = true; logLine('con Exhibela', 'divert'); proceed(); return;
+  }
+  if ((pendingInterrupt === 'dame' || pendingInterrupt === 'dame_dos') && nk === 'dile'){
+    // Dame over a pending Dile Que No -> the compound figure. Afuera compounds aren't built yet, so
+    // there the Dame just runs (a plain Dame, then its own default Dile Que No follows).
+    const comp = pendingInterrupt === 'dame' ? 'dile_dame' : 'dile_dame_dos';
+    const dameLabel = CALLS[pendingInterrupt].label;
+    pendingInterrupt = null; queue = [comp]; queueCalls = [dameLabel]; justIssued = true; logLine(MOVEMENTS[comp].label, 'merged'); proceed(); return;
+  }
+  proceed();
+}
+// Run the next movement now (right after a call is issued/chosen, and for live auto-continue).
+function proceed(){
+  if (animating) return;
+  const nk = nextMovement();
+  if (nk === null){ engineActive = false; awaiting = false; pendingDefault = null; currentCallLabel = null; currentMoveLabel = null; updateUI(); return; }
+  const fromQueue = queue.length > 0;
+  // Grid snapping: the first move of a call snaps to its start beat; the auto-default Dile Que No
+  // snaps to beat 1; mid-chain explicit moves run contiguously (no lead-in hold).
+  let snap = null;
+  if (justIssued){ snap = startBeatOf(nk, posState); justIssued = false; }
+  else if (!fromQueue && (nk === 'dile' || nk === 'dile_grande' || nk === 'dile_peq')){ snap = 1; }   // a default Dile Que No always lands on beat 1
+  let leadBeats = 0;
+  if (snap !== null){                                  // wait (hold on the spot) until the next matching grid beat
+    let t = Math.ceil(beatCursor - 1e-6);
+    while ((((t % 8) + 8) % 8) !== ((snap - 1) % 8)) t++;
+    leadBeats = t - beatCursor;
+  }
+  runMovement(nk, fromQueue, fromQueue ? null : 'default', leadBeats);
+}
+// 'Silence' in step mode — do the default the dancers would do on their own.
+function takeDefault(){ if (!awaiting) return; awaiting = false; proceed(); }
+
+// A caller shouts a call -> expand into a sequence of movements (position-dependent).
+function issueCall(callKey){
+  const call = CALLS[callKey];
+  if (call.placeholder){ logLine(call.label, 'movements not yet defined'); return; }
+
+  const isDame = callKey === 'dame' || callKey === 'dame_dos';
+  const compound = callKey === 'dame' ? 'dile_dame' : 'dile_dame_dos';
+
+  if (mode === 'step' && awaiting){                       // choosing a call at a pause
+    if (call.modifier){ queue = ['exhibela']; queueCalls = [call.label]; }              // diverts: the current call is forgotten
+    else if (isDame && pendingDefault === 'dile'){ queue = [compound]; queueCalls = [call.label]; }   // Dame over a pending Dile Que No -> compound
+    else { if (call.from && !call.from.includes(posState)) return; queue = call.seq.concat(queue); queueCalls = call.seq.map(() => call.label).concat(queueCalls); }
+    justIssued = true; logLine(call.label, 'call'); awaiting = false; proceed(); return;
+  }
+  if (call.modifier){                                     // con Exhibela (live): remember to divert at the next
+    if (engineActive || animating){                       // interruption point (before the Dame / Dile Que No)
+      pendingInterrupt = 'con_exhibela'; logLine(call.label, 'queued');
+    }
+    return;
+  }
+  if (isDame && (engineActive || animating)){             // live: merge with an upcoming Dile Que No
+    pendingInterrupt = callKey; logLine(call.label, 'queued'); return;
+  }
+  if (!engineActive && !animating){                       // start a fresh call from rest
+    if (call.from && !call.from.includes(posState)) return;
+    queue = call.seq.slice(); queueCalls = call.seq.map(() => call.label); engineActive = true; justIssued = true; logLine(call.label, 'call'); proceed();
+  } else {                                                // live: queue for after the current figure
+    queue.push(...call.seq); queueCalls.push(...call.seq.map(() => call.label)); logLine(call.label, 'queued');
   }
 }
-function updateButtons(){
+
+// Fire a raw movement on its own (Movements panel) — no auto-continuation.
+function doMovement(key){
+  if (animating || engineActive || awaiting) return;
+  if (!validFrom(key, posState)) return;
+  const mv = MOVEMENTS[key], from = posState;
+  history.push(dancers.map(d => ({ ...d }))); histPos.push(from); histQueue.push([]); histQueueCalls.push([]); histPhase.push(phase);
+  stepCount++;
+  currentCallLabel = null; currentMoveLabel = mv.label;   // a raw movement has no owning call
+  logLine(mv.label);
+  posState = resolveSets(mv, from);
+  if (mv.flipsPhase){ dancers.forEach(d => { if (!d.xy) d.xy = pos(d); }); phase ^= 1; }   // see runMovement
+  playMovement(mv, from, () => { currentMoveLabel = null; renderTable(); updateUI(); });
+}
+
+function setMode(m){
+  mode = m;
+  if (m === 'live' && awaiting){ awaiting = false; step(); }
+  else updateUI();
+}
+
+function updateUI(){
+  const idle = !engineActive && !animating && !awaiting;
+  const pn = document.getElementById('posname'); if (pn) pn.textContent = (POSITIONS[posState] || {}).name || '—';
+  document.getElementById('modeLive').classList.toggle('active', mode === 'live');
+  document.getElementById('modeStep').classList.toggle('active', mode === 'step');
+
   Object.entries(CALLS).forEach(([key, c]) => {
-    const b = callButtons[key];
-    if (b) b.disabled = animating || (!!c.requires && !c.requires.includes(posState));
+    const b = callBtns[key]; if (!b) return;
+    const valid = !c.from || c.from.includes(posState);
+    let en;
+    if (c.placeholder) en = idle && valid;
+    else if (mode === 'live') en = idle ? (!c.modifier && valid) : true;   // queue anything mid-sequence
+    else en = awaiting ? (c.modifier ? posState === 'exhibela' : (valid || ((key === 'dame' || key === 'dame_dos') && pendingDefault === 'dile'))) : (idle ? (!c.modifier && valid) : false);
+    b.disabled = !en;
   });
-  const pn = document.getElementById('posname');
-  if (pn) pn.textContent = POS_NAMES[posState] || '—';
+  Object.entries(MOVEMENTS).forEach(([key, m]) => {
+    const b = moveBtns[key]; if (!b) return;
+    b.disabled = !(idle && validFrom(key, posState));
+  });
+
+  const dec = document.getElementById('decision');
+  if (mode === 'step' && awaiting){
+    dec.style.display = '';
+    const dl = pendingDefault ? MOVEMENTS[pendingDefault].label : 'rest in place';
+    document.getElementById('decisionText').innerHTML = `At <b>${POSITIONS[posState].name}</b> — make a call above, or:`;
+    document.getElementById('silenceBtn').textContent = `Silence → ${dl}`;
+  } else dec.style.display = 'none';
+
+  // Top-left "now playing": the call currently executing, a colon, and the movement executing now.
+  // At rest in Casino with nothing running, the dancers Guapea (the basic step) — show that.
+  const np = document.getElementById('nowplaying');
+  if (np){
+    let call = currentCallLabel, move = currentMoveLabel;
+    if (!move && idle && posState === 'casino'){ call = null; move = 'Guapea'; }
+    if (move){
+      np.innerHTML = (call ? `<span class="np-call">${call}</span>: ` : '') + `<span class="np-move">${move}</span>`;
+    } else np.textContent = '';
+  }
+  // Queue: the movements that have been called but not yet executed (the one now running is shown above).
+  const ql = document.getElementById('queueList');
+  if (ql){
+    if (queue.length){
+      ql.innerHTML = queue.map((k, i) => `<div class="qmove"><span class="qnum">${i + 1}.</span> ${(MOVEMENTS[k] || {}).label || k}</div>`).join('');
+    } else ql.innerHTML = '<div class="qempty">— nothing queued —</div>';
+  }
 }
 // Continuous player: turns a list of keyframes into per-dancer position/rotation
 // timelines and animates them with requestAnimationFrame, so nothing relies on
 // interrupted CSS transitions (which caused jitter). Move-generation is unchanged.
-function playFrames(frames, opts = {}){
-  animating = true; updateButtons();
+function playFrames(frames, opts = {}, onDone, timing = {}){
+  animating = true; updateUI();
   const F = frames.length;
   const preMove = dancers;
   const ids = preMove.map(d => d.id);
@@ -770,43 +1925,63 @@ function playFrames(frames, opts = {}){
   dancers = preMove;
   const finalState = frames[F - 1].map(({ turn, snapTurn, ...rest }) => rest);
   Object.values(nodes).forEach(n => { n.g.style.transition = 'none'; n.arrowG.style.transition = 'none'; });
-  // Constant-speed timeline: each segment lasts as long as the fastest dancer needs at
-  // a capped speed (translation and rotation), so nothing moves faster than trackable.
-  // Segments with no movement become a real pause.
-  const SPEED = opts.speed || 0.12, ROTSPEED = opts.rotSpeed || 0.55, HOLD = 66;   // px/ms, deg/ms, ms
+  // Beat-timed timeline: total = (movement beats) × ms-per-beat. Time is distributed either by
+  // the movement's explicit per-segment beats, or (default) in proportion to each segment's
+  // natural cost at reference speeds — so the pacing looks the same but the total follows the music.
+  const msPerBeat = BASE_MS_PER_BEAT / speedMul;
   const seg = [];
-  for (let i = 0; i < F; i++){
-    let tr = 0, ro = 0;
-    ids.forEach(id => {
-      const a = P[id][i], b = P[id][i + 1];
-      tr = Math.max(tr, Math.hypot(b.x - a.x, b.y - a.y));
-      if (!SNAP[id][i + 1]) ro = Math.max(ro, Math.abs(ROT[id][i + 1] - ROT[id][i]));
-    });
-    seg.push((tr < 0.5 && ro < 0.5) ? HOLD : Math.max(tr / SPEED, ro / ROTSPEED));
+  if (timing.segBeats && timing.segBeats.length === F){
+    for (let i = 0; i < F; i++) seg.push(timing.segBeats[i] * msPerBeat);
+  } else {
+    const SREF = 0.12, RREF = 0.55, cost = []; let tot = 0;
+    for (let i = 0; i < F; i++){
+      let tr = 0, ro = 0;
+      ids.forEach(id => {
+        const a = P[id][i], b = P[id][i + 1];
+        tr = Math.max(tr, Math.hypot(b.x - a.x, b.y - a.y));
+        if (!SNAP[id][i + 1]) ro = Math.max(ro, Math.abs(ROT[id][i + 1] - ROT[id][i]));
+      });
+      const c = Math.max(tr / SREF, ro / RREF); cost.push(c); tot += c;
+    }
+    const total = (timing.beats || 4) * msPerBeat;
+    for (let i = 0; i < F; i++) seg.push(tot > 0 ? cost[i] / tot * total : total / F);
   }
   const cum = [0]; for (let i = 0; i < F; i++) cum.push(cum[i] + seg[i]);
-  const dur = Math.max(cum[F], 1);
+  // A lead-in hold on the spot (snapping the movement to its start beat) precedes the movement.
+  const leadBeats = timing.leadBeats || 0, leadMs = leadBeats * msPerBeat;
+  const totalBeats = leadBeats + (timing.segBeats ? timing.segBeats.reduce((a, b) => a + b, 0) : (timing.beats || 4));
+  const beatStart = beatCursor;
+  const dur = Math.max(leadMs + cum[F], 1);
   let start = null;
+  const myGen = ++animGen;                                // this run's token; a newer run (or Reset) invalidates it
   const tick = now => {
+    if (myGen !== animGen) return;                        // aborted (e.g. Reset pressed mid-move) — stop cleanly
     if (start === null) start = now;
     const el = Math.min(dur, now - start);
-    let sg = 0; while (sg < F - 1 && cum[sg + 1] <= el) sg++;
-    const span = cum[sg + 1] - cum[sg], lt = span > 0 ? (el - cum[sg]) / span : 1;
-    ids.forEach(id => {
-      const n = nodes[id]; if (!n) return;
-      const a = P[id][sg], b = P[id][sg + 1];
-      n.g.style.transform = `translate(${a.x + (b.x - a.x) * lt}px,${a.y + (b.y - a.y) * lt}px)`;
-      const ra = ROT[id][sg], rb = ROT[id][sg + 1];
-      n.rot = SNAP[id][sg + 1] ? rb : ra + (rb - ra) * lt;   // snapped turns jump at segment start
-      n.arrowG.style.transform = `rotate(${n.rot}deg)`;
-    });
+    showBeat(beatStart + el / msPerBeat);
+    if (el < leadMs){                                    // holding on the spot before the movement starts
+      ids.forEach(id => { const n = nodes[id]; if (!n) return; const a = P[id][0];
+        n.g.style.transform = `translate(${a.x}px,${a.y}px)`; n.rot = ROT[id][0]; n.arrowG.style.transform = `rotate(${n.rot}deg)`; });
+    } else {
+      const e2 = el - leadMs;
+      let sg = 0; while (sg < F - 1 && cum[sg + 1] <= e2) sg++;
+      const span = cum[sg + 1] - cum[sg], lt = span > 0 ? (e2 - cum[sg]) / span : 1;
+      ids.forEach(id => {
+        const n = nodes[id]; if (!n) return;
+        const a = P[id][sg], b = P[id][sg + 1];
+        n.g.style.transform = `translate(${a.x + (b.x - a.x) * lt}px,${a.y + (b.y - a.y) * lt}px)`;
+        const ra = ROT[id][sg], rb = ROT[id][sg + 1];
+        n.rot = SNAP[id][sg + 1] ? rb : ra + (rb - ra) * lt;   // snapped turns jump at segment start
+        n.arrowG.style.transform = `rotate(${n.rot}deg)`;
+      });
+    }
     if (el < dur) requestAnimationFrame(tick);
     else {
       dancers = finalState;
       ids.forEach(id => { if (nodes[id]) nodes[id].rot = ROT[id][F]; });
       Object.values(nodes).forEach(n => { n.g.style.transition = G_TRANS; n.arrowG.style.transition = ARROW_TRANS; });
-      animating = false;
-      updateButtons();
+      beatCursor = Math.round(beatStart + totalBeats); showBeat(beatCursor); animating = false; renderTable();
+      if (onDone) onDone(); else updateUI();
     }
   };
   requestAnimationFrame(tick);
@@ -815,16 +1990,25 @@ function undo(){
   if (animating || !history.length) return;
   dancers = history.pop();
   if (histPos.length) posState = histPos.pop();
+  if (histPhase.length) phase = histPhase.pop();
+  if (histQueue.length) histQueue.pop();
+  if (histQueueCalls.length) histQueueCalls.pop();
+  queue = []; queueCalls = []; engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null;   // cancel any running sequence
+  currentCallLabel = null; currentMoveLabel = null;
   stepCount = Math.max(0, stepCount-1);
   logLine('Undo', null, true);
-  render(); updateButtons();
+  render(); updateUI();
 }
 function reset(){
+  animGen++; animating = false;                 // abort any in-flight move so dancers stop before resetting
   computeWheel(N);
   dancers = baseState(N);
-  history = []; histPos.length = 0; stepCount = 0; posState = 'casino';
+  history = []; histPos.length = 0; histQueue.length = 0; histQueueCalls.length = 0; histPhase.length = 0; stepCount = 0; posState = layoutName === 'linea' ? 'linea' : 'casino'; phase = 0;
+  queue = []; queueCalls = []; engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null;
+  currentCallLabel = null; currentMoveLabel = null;
+  beatCursor = 0; justIssued = false; showBeat(0);
   document.getElementById('log').innerHTML = '';
-  buildNodes(); render(); updateButtons();
+  buildNodes(); render(); updateUI();
 }
 function logLine(move, note, undo=false){
   const log = document.getElementById('log');
@@ -836,28 +2020,58 @@ function logLine(move, note, undo=false){
 }
 
 /* ------------------------------ wiring ------------------------------ */
-function buildCallButtons(){
-  const box = document.getElementById('calls');
-  box.innerHTML = '';
-  callButtons = {};
-  Object.entries(CALLS).forEach(([key,c])=>{
+function buildButtons(){
+  const cb = document.getElementById('callButtons'); cb.innerHTML = ''; callBtns = {};
+  Object.entries(CALLS).forEach(([key, c]) => {
     const b = document.createElement('button');
-    b.className = 'call' + (key==='guapea'?' primary':'');
-    b.textContent = c.label;
-    b.onclick = ()=>doCall(key);
-    b.onmouseenter = ()=>{ document.getElementById('calldesc').textContent = c.desc; };
-    box.appendChild(b);
-    callButtons[key] = b;
+    b.className = 'call'; b.textContent = c.label;
+    b.onclick = () => issueCall(key);
+    cb.appendChild(b); callBtns[key] = b;
   });
-  document.getElementById('calldesc').textContent = CALLS.dame.desc;
+  const mb = document.getElementById('moveButtons'); mb.innerHTML = ''; moveBtns = {};
+  Object.entries(MOVEMENTS).forEach(([key, m]) => {
+    const b = document.createElement('button');
+    b.className = 'call'; b.textContent = m.label;
+    b.onclick = () => doMovement(key);
+    mb.appendChild(b); moveBtns[key] = b;
+  });
+  const pips = document.getElementById('beatpips'); pips.innerHTML = '';
+  for (let i = 0; i < 8; i++) pips.appendChild(document.createElement('span'));
 }
-document.getElementById('couples').onchange = e=>{ N = +e.target.value; reset(); };
-document.getElementById('layout').onchange = e=>{ layoutName = e.target.value; dancers = dancers.map(({ xy, face, ...r }) => r); buildNodes(); render(); };
+
+// Free-running metronome: the beat keeps advancing in real time whenever a movement isn't
+// driving it. dt is capped so a backgrounded tab doesn't jump the beat.
+let metroLast = null;
+function metronome(now){
+  if (beatRunning && !animating){
+    if (metroLast !== null){ const dt = now - metroLast; if (dt > 0 && dt < 500){ beatCursor += dt / (BASE_MS_PER_BEAT / speedMul); showBeat(beatCursor); } }
+    metroLast = now;
+  } else metroLast = null;
+  requestAnimationFrame(metronome);
+}
+function toggleBeat(){
+  beatRunning = !beatRunning;
+  if (beatRunning){ beatCursor = 0; showBeat(0); }        // (re)start the count on beat 1
+  document.getElementById('beatToggle').textContent = beatRunning ? '⏸ Stop beat' : '▶ Start beat';
+}
+
+document.getElementById('couples').onchange = e=>{ N = +e.target.value; if (layoutName === 'linea' && N % 2) N++; reset(); };
+document.getElementById('layout').onchange = e=>{ layoutName = e.target.value; if (layoutName === 'linea' && N % 2) N++; reset(); };   // reset fully into the chosen formation
 document.getElementById('reset').onclick = reset;
 document.getElementById('undo').onclick = undo;
+document.getElementById('beatToggle').onclick = toggleBeat;
+document.getElementById('speed').oninput = e => {
+  const p = +e.target.value;                         // 0..1, 0.5 = current speed
+  speedMul = p < 0.5 ? 0.2 + 1.6 * p : 1 + 2 * (p - 0.5);   // 0.2× … 1× … 2×
+  document.getElementById('speedval').textContent = speedMul.toFixed(2) + '×';
+};
+document.getElementById('modeLive').onclick = () => setMode('live');
+document.getElementById('modeStep').onclick = () => setMode('step');
+document.getElementById('silenceBtn').onclick = takeDefault;
 
-buildCallButtons();
+buildButtons();
 reset();
+requestAnimationFrame(metronome);
 </script>
 </body>
 </html>
