@@ -23,16 +23,48 @@ So the end state is really two things bolted together:
 
 ### The five user-definable entities
 
-- **Formation** — where each couple goes, which way they face, any default rueda structure, how default
-  progressions work, how phase changes work. (Today: `FORMATIONS` registry — `circle`, `linea`.)
+- **Formation** — a hierarchy of **rueda groups**. Each group has a centre, a spoke layout with angular
+  separations that are whole divisions of 360° (180/90/45/30…), and a rule for how couples are assigned
+  and how the group **scales** with couple count (e.g. "these couples spread equally around this ring").
+  Sub-sections scale **independently** (e.g. always exactly 1 couple at the wheel centre, everyone else
+  around the outside; or Línea's inner/outer rings). A group may be centred on a *parent group's spoke
+  position* — that is the general form of today's off-centre pequeña mini-wheels and the `runOnWheel`
+  seam. Formations carry a **couple-count constraint** (exact count, or divisible-by-N).
 - **Configuration** — a discrete rest arrangement within a formation. (Today: the two-config spoke model.)
-- **Phase** — how a progression maps one configuration to another. (Today: `phase` 0/1, offset 180/N°.)
-- **Movement** — per-dancer start/end positions, rotations/facings, and path hints; ideally defined
-  against abstract roles + positions so it generalises across couple counts. (Today: `MOVEMENTS`
-  generators, parametric in N.)
-- **Call** — a series of movements, plus: interruption/interrupt-point semantics, how the progression
-  works, whether all dancers do the same movement or differ (asymmetry), and whether progressions differ
-  by position. (Today: `CALLS`, mostly a `seq` of symmetric movements.)
+- **Phase** — whether a progression changes configuration. The user sets **phase-change: yes/no**; that
+  choice selects which movement variant is used (e.g. Dame vs. Dame Pequeña) and which configuration the
+  dancers land in. (Today: `phase` 0/1, offset 180/N°.)
+- **Movement** — per-dancer start/end positions, rotations/facings, and path hints. Standard movements
+  (Enchufla, Dile Que No, …) ship **built-in**; users mostly define **progressions**, by specifying which
+  slot in the (possibly new) configuration each dancer ends on, plus the **pass-sides**. Defined against
+  abstract roles + groups so a movement generalises across couple counts. (Today: `MOVEMENTS` generators.)
+- **Call** — applies to **all** couples, but **asymmetry** (below) means one call can produce different
+  movements for different couples. Beyond a sequence, a call places movements on a **beat timeline** and
+  movements for different dancers may **overlap** in time (see Timing & overlap). (Today: `CALLS`, a
+  symmetric `seq`.)
+
+### Asymmetry (core requirement)
+
+Movements/progressions are assigned **per group**, where a group is picked by a **predicate** over the
+dancers, e.g. "even vs. odd couples counted clockwise from a start point," or "inside vs. outside
+couples." A single call names different movement behaviour for each group; the engine resolves each
+group's dancers and runs the right movement for each. This replaces today's "one generator, rotated N
+times" model, which only expresses the fully-symmetric case.
+
+### Timing & overlap (the beat timeline)
+
+The Rueda runs on a continuous 8-count; calls land on a "1". A call schedules its movements on an
+**absolute beat clock**, and movements for **different** dancers can be in flight **at the same time**.
+
+> Worked example (Sam's): **Mujeres Arriba** called on the next "1" → all couples dance a Dile Que No
+> starting on beat 1; then on beat 5 the **followers** progress to new partners. If **Dame** is called on
+> that same "1", the **leaders** do their usual Dame progression starting on beat 7 — so the leaders' Dame
+> overlaps in time with the followers' still-running Mujeres Arriba progression.
+
+So the scheduler model is: a movement has a beat length and a start beat; different dancers' movements can
+overlap on the clock; the path engine must produce natural, collision-free motion **across whatever is
+concurrently in flight**, not just within one movement. (Today: partial — `startBeatOf` already back-times
+a Dame so its closing Dile lands on beat 1.)
 
 ## Near-term milestones (before the overhaul)
 
@@ -54,14 +86,39 @@ The path engine is not a rewrite-from-zero; the pieces are accreting:
   *rank* candidate paths, and the guardrail that flags bad ones — reusable for any user-defined move.
 - **The evasion solver** (clearance detection + minimal-amplitude dip) is a first motion-planner: given
   intended paths and a clearance floor, it finds the calmest deviation that clears. The general engine is
-  this, scaled up to arbitrary start/end + pass-side constraints.
+  this, scaled up to arbitrary start/end + pass-side constraints — and, per Sam, extended with **variable
+  passing widths** so the engine resolves as many collisions as it can on its own; the user only re-picks
+  a pass-side when the engine genuinely can't. (The current solver's dip-past-the-lane amplitude is a
+  first taste of variable width.)
 - **The wheel-context seam** (`runOnWheel`) already lets one generator run in a relocated/rescaled frame
-  — the seed of composing sub-formations, which user-defined formations will lean on.
+  — the seed of the formation **group hierarchy** (groups centred on parent spokes, scaling independently).
 
-## Open questions
+## Design decisions locked (from Sam)
 
-Tracked in-repo as they're answered (see the conversation of record). Headlines: how declarative vs.
-escape-hatch-code the model is; the general position/slot model (ring+lane vs. free 2D); how pass-side
-constraints are expressed and solved (homotopy classes); how asymmetry and position-dependent
-progressions are modelled; the path-editing UX; where custom definitions are stored/shared; and how much
-auto-validation (collision + naturalness) gates user-created content.
+1. **No user code.** Standard movements ship built-in; the engine's rules must be rich enough that users
+   define moves (mostly progressions) without code changes.
+2. **Positions are rueda/spoke-based**: centres + spokes at whole-division angles, scalable to couple
+   count; weird shapes supported later on the same primitives.
+3. **Pass-side is the only progression path control**; pathing rules do the rest.
+4. **Asymmetry via group predicates** (parity-by-clockwise-index, inside/outside, …).
+5. **Phase-change is a user yes/no** that selects movement variants and the landing configuration; the
+   user maps each dancer's end slot.
+6. **Calls apply to all couples**, produce per-group movements, and schedule on a **beat clock with
+   overlap** across different dancers.
+7. **The engine auto-checks collisions and auto-resolves what it can** (incl. variable passing widths);
+   pass-side edits are the user's fallback.
+8. **Storage: local files first**, a shared library later.
+
+## Open questions (next round)
+
+- **Timeline granularity & the concurrency invariant.** Is the rule "at most one movement per *dancer* at
+  a time, but different dancers may overlap"? How is a movement's motion authored against a clock it might
+  share — does the path engine plan all concurrently-active movements *together* over each beat window?
+- **Group predicates.** What's the closed set of selectors (clockwise parity from an anchor, ring
+  membership, distance-from-centre, …)? Is the anchor/"start point" user-chosen per call?
+- **Group hierarchy geometry.** Can a group's centre be an arbitrary point, or always a parent spoke
+  position? How are inter-group clearances handled when groups scale independently?
+- **Variable passing widths.** What can the engine vary automatically (lane radius, dip depth, timing
+  within a beat window) before it must ask the user to change a pass-side?
+- **Standard-movement library.** Which built-ins are canonical (Enchufla, Dile Que No, Vacilala, Adios,
+  Exhibela, …), and are they themselves expressed in the same declarative model, or privileged code?
