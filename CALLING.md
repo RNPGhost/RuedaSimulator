@@ -41,8 +41,12 @@ Exhibela; if one ever should, that's an explicit property to add.
 - **Dile Que No position** (`posState === 'dile'`) — a **resting** position that is neither
   Casino nor Exhibela: both partners sit on the couple's **midpoint spoke**, the leader on the
   **outer** lane (just outside the ring) facing the centre, the follower on the **inner** lane
-  (just inside the ring) facing perpendicular to the spoke (clockwise round the wheel). You enter
-  it with the **4-beat Dile Que No** (`dile4`) from Exhibela. It does not default to anything — the
+  (just inside the ring) facing perpendicular to the spoke (clockwise round the wheel). The partners
+  stand **right next to each other** there: the spacing is set by the facing arrow, which leaves the
+  leader's edge and whose tip meets the follower's edge — an equal (zero) gap at each end, so the centres
+  sit `ARROW_LEN + DOT_R` = 46px apart. `R_STEP` is the single definition of that half-step, read by the
+  circle slot, the Línea slot and the Dile Que No y Dame compound alike, so the position is identical
+  however you arrive at it. You enter it with the **4-beat Dile Que No** (`dile4`) from Exhibela. It does not default to anything — the
   wheel rests here until the next movement (e.g. **Mujeres Arriba**) is called. It uses the
   formation's `outer`/`inner` lanes, so `pos()` and grid-exactness work through `slot()` as usual.
 
@@ -248,6 +252,24 @@ mini wheel they now share:
 It lands in `linea_ex`, not at rest, so the standard default rule takes over and closes with a **Dile Que
 No Grande** — the call plays `dame_linea → dile_grande`. It counts as a Dame for timing (4 beats, in
 `DAME_KEYS`), so it starts on beat 5 and the Dile lands on beat 1.
+
+### Línea Moderna positions
+
+They mirror the rueda's, one level down — each mini 2-couple wheel behaves like its own little rueda:
+
+| State | `posState` | What it is |
+|---|---|---|
+| **LM Casino** | `linea` | The resting formation: inner ring afuera Casino, outer ring Casino. |
+| **LM Exhibela** | `linea_pex` | Every mini wheel in Exhibela — where a **Dame Pequeña** lands. |
+| **LM Dile Que No** | `linea_dile` | Both partners on their own mini wheel's midpoint spoke (which runs along the main spoke), leader a step further out from the mini centre, follower a step in. Reached by the **4-beat Dile Que No Pequeña** from LM Exhibela; a resting state. |
+| *LM Exhibela (grande)* | `linea_ex` | Distinct: the two **rings** in Exhibela, after a grande figure. Closes with a Dile Que No Grande. |
+
+**Pequeña-only figures.** The 4-beat Dile Que No and Mujeres Arriba are defined against the couple's own
+little wheel, so they only read in the pequeña sense (`dile4_peq`, `mujeres_peq`, and the **Mujeres Arriba
+Pequeña** call). A grande Mujeres Arriba would just be a Dile Que No y Dame. The pequeña Dile Que No needs
+**6 couples or more**: its step runs along the mini-wheel spoke, which for the inner ring points at the
+*main* centre, and at 4 couples the inner couples are only ~38px out — a true-to-life step would put both
+their leaders on the middle.
 
 ### Getting out: the **Rueda** and **Adios Rueda** calls
 

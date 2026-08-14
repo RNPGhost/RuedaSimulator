@@ -408,8 +408,8 @@ const MOVEMENTS = {
 (function buildLineaMovements(){
   const gMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_ex' : v;
   const gUn  = l => l === 'linea' ? 'casino' : 'exhibela';
-  const pMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_pex' : v;
-  const pUn  = l => l === 'linea' ? 'casino' : 'exhibela';
+  const pMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_pex' : v === 'dile' ? 'linea_dile' : v;
+  const pUn  = l => l === 'linea' ? 'casino' : l === 'linea_dile' ? 'dile' : 'exhibela';
   const mapSets = (sets, map, un) => (typeof sets === 'function') ? (from) => map(sets(un(from))) : map(sets);
   const mapBeats = (beats, un) => (typeof beats === 'function') ? (from) => beats(un(from)) : beats;
   // circle keys that get Línea versions (the figures used by the ported calls)
@@ -432,6 +432,25 @@ const MOVEMENTS = {
       progresses: m.progresses,                                   // never flips phase
       beats: mapBeats(pm.beats, pUn), anim: pm.anim,
       frames: (ds, N, from) => pequenaFrames(pKey, from),
+    };
+  }
+  // Pequeña-only figures. The 4-beat Dile Que No and Mujeres Arriba are defined against the couple's own
+  // little wheel, so they only read in the pequeña sense — each mini 2-couple wheel dances them as its own
+  // rueda. (A grande Mujeres Arriba would just be a Dile Que No y Dame, so it has no grande form.)
+  for (const key of ['dile4', 'mujeres']){
+    const m = MOVEMENTS[key];
+    MOVEMENTS[key + '_peq'] = {
+      label: m.label + ' Pequeña', linea: true,
+      requires: m.requires.map(pMap), sets: mapSets(m.sets, pMap, pUn),
+      progresses: m.progresses,
+      beats: mapBeats(m.beats, pUn), anim: m.anim,
+      // The Dile Que No step runs along each couple's mini-wheel spoke, and for the inner ring that
+      // points at the MAIN centre. At 4 couples the inner couples sit only ~38px out, so a true-to-life
+      // step lands their leaders on top of each other at the middle (29.6px apart). A real physical
+      // limit — people don't shrink with the wheel — so the figure is offered from 6 couples up, where
+      // there is room (37.5px clear at 6 and 8).
+      minCouples: 6,
+      frames: (ds, N, from) => pequenaFrames(key, from),
     };
   }
 })();
@@ -460,6 +479,7 @@ const CALLS = {
   // wheels, Dame → Dame Pequeña, no phase change). Each closes with a default Dile Que No (grande/peq).
   linea_moderna: { label: 'Línea Moderna', desc: 'Call from Casino: the rueda opens into the Rueda Línea Moderna formation — primeros (the cantante’s couple and every other one clockwise) to the inner ring, turning anti-clockwise into place; segundos out to the outer ring on their own spokes. Even couple counts only.', from: ['casino'], seq: ['linea_moderna'] },
   dame_linea:    { label: 'Dame Línea',    desc: 'Call from Casino: a Dame that lands the wheel in Rueda Línea Moderna — segundo leaders Dame out to the outer ring with the primero followers, primero leaders and segundo followers walk in to the inner ring, all in Exhibela. Closes with a Dile Que No Grande. Even couple counts only.', from: ['casino'], seq: ['dame_linea'] },
+  mujeres_arriba_pequena: { label: 'Mujeres Arriba Pequeña', lm: true, minCouples: 6, desc: 'Call from Línea Moderna Exhibela: a 4-beat Dile Que No Pequeña into the Línea Moderna Dile Que No position, then Mujeres Arriba — inside every mini 2-couple wheel the women progress to the other couple while the men return to their own spots. Ends in Línea Moderna Exhibela (a Dile Que No Pequeña then closes back to LM Casino).', from: ['linea_pex'], seq: ['dile4_peq', 'mujeres_peq'] },
   rueda:         { label: 'Rueda',         lm: true, desc: 'Call from Línea Moderna: fold the two rings back into a single rueda — outer couples walk straight in on their own spokes, inner couples come out one place clockwise of them, turning anti-clockwise into place.', from: ['linea'], seq: ['rueda'] },
   adios_rueda:   { label: 'Adios Rueda',   lm: true, desc: 'Call from Línea Moderna: the same fold back to the rueda, but the inner couples sweep clockwise the long way round into their new orientation.', from: ['linea'], seq: ['adios_rueda'] },
   adios_linea:   { label: 'Adios Línea',   desc: 'Call from Casino: the same opening into Rueda Línea Moderna, but the primeros sweep clockwise the long way round into the inner ring — the Adios-flavoured entry. Even couple counts only.', from: ['casino'], seq: ['adios_linea'] },
@@ -487,7 +507,6 @@ const W = 720, H = 520;
 let CX = 340, CY = 260;           // wheel centre — mutable so a sub-wheel context can relocate it (Línea Moderna)
 let R_RING = 154;                 // wheel radius — recomputed for each couple count
 let BASE_ANG = -90;               // angle of station 0's spoke (−90 = straight up); a wheel context can rotate it
-const R_STEP = 36;
 // Fixed spacing from the 6-couple baseline: the within-couple distance and the
 // between-couple gap stay constant, and the wheel grows/shrinks to fit N couples.
 const W_DIST   = 2 * 154 * Math.sin(12 * Math.PI / 180);   // leader <-> follower centre distance (~64px)
@@ -510,6 +529,16 @@ function solveWheelR(n){
 const ARROW_TRANS = 'transform .5s cubic-bezier(.4,0,.2,1)';
 const G_TRANS = 'transform .5s cubic-bezier(.4,0,.2,1)';
 const DOT_R = 16;                 // dancer dot radius = half a shoulder (32px ≈ 46cm) vs W_DIST 64px ≈ 3ft: true-to-life 2:1
+// The facing arrow, measured from the dancer's centre — so it emerges at the dancer's edge and reaches
+// ARROW_LEN out.
+const ARROW_LEN = 30;
+// Dile Que No position: how far each partner steps along the couple's midpoint spoke, either side of the
+// ring. They stand right next to each other there, spaced so the leader's facing arrow exactly bridges
+// the gap — it leaves his edge and its tip meets hers, an equal (zero) gap at each end. That means the
+// centres sit ARROW_LEN + DOT_R = 46px apart, half of it either side of the ring. It scales with the
+// dancer and the arrow, and it is the SINGLE definition of that spacing: the circle and Línea slots and
+// the Dile Que No y Dame compound all read it, so the position is identical however you arrive at it.
+const R_STEP = (ARROW_LEN + DOT_R) / 2;
 /* A Formation owns the geometry of one layout: where each (station, lane) slot sits, how the wheel
  * sizes to the couple count, and the faint guide drawn behind the dancers. Movements and rendering
  * reach geometry through here rather than hard-coding a layout.
@@ -555,6 +584,15 @@ const FORMATIONS = {
       const inner = station < m, spoke = inner ? station : station - m;
       const p = (ph === undefined ? phase : ph);
       const th = (LM_BASE + spoke * 360 / m + p * 180 / m) * Math.PI / 180;   // two configs, like the circle
+      // Dile Que No lanes are defined against the couple's OWN mini 2-couple wheel: both partners stand
+      // on that wheel's midpoint spoke — which runs along the main spoke — the leader a step further OUT
+      // from the mini centre and the follower a step IN. The inner ring's mini-radius points back toward
+      // the main centre, so for it 'outer' is further in.
+      if (lane === 'outer' || lane === 'inner'){
+        const sgn = inner ? -1 : 1;
+        const rr = g.mcR + sgn * (g.R2 + (lane === 'outer' ? R_STEP : -R_STEP));
+        return { x: CX + rr * Math.cos(th), y: CY + rr * Math.sin(th) };
+      }
       const R = inner ? g.Ri : g.Ro, d = inner ? g.di : g.doO;
       const a = th + (lane === 'cw' ? d : lane === 'ccw' ? -d : 0);
       return { x: CX + R * Math.cos(a), y: CY + R * Math.sin(a) };
@@ -636,13 +674,19 @@ const POSITIONS = {
   dile:            { variant: 'dile',     inverted: false, virtual: 'dile',     name: 'Dile Que No position' },
   // Rueda Línea Moderna resting state (two rings). Its own variant so no circle default (Dile Que No)
   // fires and circle-only calls/movements gate off from it.
-  linea:           { variant: 'linea',    inverted: false, virtual: 'linea',    name: 'Línea Moderna' },
+  linea:           { variant: 'linea',    inverted: false, virtual: 'linea',    name: 'Línea Moderna Casino position' },
   // Transient exhibela-like Línea state (both rings exhibela) — between a grande figure and its close.
   // `virtual` points at itself so a movement's function-based `sets` (e.g. Adios's toggle) can tell
   // linea from linea_ex (resolveSets passes virtualPos(from)).
-  linea_ex:        { variant: 'linea',    inverted: false, virtual: 'linea_ex',  name: 'Línea Moderna (exhibela)' },
+  linea_ex:        { variant: 'linea',    inverted: false, virtual: 'linea_ex',  name: 'Línea Moderna Exhibela position (grande)' },
   // Transient state mid-pequeña: each mini 2-couple wheel is in exhibela.
-  linea_pex:       { variant: 'linea',    inverted: false, virtual: 'linea_pex', name: 'Línea Moderna (pequeña)' },
+  // Línea Moderna Exhibela: each mini 2-couple wheel is in Exhibela — the pequeña mirror of the rueda's
+  // Exhibela, and where a Dame Pequeña from LM Casino lands.
+  linea_pex:       { variant: 'linea',    inverted: false, virtual: 'linea_pex', name: 'Línea Moderna Exhibela position' },
+  // Línea Moderna Dile Que No: both partners on their own mini wheel's midpoint spoke (which runs along
+  // the main spoke), leader a step further out from the mini centre, follower a step in. A resting state,
+  // reached by the 4-beat Dile Que No Pequeña from LM Exhibela.
+  linea_dile:      { variant: 'linea',    inverted: false, virtual: 'linea_dile', name: 'Línea Moderna Dile Que No position' },
 };
 const INVERTED_OF = { casino: 'afuera', exhibela: 'afuera_exhibela' };   // entering afuera from a non-inverted position
 let callBtns = {}, moveBtns = {};
@@ -1535,7 +1579,7 @@ function dileQueNoFull(ds, N){
  * mirror just outside the ring, and back to her own start spot — facing her travel direction,
  * then turning to her new leader at the end. Ends in a clean Exhibela, leaders progressed k. */
 function dileQueNoYDame(ds, N, k = 1, afuera = false){
-  const AL = 16, AF = 18, TWO = 2 * Math.PI, HALF = DOT_R + 8;   // beat-3 offset each side of the ring on the spoke (kept just clear through the whole approach)
+  const AL = 16, AF = 18, TWO = 2 * Math.PI, HALF = R_STEP;   // beat-3 offset each side of the ring: the Dile Que No position's own spacing
   const kk = afuera ? -k : k, io = afuera ? -1 : 1;   // afuera: progress the other way, and swap inside<->outside
   const short = a => ((a + 180) % 360 + 360) % 360 - 180;
   const spot = {}; ds.forEach(d => spot[d.id] = pos(d));
@@ -1856,7 +1900,8 @@ function buildNodes(){
     const arrowG = document.createElementNS(NS,'g');
     arrowG.style.transition = ARROW_TRANS;
     const arrow = document.createElementNS(NS,'path');
-    arrow.setAttribute('d','M 0 -3 L 22 -3 L 22 -7 L 30 0 L 22 7 L 22 3 L 0 3 Z');
+    const hb = ARROW_LEN - 8;    // where the head begins
+    arrow.setAttribute('d',`M 0 -3 L ${hb} -3 L ${hb} -7 L ${ARROW_LEN} 0 L ${hb} 7 L ${hb} 3 L 0 3 Z`);
     arrow.setAttribute('fill', d.role==='L' ? '#ff7a59' : '#3fc6a0');
     arrow.setAttribute('opacity','.55');
     arrowG.appendChild(arrow);
@@ -1943,6 +1988,7 @@ const validFrom = (key, p) => {
   const m = MOVEMENTS[key]; if (!m) return false;
   if (m.needsEven && N % 2) return false;          // Línea Moderna only splits evenly into two rings
   if (m.noAfuera && isAfuera(p)) return false;     // deliberately not offered from Afuera Casino (yet)
+  if (m.minCouples && N < m.minCouples) return false;   // the figure physically doesn't fit on a smaller wheel
   if (m.relabel) return m.requires.includes(p);
   if (isAfuera(p)) return !m.entryOnly && (!m.progresses || m.afueraReady) && m.requires.includes(virtualPos(p));
   return m.requires.includes(p);
@@ -2045,7 +2091,7 @@ function grandeFrames(circleKey, from){
  *  so its mini-lane is the swap of its ring lane. Dame → Dame Pequeña; no
  *  phase change. Each mini-wheel runs the ordinary circle move; frames merge.
  * ------------------------------------------------------------------ */
-const LINEA_SUB_PEQ = { linea: 'casino', linea_pex: 'exhibela' };
+const LINEA_SUB_PEQ = { linea: 'casino', linea_pex: 'exhibela', linea_dile: 'dile' };
 function pequenaFrames(circleKey, from){
   const m = LM.m, mv = MOVEMENTS[circleKey], fromPos = LINEA_SUB_PEQ[from];
   const swap = l => l === 'cw' ? 'ccw' : l === 'ccw' ? 'cw' : l;
@@ -2218,7 +2264,7 @@ function updateUI(){
 
   Object.entries(CALLS).forEach(([key, c]) => {
     const b = callBtns[key]; if (!b) return;
-    const valid = !c.from || c.from.includes(posState);
+    const valid = (!c.from || c.from.includes(posState)) && !(c.minCouples && N < c.minCouples);
     let en;
     if (c.placeholder) en = idle && valid;
     else if (mode === 'live') en = idle ? (!c.modifier && valid) : true;   // queue anything mid-sequence

@@ -95,6 +95,23 @@ function genInteractions(T) {
 // Línea Moderna: frame snapshots for the figures that start from rest, and call transcripts + end grids.
 const LINEA_OPENERS = ['enchufla_grande', 'dame_grande', 'enchufla_peq', 'dame_peq', 'rueda', 'adios_rueda'];
 const LINEA_CALLS = ['dame_grande', 'enchufla_grande', 'dame_pequena', 'enchufla_pequena', 'rueda', 'adios_rueda'];
+// Figures that only exist deeper in a Línea sequence (LM Exhibela / LM Dile Que No), captured by
+// dancing into that state first.
+const LINEA_CHAINS = [[['dame_peq'], 'dile4_peq'], [['dame_peq', 'dile4_peq'], 'mujeres_peq']];
+function genLineaChains(T) {
+  const out = {};
+  for (const [setup, key] of LINEA_CHAINS) for (const n of NS) {
+    if (n < 6) continue;                                   // needs room: 6 couples up
+    const cap = T.captureLineaMovementFrom(setup, key, n);
+    if (!cap || !cap.frames) continue;
+    const ids = cap.frames[0].map(d => d.id).sort();
+    const frames = cap.frames.map(fr => { const byId = {}; fr.forEach(d => byId[d.id] = d);
+      const flat = []; ids.forEach(id => { const d = byId[id]; flat.push(round(d.xy.x), round(d.xy.y), round(d.face)); }); return flat; });
+    out[`${setup.join('>')}>${key}|linea|n${n}`] = { kind: 'frames', ids, frames,
+      segBeats: cap.segBeats ? cap.segBeats.map(round) : null, endPos: cap.endPos, endPhase: cap.endPhase };
+  }
+  return out;
+}
 function genLineaMovements(T) {
   const out = {};
   for (const key of LINEA_OPENERS) for (const n of NS) {
@@ -125,7 +142,7 @@ function genLineaEngine(T) {
 function generate() {
   const T = load();
   return {
-    movements: Object.assign(genMovements(T), genLineaMovements(T)),
+    movements: Object.assign(genMovements(T), genLineaMovements(T), genLineaChains(T)),
     engine: Object.assign(genEngine(T), genLineaEngine(T)),
     interactions: genInteractions(T),
   };

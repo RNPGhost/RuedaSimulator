@@ -3,6 +3,36 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v106 — Línea Moderna position names, its Dile Que No position, and a much closer Dile Que No
+- **Named the Línea Moderna positions** so they mirror the rueda's: **LM Casino** (`linea`, the rest),
+  **LM Exhibela** (`linea_pex`, where a Dame Pequeña lands — each mini 2-couple wheel in Exhibela), and the
+  new **LM Dile Que No** (`linea_dile`). The grande transient stays distinct as *LM Exhibela (grande)*
+  (`linea_ex`), since that one is the two *rings* in Exhibela rather than the mini wheels.
+- **Answered "why can't I trigger Dile Que No (4) after a Dame Pequeña?"** — it didn't exist. Only the
+  8-beat `dile` had ever been given Línea versions; the 4-beat one and Mujeres Arriba were never in the
+  generated list. Both are now built as **pequeña-only** figures (`dile4_peq`, `mujeres_peq`), each mini
+  wheel dancing them as its own rueda, plus a **Mujeres Arriba Pequeña** call. A grande Mujeres Arriba
+  would just be a Dile Que No y Dame, so it correctly has no grande form.
+- **LM Dile Que No geometry:** both partners stand on their own mini wheel's midpoint spoke — which runs
+  along the main spoke — the leader a step further out from the mini centre, the follower a step in. The
+  Línea slot now places these lanes, so the position is grid-exact (0.00px) like every other rest.
+- **The Dile Que No position is much closer: 72px between partners → 46px.** It was far too spread out.
+  The spacing is now *defined by the facing arrow*: the arrow leaves the leader's edge and its tip meets
+  the follower's edge, so there's an equal (zero) gap at each end — centres sit `ARROW_LEN + DOT_R` apart.
+  The drawn arrow is generated from the same constant, so the two can't drift.
+- **One definition, everywhere.** The Dile Que No y Dame compound had its own copy of this spacing
+  (`DOT_R + 8` = 48px) separate from the standalone position's 72px — so the same position was two
+  different sizes depending on how you reached it. Both now read `R_STEP`, which covers the pathing into
+  and out of it for every move (`dile4`, `mujeres`, the compounds, and their pequeña forms all derive
+  their targets from the slot).
+- **4 couples is a real limit for the pequeña Dile Que No.** The step runs along the mini-wheel spoke, and
+  for the inner ring that points at the *main* centre; at 4 couples the inner couples sit only ~38px out,
+  so a true-to-life step lands both their leaders on the middle (29.6px apart). People don't shrink with
+  the wheel, so the figure is offered from **6 couples up** (37.5px clear at 6 and 8) — measured, not assumed.
+- New invariant §24 (LM Exhibela landing, LM Dile Que No grid-exactness and clearance, the women changing
+  partner while the men hold their spots, the call closing back to LM Casino, and the 4-couple gating):
+  **1360 checks**. Golden gains chained Línea cases; `dile`-family and visual baselines re-shot.
+
 ## v105 — The way out: Rueda and Adios Rueda
 - **Two new movements + calls that fold Línea Moderna back into a single rueda**, the mirror of the two
   entries. In Línea the formation already names who does what, so no primeros/segundos labelling is needed:

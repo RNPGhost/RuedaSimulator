@@ -654,6 +654,49 @@ function run() {
     }
   }
 
+  // 24: the pequeña 4-beat Dile Que No and Mujeres Arriba — the Línea Moderna Dile Que No position.
+  for (const n of NS) {
+    const tag = `pequeña dile4/mujeres|n${n}`;
+    T.captureLineaMovement('dame_peq', n, 0);              // -> Línea Moderna Exhibela
+    nChecks++; check(T.state().posState === 'linea_pex', `${tag}: Dame Pequeña should land in LM Exhibela`);
+    const r1 = T.fireHere('dile4_peq');
+    if (n < 6) {   // a true-to-life step toward the mini centre doesn't fit on a 4-couple wheel
+      nChecks++; check(!r1, `${tag}: dile4_peq should be unavailable below 6 couples`);
+      nChecks++; check(!T.validFrom('mujeres_peq', 'linea_dile'), `${tag}: mujeres_peq should be unavailable below 6 couples`);
+      continue;
+    }
+    nChecks++; check(r1 && r1.endPos === 'linea_dile', `${tag}: dile4_peq ended ${r1 && r1.endPos}, expected linea_dile`);
+    if (!r1) continue;
+    let worst = Infinity; r1.frames.forEach(f => { worst = Math.min(worst, minPairDist(f)); });
+    nChecks++; check(worst >= GAP - 1.0, `${tag}: dile4_peq collision, minClear ${worst.toFixed(1)}`);
+    // rests exactly on the LM Dile Que No slots: leader a step out along its mini wheel's spoke, follower in
+    let offGrid = 0;
+    T._snap().forEach(d => { const want = T.lineaSlot(d.station, d.role === 'L' ? 'outer' : 'inner', n);
+      offGrid = Math.max(offGrid, Math.hypot(d.xy.x - want.x, d.xy.y - want.y)); });
+    nChecks++; check(offGrid <= 0.2, `${tag}: LM Dile Que No not grid-exact (${offGrid.toFixed(2)}px)`);
+    // Mujeres Arriba: inside each mini wheel the two followers swap couples; leaders keep their spots
+    const beforeL = {}; T._snap().forEach(d => { if (d.role === 'L') beforeL[d.id] = d.station; });
+    const pairBefore = {}; T._snap().filter(d => d.role === 'L').forEach(L => {
+      const F = T._snap().find(o => o.station === L.station && o.role === 'F'); pairBefore[L.id] = F.id; });
+    const r2 = T.fireHere('mujeres_peq');
+    nChecks++; check(r2 && r2.endPos === 'linea_pex', `${tag}: mujeres_peq ended ${r2 && r2.endPos}, expected linea_pex`);
+    if (!r2) continue;
+    let worst2 = Infinity; r2.frames.forEach(f => { worst2 = Math.min(worst2, minPairDist(f)); });
+    nChecks++; check(worst2 >= GAP - 1.0, `${tag}: mujeres_peq collision, minClear ${worst2.toFixed(1)}`);
+    let swapped = true, ledStill = true;
+    T._snap().filter(d => d.role === 'L').forEach(L => {
+      const F = T._snap().find(o => o.station === L.station && o.role === 'F');
+      if (F.id === pairBefore[L.id]) swapped = false;      // every leader must have a NEW follower
+      if (beforeL[L.id] !== L.station) ledStill = false;   // leaders return to their own spots
+    });
+    nChecks++; check(swapped, `${tag}: mujeres_peq did not move the women to a new partner`);
+    nChecks++; check(ledStill, `${tag}: mujeres_peq moved the men off their spots`);
+    // and the whole call closes back to LM Casino
+    T.captureLineaMovement('dame_peq', n, 0);
+    const res = T.issueOn('mujeres_arriba_pequena');
+    nChecks++; check(res && res.endPos === 'linea', `${tag}: the call ended ${res && res.endPos}, expected linea rest`);
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());
