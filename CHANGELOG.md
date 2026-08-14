@@ -3,6 +3,20 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v108 — The Dile Que No follower faces the way she travels round the arc
+- Through beats 2-3 the follower now **faces her direction of travel**, turning with the bend, instead of
+  holding a fixed centre-facing and then swinging onto the ⟂-spoke facing at the end. She settles onto
+  that ⟂-spoke facing over the last of the arc and holds it through beat 4 — so the **beat-4 position and
+  facing are unchanged**, only the way she gets there.
+- It joins up cleanly because beat 1 already turns her 90° right to face the centre, which is exactly the
+  direction the arc sets off in: she tracks her travel to **0.0°** through the arc, with no snap at either
+  join (largest frame-to-frame facing change 11.5°).
+- Applied to the **Dile Que No y Dame / Dame Dos compounds** too, whose opening four beats are the same
+  figure — and whose beats 5-8 already used travel-facing, so the whole move now reads consistently.
+  `dile4_peq` inherits it through the pequeña composition.
+- Golden re-baselined for the `dile4` / `dile_dame` / `dile_dame_dos` families (facings only); 1360
+  invariants and all 15 visual scenes green.
+
 ## v107 — The 4-beat Dile Que No rounds its beat-2/3 corner
 - Beats 2 and 3 used to be **two straight legs meeting at the start point**: back down the Exhibela line,
   then strike out for the spoke. That met at a hard **61° corner for the follower** (49–51° for the

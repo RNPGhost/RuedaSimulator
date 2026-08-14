@@ -1710,8 +1710,12 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
       const d = fr.find(x => x.id === id);
       let face;
       if (fi < SS) face = g.face0 + 90 * ((fi + 1) / SS);                                 // out, turn 90° right to centre
-      else if (fi < 2 * SS) face = g.face0 + 90;                                           // back, hold facing centre
-      else if (fi < 3 * SS){ const st0 = g.face0 + 90; face = st0 + short(g.perpFace - st0) * ((fi - 2 * SS + 1) / SS); }  // onto spoke, turn to ⟂-spoke
+      else if (fi < 3 * SS){                       // beats 2-3: face the way she travels round the arc…
+        const j = fi - SS + 1, u = j / (2 * SS);
+        const a = g.arc((j - 1) / (2 * SS)), b = g.arc(u);
+        const tv = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+        face = tv + short(g.perpFace - tv) * _smooth(Math.max(0, (u - 0.7) / 0.3));   // …settling onto ⟂-spoke by beat 4
+      }
       else if (fi < openCount) face = g.perpFace;                                          // beat-4 pause
       else {
         let tf = prev ? Math.atan2(d.xy.y - prev.y, d.xy.x - prev.x) * 180 / Math.PI : g.perpFace;
@@ -1779,13 +1783,19 @@ function dileQueNo4(ds, N){
       else d.face = toC;
     });
   });
-  // followers: turn 90° right to the centre on beat 1 and hold; turn to ⟂-spoke on beat 3, hold on 4.
+  // Followers: turn 90° right to the centre on beat 1 — which is where the arc sets off, so through
+  // beats 2-3 she simply faces the way she is travelling, turning with the bend, and settles onto the
+  // ⟂-spoke facing over the last of the arc to hold it through beat 4.
   frames.forEach((fr, fi) => {
     fr.forEach(d => { if (d.role !== 'F') return; const g = info[d.id];
       let face;
       if (fi < SS) face = g.face0 + 90 * ((fi + 1) / SS);
-      else if (fi < 2 * SS) face = g.face0 + 90;
-      else if (fi < 3 * SS){ const st0 = g.face0 + 90; face = st0 + short(g.perpFace - st0) * ((fi - 2 * SS + 1) / SS); }
+      else if (fi < 3 * SS){                       // beats 2-3: face the way she travels round the arc…
+        const j = fi - SS + 1, u = j / (2 * SS);
+        const a = g.arc((j - 1) / (2 * SS)), b = g.arc(u);
+        const tv = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+        face = tv + short(g.perpFace - tv) * _smooth(Math.max(0, (u - 0.7) / 0.3));   // …settling onto ⟂-spoke by beat 4
+      }
       else face = g.perpFace;
       d.face = face;
     });

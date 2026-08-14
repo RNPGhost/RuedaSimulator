@@ -76,6 +76,9 @@ folded into the shared-corridor model above, which is for the symmetric Dames.)
   **control point is the start**, so it leaves along the line it came out on and arrives along the run-in
   to the spoke, resampled by arc length for even speed. Same endpoints and beats, corner rounded away
   (61° → 8°). Shared by `dile4` and the Dile Que No y Dame compounds, which open with the same four beats.
+  Through that arc the **follower faces the way she travels**, turning with the bend and settling onto the
+  ⟂-spoke facing over the last of it — continuous with beat 1, which has already turned her 90° right to
+  face the centre, the direction the arc sets off in.
 - **4-beat Dile Que No** *(built — movement `dile4`)* — the Dile-Que-No-y-Dame opening danced on its
   own (beats 1–2 out-and-back along the Exhibela line, beat 3 onto the spoke, pause on 4; smoothed so
   2→3 is even speed), landing on…
