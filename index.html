@@ -1539,10 +1539,25 @@ const svg = document.getElementById('stage');
 const NS = 'http://www.w3.org/2000/svg';
 let nodes = {};
 
+// The faint guide (rings, spokes, Línea mini-wheels) depends on the formation, couple count and — for
+// Línea — the phase (the mini-wheels sit on the current spoke config). It lives in its own layer so it
+// can be redrawn when the phase flips (e.g. a grande Dame) without rebuilding the dancer nodes.
+let guideLayer = null, lastGuideKey = '';
+const guideKey = () => `${layoutName}|${phase}|${N}|${LM_GAP}`;
+function drawGuide(){
+  if (!guideLayer) return;
+  while (guideLayer.firstChild) guideLayer.removeChild(guideLayer.firstChild);
+  FORMATIONS[layoutName].guide(guideLayer);
+  lastGuideKey = guideKey();
+}
+function refreshGuide(){ if (guideKey() !== lastGuideKey) drawGuide(); }   // redraw only when it actually changed
 function buildNodes(){
   svg.innerHTML = '';
   nodes = {};
-  FORMATIONS[layoutName].guide(svg);            // faint guide (circle or two lines), owned by the formation
+  guideLayer = document.createElementNS(NS, 'g');   // faint guide (circle / two lines / mini-wheels), owned by the formation
+  guideLayer.setAttribute('class', 'guide');
+  svg.appendChild(guideLayer);
+  drawGuide();
   dancers.forEach(d=>{
     const g = document.createElementNS(NS,'g');
     g.setAttribute('class','dancer');
@@ -1575,6 +1590,7 @@ function resolveRot(cur, target, dir){
   return cur + (((((target - cur) % 360) + 540) % 360) - 180);             // shortest way
 }
 function render(){
+  refreshGuide();                                  // keep the formation guide (Línea mini-wheels) in sync with the phase
   dancers.forEach(d=>{
     const p = pos(d);
     const n = nodes[d.id];
@@ -2018,6 +2034,7 @@ function playFrames(frames, opts = {}, onDone, timing = {}){
       dancers = finalState;
       ids.forEach(id => { if (nodes[id]) nodes[id].rot = ROT[id][F]; });
       Object.values(nodes).forEach(n => { n.g.style.transition = G_TRANS; n.arrowG.style.transition = ARROW_TRANS; });
+      refreshGuide();                                     // phase may have flipped — move the Línea mini-wheels to the new config
       beatCursor = Math.round(beatStart + totalBeats); showBeat(beatCursor); animating = false; renderTable();
       if (onDone) onDone(); else updateUI();
     }
