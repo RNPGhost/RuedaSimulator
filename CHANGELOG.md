@@ -3,6 +3,17 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v97 — Dames face the direction of travel
+- Travelling dancers in every Dame (Dame, Dame Dos, Dame Pequeña, and their grande/pequeña/Línea
+  compositions) now **face the way they move** instead of staring at their future partner across the
+  wheel — which used to point the facing arrow straight *through* other dancers as they crossed.
+- Implemented in `dameToEnchufla` (leaders + travelling followers) and `damePequena` (the travelling
+  leader; the stationary follower keeps facing her arriving partner and the Casino follower keeps her
+  Reverse-Adios spin). Each traveller faces its path tangent, then **blends to partner-facing over the
+  last third** of the trip so it still settles correctly into Exhibela.
+- Paths are byte-identical (0 position diffs); only mid-move facings changed. Golden re-baselined
+  (face-only); 727 invariants and 12 visual scenes green.
+
 ## v96 — Línea mini-wheel guide follows the phase
 - The dashed mini-wheel circles (and rings) mark rest positions on the **current** spoke config, but the
   guide was only drawn once in `buildNodes`, so a phase-changing grande call left the mini-wheels sitting
