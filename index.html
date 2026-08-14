@@ -226,8 +226,8 @@ const MOVEMENTS = {
   },
   dame_dos: {
     label: 'Dame Dos',
-    desc: 'Like Dame but the leader progresses two couples (arcing left of followers, right of other leaders). Always ends in Exhibela position facing the new partner.',
-    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
+    desc: 'Like Dame but the leader progresses two couples — he passes one follower and joins the next while the follower steps half a couple to the between-spoke. Flips the phase (lands on the other config) and ends in Exhibela facing the new partner.',
+    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true, flipsPhase: true,
     anim: { duration: 820 },
     beats: 4,
     frames: (ds, N, from) => dameToEnchufla(ds, N, 2, virtualPos(from) === 'exhibela', isAfuera(from))
@@ -905,19 +905,23 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
   const norm = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
   const leftOf = u => ({ x: u.y, y: -u.x });
   const cur = {}, leaderAt = {}, followerAt = {};
-  // Spoke bookkeeping in HALF-spacings: h = 2*station + phaseBefore. The global phase is already
-  // flipped for odd k, so recover phaseBefore, shift each dancer's h, and read the new station back
-  // off h. This makes the direction consistent regardless of which config we started in: a single
-  // Dame always moves the leader one half-spacing anti-clockwise and the follower one clockwise.
-  const twoN = 2 * N, phaseBefore = phase ^ (k & 1);
+  // Spoke bookkeeping in HALF-spacings: h = 2*station + phaseBefore. A Dame ALWAYS lands the wheel on the
+  // *between*-spokes (the other of the two configs): the follower steps half a couple one way and the
+  // leader travels an odd number of half-spacings the other way, so the net shift is always odd → the
+  // phase always flips (single Dame and Dame Dos alike). Recover phaseBefore, shift each dancer's h, read
+  // the new station back off h so the direction is consistent regardless of which config we started in.
+  const twoN = 2 * N, phaseBefore = phase ^ 1;
   // Resting starts must be read at the PRE-flip phase. When a dancer has no live xy (e.g. the first
   // Dame right after a reset), pos() would fall through to the formation slot with the already-flipped global
   // phase and place the start in the wrong config — a visible jump. Pin the start to phaseBefore.
   ds.forEach(d => { cur[d.id] = d.xy ? d.xy : FORMATIONS.circle.slot(d.station, d.lane, N, phaseBefore); });
   ds.forEach(d => { (d.role === 'L' ? leaderAt : followerAt)[d.station] = d.id; });
   const INF = 110;
-  const lDelta = (k & 1) ? -k * dir : -2 * k * dir;   // single Dame: half a couple; Dame Dos: full k couples
-  const fDelta = (k & 1) ? k * dir : 0;               // single Dame: the other half; Dame Dos: stays
+  // Leader travels (2k-1) half-spacings one way (Dame: −1 = ½ couple to the couple 1 over; Dame Dos: −3
+  // = 1½ couples, passing one follower to reach the next); the follower always steps +1 half-spacing (½ a
+  // couple) the other way to the between-spoke. Both together advance the pairing k full couples.
+  const lDelta = -(2 * k - 1) * dir;
+  const fDelta = dir;
   const newSt = (st, delta) => { const nh = (((2 * st + phaseBefore + delta) % twoN) + twoN) % twoN; return (nh - phase) / 2; };
   // followers travel along the ring to their exact new grid spot (clockwise; afuera anti-clockwise)
   const fInfo = {}, folByNewSt = {};

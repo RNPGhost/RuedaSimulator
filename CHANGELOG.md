@@ -3,6 +3,20 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v99 — Dame Dos flips the phase
+- **A Dame (single or Dos) now always lands the wheel on the *between*-spokes (the other config), so Dame
+  Dos flips the phase like a single Dame does.** Geometrically a move flips iff the wheel turns an odd
+  number of half-spacings; the old Dame Dos advanced a clean 2 couples (a whole spacing, even → no flip).
+  Corrected per the choreography: the follower steps **+½ a couple** to the between-spoke (exactly as in a
+  single Dame) and the leader travels **1½ couples** (passing one follower to reach the next), so the
+  pairing still advances 2 couples but the net shift is odd → **flip**.
+- Unified the half-spacing bookkeeping in `dameToEnchufla`: `phaseBefore = phase ^ 1` always, leader
+  `-(2k-1)` half-spacings, follower `+1`. Single Dame is byte-identical (k=1 gives the same −1/+1 it
+  always had); only Dame Dos changed. `dame_dos` gains `flipsPhase: true`; Dame Dos Grande now flips to
+  match Dame Grande (both end phase 1). Pairing verified (leader 0 → follower 2 couples along).
+- Golden re-baselined for the `dame_dos` cases only; 727 invariants (grid-exact, occupancy, collision,
+  facing) green. Rest states unchanged, so visual snapshots untouched.
+
 ## v98 — True-to-life scale + shared, equal-effort Dame avoidance
 - **Dancer size is now true to life.** `DOT_R` 20→16, so a dancer is 32px ≈ a 46 cm shoulder while the
   couple spacing `W_DIST` ≈ 64px reads as 3 ft — a 2:1 ratio matching reality (was 1.6:1, i.e. couples
