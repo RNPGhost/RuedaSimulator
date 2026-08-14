@@ -255,6 +255,20 @@ const MOVEMENTS = {
     beats: 4,
     frames: (ds, N) => dameLinea(ds, N)
   },
+  rueda: {
+    label: 'Rueda',
+    desc: 'From Rueda Línea Moderna (Casino): the two rings fold back into a single rueda. The outer couples keep their exact midpoint spokes and simply walk straight in to the ring without turning — so the new rueda inherits the formation’s orientation. Each inner couple comes out to the place one clockwise of where its own mini-wheel partner lands, travelling as a couple and turning ANTI-CLOCKWISE until it matches its new spot. Everyone stays in Casino, partners facing each other throughout.',
+    requires: ['linea'], sets: 'casino', changesLayout: 'circle',
+    beats: 8,
+    frames: (ds, N) => lineaToRueda(ds, N, 'ccw')
+  },
+  adios_rueda: {
+    label: 'Adios Rueda',
+    desc: 'The same exit from Rueda Línea Moderna as Rueda — outer couples walk straight in on their own spokes, inner couples come out one place clockwise of them — except the inner couples sweep CLOCKWISE the long way round into their new orientation instead of taking the tight anti-clockwise turn.',
+    requires: ['linea'], sets: 'casino', changesLayout: 'circle',
+    beats: 8,
+    frames: (ds, N) => lineaToRueda(ds, N, 'cw')
+  },
   adios_linea: {
     label: 'Adios Línea',
     desc: 'The same entry into Rueda Línea Moderna as Línea Moderna — primeros in to the inner ring one spoke clockwise, segundos straight out to the outer ring — but the primeros sweep CLOCKWISE the long way round into their new orientation instead of taking the tight anti-clockwise turn, which gives the figure its Adios-like character. Requires an even number of couples.',
@@ -446,6 +460,8 @@ const CALLS = {
   // wheels, Dame → Dame Pequeña, no phase change). Each closes with a default Dile Que No (grande/peq).
   linea_moderna: { label: 'Línea Moderna', desc: 'Call from Casino: the rueda opens into the Rueda Línea Moderna formation — primeros (the cantante’s couple and every other one clockwise) to the inner ring, turning anti-clockwise into place; segundos out to the outer ring on their own spokes. Even couple counts only.', from: ['casino'], seq: ['linea_moderna'] },
   dame_linea:    { label: 'Dame Línea',    desc: 'Call from Casino: a Dame that lands the wheel in Rueda Línea Moderna — segundo leaders Dame out to the outer ring with the primero followers, primero leaders and segundo followers walk in to the inner ring, all in Exhibela. Closes with a Dile Que No Grande. Even couple counts only.', from: ['casino'], seq: ['dame_linea'] },
+  rueda:         { label: 'Rueda',         lm: true, desc: 'Call from Línea Moderna: fold the two rings back into a single rueda — outer couples walk straight in on their own spokes, inner couples come out one place clockwise of them, turning anti-clockwise into place.', from: ['linea'], seq: ['rueda'] },
+  adios_rueda:   { label: 'Adios Rueda',   lm: true, desc: 'Call from Línea Moderna: the same fold back to the rueda, but the inner couples sweep clockwise the long way round into their new orientation.', from: ['linea'], seq: ['adios_rueda'] },
   adios_linea:   { label: 'Adios Línea',   desc: 'Call from Casino: the same opening into Rueda Línea Moderna, but the primeros sweep clockwise the long way round into the inner ring — the Adios-flavoured entry. Even couple counts only.', from: ['casino'], seq: ['adios_linea'] },
   dame_grande:    { label: 'Dame Grande',    lm: true, desc: 'Línea: Dame on both rings at once (each progresses one couple, shared phase flips), then a Dile Que No Grande.', from: ['linea'], seq: ['dame_grande'] },
   dame_pequena:   { label: 'Dame Pequeña',   lm: true, desc: 'Línea: Dame Pequeña in every mini 2-couple wheel (no phase change), then a Dile Que No Pequeña. The outer leader becomes the new inner leader.', from: ['linea'], seq: ['dame_peq'] },
@@ -1233,6 +1249,68 @@ function damePequena(ds, N, fromEnch, afuera){
   return frames;
 }
 
+/* Walk every couple to its new place AS A COUPLE: the midpoint runs straight from where it stands to
+ * where it lands while the couple turns about that midpoint into its new orientation. Partners are
+ * connected in Casino, so they hold their spacing and can't pass through each other — which a straight
+ * line per dancer would do, since a couple changing ring turns 180°−360/N and a linear interpolation
+ * collapses the pair at half-turn (24px at 8 couples, measured). A couple that is already square on
+ * (one keeping its spoke) never turns, so it is a pure walk. The turn runs over the first LM_ROT_SPAN of
+ * the trip rather than the whole of it, so a couple squares up before it arrives instead of still
+ * swinging through the middle of the wheel. `turnDir` picks the tight anti-clockwise turn ('ccw') or the
+ * long way round clockwise ('cw') — which is the only thing separating each Línea entry/exit from its
+ * Adios-flavoured twin. Shared by the Línea Moderna / Adios Línea entries and the Rueda / Adios Rueda exits. */
+function coupleWalkFrames(ds, start, target, endSt, endLane, turnDir){
+  // Pair by STATION, not by couple id: the `couple` field is a dancer's original couple and never
+  // changes, so after any Dame the two dancers sharing a station have different ids. Grouping by couple
+  // would rotate dancers around a partner they are no longer standing with.
+  const grp = {}; ds.forEach(d => { (grp[d.station] = grp[d.station] || []).push(d); });
+  const couples = Object.keys(grp).filter(k => grp[k].length === 2);
+  const partnerKey = {}; couples.forEach(k => grp[k].forEach(d => partnerKey[d.id] = k));
+  const cp = {};
+  couples.forEach(k => {
+    const L = grp[k].find(d => d.role === 'L').id;
+    const F = grp[k].find(d => d.role === 'F').id;
+    const Ms = { x: (start[L].x + start[F].x) / 2,   y: (start[L].y + start[F].y) / 2 };
+    const Me = { x: (target[L].x + target[F].x) / 2, y: (target[L].y + target[F].y) / 2 };
+    const vs = { x: start[L].x - Ms.x,  y: start[L].y - Ms.y };      // midpoint -> leader, at both ends
+    const ve = { x: target[L].x - Me.x, y: target[L].y - Me.y };
+    const a0 = Math.atan2(vs.y, vs.x);
+    let da = Math.atan2(ve.y, ve.x) - a0;
+    while (da >  Math.PI) da -= 2 * Math.PI;                          // the short way round…
+    while (da < -Math.PI) da += 2 * Math.PI;
+    // Turn where there is most room. A couple's dancers sit half a couple-width either side of its
+    // midpoint, so turning while the midpoint is near the wheel centre swings one of them through the
+    // middle — at 4 couples that put two of them 13px from the centre, 26px apart. So a couple heading
+    // INWARD turns early (before it gets deep) and one heading OUTWARD turns late (once it is clear):
+    // the same rule mirrored, which is why the entries front-load their turn and the exits back-load it.
+    const inward = Math.hypot(Me.x - CX, Me.y - CY) < Math.hypot(Ms.x - CX, Ms.y - CY);
+    const w0 = inward ? 0 : 1 - LM_ROT_SPAN, w1 = inward ? LM_ROT_SPAN : 1;
+    cp[k] = { L, F, Ms, Me, a0, da, w0, w1, r0: Math.hypot(vs.x, vs.y), r1: Math.hypot(ve.x, ve.y) };
+  });
+  const turnOf = k => { let d = cp[k].da;                             // …resolved to the requested direction
+    if (Math.abs(d) < 1e-6) return 0;
+    if (turnDir === 'cw'  && d < 0) d += 2 * Math.PI;
+    if (turnDir === 'ccw' && d > 0) d -= 2 * Math.PI;
+    return d; };
+  const STEPS = 16, frames = [];
+  for (let s = 1; s <= STEPS; s++){
+    const t0 = s / STEPS, te = _smooth(t0), P = {};
+    couples.forEach(k => { const g = cp[k];
+      const tr = _smooth(Math.max(0, Math.min(1, (t0 - g.w0) / (g.w1 - g.w0))));
+      const mx = g.Ms.x + (g.Me.x - g.Ms.x) * te, my = g.Ms.y + (g.Me.y - g.Ms.y) * te;
+      const a = g.a0 + turnOf(k) * tr, r = g.r0 + (g.r1 - g.r0) * te;
+      const dx = r * Math.cos(a), dy = r * Math.sin(a);
+      P[g.L] = { x: mx + dx, y: my + dy };
+      P[g.F] = { x: mx - dx, y: my - dy };
+    });
+    frames.push(ds.map(d => { const g = cp[partnerKey[d.id]];
+      const p = P[d.id], q = P[d.role === 'L' ? g.F : g.L];
+      return { ...d, station: endSt[d.id], lane: endLane[d.id], xy: p,
+        face: Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI }; }));
+  }
+  return frames;
+}
+
 /* Línea Moderna (entry) — Casino on the rueda -> the two-ring Línea Moderna formation.
  * The cantante fixes the parity: his couple and every other couple clockwise are the PRIMEROS; the
  * couples between them are the SEGUNDOS. The segundos' midpoint spokes ARE the formation's spokes, so
@@ -1267,50 +1345,36 @@ function lineaModerna(ds, N, turnDir){
       target[d.id] = FORMATIONS.linea.slot(j, lane, N, 0);
     });
   }
-  // Each COUPLE walks directly: its midpoint runs straight from where it stands to where it lands while
-  // the couple turns about that midpoint from its old orientation to its new one. Partners
-  // are connected in Casino, so they hold their spacing and can't pass through each other — which a
-  // straight line per dancer would do, since a primero couple turns 180°−360/N and a linear interpolation
-  // collapses the pair at half-turn (24px at 8 couples). A segundo's turn is 0, so it is a pure walk out.
-  const couples = [...new Set(ds.map(d => d.couple))];
-  const cp = {};
-  couples.forEach(k => {
-    const L = ds.find(d => d.couple === k && d.role === 'L').id;
-    const F = ds.find(d => d.couple === k && d.role === 'F').id;
-    const Ms = { x: (start[L].x + start[F].x) / 2,   y: (start[L].y + start[F].y) / 2 };
-    const Me = { x: (target[L].x + target[F].x) / 2, y: (target[L].y + target[F].y) / 2 };
-    const vs = { x: start[L].x - Ms.x,  y: start[L].y - Ms.y };      // midpoint -> leader, at both ends
-    const ve = { x: target[L].x - Me.x, y: target[L].y - Me.y };
-    const a0 = Math.atan2(vs.y, vs.x);
-    let da = Math.atan2(ve.y, ve.x) - a0;
-    while (da >  Math.PI) da -= 2 * Math.PI;                          // the short way round…
-    while (da < -Math.PI) da += 2 * Math.PI;
-    cp[k] = { L, F, Ms, Me, a0, da, r0: Math.hypot(vs.x, vs.y), r1: Math.hypot(ve.x, ve.y) };
-  });
-  // …resolved to the requested direction. Which way the primeros turn is what distinguishes the two
-  // entries, so it is part of each movement's identity rather than something solved: Línea Moderna turns
-  // ANTI-CLOCKWISE (a tight turn, always < 360°), Adios Línea sweeps CLOCKWISE the long way round, which
-  // is what gives it its Adios-like character. A segundo is already square on, so it never turns.
-  const turnOf = k => { let d = cp[k].da;
-    if (Math.abs(d) < 1e-6) return 0;
-    if (turnDir === 'cw'  && d < 0) d += 2 * Math.PI;
-    if (turnDir === 'ccw' && d > 0) d -= 2 * Math.PI;
-    return d; };
-  const STEPS = 16, frames = [];
-  for (let s = 1; s <= STEPS; s++){
-    const t0 = s / STEPS, te = _smooth(t0), tr = _smooth(Math.min(1, t0 / LM_ROT_SPAN)), P = {};
-    couples.forEach(k => { const g = cp[k];
-      const mx = g.Ms.x + (g.Me.x - g.Ms.x) * te, my = g.Ms.y + (g.Me.y - g.Ms.y) * te;
-      const a = g.a0 + turnOf(k) * tr, r = g.r0 + (g.r1 - g.r0) * te;
-      const dx = r * Math.cos(a), dy = r * Math.sin(a);
-      P[g.L] = { x: mx + dx, y: my + dy };
-      P[g.F] = { x: mx - dx, y: my - dy };
-    });
-    frames.push(ds.map(d => { const p = P[d.id], q = P[d.role === 'L' ? cp[d.couple].F : cp[d.couple].L];
-      return { ...d, station: endSt[d.id], lane: endLane[d.id], xy: p,
-        face: Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI }; }));
+  return coupleWalkFrames(ds, start, target, endSt, endLane, turnDir);
+}
+
+/* Rueda (exit) — Línea Moderna Casino -> the rueda, back in Casino. The mirror of the Línea Moderna
+ * entry, and here the formation itself says who does what, so no primeros/segundos labelling is needed:
+ *   · The OUTER couples keep their exact midpoint spokes — they simply walk straight in to the ring, still
+ *     facing each other, without turning at all (the reverse of the segundos' walk out). Because they hold
+ *     their spokes, the new rueda inherits the Línea formation's aim.
+ *   · The INNER couples come out to the place ONE CLOCKWISE of where their own mini-wheel partner lands,
+ *     so they end one place clockwise of them in the new rueda. They travel as a couple, holding their
+ *     spacing and turning until their orientation matches the new spot — ANTI-CLOCKWISE for Rueda, and
+ *     CLOCKWISE the long way round for Adios Rueda, which is the only difference between the two. */
+function lineaToRueda(ds, N, turnDir){
+  const m = N / 2;
+  ds.forEach(d => { if (!d.xy) d.xy = pos(d); });         // freeze rest positions before the layout switches
+  const start = {}; ds.forEach(d => start[d.id] = d.xy);
+  const byStation = {}; ds.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
+  // The outer couples keep their spokes, so aim the new rueda at Línea spoke 0 (with its phase baked in)
+  // and rest it at phase 0 — the wheel's orientation carries across the formation change.
+  const newBase = norm360(LM_BASE + phase * 360 / N);
+  layoutName = 'circle'; BASE_ANG = newBase; phase = 0; computeWheel(N);
+  const target = {}, endSt = {}, endLane = {};
+  const place = (d, station) => { const lane = d.role === 'L' ? 'ccw' : 'cw';   // Casino
+    endSt[d.id] = station; endLane[d.id] = lane;
+    target[d.id] = FORMATIONS.circle.slot(station, lane, N, 0); };
+  for (let k = 0; k < m; k++){
+    byStation[m + k].forEach(d => place(d, 2 * k));       // outer couple k -> its own spoke
+    byStation[k].forEach(d => place(d, 2 * k + 1));       // inner couple k -> one place clockwise of it
   }
-  return frames;
+  return coupleWalkFrames(ds, start, target, endSt, endLane, turnDir);
 }
 
 /* Dame Línea — Casino on the rueda -> Línea Moderna, arriving in the exhibela-like state ready for a
@@ -1770,7 +1834,7 @@ let nodes = {};
 // Línea — the phase (the mini-wheels sit on the current spoke config). It lives in its own layer so it
 // can be redrawn when the phase flips (e.g. a grande Dame) without rebuilding the dancer nodes.
 let guideLayer = null, lastGuideKey = '';
-const guideKey = () => `${layoutName}|${phase}|${N}|${LM_GAP}|${LM_BASE}`;
+const guideKey = () => `${layoutName}|${phase}|${N}|${LM_GAP}|${LM_BASE}|${BASE_ANG}`;
 function drawGuide(){
   if (!guideLayer) return;
   while (guideLayer.firstChild) guideLayer.removeChild(guideLayer.firstChild);
@@ -2029,7 +2093,7 @@ function runMovement(key, fromQueue, note, leadBeats){
   const mv = MOVEMENTS[key], from = posState;
   history.push(dancers.map(d => ({ ...d }))); histPos.push(from);
   histQueue.push(queue.slice()); histQueueCalls.push(queueCalls.slice()); histPhase.push(phase);
-  histLayout.push({ layoutName, LM_BASE });        // a formation-changing movement must be undoable too
+  histLayout.push({ layoutName, LM_BASE, BASE_ANG });        // a formation-changing movement must be undoable too
   stepCount++;
   currentMoveLabel = mv.label;                     // top-left "now playing"
   logLine(mv.label, note);
@@ -2289,7 +2353,8 @@ function undo(){
   if (histPos.length) posState = histPos.pop();
   if (histPhase.length) phase = histPhase.pop();
   if (histLayout.length){ const L = histLayout.pop();      // restore the formation (and its orientation)
-    if (L.layoutName !== layoutName || L.LM_BASE !== LM_BASE){ layoutName = L.layoutName; LM_BASE = L.LM_BASE; computeWheel(N); buildNodes(); } }
+    if (L.layoutName !== layoutName || L.LM_BASE !== LM_BASE || L.BASE_ANG !== BASE_ANG){
+      layoutName = L.layoutName; LM_BASE = L.LM_BASE; BASE_ANG = L.BASE_ANG; computeWheel(N); buildNodes(); } }
   if (histQueue.length) histQueue.pop();
   if (histQueueCalls.length) histQueueCalls.pop();
   queue = []; queueCalls = []; engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null;   // cancel any running sequence
@@ -2300,7 +2365,7 @@ function undo(){
 }
 function reset(){
   animGen++; animating = false;                 // abort any in-flight move so dancers stop before resetting
-  LM_BASE = -90;                                // rest orientation (the entry movement re-aims it)
+  LM_BASE = -90; BASE_ANG = -90;                // rest orientation (the entry/exit movements re-aim these)
   computeWheel(N);
   dancers = baseState(N);
   history = []; histPos.length = 0; histQueue.length = 0; histQueueCalls.length = 0; histPhase.length = 0; histLayout.length = 0; stepCount = 0; posState = layoutName === 'linea' ? 'linea' : 'casino'; phase = 0;

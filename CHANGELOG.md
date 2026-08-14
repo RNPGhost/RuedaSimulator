@@ -3,6 +3,35 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v105 — The way out: Rueda and Adios Rueda
+- **Two new movements + calls that fold Línea Moderna back into a single rueda**, the mirror of the two
+  entries. In Línea the formation already names who does what, so no primeros/segundos labelling is needed:
+  - **Outer couples** keep their **exact midpoint spokes** and simply walk straight in to the ring, never
+    turning. Because they hold their spokes, the new rueda **inherits the formation's orientation**.
+  - **Inner couples** come out to the place **one clockwise** of where their own mini-wheel partner lands,
+    travelling as a couple and turning until they match it — **anti-clockwise** for **Rueda**,
+    **clockwise the long way** for **Adios Rueda**. That turn is the only difference between the two.
+- **Refactor:** the couple-walk pathing is now one shared `coupleWalkFrames`, used by both entries and both
+  exits, so the way in and the way out move identically rather than each having its own copy.
+- **Bug found by the exits:** `coupleWalkFrames` grouped partners by `couple` **id**, but that field is a
+  dancer's *original* couple and never changes — so after any Dame the two dancers at a station have
+  different ids. The entries hid this (they start from a fresh Casino rest, where ids still match), but
+  coming out of a *danced* Línea it rotated dancers around partners they were no longer standing with, and
+  adjacent inner couples collided (0.8px at 8 couples). **Now paired by station**, i.e. who you are
+  actually standing with.
+- **Turn timing is now room-aware, and the rule generalised.** A couple's dancers sit half a couple-width
+  either side of its midpoint, so turning while the midpoint is near the wheel centre swings one of them
+  through the middle — at 4 couples that left two of them 13px from the centre, 26px apart. So a couple
+  heading **inward turns early** and one heading **outward turns late**: the same rule mirrored, which is
+  why the entries front-load their turn and the exits back-load it. Replaces v102's entry-only front-load;
+  entry frames are **byte-identical**.
+- Clearances mirror the entries exactly — Rueda **45 / 64 / 64px**, Adios Rueda **64 / 60 / 55px** (floor 34).
+- New invariant §23 (ends in Casino, collision-free — the exits aren't covered by §1, whose `from` list is
+  circle-only — grid-exact, partners facing, outer spokes unmoved, inner couples one place clockwise, turn
+  directions, and a Línea Moderna → Rueda round trip); §22 scoped to skip the exits. **1339 checks**
+  (from 1261). Golden +6 movement / +6 engine cases; new visual scene `rueda_exit_n6` (15 scenes).
+- `BASE_ANG` now joins `LM_BASE` in the undo/reset state and the guide key, since an exit re-aims the circle.
+
 ## v104 — Fix: the wheel's orientation survives a phase change in Línea
 - **Bug:** `grandeFrames` ran its two ring sub-wheels at a hardcoded `BASE_ANG: -90`, so every grande
   figure silently **re-aimed the whole formation to straight-up** instead of turning it from where it

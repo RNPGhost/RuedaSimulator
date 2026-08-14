@@ -568,11 +568,89 @@ function run() {
         const before = spokeGrid(), ph0 = T.state().phase;
         const r = T.fireHere(key);
         if (!r) continue;
+        if (!['linea', 'linea_ex', 'linea_pex'].includes(r.endPos)) continue;   // exits redefine the grid (§23)
         const after = spokeGrid(), flipped = ph0 !== r.endPhase;
         nChecks++;
         check(rotatedBy(before, after, flipped ? half : 0),
           `orientation linea ${key}|n${n} (${flipped ? 'phase flip → must bisect' : 'no flip → must hold'}): ${before.join(',')} -> ${after.join(',')}`);
       }
+    }
+  }
+
+  // 23: the Línea exits (Rueda / Adios Rueda) — folding the two rings back into one wheel.
+  {
+    const CXo = T.CX, CYo = T.CY;
+    const angOf = (a, b) => Math.atan2((a.xy.y + b.xy.y) / 2 - CYo, (a.xy.x + b.xy.x) / 2 - CXo) * 180 / Math.PI;
+    const coupleTurn = (frames, station) => {   // turn of the couple standing at `station` before the move
+      let tot = 0, prev = null;
+      for (const f of frames) {
+        const pair = f.filter(d => d.__st0 === station);
+        if (pair.length !== 2) return NaN;
+        const L = pair.find(d => d.role === 'L'), F = pair.find(d => d.role === 'F');
+        const a = Math.atan2(L.xy.y - F.xy.y, L.xy.x - F.xy.x);
+        if (prev !== null) { let d = a - prev;
+          while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; tot += d; }
+        prev = a;
+      }
+      return tot * 180 / Math.PI;
+    };
+    for (const exit of ['rueda', 'adios_rueda']) {
+      for (const n of NS) {
+        const m = n / 2, tag = `${exit}|n${n}`;
+        T.runCallLive('dame_linea', 'casino', n, 0);       // into Línea by dancing (non-default orientation)
+        const pre = T._snap(), st0 = {}; pre.forEach(d => st0[d.id] = d.station);
+        const spokeBefore = {};
+        for (let s = 0; s < n; s++) { const p = pre.filter(d => d.station === s);
+          if (p.length === 2) spokeBefore[s] = angOf(p[0], p[1]); }
+        const r = T.fireHere(exit);
+        nChecks++; check(r && r.endPos === 'casino', `${tag}: ended ${r && r.endPos}, expected casino`);
+        if (!r) continue;
+        r.frames.forEach(f => f.forEach(d => d.__st0 = st0[d.id]));
+        // collision-free (the exits aren't covered by §1, whose `from` list is circle-only)
+        let worst = Infinity; r.frames.forEach(f => { worst = Math.min(worst, minPairDist(f)); });
+        nChecks++; check(worst >= GAP - 1.0, `${tag}: collision, minClear ${worst.toFixed(1)}`);
+        const end = T._snap();
+        // grid-exact in Casino, partners facing
+        let offGrid = 0, faceErr = 0;
+        end.forEach(d => { const want = T.circleAt(d.station, d.role === 'L' ? 'ccw' : 'cw', n, 0);
+          offGrid = Math.max(offGrid, Math.hypot(d.xy.x - want.x, d.xy.y - want.y));
+          const pr = end.find(o => o.station === d.station && o.role !== d.role);
+          faceErr = Math.max(faceErr, Math.abs(norm180(d.face - Math.atan2(pr.xy.y - d.xy.y, pr.xy.x - d.xy.x) * 180 / Math.PI))); });
+        nChecks++; check(offGrid <= 0.2, `${tag}: not grid-exact (${offGrid.toFixed(2)}px)`);
+        nChecks++; check(faceErr <= 1.0, `${tag}: partners not facing (${faceErr.toFixed(1)}°)`);
+        // the OUTER couples keep their exact midpoint spokes (this is what carries the orientation across)
+        let spokeErr = 0, placed = true;
+        for (let k = 0; k < m; k++) {
+          const outer = end.filter(d => st0[d.id] === m + k), inner = end.filter(d => st0[d.id] === k);
+          if (outer.length !== 2 || inner.length !== 2) { placed = false; continue; }
+          spokeErr = Math.max(spokeErr, Math.abs(norm180(angOf(outer[0], outer[1]) - spokeBefore[m + k])));
+          // and each inner couple lands ONE station clockwise of its own mini-wheel partner
+          if (outer[0].station !== outer[1].station || inner[0].station !== inner[1].station) placed = false;
+          else if (inner[0].station !== (outer[0].station + 1) % n) placed = false;
+        }
+        nChecks++; check(spokeErr <= 0.5, `${tag}: outer couples' spokes moved by ${spokeErr.toFixed(2)}°`);
+        nChecks++; check(placed, `${tag}: inner couples not one place clockwise of their mini-wheel partner`);
+        // turn directions: inner couples turn (ccw for Rueda, cw for Adios Rueda); outer couples never turn
+        for (let k = 0; k < m; k++) {
+          const ti = coupleTurn(r.frames, k), to = coupleTurn(r.frames, m + k);
+          nChecks++; check(Math.abs(to) < 1, `${tag}: outer couple ${k} turned ${to.toFixed(0)}°, should walk straight in`);
+          nChecks++;
+          if (exit === 'rueda') check(ti < -1 && ti > -360, `${tag}: inner couple ${k} turn ${ti.toFixed(0)}° is not anti-clockwise under a full circle`);
+          else check(ti > 1 && ti < 360, `${tag}: inner couple ${k} turn ${ti.toFixed(0)}° is not clockwise under a full circle`);
+        }
+      }
+    }
+    // Round trip: Línea Moderna out and Rueda back lands on a proper Casino rest, orientation intact.
+    for (const n of NS) {
+      T.captureMovement('linea_moderna', 'casino', n, 0);
+      const r = T.fireHere('rueda');
+      nChecks++; check(r && r.endPos === 'casino', `round trip n${n}: ended ${r && r.endPos}`);
+      if (!r) continue;
+      const end = T._snap();
+      let offGrid = 0;
+      end.forEach(d => { const want = T.circleAt(d.station, d.role === 'L' ? 'ccw' : 'cw', n, 0);
+        offGrid = Math.max(offGrid, Math.hypot(d.xy.x - want.x, d.xy.y - want.y)); });
+      nChecks++; check(offGrid <= 0.2, `round trip n${n}: not grid-exact (${offGrid.toFixed(2)}px)`);
     }
   }
 

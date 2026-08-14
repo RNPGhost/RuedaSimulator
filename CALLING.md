@@ -249,7 +249,21 @@ It lands in `linea_ex`, not at rest, so the standard default rule takes over and
 No Grande** — the call plays `dame_linea → dile_grande`. It counts as a Dame for timing (4 beats, in
 `DAME_KEYS`), so it starts on beat 5 and the Dile lands on beat 1.
 
-The way **out** of Línea Moderna is not built yet.
+### Getting out: the **Rueda** and **Adios Rueda** calls
+
+The mirror of the entries. In Línea the formation already says who does what, so these need no
+primeros/segundos labelling — inner and outer do the work:
+
+- **Outer couples** keep their **exact midpoint spokes** and walk straight in to the ring, never turning.
+  Holding their spokes is what carries the formation's orientation into the new rueda.
+- **Inner couples** come out to the place **one clockwise** of where their own mini-wheel partner lands,
+  so they end one place clockwise of them. They travel as a couple, holding their spacing and turning
+  until they match the new spot: **anti-clockwise** for **Rueda**, **clockwise the long way round** for
+  **Adios Rueda**. That is the only difference between the two.
+
+Both land in Casino on the rueda. Couple travel is the shared `coupleWalkFrames` used by the entries, so
+the way out moves exactly like the way in — including the rule that a couple heading **inward turns early**
+and one heading **outward turns late** (turn where there's room, so nobody swings through the middle).
 
 ## Decision points, queue, and the two modes
 

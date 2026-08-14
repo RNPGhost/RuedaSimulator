@@ -59,6 +59,9 @@ const SCENES = {
   // phase-flipping grande the new spokes must bisect the old ones rather than snapping back to default.
   linea_dame_linea_n4: seq(setN(4), call('Dame Línea'), wait(7000)),
   linea_dame_linea_grande_n4: seq(setN(4), call('Dame Línea'), wait(7000), call('Dame Grande'), wait(7000)),
+  // …and back out again. The rueda must come back aimed on the orientation it was danced into, not reset
+  // to straight-up, and the guide must fold from two rings back to one.
+  rueda_exit_n6: seq(setN(6), call('Dame Línea'), wait(8000), call('Rueda'), wait(8000)),
 };
 
 // In-browser pixel diff of two PNG data URLs -> fraction of differing pixels.

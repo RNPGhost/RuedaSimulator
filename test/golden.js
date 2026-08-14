@@ -93,8 +93,8 @@ function genInteractions(T) {
 }
 
 // Línea Moderna: frame snapshots for the figures that start from rest, and call transcripts + end grids.
-const LINEA_OPENERS = ['enchufla_grande', 'dame_grande', 'enchufla_peq', 'dame_peq'];
-const LINEA_CALLS = ['dame_grande', 'enchufla_grande', 'dame_pequena', 'enchufla_pequena'];
+const LINEA_OPENERS = ['enchufla_grande', 'dame_grande', 'enchufla_peq', 'dame_peq', 'rueda', 'adios_rueda'];
+const LINEA_CALLS = ['dame_grande', 'enchufla_grande', 'dame_pequena', 'enchufla_pequena', 'rueda', 'adios_rueda'];
 function genLineaMovements(T) {
   const out = {};
   for (const key of LINEA_OPENERS) for (const n of NS) {
