@@ -206,10 +206,18 @@ changes **formation** rather than just position.
   at phase 0.
 - Couples travel **as couples** — the midpoint walks straight while the couple turns about it, holding its
   spacing (partners are connected in Casino, so interpolating each dancer separately would walk them
-  through each other on the primeros' ~180° turn). The turn direction is solved: the short way unless that
-  crowds another couple, then the other way.
+  through each other on the primeros' ~180° turn). The turn runs over the first **¾** of the walk
+  (`LM_ROT_SPAN`) rather than the whole of it, so a primero has squared up before it arrives instead of
+  still swinging through the middle of the wheel.
 
-The way **out** of Línea Moderna is not built yet.
+**Which way the primeros turn is what distinguishes two entries** with the same start and the same landing:
+
+| Call | Primeros turn | 4 / 6 / 8 couples |
+|---|---|---|
+| **Línea Moderna** | anti-clockwise, always under a full circle | −88° / −118° / −132° |
+| **Adios Línea** | clockwise, the long way round (hence the Adios flavour) | +267° / +237° / +222° |
+
+Segundos never turn in either. The way **out** of Línea Moderna is not built yet.
 
 ## Decision points, queue, and the two modes
 

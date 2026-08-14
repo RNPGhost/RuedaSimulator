@@ -3,6 +3,25 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v102 — Línea Moderna turns anti-clockwise; the clockwise sweep becomes Adios Línea
+- **Split the Línea entry into two movements/calls that differ only in which way the primeros turn** —
+  the turn direction is now part of each movement's identity rather than something the engine solves:
+  - **Línea Moderna** — the primeros turn **anti-clockwise** into their new orientation, always less than
+    a full circle: **−88° / −118° / −132°** at 4 / 6 / 8 couples.
+  - **Adios Línea** — the primeros sweep **clockwise the long way round**: **+267° / +237° / +222°**.
+    This is v101's behaviour at 4 couples (measured +267°), whose Adios-like character earned it the name.
+  Segundos never turn in either — they still walk straight out along their own spokes — and both entries
+  land on **exactly the same formation** (asserted to 0.2px).
+- **Couples now turn over the first ¾ of the walk (`LM_ROT_SPAN`) rather than the whole of it.** Turning
+  throughout meant a primero was still swinging as it arrived, which at 4 couples carried a leader to
+  within 17px of the wheel centre — the two primero leaders closed to **35px** against a 34px floor.
+  Pivoting early holds them at **45px**, for a modest rise in peak turn rate (25→33°/frame). Applies to
+  both entries and every couple count, so it is a general rule, not a 4-couple special case.
+- Clearances now: Línea Moderna **45 / 64 / 64px**, Adios Línea **64 / 60 / 55px** (floor 34).
+- Invariants §19 now runs over both entries; new §20 asserts the turn directions and magnitudes, that
+  segundos never turn, and that both entries land identically: **1009 checks** (from 928). Golden carries
+  12 movement + 12 engine cases across the two.
+
 ## v101 — Línea Moderna: the way in (and the cantante)
 - **New movement + call `Línea Moderna`** — from Casino on the rueda, the wheel opens into the two-ring
   Línea Moderna formation. This is the first movement that **changes formation**, not just position.

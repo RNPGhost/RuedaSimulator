@@ -384,17 +384,18 @@ function run() {
     }
   }
 
-  // 19: Línea Moderna entry — the formation change lands correctly.
+  // 19: the Línea entries (Línea Moderna / Adios Línea) — the formation change lands correctly.
+  for (const entry of ['linea_moderna', 'adios_linea']) {
   for (const n of NS) {
     for (const ph of PHASES) {
-      const m = n / 2, tag = `linea_moderna|n${n}|p${ph}`;
+      const m = n / 2, tag = `${entry}|n${n}|p${ph}`;
       // Where every couple's midpoint spoke sits before the move (couple i rests at station i).
       const midAngBefore = {};
       for (let i = 0; i < n; i++) {
         const L = T.circleAt(i, 'ccw', n, ph), F = T.circleAt(i, 'cw', n, ph);
         midAngBefore[i] = Math.atan2((L.y + F.y) / 2 - T.CY, (L.x + F.x) / 2 - T.CX) * 180 / Math.PI;
       }
-      const cap = T.captureMovement('linea_moderna', 'casino', n, ph);
+      const cap = T.captureMovement(entry, 'casino', n, ph);
       nChecks++; check(cap.endPos === 'linea', `${tag}: ended in ${cap.endPos}, expected linea`);
       const end = T._snap();
       // primeros (the cantante's couple = 0, then every other one clockwise) -> inner ring, one spoke cw;
@@ -431,7 +432,40 @@ function run() {
       }
       nChecks++; check(paired, `${tag}: primeros not paired with the next segundo clockwise`);
     }
-    nChecks++; check(!T.validFrom('linea_moderna', 'afuera'), 'linea_moderna should not be available from Afuera Casino');
+    nChecks++; check(!T.validFrom(entry, 'afuera'), `${entry} should not be available from Afuera Casino`);
+  }
+  }
+
+  // 20: the two Línea entries differ only in which way the primeros turn — anti-clockwise (a tight turn,
+  // always under a full circle) for Línea Moderna, clockwise the long way round for Adios Línea. Segundos
+  // never turn in either. Both must land on exactly the same formation.
+  const coupleTurn = (frames, k) => { let tot = 0, prev = null;
+    for (const f of frames) {
+      const L = f.find(d => d.couple === k && d.role === 'L'), F = f.find(d => d.couple === k && d.role === 'F');
+      const a = Math.atan2(L.xy.y - F.xy.y, L.xy.x - F.xy.x);
+      if (prev !== null) { let d = a - prev;
+        while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; tot += d; }
+      prev = a;
+    }
+    return tot * 180 / Math.PI; };
+  for (const n of NS) {
+    const lm = T.captureMovement('linea_moderna', 'casino', n, 0).frames;
+    const lmEnd = T._snap().map(d => ({ id: d.id, station: d.station, x: d.xy.x, y: d.xy.y }));
+    const al = T.captureMovement('adios_linea', 'casino', n, 0).frames;
+    const alEnd = T._snap().map(d => ({ id: d.id, station: d.station, x: d.xy.x, y: d.xy.y }));
+    for (let k = 0; k < n; k++) {
+      const tl = coupleTurn(lm, k), ta = coupleTurn(al, k);
+      if (k % 2 === 0) {   // primero
+        nChecks++; check(tl < -1 && tl > -360, `linea_moderna n${n} couple ${k}: turn ${tl.toFixed(0)}° is not anti-clockwise under a full circle`);
+        nChecks++; check(ta > 1 && ta < 360, `adios_linea n${n} couple ${k}: turn ${ta.toFixed(0)}° is not clockwise under a full circle`);
+      } else {             // segundo — walks straight out, no turn
+        nChecks++; check(Math.abs(tl) < 1 && Math.abs(ta) < 1, `n${n} segundo ${k} should not turn (got ${tl.toFixed(0)}°/${ta.toFixed(0)}°)`);
+      }
+    }
+    let same = 0;
+    lmEnd.forEach(d => { const o = alEnd.find(q => q.id === d.id);
+      if (o.station !== d.station) same = 999; else same = Math.max(same, Math.hypot(o.x - d.x, o.y - d.y)); });
+    nChecks++; check(same <= 0.2, `n${n}: the two Línea entries land on different formations (${same.toFixed(2)})`);
   }
 
   // 8: determinism — the golden generator produces identical output twice.
