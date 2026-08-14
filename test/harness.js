@@ -117,7 +117,9 @@ function load(htmlPath) {
       mode = 'live'; cap.transcript = [];
     }
     function setupRest(from, n, ph){
-      resetEngine(); N = n; computeWheel(n); layoutName = 'circle';
+      // layout first: computeWheel dispatches on it, and a formation-changing movement may have left
+      // the engine in Línea — sizing the wheel before resetting the layout would use the wrong geometry.
+      resetEngine(); N = n; layoutName = 'circle'; LM_BASE = -90; computeWheel(n);
       phase = ph; posState = from; dancers = restDancers(from, n, ph);
     }
 
@@ -135,7 +137,7 @@ function load(htmlPath) {
       lineaGeom(){ return Object.assign({}, LM); },
       // Build the Línea Moderna rest state for n couples; return dancers (pos + face) and geometry.
       setupLinea(n){
-        resetEngine(); N = n; layoutName = 'linea'; computeWheel(n); phase = 0; posState = 'linea';
+        resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; computeWheel(n); phase = 0; posState = 'linea';
         dancers = lineaBaseState(n);
         const out = dancers.map(d => ({ id: d.id, role: d.role, couple: d.couple, station: d.station, xy: pos(d), face: facingAngle(d) }));
         layoutName = 'circle';   // leave the harness back on circle for other tests
@@ -145,7 +147,7 @@ function load(htmlPath) {
       lineaSlot(station, lane, n){ const s = layoutName; layoutName = 'linea'; const p = FORMATIONS.linea.slot(station, lane, n); layoutName = s; return p; },
       // Fire one Línea movement from the rest state; return its frames + end state (stays in linea).
       captureLineaMovement(key, n, ph){
-        resetEngine(); N = n; layoutName = 'linea'; computeWheel(n); phase = ph || 0; posState = 'linea';
+        resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; computeWheel(n); phase = ph || 0; posState = 'linea';
         dancers = lineaBaseState(n);
         cap.frames = null; cap.segBeats = null;
         doMovement(key);
@@ -155,7 +157,7 @@ function load(htmlPath) {
       },
       // Advance a Línea formation through setupKeys movements, then capture the frames of the next key.
       captureLineaMovementFrom(setupKeys, key, n){
-        resetEngine(); N = n; layoutName = 'linea'; computeWheel(n); phase = 0; posState = 'linea';
+        resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; computeWheel(n); phase = 0; posState = 'linea';
         dancers = lineaBaseState(n);
         for (const k of setupKeys) doMovement(k);
         cap.frames = null; cap.segBeats = null;
@@ -166,7 +168,7 @@ function load(htmlPath) {
       },
       // Issue a Línea call in live mode and run to rest; return transcript + end grid.
       runLineaCall(callKey, n){
-        resetEngine(); N = n; layoutName = 'linea'; computeWheel(n); phase = 0; posState = 'linea';
+        resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; computeWheel(n); phase = 0; posState = 'linea';
         dancers = lineaBaseState(n); mode = 'live';
         const c = CALLS[callKey]; if (c.from && !c.from.includes(posState)){ layoutName = 'circle'; return null; }
         issueCall(callKey);

@@ -3,6 +3,34 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v101 — Línea Moderna: the way in (and the cantante)
+- **New movement + call `Línea Moderna`** — from Casino on the rueda, the wheel opens into the two-ring
+  Línea Moderna formation. This is the first movement that **changes formation**, not just position.
+- **The cantante is now a first-class idea.** Couple 1's leader is the cantante, drawn with a **solid gold
+  ring**, and couples are counted clockwise from him — which is exactly what fixes the split: his couple
+  and every other one clockwise are the **primeros**, the couples between them the **segundos**.
+- **Geometry.** The segundos' own midpoint spokes *become* the formation's spokes, so each segundo couple
+  simply walks straight out along its spoke to the outer ring. Each primero couple walks in to the inner
+  ring of the spoke **one couple clockwise**, landing in the mini 2-couple wheel of the segundo that was
+  next clockwise. Everyone stays in Casino, partners facing each other throughout; the inner ring's Casino
+  reads as afuera against the big wheel, which is the Línea rest state. Even couple counts only, and
+  deliberately not offered from Afuera Casino yet.
+- **`LM_BASE`** — the Línea formation no longer hardcodes "spoke 0 is straight up". Its orientation is a
+  variable the entry movement aims at the segundos' spokes, so the formation lands on the orientation the
+  wheel was already in (including its phase offset). Defaults to −90, so every existing Línea case is
+  unchanged. Undo now restores formation + orientation as well as position and phase.
+- **Couples travel as couples.** Partners are connected in Casino, so a straight line *per dancer* is
+  wrong: a primero couple turns 180°−360/N, and interpolating each dancer independently collapses the pair
+  at half-turn (24px at 8 couples — measured). Instead the couple's midpoint walks straight while the
+  couple turns about it, holding its spacing. Direction is **solved, not hardcoded**: turn the short way
+  unless that crowds another couple, then turn the other way — the crossing planner's pass-side rule as a
+  discrete choice. Clearance: 54px at 4 couples (short turn would be 35), 64px at 6 and 8 (no inter-couple
+  approach at all).
+- New invariant §19 (end state grid-exact, partners facing, segundo spokes unmoved, primero↔segundo
+  pairing, blocked from Afuera): **928 checks**. Golden gained 6 movement + 6 engine cases with **zero
+  regressions**; visual baselines re-shot for the gold ring.
+- Still to come: the way **out** of Línea Moderna (not yet specified).
+
 ## v100 — Planned swells: Dame evasions are single smooth arcs
 - **The Dame lane-hop is gone.** The evasion offset used to be a reactive trapezoid — flat on the rueda
   line, a ~15px leap onto the passing lane in a single frame, a plateau, and a leap back — because the

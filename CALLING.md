@@ -186,6 +186,31 @@ The geometry lives in `FORMATIONS.linea` (`compute` derives the inner/outer radi
 angles; `slot` places a dancer; `miniCenter` gives each pequeña wheel's centre). Circle calls/movements
 gate off while in Línea, and vice versa.
 
+### Getting in: the **Línea Moderna** call
+
+Besides picking the formation from the dropdown, the rueda can *dance* its way in. **Línea Moderna** is
+called from **Casino** (even couple counts; not from Afuera Casino yet) and is the first movement that
+changes **formation** rather than just position.
+
+- **The cantante** — couple 1's leader, drawn with a **solid gold ring** — anchors the count. Couples are
+  numbered clockwise from him, so his couple and every other one clockwise are the **primeros**; the
+  couples between them are the **segundos**.
+- **Segundos → outer ring.** Their midpoint spokes *are* the new formation's spokes, so each segundo
+  couple just walks straight out along its own spoke.
+- **Primeros → inner ring**, each onto the spoke **one couple clockwise** of where it started — so it
+  lands in the mini 2-couple wheel of the segundo that was next clockwise.
+- Everyone stays in **Casino**, partners facing each other the whole way. The inner ring's Casino reads as
+  Afuera against the big wheel, which is exactly the Línea rest state (`posState` → `linea`).
+- Because the segundos keep their spokes, the formation inherits the wheel's current orientation: the
+  Línea base angle `LM_BASE` is aimed at segundo 0's spoke (rest default −90°) and the new formation rests
+  at phase 0.
+- Couples travel **as couples** — the midpoint walks straight while the couple turns about it, holding its
+  spacing (partners are connected in Casino, so interpolating each dancer separately would walk them
+  through each other on the primeros' ~180° turn). The turn direction is solved: the short way unless that
+  crowds another couple, then the other way.
+
+The way **out** of Línea Moderna is not built yet.
+
 ## Decision points, queue, and the two modes
 
 As a call plays, the engine keeps a **queue** of the movements still to run for the current

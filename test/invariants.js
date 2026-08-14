@@ -74,6 +74,7 @@ function run() {
       if (!CIRCLE_REST.includes(from)) continue;   // Línea (grande/pequeña) calls are covered separately
       const res = T.runCallLive(key, from, n, ph);
       if (!res) continue;
+      if (!CIRCLE_REST.includes(res.endPos)) continue;   // formation-changing call (Línea Moderna) — checked in §19
       const tag = `call ${key}|${from}|n${n}|p${ph} (end ${res.endPos})`;
       // grid-exact
       let offGrid = 0;
@@ -381,6 +382,56 @@ function run() {
       const w = diffNat(ev, iv);
       nChecks++; check(w.cost <= NAT_MAX, `grande brush: dame after ${opener} n${n} evasion too violent (cost ${w.cost.toFixed(2)} > ${NAT_MAX})`);
     }
+  }
+
+  // 19: Línea Moderna entry — the formation change lands correctly.
+  for (const n of NS) {
+    for (const ph of PHASES) {
+      const m = n / 2, tag = `linea_moderna|n${n}|p${ph}`;
+      // Where every couple's midpoint spoke sits before the move (couple i rests at station i).
+      const midAngBefore = {};
+      for (let i = 0; i < n; i++) {
+        const L = T.circleAt(i, 'ccw', n, ph), F = T.circleAt(i, 'cw', n, ph);
+        midAngBefore[i] = Math.atan2((L.y + F.y) / 2 - T.CY, (L.x + F.x) / 2 - T.CX) * 180 / Math.PI;
+      }
+      const cap = T.captureMovement('linea_moderna', 'casino', n, ph);
+      nChecks++; check(cap.endPos === 'linea', `${tag}: ended in ${cap.endPos}, expected linea`);
+      const end = T._snap();
+      // primeros (the cantante's couple = 0, then every other one clockwise) -> inner ring, one spoke cw;
+      // segundos -> outer ring on their own spoke.
+      let placed = true;
+      end.forEach(d => {
+        const want = (d.couple % 2 === 0) ? d.couple / 2 : m + (d.couple - 1) / 2;
+        if (d.station !== want) placed = false;
+      });
+      nChecks++; check(placed, `${tag}: primeros/segundos not on the expected inner/outer stations`);
+      // grid-exact on the Línea slots, and partners still facing each other
+      let offGrid = 0, faceErr = 0;
+      end.forEach(d => { const want = T.lineaSlot(d.station, d.lane, n);
+        offGrid = Math.max(offGrid, Math.hypot(d.xy.x - want.x, d.xy.y - want.y));
+        const pr = end.find(o => o.couple === d.couple && o.role !== d.role);
+        const wantF = Math.atan2(pr.xy.y - d.xy.y, pr.xy.x - d.xy.x) * 180 / Math.PI;
+        faceErr = Math.max(faceErr, Math.abs(norm180(d.face - wantF))); });
+      nChecks++; check(offGrid <= 0.2, `${tag}: not grid-exact (offGrid ${offGrid.toFixed(2)}px)`);
+      nChecks++; check(faceErr <= 1.0, `${tag}: partners not facing (faceErr ${faceErr.toFixed(1)}°)`);
+      // the segundos' spokes ARE the formation's spokes: each segundo couple's midpoint angle is unmoved
+      let spokeErr = 0;
+      for (let i = 1; i < n; i += 2) {
+        const L = end.find(d => d.couple === i && d.role === 'L'), F = end.find(d => d.couple === i && d.role === 'F');
+        const a = Math.atan2((L.xy.y + F.xy.y) / 2 - T.CY, (L.xy.x + F.xy.x) / 2 - T.CX) * 180 / Math.PI;
+        spokeErr = Math.max(spokeErr, Math.abs(norm180(a - midAngBefore[i])));
+      }
+      nChecks++; check(spokeErr <= 0.5, `${tag}: segundo spokes moved by ${spokeErr.toFixed(2)}°`);
+      // each primero shares its mini-wheel spoke with the segundo that was one couple clockwise
+      let paired = true;
+      for (let i = 0; i < n; i += 2) {
+        const pri = end.find(d => d.couple === i && d.role === 'L');
+        const seg = end.find(d => d.couple === (i + 1) % n && d.role === 'L');
+        if (seg.station - m !== pri.station) paired = false;
+      }
+      nChecks++; check(paired, `${tag}: primeros not paired with the next segundo clockwise`);
+    }
+    nChecks++; check(!T.validFrom('linea_moderna', 'afuera'), 'linea_moderna should not be available from Afuera Casino');
   }
 
   // 8: determinism — the golden generator produces identical output twice.
