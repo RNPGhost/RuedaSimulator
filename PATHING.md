@@ -26,46 +26,40 @@ meet-at-midway, progress-k, grid-exact rests) is unchanged from before the rewor
   along the track — they never temporarily change order. (Holds for all current moves; may relax once
   different couples do different things.)
 
-## Leader path (progressing moves)
+## Dame crossing model (`dameToEnchufla` — Dame, Dame Dos, and their Grande forms)
 
-A leader takes the passing lane **only when he actually passes a follower** — i.e. when some follower
-(not his new partner) sits between his start and his destination along his travel. When he passes at
-least one, he rides the concentric **inner track** at `inner_R`, then leaves it and walks **straight
-in** to the destination over the last half-couple (staying on the track until near the destination so
-the cut-in never crosses the wheel). Roughly constant speed, with a gentle ease-in from rest and
-ease-out to the stop.
+Every dancer travels a **base polar arc**: the angle sweeps S→E and the radius interpolates S→E, so the
+path follows the ring and never cuts across the wheel. On a clear move a dancer **stays exactly on that
+arc** — a Dame from Casino (nobody passes) is dead straight, no ducking.
 
-**If he passes no one, he doesn't use the lane at all** — he travels directly to his spot along the
-ring. A single **Dame from Casino** passes no followers (the leader and his new partner just converge
-onto the midway spoke), so neither the leader dips to the inner lane nor do the followers dip out.
+When a leader and a follower would **cross**, both ease radially apart and share **one corridor** of
+width `CLEAR_TGT` (the lane clearance) — the leader eases one way, the follower the other:
 
-- This one rule reduces to a short arc for a single Dame and a long ride for Dame Dos; with everyone
-  synchronised plus no-overtaking, it also yields the correct right-side leader↔leader passing (Dame
-  from Exhibela at 2 couples; Dame Dos from Casino at 4).
-- **Exception — starting from Dile Que No position:** ride the **outer track** at `outer_R` (stay
-  outside the current follower, passing *behind* her). This is what distinguishes it from a plain Dame.
+- **Detection is clearance-based.** A leader "passes" a follower only when their *base arcs* actually
+  crowd within `CLEAR_TGT` at some point (and she isn't his new partner, nor he her new leader). So the
+  ease happens **only when a real crossing forces it**, and catches a leader leaving a close old partner
+  that an angle-only test misses.
+- **The reactive ease** rises as the pair's base paths close within the reaction band and is full by the
+  time they'd reach `CLEAR_TGT`, peaking at the actual crossing and 0 at both ends (landings stay exact).
+  A stationary follower crossed by 2+ leaders eases out once and holds (a plateau, no bobbing).
+- **One amplitude, solved.** Clearance depends only on the *total* corridor width, so a single scale is
+  solved (coarse scan then bisect) to hold every crossing pair ≥ `CLEAR_TGT`; an early crossing where the
+  ease hasn't fully opened just deepens both sides together.
+- **The split is balanced for equal naturalness.** Given the solved amplitude, the leader's share `wL`
+  (and the follower's `1−wL`) is bisected to the point where the two dancers' path-naturalness costs
+  *meet* — so neither is more frantic than the other. A plain Dame (both travel the same) lands 50/50; a
+  Dame Dos (the follower stands still while two leaders pass) makes the **moving leaders share her
+  evasion** rather than her lurching the whole corridor alone.
 
-## Follower path
+Everyone faces the way they travel, settling to face the new partner over the last third (see below).
 
-A follower dips **only when she'd otherwise crowd a passing leader**, and only as much as she needs to.
-Detection is **clearance-based**: she is flagged for any non-partner leader whose path her *intended*
-(no-dip) line comes within the lane clearance of — this catches a leader's straight cut-in as he leaves a
-close old partner, which a purely angular "is she inside his sweep" test misses. **Followers who never
-crowd anyone never dip** (e.g. a Dame from Casino). Her dip is **distance-reactive** (she eases out as a
-passer approaches within the reaction band and is fully out by the lane clearance, so the bow covers the
-pass *wherever* it happens), and its **amplitude is solved**, not fixed:
+## Dame Pequeña (`damePequena`) — deliberately asymmetric
 
-- The engine finds the **smallest dip that keeps her ≥ the lane clearance from every passer** across the
-  whole move (coarse scan, then bisect). Naturalness cost rises monotonically with dip depth, so
-  minimal-feasible is also the **calmest** — this is the metric's solver role, applied live.
-- She may bow **past** the nominal lane (amplitude > 1) when the geometry demands it — e.g. when the
-  leader leaving his old partner is still near the ring at the crossing, the lane alone leaves them ~33px
-  apart. She does a little more work; **no leader path changes**, so the fix stays confined to the
-  followers that would otherwise brush.
-- A stationary follower passed by **2+** leaders holds out on one plateau (no bobbing) as before.
-
-(Dame Pequeña from Exhibela: the otherwise-stationary follower dips out to make room for the leader
-passing inside her, then comes straight back to where she was.)
+Pequeña is *defined* as "the leader does all the travel": from Exhibela the follower stays put and the
+leader rides the whole way to the next spoke; from Casino she dances a Reverse Adios across her own
+spoke. This asymmetry is choreography, not a pathing artifact, so Pequeña keeps its own generator — the
+leader glides his lane, the otherwise-stationary follower makes at most a small dip out of his way. (Not
+folded into the shared-corridor model above, which is for the symmetric Dames.)
 
 ## New citizens
 
