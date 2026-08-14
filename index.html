@@ -1038,18 +1038,35 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
     for (let it = 0; it < 10; it++){ const mid = (lo + hi) / 2; if (worstClear(g, mid) >= CLEAR_TGT) hi = mid; else lo = mid; }
     g.scale = hi;
   });
-  // Render.
+  // Render. Every dancer faces the way they travel (so they never look "through" another dancer while
+  // crossing), then turns to face their new partner as they settle over the last third of the trip.
+  const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
   const frames = [];
+  let prevP = {}; ds.forEach(d => prevP[d.id] = cur[d.id]);
+  const lastFace = {};
   for (let s = 1; s <= STEPS; s++){
     const t = s / STEPS, P = {};
     leaderIds.forEach(id => P[id] = lAtId[id](t));
     followerIds.forEach(id => { const g = fPar[id]; P[id] = folPoint(g, t, P, NAT_NOEVADE ? 0 : g.scale); });
+    const settle = _smooth(Math.max(0, (t - 0.7) / 0.3));   // 0 until 70% of the trip, →1 at the landing
     frames.push(ds.map(d => {
+      const a = prevP[d.id], b = P[d.id], moved = Math.hypot(b.x - a.x, b.y - a.y);
+      let partnerFace, station;
       if (d.role === 'F'){ const g = fInfo[d.id], nl = newLeaderOf[g.newStation], nlp = nl ? P[nl] : null;
-        const face = nlp ? Math.atan2(nlp.y - P[d.id].y, nlp.x - P[d.id].x) * 180 / Math.PI : g.face0;
-        return { ...d, station: g.newStation, xy: P[d.id], face }; }
-      const nf = P[lInfo[d.id].newFollower]; return { ...d, station: lInfo[d.id].newStation, xy: P[d.id], face: Math.atan2(nf.y - P[d.id].y, nf.x - P[d.id].x) * 180 / Math.PI, snapTurn: s === 1 };
+        partnerFace = nlp ? Math.atan2(nlp.y - b.y, nlp.x - b.x) * 180 / Math.PI : (lastFace[d.id] != null ? lastFace[d.id] : g.face0);
+        station = g.newStation;
+      } else { const nf = P[lInfo[d.id].newFollower];
+        partnerFace = Math.atan2(nf.y - b.y, nf.x - b.x) * 180 / Math.PI;
+        station = lInfo[d.id].newStation;
+      }
+      let face;
+      if (moved < 1e-6) face = partnerFace;                 // barely moving — just face the partner
+      else { const travel = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+        face = travel + shortDiff(partnerFace, travel) * settle; }
+      lastFace[d.id] = face;
+      return { ...d, station, xy: b, face };
     }));
+    prevP = P;
   }
   return frames;
 }
@@ -1121,10 +1138,13 @@ function damePequena(ds, N, fromEnch, afuera){
     g.sweep = norm360(g.face0 - Math.atan2(El.y - g.T.y, El.x - g.T.x) * 180 / Math.PI);
   });
   const shortA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
   const WIN = 0.5;
   const STEPS = 16, frames = [];
+  let prevP = {}; leaderIds.forEach(id => prevP[id] = cur[id]);   // leaders face the way they travel (see dameToEnchufla)
   for (let s = 1; s <= STEPS; s++){
     const t = s / STEPS, endEnv = _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08)), P = {};
+    const settle = _smooth(Math.max(0, (t - 0.7) / 0.3));   // turn to face the new partner over the last third
     leaderIds.forEach(id => P[id] = lAtId[id](t));
     followerIds.forEach(id => { const g = fInfo[id];
       if (g.kind === 'radios'){ const kk = famp * Math.sin(Math.PI * t);
@@ -1143,9 +1163,15 @@ function damePequena(ds, N, fromEnch, afuera){
           return { ...d, xy: P[d.id], face }; }
         return { ...d, xy: P[d.id], face: g.face0 - g.sweep * t };   // Reverse Adios: anti-clockwise onto new leader
       }
+      const a = prevP[d.id], b = P[d.id], moved = Math.hypot(b.x - a.x, b.y - a.y);
       const nf = P[lInfo[d.id].newFollower];
-      return { ...d, station: lInfo[d.id].newStation, xy: P[d.id], face: Math.atan2(nf.y - P[d.id].y, nf.x - P[d.id].x) * 180 / Math.PI, snapTurn: s === 1 };
+      const partnerFace = Math.atan2(nf.y - b.y, nf.x - b.x) * 180 / Math.PI;
+      let face;
+      if (moved < 1e-6) face = partnerFace;
+      else { const travel = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI; face = travel + shortDiff(partnerFace, travel) * settle; }
+      return { ...d, station: lInfo[d.id].newStation, xy: b, face };
     }));
+    leaderIds.forEach(id => prevP[id] = P[id]);
   }
   return frames;
 }
