@@ -341,9 +341,11 @@ function run() {
     const sharp  = T.pathNaturalness(arc(t => bell(t, 0.82, 0.10)), null, base).cost;
     nChecks++; check(sharp > gentle && gentle > 0, `naturalness: late-sharp (${sharp.toFixed(2)}) should exceed gentle (${gentle.toFixed(2)}) > 0`);
   }
-  // (e) Guardrail: no follower's evasion should be violent. Every movement, from every valid position,
-  //     is scored evaded-vs-intended; the worst dip must stay under NAT_MAX (a runaway dodge = a bug).
-  const NAT_MAX = 1.8;
+  // (e) Guardrail: no dancer's evasion should be violent. Every movement, from every valid position,
+  //     is scored evaded-vs-intended; the worst dip must stay under NAT_MAX (a runaway dodge = a bug),
+  //     and the evasion offset may never change faster than JOLT_MAX px/frame — the planned-swell bound
+  //     that keeps the old reactive lane-hop (a ~15px offset step in one frame) from ever coming back.
+  const NAT_MAX = 1.8, JOLT_MAX = 7;
   for (const key of T.keys().movements) {
     for (const from of POSITIONS) {
       if (!T.validFrom(key, from)) continue;
@@ -352,6 +354,16 @@ function run() {
         if (!ev || ev.length < 3) continue;
         const w = diffNat(ev, iv);
         nChecks++; check(w.cost <= NAT_MAX, `naturalness guardrail: ${key}|${from}|n${n} evasion too violent (cost ${w.cost.toFixed(2)} > ${NAT_MAX}, ${w.id})`);
+        let jolt = 0;
+        for (let i = 0; i < ev[0].length; i++) {
+          let px = null, py = null;
+          for (let f = 0; f < ev.length; f++) {
+            const ox = ev[f][i].xy.x - iv[f][i].xy.x, oy = ev[f][i].xy.y - iv[f][i].xy.y;
+            if (px !== null) { const v = Math.hypot(ox - px, oy - py); if (v > jolt) jolt = v; }
+            px = ox; py = oy;
+          }
+        }
+        nChecks++; check(jolt <= JOLT_MAX, `jolt guardrail: ${key}|${from}|n${n} evasion offset jumps ${jolt.toFixed(1)}px/frame (> ${JOLT_MAX})`);
       }
     }
   }

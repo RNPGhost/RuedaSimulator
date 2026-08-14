@@ -3,6 +3,25 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v100 — Planned swells: Dame evasions are single smooth arcs
+- **The Dame lane-hop is gone.** The evasion offset used to be a reactive trapezoid — flat on the rueda
+  line, a ~15px leap onto the passing lane in a single frame, a plateau, and a leap back — because the
+  ease was triggered by *distance in space* while the passer closed the whole ~22px reaction band in ~1
+  frame. Smoothness lives in *time*: since the base arcs are known for the whole move, each crossing pair
+  now gets a planned **episode** (the interval its base paths sit within the engagement distance) and
+  each dancer follows one smooth **swell** — zero at the ends, full over the engagement, C2 smootherstep
+  ramps stretched over the slack (capped `R_MAX 0.35`, floored `R_MIN 0.34`, swept with the metric).
+- **Crest policy (Sam):** among jolt-free profiles, minimise travel distance — which selects the
+  minimum-depth gentle-crest swell with long ramps; pure single-peak arcs emerge automatically on short
+  engagements. Multiple passers merge by smooth union, which *produces* the stationary hold-out — the
+  `holdOut` special case and `reactBump` are deleted, not preserved.
+- **Measured:** peak offset-step Dame Dos 14.6→5.8 px/frame, Dame-from-Exhibela 10.8→5.8, Grande
+  10.9→6.4; worst naturalness 0.44–0.50 (from 0.6–1.0); clearance still exactly on target; splits stay
+  equal-effort. New **jolt guardrail** invariant (offset step ≤7px/frame, every movement × position × n):
+  877 checks (from 727). Golden re-baselined for crossing Dames; 12 visual scenes byte-identical.
+- This lands the roadmap's crossing planner in near-final form: baselines + crossings in, planned smooth
+  offset profiles out — pass-side = offset sign, variable width = solved amplitude, metric as objective.
+
 ## v99 — Dame Dos flips the phase
 - **A Dame (single or Dos) now always lands the wheel on the *between*-spokes (the other config), so Dame
   Dos flips the phase like a single Dame does.** Geometrically a move flips iff the wheel turns an odd

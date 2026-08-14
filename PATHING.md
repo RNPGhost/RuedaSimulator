@@ -39,9 +39,17 @@ width `CLEAR_TGT` (the lane clearance) — the leader eases one way, the followe
   crowd within `CLEAR_TGT` at some point (and she isn't his new partner, nor he her new leader). So the
   ease happens **only when a real crossing forces it**, and catches a leader leaving a close old partner
   that an angle-only test misses.
-- **The reactive ease** rises as the pair's base paths close within the reaction band and is full by the
-  time they'd reach `CLEAR_TGT`, peaking at the actual crossing and 0 at both ends (landings stay exact).
-  A stationary follower crossed by 2+ leaders eases out once and holds (a plateau, no bobbing).
+- **The ease is PLANNED over the move's timeline, not reactive.** (A reactive spatial trigger can never
+  be smooth against a fast passer: the reaction band is crossed in ~1 frame, which is what used to make
+  the evasion a lane-hop — a ~15px offset step in a single frame.) Since the base arcs are known up
+  front, each crossing pair gets a planned **episode** — the interval its base paths sit within the
+  engagement distance — and each dancer follows one smooth **swell**: zero at the move's ends, full over
+  the engagement, with C2 (smootherstep) ramps stretched over the slack before/after, capped at `R_MAX`
+  so nobody leaves their line absurdly early, floored at `R_MIN` so an engagement near the ends still
+  eases gently. Long ramps at minimum depth are also the travel-minimising jolt-free profile, per the
+  agreed rule: jolt-free first, then least extra distance. Offset now builds at ≤ ~6px/frame (was 15).
+  A dancer with several passers takes the smooth union of its per-mate swells — overlapping passes merge
+  into one wider crest, which *is* the stationary hold-out (no special case).
 - **One amplitude, solved.** Clearance depends only on the *total* corridor width, so a single scale is
   solved (coarse scan then bisect) to hold every crossing pair ≥ `CLEAR_TGT`; an early crossing where the
   ease hasn't fully opened just deepens both sides together.
