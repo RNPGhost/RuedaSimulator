@@ -3,6 +3,27 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v104 — Fix: the wheel's orientation survives a phase change in Línea
+- **Bug:** `grandeFrames` ran its two ring sub-wheels at a hardcoded `BASE_ANG: -90`, so every grande
+  figure silently **re-aimed the whole formation to straight-up** instead of turning it from where it
+  actually was. Dance into Línea with **Dame Línea** at 4 couples (spokes correctly at −45°/135°) and the
+  next **Dame Grande** threw them to 0°/180° instead of bisecting to 45°/−135°.
+- **Fix:** the ring sub-wheels are anchored on the formation's own spoke-0 angle (`LM_BASE`). One line;
+  no effect at the default orientation, which is why every existing golden case is **byte-identical**.
+- **The rule, now enforced everywhere:** a movement either leaves the resting spoke grid exactly where it
+  was, or — when it flips the phase — rotates it by **exactly half a spoke spacing**, so the new spokes
+  bisect the old. Orientation is always inherited, never reset.
+- **Reviewed every move against it** (new invariant §22, +198 checks → **1261**): all movements from all
+  positions in the circle, and all movements in Línea entered *via Dame Línea* so the wheel is on a
+  non-default orientation — precisely the case a hardcoded aim breaks. Everything else was already
+  correct; `grandeFrames` was the only offender.
+- **Guide redraw:** the background rings/mini-wheels are keyed on `layout|phase|N|LM_GAP|LM_BASE` and
+  refresh at the end of every movement (and on render/undo/reset), so they follow a phase or formation
+  change. Two new visual scenes pin this down: the Dame Línea landing and the Dame Grande after it, which
+  together catch both a lost orientation and a stale guide. 14 visual scenes.
+- New harness hook `fireHere(key)` — fire a movement on the *current* state, so a move can be tested from
+  a state that was itself reached by dancing rather than constructed.
+
 ## v103 — Dame Línea: a Dame that lands the wheel in Línea Moderna
 - **New movement + call `Dame Línea`** — a third way into Rueda Línea Moderna, and the first that
   changes **partners** as well as formation. Each primero couple and the segundo couple one place

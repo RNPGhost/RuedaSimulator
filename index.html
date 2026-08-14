@@ -1952,8 +1952,11 @@ function grandeFrames(circleKey, from){
     xy: d.xy ? d.xy : pos(d), face: (typeof d.face === 'number') ? d.face : facingAngle(d) }));
   const innerSub = mkSub(all.filter(d => d.station < m), false);
   const outerSub = mkSub(all.filter(d => d.station >= m), true);
+  // The ring sub-wheels must be anchored on the FORMATION's own spoke-0 angle, not on straight-up:
+  // a grande figure run at a hardcoded −90 would re-aim the whole wheel, so an entry that arrived on a
+  // different orientation (Dame Línea lands midway between the old spokes) lost it on the next grande.
   const runRing = (subDs, R, dDeg, fromPos) => runOnWheel(
-    { CX, CY, R_RING: R, DELTA_DEG: dDeg, N: m, BASE_ANG: -90, phase }, subDs,
+    { CX, CY, R_RING: R, DELTA_DEG: dDeg, N: m, BASE_ANG: LM_BASE, phase }, subDs,
     () => { const useAfuera = isAfuera(fromPos) && !mv.progresses && !mv.relabel;
       const out = useAfuera ? afueraFrames(mv, subDs, m, fromPos) : mv.frames(subDs, m, fromPos);
       return Array.isArray(out) ? { frames: out, segBeats: null } : out; });

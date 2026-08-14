@@ -54,6 +54,11 @@ const SCENES = {
   // Rueda Línea Moderna resting formation (two rings + mini-wheels).
   linea_rest_n6: seq(setN(6), setLayout('linea'), wait(600)),
   linea_rest_n8: seq(setN(8), setLayout('linea'), wait(600)),
+  // Danced into Línea, so the formation sits on an orientation the dropdown never produces. These also
+  // guard the GUIDE redraw: the rings and mini-wheels must follow the wheel's actual aim, and after a
+  // phase-flipping grande the new spokes must bisect the old ones rather than snapping back to default.
+  linea_dame_linea_n4: seq(setN(4), call('Dame Línea'), wait(7000)),
+  linea_dame_linea_grande_n4: seq(setN(4), call('Dame Línea'), wait(7000), call('Dame Grande'), wait(7000)),
 };
 
 // In-browser pixel diff of two PNG data URLs -> fraction of differing pixels.

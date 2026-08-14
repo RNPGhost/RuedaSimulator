@@ -166,6 +166,13 @@ function load(htmlPath) {
         layoutName = 'circle';
         return r;
       },
+      // Fire one movement on the CURRENT state (no reset) — for checking a move from a state that was
+      // itself reached by dancing (e.g. a Línea formation on a non-default orientation).
+      fireHere(key){
+        if (!validFrom(key, posState)) return null;
+        cap.frames = null; doMovement(key);
+        return { frames: cap.frames, endPos: posState, endPhase: phase };
+      },
       // Issue a Línea call in live mode and run to rest; return transcript + end grid.
       runLineaCall(callKey, n){
         resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; computeWheel(n); phase = 0; posState = 'linea';

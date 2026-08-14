@@ -523,6 +523,59 @@ function run() {
     nChecks++; check(offGrid <= 0.2 && distinct, `call dame_linea|n${n}|p${ph}: not on the Línea grid (offGrid ${offGrid.toFixed(2)}px, distinct ${distinct})`);
   }
 
+  // 22: the wheel's ORIENTATION is inherited, never reset. A movement either leaves the resting spoke
+  //     grid exactly where it was, or — when it flips the phase — rotates it by exactly half a spoke
+  //     spacing, so the new spokes bisect the old ones. This must hold whatever orientation the wheel is
+  //     already on, which is the case a hardcoded "spoke 0 is straight up" silently breaks: grandeFrames
+  //     used to run its ring sub-wheels at −90, so after a Dame Línea (which lands the formation midway
+  //     between the old spokes) the next Dame Grande snapped the whole wheel back to the default aim.
+  {
+    const n360 = a => ((a % 360) + 360) % 360;
+    const canon = x => { let v = +n360(x).toFixed(1); if (Math.abs(v - 360) < 0.05 || Math.abs(v) < 0.05) v = 0; return v; };
+    const spokeGrid = () => {                       // distinct midpoint-spoke angles of the resting grid
+      const by = {}; T._snap().forEach(d => { (by[d.station] = by[d.station] || []).push(d); });
+      const out = new Set();
+      Object.values(by).forEach(p => { if (p.length !== 2) return;
+        out.add(canon(Math.atan2((p[0].xy.y + p[1].xy.y) / 2 - T.CY, (p[0].xy.x + p[1].xy.x) / 2 - T.CX) * 180 / Math.PI)); });
+      return [...out].sort((a, b) => a - b);
+    };
+    const rotatedBy = (before, after, deg) => {
+      if (before.length !== after.length) return false;
+      const want = before.map(x => canon(x + deg)).sort((a, b) => a - b);
+      return want.every((v, i) => { const d = Math.abs(v - after[i]); return Math.min(d, 360 - d) < 0.5; });
+    };
+    // circle formation
+    for (const key of T.keys().movements) {
+      for (const from of POSITIONS) {
+        if (!T.validFrom(key, from)) continue;
+        for (const n of NS) {
+          const cap = T.captureMovement(key, from, n, 0);
+          if (cap.endPos === 'linea' || cap.endPos === 'linea_ex') continue;   // entries define new spokes (§19/§21)
+          const after = spokeGrid();
+          T.chain(from, n, 0, []); const before = spokeGrid();
+          const flipped = cap.endPhase !== 0;
+          nChecks++;
+          check(rotatedBy(before, after, flipped ? 180 / n : 0),
+            `orientation ${key}|${from}|n${n} (${flipped ? 'phase flip → must bisect' : 'no flip → must hold'}): ${before.join(',')} -> ${after.join(',')}`);
+        }
+      }
+    }
+    // Línea formation, entered by Dame Línea so the wheel is on a NON-default orientation
+    for (const n of NS) {
+      const half = 180 / (n / 2);
+      for (const key of T.keys().movements) {
+        T.runCallLive('dame_linea', 'casino', n, 0);
+        const before = spokeGrid(), ph0 = T.state().phase;
+        const r = T.fireHere(key);
+        if (!r) continue;
+        const after = spokeGrid(), flipped = ph0 !== r.endPhase;
+        nChecks++;
+        check(rotatedBy(before, after, flipped ? half : 0),
+          `orientation linea ${key}|n${n} (${flipped ? 'phase flip → must bisect' : 'no flip → must hold'}): ${before.join(',')} -> ${after.join(',')}`);
+      }
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

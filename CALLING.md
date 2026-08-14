@@ -106,6 +106,17 @@ right turn → adentro`, un-flipping the wheel back to normal Casino.
 **Status.** The afuera world is complete: enter with Enchufla Afuera, dance any call inside-out
 (progressing clockwise), and leave with Enchufla Adentro.
 
+### Orientation is inherited (never reset)
+
+A movement either leaves the resting **spoke grid** exactly where it was, or — when it flips the phase —
+rotates it by **exactly half a spoke spacing**, so the new midpoint spokes **bisect** the old ones. The
+wheel's absolute aim therefore always depends on where it already was, never on a default. This matters
+most in Línea, which can be entered on any orientation (Dame Línea lands the formation *midway* between
+the old spokes), and it is what a hardcoded "spoke 0 is straight up" quietly breaks. In Línea the aim
+lives in `LM_BASE`, and everything that composes ring sub-wheels (`grandeFrames`, `pequenaFrames`, the
+guide) reads it rather than assuming −90°. Invariant §22 checks the rule for every movement in both
+formations, with the Línea pass entered via Dame Línea so the wheel is deliberately off the default.
+
 ### Spoke configs (phase)
 
 The couples' **midpoint spokes** always rest on exactly one of **two configurations**, tracked by a
