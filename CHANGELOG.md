@@ -3,6 +3,16 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v96 — Línea mini-wheel guide follows the phase
+- The dashed mini-wheel circles (and rings) mark rest positions on the **current** spoke config, but the
+  guide was only drawn once in `buildNodes`, so a phase-changing grande call left the mini-wheels sitting
+  at the **old** phase while the couples moved to the new one.
+- The guide now lives in its own SVG layer with `drawGuide` / `refreshGuide`, keyed on
+  `layout|phase|N|LM_GAP`. It refreshes on move completion (when a grande Dame flips the phase), on every
+  `render`, and on undo — so the mini-wheels always track the couples. Redraw is key-guarded, so ordinary
+  same-phase moves don't touch the DOM. Pure render change: golden/invariants/visual all unchanged (727
+  checks green).
+
 ## v95 — Universal Dame evasion solver (fixes the grande Dame-from-Exhibela brush)
 - **The follower dip is now solved, not hard-coded.** In `dameToEnchufla` the old "passed followers bow
   to the full lane" rule is replaced by: (1) **clearance-based detection** — a follower is flagged if her
