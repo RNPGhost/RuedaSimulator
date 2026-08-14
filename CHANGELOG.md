@@ -3,6 +3,23 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v107 — The 4-beat Dile Que No rounds its beat-2/3 corner
+- Beats 2 and 3 used to be **two straight legs meeting at the start point**: back down the Exhibela line,
+  then strike out for the spoke. That met at a hard **61° corner for the follower** (49–51° for the
+  leader) — and it got worse when the Dile Que No position moved inward in v106, which is what made it
+  read as a sharp turn.
+- They are now **one rounded arc**: a quadratic Bézier from the beat-1 step-out, with the start point as
+  its **control**, ending on the spoke. It leaves along the line it came out on and arrives along the
+  run-in to the spoke, so the endpoints, the beat count and the choreography are all unchanged — only the
+  corner is gone. Resampled by arc length so the speed stays even round the bend.
+- **Sharpest turn across beats 2–3: 61° → 8°** at every couple count, for both roles. Clearance improved
+  as a side effect (34.8 → 36px).
+- Applied to the **Dile Que No y Dame / Dame Dos compounds** as well, which open with the identical four
+  beats and had the identical corner — including their afuera forms. Mujeres Arriba was already smooth
+  (6°) and is untouched; `dile4_peq` inherits the fix through the pequeña composition.
+- Rest positions are unchanged, so all 15 visual scenes are byte-identical; golden re-baselined for the
+  `dile4` / `dile_dame` / `dile_dame_dos` families. 1360 invariants green.
+
 ## v106 — Línea Moderna position names, its Dile Que No position, and a much closer Dile Que No
 - **Named the Línea Moderna positions** so they mirror the rueda's: **LM Casino** (`linea`, the rest),
   **LM Exhibela** (`linea_pex`, where a Dame Pequeña lands — each mini 2-couple wheel in Exhibela), and the

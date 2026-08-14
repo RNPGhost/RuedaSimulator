@@ -71,6 +71,11 @@ folded into the shared-corridor model above, which is for the symmetric Dames.)
 
 ## New citizens
 
+- **The 4-beat opening's beat-2/3 arc** — beats 2 and 3 (back down the Exhibela line, then onto the
+  spoke) are **one rounded arc**, not two straight legs meeting at the start: a quadratic Bézier whose
+  **control point is the start**, so it leaves along the line it came out on and arrives along the run-in
+  to the spoke, resampled by arc length for even speed. Same endpoints and beats, corner rounded away
+  (61° → 8°). Shared by `dile4` and the Dile Que No y Dame compounds, which open with the same four beats.
 - **4-beat Dile Que No** *(built — movement `dile4`)* — the Dile-Que-No-y-Dame opening danced on its
   own (beats 1–2 out-and-back along the Exhibela line, beat 3 onto the spoke, pause on 4; smoothed so
   2→3 is even speed), landing on…

@@ -1624,11 +1624,8 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
   const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
 
   // beats 1-2: out along the Exhibela line and back; beat 3: move onto the midpoint spoke; beat 4: pause
-  const stagePos = (g, stage, s) => {
-    if (stage === 3) return { x: g.S.x + (g.spoke.x - g.S.x) * s, y: g.S.y + (g.spoke.y - g.S.y) * s };
-    const off = io * (g.role === 'L' ? 1 : -1) * g.amp * (stage === 1 ? s : 1 - s);   // afuera: dip out instead of in (and vice versa)
-    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off };
-  };
+  const dipAt = (g, s) => { const off = io * (g.role === 'L' ? 1 : -1) * g.amp * s;   // afuera: dip out instead of in
+    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off }; };
   // follower beats 5-8: ~3/4 circle through her spoke point, its outside-the-ring mirror, and her own spot
   const folTravel = (g, t) => { const a = g.aA + g.dir * g.sweep * t; return { x: g.O.x + g.rho * Math.cos(a), y: g.O.y + g.rho * Math.sin(a) }; };
   // leader beats 5-8: head straight for the Exhibela spot beside his new follower, with a single
@@ -1671,16 +1668,20 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
   // assemble frames
   const SS = 8, PH = 4, NT = 32, frames = [], segBeats = [];
   const push = (mapper, bps) => { frames.push(ds.map(mapper)); segBeats.push(bps); };
-  // Beats 2-3 are one back-and-onward move (out-spot -> start -> spoke). Split their 2 beats by
-  // path length so the dancers keep a roughly constant speed across both instead of dawdling on
-  // the short beat 2 and rushing the long beat 3. Beat 1 (out) and the beat-4 pause are unchanged.
-  let sd2 = 0, sd3 = 0;
-  ds.forEach(d => { const g = info[d.id]; sd2 += g.amp; sd3 += Math.hypot(g.spoke.x - g.S.x, g.spoke.y - g.S.y); });
-  const B2 = 2 * sd2 / (sd2 + sd3), B3 = 2 * sd3 / (sd2 + sd3);
-  const stageBeats = [1, B2, B3];
-  [1, 2, 3].forEach(stage => { const bb = stageBeats[stage - 1] / SS; for (let j = 1; j <= SS; j++){ const s = j / SS;
-    push(d => ({ ...d, xy: stagePos(info[d.id], stage, s) }), bb); } });
-  for (let j = 0; j < PH; j++) push(d => ({ ...d, xy: stagePos(info[d.id], 3, 1) }), 1 / PH);   // beat-4 pause
+  // Beats 2-3 are ONE rounded arc (out-spot -> round the start -> spoke), exactly as in the standalone
+  // 4-beat Dile Que No: a quadratic Bézier with the start point as its control, resampled by arc length
+  // so the speed is even. Two straight legs meeting at the start used to turn a hard ~60° corner there.
+  ds.forEach(d => { const g = info[d.id], P0 = dipAt(g, 1), pts = [];
+    for (let i = 0; i <= 24; i++){ const u = i / 24, v = 1 - u;
+      pts.push({ x: v * v * P0.x + 2 * v * u * g.S.x + u * u * g.spoke.x,
+                 y: v * v * P0.y + 2 * v * u * g.S.y + u * u * g.spoke.y }); }
+    g.arc = arcLenPath(pts);
+  });
+  for (let j = 1; j <= SS; j++){ const s = j / SS;                      // beat 1: out along the Exhibela line
+    push(d => ({ ...d, xy: dipAt(info[d.id], s) }), 1 / SS); }
+  for (let j = 1; j <= 2 * SS; j++){ const u = j / (2 * SS);            // beats 2-3: back and on, as one arc
+    push(d => ({ ...d, xy: info[d.id].arc(u) }), 1 / SS); }
+  for (let j = 0; j < PH; j++) push(d => ({ ...d, xy: info[d.id].spoke }), 1 / PH);   // beat-4 pause
   for (let j = 1; j <= NT; j++){ const t = j / NT;
     push(d => { const g = info[d.id];
       if (g.role === 'F') return { ...d, xy: folTravel(g, t) };
@@ -1747,20 +1748,27 @@ function dileQueNo4(ds, N){
     const perpFace = Math.atan2(out.x, -out.y) * 180 / Math.PI;   // ⟂ spoke, clockwise round the wheel
     info[d.id] = { role: d.role, S, inward, amp: d.role === 'L' ? AL : AF, spoke, face0: facingAngle(d), perpFace };
   });
-  const stagePos = (g, stage, s) => {
-    if (stage === 3) return { x: g.S.x + (g.spoke.x - g.S.x) * s, y: g.S.y + (g.spoke.y - g.S.y) * s };
-    const off = (g.role === 'L' ? 1 : -1) * g.amp * (stage === 1 ? s : 1 - s);   // leader dips in, follower out
-    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off };
-  };
+  const dipAt = (g, s) => { const off = (g.role === 'L' ? 1 : -1) * g.amp * s;   // leader dips in, follower out
+    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off }; };
+  // Beats 2-3 are ONE rounded arc, not two straight legs meeting at the start point. Coming back down the
+  // Exhibela line and then striking out for the spoke used to meet at a hard corner there (~60° for the
+  // follower, and sharper since the Dile Que No position moved in). A quadratic Bézier from the beat-1
+  // dip, with the start point as its CONTROL and the spoke as its end, leaves along the line it came out
+  // on and arrives along the run-in to the spoke — same two endpoints, same beats, corner rounded away.
+  // Resampled by arc length so the speed stays even round the bend.
+  ds.forEach(d => { const g = info[d.id], P0 = dipAt(g, 1), pts = [];
+    for (let i = 0; i <= 24; i++){ const u = i / 24, v = 1 - u;
+      pts.push({ x: v * v * P0.x + 2 * v * u * g.S.x + u * u * g.spoke.x,
+                 y: v * v * P0.y + 2 * v * u * g.S.y + u * u * g.spoke.y }); }
+    g.arc = arcLenPath(pts);
+  });
   const SS = 8, PH = 4, frames = [], segBeats = [];
   const push = (mapper, bps) => { frames.push(ds.map(mapper)); segBeats.push(bps); };
-  // Beats 2-3 (back, then onward onto the spoke) split by path length so the speed stays even.
-  let sd2 = 0, sd3 = 0;
-  ds.forEach(d => { const g = info[d.id]; sd2 += g.amp; sd3 += Math.hypot(g.spoke.x - g.S.x, g.spoke.y - g.S.y); });
-  const B2 = 2 * sd2 / (sd2 + sd3), B3 = 2 * sd3 / (sd2 + sd3), stageBeats = [1, B2, B3];
-  [1, 2, 3].forEach(stage => { const bb = stageBeats[stage - 1] / SS; for (let j = 1; j <= SS; j++){ const s = j / SS;
-    push(d => ({ ...d, xy: stagePos(info[d.id], stage, s) }), bb); } });
-  for (let j = 0; j < PH; j++) push(d => ({ ...d, xy: stagePos(info[d.id], 3, 1) }), 1 / PH);   // beat-4 pause
+  for (let j = 1; j <= SS; j++){ const s = j / SS;                      // beat 1: out along the Exhibela line
+    push(d => ({ ...d, xy: dipAt(info[d.id], s) }), 1 / SS); }
+  for (let j = 1; j <= 2 * SS; j++){ const u = j / (2 * SS);            // beats 2-3: back and on, as one arc
+    push(d => ({ ...d, xy: info[d.id].arc(u) }), 1 / SS); }
+  for (let j = 0; j < PH; j++) push(d => ({ ...d, xy: info[d.id].spoke }), 1 / PH);   // beat-4 pause
   // leaders: face their follower (beats 1-2), turn to the centre by beat 3, hold on 4.
   frames.forEach((fr, fi) => {
     const fpos = {}; fr.forEach(d => { if (d.role === 'F') fpos[d.station] = d.xy; });
