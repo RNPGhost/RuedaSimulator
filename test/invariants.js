@@ -468,6 +468,61 @@ function run() {
     nChecks++; check(same <= 0.2, `n${n}: the two Línea entries land on different formations (${same.toFixed(2)})`);
   }
 
+  // 21: Dame Línea — the Dame that lands the wheel in Línea Moderna.
+  for (const n of NS) for (const ph of PHASES) {
+    const m = n / 2, tag = `dame_linea|n${n}|p${ph}`;
+    // midpoint spoke angle of each couple before the move (couple i rests at station i)
+    const midBefore = [];
+    for (let i = 0; i < n; i++) {
+      const L = T.circleAt(i, 'ccw', n, ph), F = T.circleAt(i, 'cw', n, ph);
+      midBefore.push(Math.atan2((L.y + F.y) / 2 - T.CY, (L.x + F.x) / 2 - T.CX) * 180 / Math.PI);
+    }
+    const cap = T.captureMovement('dame_linea', 'casino', n, ph);
+    nChecks++; check(cap.endPos === 'linea_ex', `${tag}: ended in ${cap.endPos}, expected linea_ex (ready for the Dile Que No Grande)`);
+    const end = T._snap();
+    // grid-exact on the Línea slots, partners facing each other
+    let offGrid = 0, faceErr = 0;
+    end.forEach(d => { const want = T.lineaSlot(d.station, d.lane, n);
+      offGrid = Math.max(offGrid, Math.hypot(d.xy.x - want.x, d.xy.y - want.y));
+      const pr = end.find(o => o.station === d.station && o.role !== d.role);
+      faceErr = Math.max(faceErr, Math.abs(norm180(d.face - Math.atan2(pr.xy.y - d.xy.y, pr.xy.x - d.xy.x) * 180 / Math.PI))); });
+    nChecks++; check(offGrid <= 0.2, `${tag}: not grid-exact (offGrid ${offGrid.toFixed(2)}px)`);
+    nChecks++; check(faceErr <= 1.0, `${tag}: partners not facing (faceErr ${faceErr.toFixed(1)}°)`);
+    // the exchange: primero leader (even couple) takes the follower one couple CLOCKWISE and goes INNER;
+    // segundo leader (odd couple) takes the follower one couple ANTI-CLOCKWISE and goes OUTER.
+    let swapped = true;
+    end.filter(d => d.role === 'L').forEach(L => {
+      const F = end.find(o => o.station === L.station && o.role === 'F');
+      const want = (L.couple % 2 === 0) ? (L.couple + 1) % n : (L.couple - 1 + n) % n;
+      const wantInner = (L.couple % 2 === 0);
+      if (F.couple !== want || (L.station < m) !== wantInner) swapped = false;
+    });
+    nChecks++; check(swapped, `${tag}: followers not exchanged primero<->segundo onto the right rings`);
+    // the new spokes sit MIDWAY between each primero's spoke and the segundo's one couple clockwise
+    let spokeErr = 0;
+    for (let j = 0; j < m; j++) {
+      const pair = end.filter(d => d.station === m + j);
+      const a = Math.atan2((pair[0].xy.y + pair[1].xy.y) / 2 - T.CY, (pair[0].xy.x + pair[1].xy.x) / 2 - T.CX) * 180 / Math.PI;
+      const want = midBefore[2 * j] + norm180(midBefore[2 * j + 1] - midBefore[2 * j]) / 2;
+      spokeErr = Math.max(spokeErr, Math.abs(norm180(a - want)));
+    }
+    nChecks++; check(spokeErr <= 0.5, `${tag}: spokes not midway between the primero/segundo pair (${spokeErr.toFixed(2)}°)`);
+  }
+  // and the whole call (Dame Línea + its default Dile Que No Grande) rests on the Línea grid
+  for (const n of NS) for (const ph of PHASES) {
+    const res = T.runCallLive('dame_linea', 'casino', n, ph);
+    if (!res) continue;
+    nChecks++; check(res.endPos === 'linea', `call dame_linea|n${n}|p${ph}: ended ${res.endPos}, expected linea rest`);
+    const end = T._snap();
+    let offGrid = 0; const seen = {};
+    let distinct = true;
+    end.forEach(d => { const cw = T.lineaSlot(d.station, 'cw', n), ccw = T.lineaSlot(d.station, 'ccw', n);
+      const dcw = Math.hypot(d.xy.x - cw.x, d.xy.y - cw.y), dccw = Math.hypot(d.xy.x - ccw.x, d.xy.y - ccw.y);
+      offGrid = Math.max(offGrid, Math.min(dcw, dccw));
+      const k = d.station + (dcw < dccw ? 'cw' : 'ccw'); if (seen[k]) distinct = false; seen[k] = 1; });
+    nChecks++; check(offGrid <= 0.2 && distinct, `call dame_linea|n${n}|p${ph}: not on the Línea grid (offGrid ${offGrid.toFixed(2)}px, distinct ${distinct})`);
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

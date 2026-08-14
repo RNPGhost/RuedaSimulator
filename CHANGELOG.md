@@ -3,6 +3,30 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v103 — Dame Línea: a Dame that lands the wheel in Línea Moderna
+- **New movement + call `Dame Línea`** — a third way into Rueda Línea Moderna, and the first that
+  changes **partners** as well as formation. Each primero couple and the segundo couple one place
+  **clockwise** of it **exchange followers**, and the two resulting couples take the two rings of the mini
+  wheel they now share:
+  - The new spokes sit **midway** between each primero's spoke and that segundo's — exactly where a Dame's
+    partners meet. The **segundo leader** therefore dances an ordinary **Dame** (half a couple
+    anti-clockwise) while easing his radius out, gathering the **primero follower** (travelling the Dame's
+    other half clockwise) on the **outer** ring in Exhibela. Those outer couples set the formation's spokes.
+  - The **primero leader** and the **segundo follower** walk straight in to the **inner** ring of that same
+    spoke, meeting as its afuera-Exhibela couple.
+  - So the outer leader gains the follower anti-clockwise of him and the inner leader the one clockwise —
+    a swap within each pair, not a uniform progression.
+- Lands in **`linea_ex`**, so the engine's existing default close (**Dile Que No Grande**) fires on its own
+  and settles the wheel at Línea rest — the call plays `dame_linea → dile_grande` with no extra wiring.
+  It's a Dame for timing too (4 beats, added to `DAME_KEYS`), so it starts on beat 5 and the Dile lands on 1.
+- **Collision-free first time** — minimum clearance **61–64px** against a 34px floor (essentially a full
+  couple-width; nobody comes near anyone). End state is **pixel-exact** on the Línea grid (0.00px), both
+  after the movement and after the whole call, with partners facing.
+- New invariant §21: lands in `linea_ex`, grid-exact, partners facing, the follower exchange puts each
+  leader on the right ring with the right partner, the spokes are midway between the primero/segundo pair,
+  and the full call rests on the Línea grid. **1063 checks** (from 1009); golden +6 movement / +6 engine
+  cases with zero regressions.
+
 ## v102 — Línea Moderna turns anti-clockwise; the clockwise sweep becomes Adios Línea
 - **Split the Línea entry into two movements/calls that differ only in which way the primeros turn** —
   the turn direction is now part of each movement's identity rather than something the engine solves:

@@ -247,6 +247,14 @@ const MOVEMENTS = {
     beats: 8,
     frames: (ds, N) => lineaModerna(ds, N, 'ccw')
   },
+  dame_linea: {
+    label: 'Dame Línea',
+    desc: 'From Casino on the rueda: a Dame that lands the wheel in Rueda Línea Moderna. Each primero couple and the segundo couple one place clockwise of it exchange followers, and the two new couples take the two rings of the mini wheel they now share. The new spokes sit midway between each primero’s spoke and the segundo’s one couple clockwise — exactly where a Dame’s partners meet — so the segundo leaders dance an ordinary Dame onto them, easing out to the outer ring and gathering the primero followers there in Exhibela; those outer couples set the formation’s spokes. Meanwhile each primero leader and the segundo follower one couple clockwise walk straight in to the inner ring of that same spoke, meeting as its inner couple. Ends in the Línea exhibela state, ready for a Dile Que No Grande. Even couple counts only.',
+    requires: ['casino'], sets: 'linea_ex', needsEven: true, noAfuera: true, changesLayout: 'linea',
+    progresses: true,
+    beats: 4,
+    frames: (ds, N) => dameLinea(ds, N)
+  },
   adios_linea: {
     label: 'Adios Línea',
     desc: 'The same entry into Rueda Línea Moderna as Línea Moderna — primeros in to the inner ring one spoke clockwise, segundos straight out to the outer ring — but the primeros sweep CLOCKWISE the long way round into their new orientation instead of taking the tight anti-clockwise turn, which gives the figure its Adios-like character. Requires an even number of couples.',
@@ -437,6 +445,7 @@ const CALLS = {
   // Progressing figures get a GRANDE (whole rings, standard Dame, phase as usual) and a PEQUEÑA (mini
   // wheels, Dame → Dame Pequeña, no phase change). Each closes with a default Dile Que No (grande/peq).
   linea_moderna: { label: 'Línea Moderna', desc: 'Call from Casino: the rueda opens into the Rueda Línea Moderna formation — primeros (the cantante’s couple and every other one clockwise) to the inner ring, turning anti-clockwise into place; segundos out to the outer ring on their own spokes. Even couple counts only.', from: ['casino'], seq: ['linea_moderna'] },
+  dame_linea:    { label: 'Dame Línea',    desc: 'Call from Casino: a Dame that lands the wheel in Rueda Línea Moderna — segundo leaders Dame out to the outer ring with the primero followers, primero leaders and segundo followers walk in to the inner ring, all in Exhibela. Closes with a Dile Que No Grande. Even couple counts only.', from: ['casino'], seq: ['dame_linea'] },
   adios_linea:   { label: 'Adios Línea',   desc: 'Call from Casino: the same opening into Rueda Línea Moderna, but the primeros sweep clockwise the long way round into the inner ring — the Adios-flavoured entry. Even couple counts only.', from: ['casino'], seq: ['adios_linea'] },
   dame_grande:    { label: 'Dame Grande',    lm: true, desc: 'Línea: Dame on both rings at once (each progresses one couple, shared phase flips), then a Dile Que No Grande.', from: ['linea'], seq: ['dame_grande'] },
   dame_pequena:   { label: 'Dame Pequeña',   lm: true, desc: 'Línea: Dame Pequeña in every mini 2-couple wheel (no phase change), then a Dile Que No Pequeña. The outer leader becomes the new inner leader.', from: ['linea'], seq: ['dame_peq'] },
@@ -1304,6 +1313,70 @@ function lineaModerna(ds, N, turnDir){
   return frames;
 }
 
+/* Dame Línea — Casino on the rueda -> Línea Moderna, arriving in the exhibela-like state ready for a
+ * Dile Que No Grande. Each primero couple and the segundo couple one place CLOCKWISE of it exchange
+ * followers, and the two resulting couples take the two rings of the mini wheel they now share:
+ *   · The new spokes sit MIDWAY between each primero's spoke and the segundo's one couple clockwise,
+ *     which is exactly where a Dame's partners meet. So the segundo leaders dance an ordinary Dame (half
+ *     a couple anti-clockwise), easing their radius out to the outer ring, and gather their new followers
+ *     — the primero followers, travelling the Dame's other half clockwise — there in Exhibela. Those are
+ *     the OUTER couples, and they set the formation's spokes and phase.
+ *   · The other half of the exchange goes inward: each primero leader and the segundo follower one place
+ *     clockwise walk directly in to the INNER ring of that same spoke, meeting as its (afuera-Exhibela)
+ *     couple. So the outer leader gains the follower anti-clockwise of him and the inner leader the one
+ *     clockwise — the exchange is a swap within each pair, not a uniform progression.
+ * Ends in `linea_ex`, whose default close is the Dile Que No Grande. Even couple counts only. */
+function dameLinea(ds, N){
+  const m = N / 2;
+  ds.forEach(d => { if (!d.xy) d.xy = pos(d); });          // freeze the rest positions before the layout switches
+  const start = {}; ds.forEach(d => start[d.id] = d.xy);
+  const byStation = {}; ds.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
+  const cant = ds.find(d => d.id === cantanteId) || ds.find(d => d.role === 'L');
+  const c = cant.station, at = (s, role) => byStation[s].find(d => d.role === role);
+  const st = i => (((c + i) % N) + N) % N;
+  const base = BASE_ANG + (c + 0.5) * 360 / N + phase * 180 / N;   // half a couple round: the Dame's meeting spokes
+  layoutName = 'linea'; LM_BASE = norm360(base); phase = 0; computeWheel(N);
+  const HALF = Math.PI / N;                                 // half a couple, in radians
+  const arcTo = (S, E, sweepBase) => { const aS = _ang(S), rS = _rad(S), rE = _rad(E);
+    const sw = directedSweep(aS, _ang(E), sweepBase);
+    return t => { const te = _smooth(t); return _polar(aS + sw * te, rS + (rE - rS) * te); }; };
+  const walkTo = (S, E) => t => { const te = _smooth(t); return { x: S.x + (E.x - S.x) * te, y: S.y + (E.y - S.y) * te }; };
+  const path = {}, endSt = {}, endLane = {}, partner = {};
+  for (let j = 0; j < m; j++){
+    const priL = at(st(2 * j), 'L'),     priF = at(st(2 * j), 'F');
+    const segL = at(st(2 * j + 1), 'L'), segF = at(st(2 * j + 1), 'F');
+    const place = (d, station, lane) => { endSt[d.id] = station; endLane[d.id] = lane;
+      return FORMATIONS.linea.slot(station, lane, N, 0); };
+    const eSegL = place(segL, m + j, 'cw'), eOutF = place(priF, m + j, 'ccw');   // outer couple: Exhibela
+    const ePriL = place(priL, j, 'ccw'),    eInF  = place(segF, j, 'cw');        // inner couple: afuera Exhibela
+    path[segL.id] = arcTo(start[segL.id], eSegL, -HALF);    // the Dame proper: half a couple anti-clockwise…
+    path[priF.id] = arcTo(start[priF.id], eOutF,  HALF);    // …meeting his new follower coming the other half
+    path[priL.id] = walkTo(start[priL.id], ePriL);          // the inner couple walks straight to its spoke
+    path[segF.id] = walkTo(start[segF.id], eInF);
+    partner[segL.id] = priF.id; partner[priF.id] = segL.id;
+    partner[priL.id] = segF.id; partner[segF.id] = priL.id;
+  }
+  // Everyone faces the way they travel, settling onto their new partner over the last third (as the Dames do).
+  const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
+  const STEPS = 16, frames = [];
+  let prev = {}; ds.forEach(d => prev[d.id] = start[d.id]);
+  for (let s = 1; s <= STEPS; s++){
+    const t = s / STEPS, P = {};
+    ds.forEach(d => P[d.id] = path[d.id](t));
+    const settle = _smooth(Math.max(0, (t - 0.7) / 0.3));
+    frames.push(ds.map(d => { const a = prev[d.id], b = P[d.id], q = P[partner[d.id]];
+      const pf = Math.atan2(q.y - b.y, q.x - b.x) * 180 / Math.PI;
+      let face = pf;
+      if (Math.hypot(b.x - a.x, b.y - a.y) > 1e-6){
+        const travel = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+        face = travel + shortDiff(pf, travel) * settle;
+      }
+      return { ...d, station: endSt[d.id], lane: endLane[d.id], xy: b, face }; }));
+    prev = P;
+  }
+  return frames;
+}
+
 /* Dile Que No — Exhibela -> Casino. Both dancers open with the first three stages of an
  * Exhibela along their Exhibela lines (the line through each dancer parallel to the
  * couple-midpoint→wheel-centre radial): the leader dips in, back, then out; the follower steps
@@ -1817,7 +1890,7 @@ const validFrom = (key, p) => {
 // figure that closes into a Dile Que No should END on beat 8 (so the Dile lands on beat 1), i.e. start
 // on beat 9 − its beat count (Dame from Casino = 2 beats → 7; a 4-beat Dame/Dame Grande/Pequeña → 5).
 // Everything else starts on 1.
-const DAME_KEYS = new Set(['dame', 'dame_dos', 'dame_grande', 'dame_peq', 'dame_pequena']);
+const DAME_KEYS = new Set(['dame', 'dame_dos', 'dame_grande', 'dame_peq', 'dame_pequena', 'dame_linea']);
 function startBeatOf(key, from){
   if (DAME_KEYS.has(key)){ const mv = MOVEMENTS[key];
     const beats = typeof mv.beats === 'function' ? mv.beats(from) : (mv.beats || 4);

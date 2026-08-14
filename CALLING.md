@@ -217,7 +217,28 @@ changes **formation** rather than just position.
 | **Línea Moderna** | anti-clockwise, always under a full circle | −88° / −118° / −132° |
 | **Adios Línea** | clockwise, the long way round (hence the Adios flavour) | +267° / +237° / +222° |
 
-Segundos never turn in either. The way **out** of Línea Moderna is not built yet.
+Segundos never turn in either.
+
+### Getting in: the **Dame Línea** call
+
+A third way in, and the only one that changes **partners** too. Each primero couple and the segundo couple
+one place **clockwise** of it **exchange followers**, and the two new couples take the two rings of the
+mini wheel they now share:
+
+- The new spokes sit **midway** between the primero's spoke and that segundo's — exactly where a Dame's
+  partners meet. So the **segundo leader** dances an ordinary **Dame** (half a couple anti-clockwise),
+  easing his radius out to the **outer** ring, and gathers the **primero follower** — who travels the
+  Dame's other half clockwise — there in **Exhibela**. The outer couples set the formation's spokes.
+- The **primero leader** and the **segundo follower** walk straight in to the **inner** ring of that spoke
+  and meet as its afuera-Exhibela couple.
+- Net effect: the outer leader gains the follower anti-clockwise of him, the inner leader the one
+  clockwise — a swap within each pair rather than a uniform progression.
+
+It lands in `linea_ex`, not at rest, so the standard default rule takes over and closes with a **Dile Que
+No Grande** — the call plays `dame_linea → dile_grande`. It counts as a Dame for timing (4 beats, in
+`DAME_KEYS`), so it starts on beat 5 and the Dile lands on beat 1.
+
+The way **out** of Línea Moderna is not built yet.
 
 ## Decision points, queue, and the two modes
 
