@@ -3,6 +3,25 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v98 — True-to-life scale + shared, equal-effort Dame avoidance
+- **Dancer size is now true to life.** `DOT_R` 20→16, so a dancer is 32px ≈ a 46 cm shoulder while the
+  couple spacing `W_DIST` ≈ 64px reads as 3 ft — a 2:1 ratio matching reality (was 1.6:1, i.e. couples
+  ~25% too crowded). Everything scales; dancers just have realistic room, which calms passing on its own.
+- **`dameToEnchufla` rebuilt as a symmetric crossing model.** Every dancer travels a base *polar* arc
+  (follows the ring, never crosses the wheel) and stays on it unless a crossing forces an ease — so a
+  clear Dame (e.g. from Casino) is now dead-straight with **zero** ducking. When a leader and a passed
+  follower would collide, BOTH ease radially apart, sharing one corridor. Replaces the old "leader glides
+  a fixed lane, follower does 100% of a reactive bump" asymmetry that made outer-ring followers frantic.
+- **The split is balanced for equal naturalness, not by a fixed rule.** Clearance depends only on the
+  *total* corridor, so the amplitude is solved once and the leader/follower share is then bisected to the
+  point where their two naturalness costs meet. Result: a plain Dame splits 50/50 (0.59/0.59), and Dame
+  Dos — where the follower stands still while two leaders pass — now has the *moving* leaders share her
+  evasion (15px each) instead of her lurching 35px alone (was L 0.00 / F 1.27 → now L 0.70 / F 0.73).
+- Detection is clearance-based (a leader "passes" a follower only if their base arcs actually crowd), so
+  followers duck *only when necessary*. Grande-from-Exhibela holds ≥35px (floor 34) with both dancers calm.
+- Golden + 12 visual snapshots re-baselined (size + paths changed); 727 invariants green. `damePequena`
+  (Dame Pequeña) is a separate generator and is unchanged so far — next to unify.
+
 ## v97 — Dames face the direction of travel
 - Travelling dancers in every Dame (Dame, Dame Dos, Dame Pequeña, and their grande/pequeña/Línea
   compositions) now **face the way they move** instead of staring at their future partner across the

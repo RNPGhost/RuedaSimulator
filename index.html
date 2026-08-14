@@ -468,7 +468,7 @@ function solveWheelR(n){
 }
 const ARROW_TRANS = 'transform .5s cubic-bezier(.4,0,.2,1)';
 const G_TRANS = 'transform .5s cubic-bezier(.4,0,.2,1)';
-const DOT_R = 20;                 // dancer dot radius (stroke adds ~1px each side)
+const DOT_R = 16;                 // dancer dot radius = half a shoulder (32px ≈ 46cm) vs W_DIST 64px ≈ 3ft: true-to-life 2:1
 /* A Formation owns the geometry of one layout: where each (station, lane) slot sits, how the wheel
  * sizes to the couple count, and the faint guide drawn behind the dancers. Movements and rendering
  * reach geometry through here rather than hard-coding a layout.
@@ -817,7 +817,8 @@ const _smooth = t => t * t * (3 - 2 * t);                // smoothstep — gentl
  *  straight start→end chord is used, so a dead-straight move still scores 0
  *  but any bulge registers (only meaningful when the intended line is straight).
  * ------------------------------------------------------------------ */
-let NAT_NOEVADE = false;                                 // debug: force followers to skip the evasive dip (intended-path capture)
+let NAT_NOEVADE = false;                                 // debug: force dancers to skip the evasive ease (intended-path capture)
+let DAME_WL_FORCE = null;                                // Dame crossing: force the leader's yield share (null = auto-balance for equal naturalness)
 const NAT_W = { dev: 1.0, spd: 1.0, acc: 1.0 };          // term weights
 function pathNaturalness(pts, dts, baseline){
   const n = pts.length;
@@ -930,114 +931,112 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
   });
   const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
   const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
-  // Pathing lanes: leader rides the inner lane (outer when afuera); passed followers bow to the other.
-  const lanes = passLanes();
-  const leaderOuter = !!afuera;
-  const leaderLaneR = leaderOuter ? lanes.outer : lanes.inner;
-  const folDipR     = leaderOuter ? lanes.inner : lanes.outer;
+  // ---- Unified crossing model ------------------------------------------------------------------------
+  // Every dancer travels a base polar arc (angle + radius interpolated S→E, so it follows the ring and
+  // never crosses the wheel). When a leader and a passed follower would cross, BOTH ease radially apart —
+  // the leader one way, the follower the other — sharing one corridor of width CLEAR_TGT. The split is by
+  // path length: the dancer on the shorter (inside) line yields MORE, the one on the longer (outside) line
+  // keeps a calmer arc. One solved amplitude deepens both together if an early crossing needs it.
+  const lanes = passLanes(), mid = lanes.mid;
+  const leadDir = afuera ? +1 : -1;                      // radial sense the LEADER eases (toward centre normally)
+  const CLEAR_FLR = 2 * (DOT_R + 1);                      // hard collision floor (matches the test GAP)
+  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);             // corridor width to hold between a crossing pair
+  const REACT_FAR = CLEAR_TGT + 1.4 * DOT_R;             // begin easing apart this far (base-path distance) before the pass
+  const STEPS = 16, NSMP = 40, smpT = [];
+  for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
+  const shortA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  const endEnvAt = t => _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08));   // 0 at both ends so the landing stays exact
+  const reactBump = d => _smooth(Math.max(0, Math.min(1, (REACT_FAR - d) / (REACT_FAR - CLEAR_TGT))));
   // Leader endpoints.
   const lInfo = {};
   ds.forEach(d => { if (d.role !== 'L') return;
     const ns = newSt(d.station, lDelta), S = cur[d.id], E = FORMATIONS.circle.slot(ns, leaderEndLane, N);
-    const sweep = directedSweep(_ang(S), _ang(E), lDelta * Math.PI / N);
-    lInfo[d.id] = { S, E, sweep, aS: _ang(S), newStation: ns, newFollower: folByNewSt[ns] };
+    lInfo[d.id] = { S, E, sweep: directedSweep(_ang(S), _ang(E), lDelta * Math.PI / N),
+      aS: _ang(S), rS: _rad(S), rE: _rad(E), newStation: ns, newFollower: folByNewSt[ns] };
   });
   const newLeaderOf = {}; leaderIds.forEach(id => { newLeaderOf[lInfo[id].newStation] = id; });
-  // A follower is "passed" by a leader when her angle falls strictly inside his sweep and she isn't
-  // his new partner. Only then does the leader take the lane, and only then does she dip out of it.
-  // (A single Dame from Casino passes nobody, so nobody uses the lanes — everyone travels directly.)
-  const TAU = 2 * Math.PI;
-  const fracIn = (aF, aS, sweep) => { if (sweep === 0) return -1; let rel = ((aF - aS) % TAU + TAU) % TAU; if (sweep < 0) rel -= TAU; return rel / sweep; };
-  const passedFol = new Set();
-  const passedBy = {}; followerIds.forEach(fid => passedBy[fid] = []);   // which leaders pass each follower
-  leaderIds.forEach(id => { const g = lInfo[id];
-    g.passes = false;
-    followerIds.forEach(fid => { if (fid === g.newFollower) return;
-      const f = fracIn(_ang(fInfo[fid].S), g.aS, g.sweep);
-      if (f > 0.05 && f < 0.95) { g.passes = true; passedFol.add(fid); passedBy[fid].push(id); }
+  // Base polar arc for every dancer.
+  const kin = {};
+  leaderIds.forEach(id => { const g = lInfo[id]; kin[id] = { role: 'L', aS: g.aS, sw: g.sweep, rS: g.rS, rE: g.rE }; });
+  followerIds.forEach(id => { const g = fInfo[id];
+    kin[id] = { role: 'F', aS: _ang(g.S), sw: directedSweep(_ang(g.S), _ang(g.E), fDelta * Math.PI / N), rS: _rad(g.S), rE: _rad(g.E) }; });
+  const baseAt = (id, t) => { const k = kin[id], te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te); };
+  const arcLen = id => { let L = 0, prev = baseAt(id, 0); for (let s = 0; s < NSMP; s++){ const p = baseAt(id, smpT[s]); L += Math.hypot(p.x - prev.x, p.y - prev.y); prev = p; } return L; };
+  // Who crosses whom: a leader "passes" a follower (not his new partner, and she isn't heading to him) when
+  // their base arcs crowd within CLEAR_TGT at some sample — clearance-based, so it catches the leader's
+  // approach to a close old partner that an angle-only test misses. (A Dame from Casino passes nobody.)
+  const passOf = {}; leaderIds.forEach(id => passOf[id] = []);
+  const passBy = {}; followerIds.forEach(id => passBy[id] = []);
+  leaderIds.forEach(lid => { const gl = lInfo[lid];
+    followerIds.forEach(fid => { if (fid === gl.newFollower) return; if (newLeaderOf[fInfo[fid].newStation] === lid) return;
+      let crowd = false;
+      for (let s = 0; s < NSMP && !crowd; s++){ const a = baseAt(lid, smpT[s]), b = baseAt(fid, smpT[s]);
+        if (Math.hypot(a.x - b.x, a.y - b.y) < CLEAR_TGT) crowd = true; }
+      if (crowd){ passOf[lid].push(fid); passBy[fid].push(lid); }
     });
   });
-  const lAtId = {};
-  leaderIds.forEach(id => { const g = lInfo[id];
-    if (g.passes) lAtId[id] = leaderTrackPath(g.S, g.E, leaderLaneR, g.sweep, Math.PI / N);   // ride the lane, cut in near E
-    else { const rS = _rad(g.S), rE = _rad(g.E);                                              // nobody to pass — go directly along the ring
-      lAtId[id] = t => { const te = _smooth(t), a = g.aS + g.sweep * te, r = rS + (rE - rS) * te; return _polar(a, r); }; }
-  });
-  const shortA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
-  const WIN = 0.5;                                        // rad — angular window for the stationary hold-out plateau
-  const STEPS = 16;
-  // Evasion clearance target and reaction band. A follower keeps at least CLEAR_TGT (centre-distance)
-  // from every passing leader; she is fully out by the time an approaching leader is CLEAR_TGT away and
-  // starts easing out at REACT_FAR — a *distance* trigger, so the dip covers the pass wherever it
-  // actually happens (including a leader's straight cut-in near his new partner, which an angle-only
-  // trigger misses — the sparse-outer-ring brush).
-  const CLEAR_FLR = 2 * (DOT_R + 1);                      // hard collision floor (matches the test GAP)
-  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);             // aim: the lane-to-lane clearance
-  const REACT_FAR = CLEAR_TGT + 1.4 * DOT_R;              // start easing out this far from a passer
-  // Follower kinematics + who might pass her (start from the angular set, then add anyone her intended
-  // path actually crowds — that is what catches the brush).
-  const fPar = {};
-  ds.forEach(d => { if (d.role !== 'F') return; const g = fInfo[d.id];
-    const sweepB = directedSweep(_ang(g.S), _ang(g.E), fDelta * Math.PI / N);
-    fPar[d.id] = { aS: _ang(g.S), rS: _rad(g.S), rE: _rad(g.E), sweepB,
-      newLeader: newLeaderOf[g.newStation], passers: passedBy[d.id].slice(), scale: 1 };
-  });
-  const folBase = (g, t) => { const te = _smooth(t); return { aB: g.aS + g.sweepB * te, rB: g.rS + (g.rE - g.rS) * te }; };
-  const endEnvAt = t => _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08));   // 0 at both ends so the landing stays exact
-  // Leader positions sampled finely (for detection + the dip solver), and at the render frames.
-  const NSMP = 40, smpT = [];
-  for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
-  const Lsmp = smpT.map(t => { const P = {}; leaderIds.forEach(id => P[id] = lAtId[id](t)); return P; });
-  // Add clearance-detected passers: any leader (not her new partner) her *intended* path crowds.
-  followerIds.forEach(id => { const g = fPar[id], have = new Set(g.passers);
-    for (let s = 0; s < NSMP; s++){ const { aB, rB } = folBase(g, smpT[s]); const fx = _polar(aB, rB);
-      leaderIds.forEach(lid => { if (lid === g.newLeader || have.has(lid)) return;
-        if (Math.hypot(Lsmp[s][lid].x - fx.x, Lsmp[s][lid].y - fx.y) < CLEAR_TGT){ g.passers.push(lid); have.add(lid); }
-      });
-    }
-    g.dips = g.passers.length > 0;
-    g.holdOut = Math.abs(g.sweepB) < 1e-6 && g.passers.length >= 2;   // stationary, 2+ passers: one plateau, no bobbing
-  });
-  // Reactive dip shape in [0,1]: 1 when a passer sits at CLEAR_TGT (fully out), 0 at REACT_FAR.
-  const proxAt = (g, t, Lpos) => {
-    if (!g.dips) return 0;
-    const { aB, rB } = folBase(g, t), fx = _polar(aB, rB);
-    if (g.holdOut){
-      let leadS = -Infinity, tailS = Infinity;
-      g.passers.forEach(lid => { const sgn = Math.sign(lInfo[lid].sweep) * shortA(_ang(Lpos[lid]) - aB);
+  const anyPass = leaderIds.some(id => passOf[id].length);
+  const dirOf = id => (kin[id].role === 'L' ? leadDir : -leadDir);
+  // Reactive ease [0,1] for a dancer at t: how near its nearest crossing partner's BASE path is (using
+  // base positions keeps the two sides' eases stable and lets one amplitude solve them together). A
+  // stationary follower crossed by 2+ leaders eases out once and holds (no bobbing).
+  const proxOf = (id, t) => {
+    const mates = kin[id].role === 'L' ? passOf[id] : passBy[id];
+    if (!mates.length) return 0;
+    if (kin[id].role === 'F' && Math.abs(kin[id].sw) < 1e-6 && mates.length >= 2){
+      const aB = kin[id].aS, WIN = 0.5; let leadS = -Infinity, tailS = Infinity;
+      mates.forEach(lid => { const sgn = Math.sign(lInfo[lid].sweep) * shortA(_ang(baseAt(lid, t)) - aB);
         if (sgn > leadS) leadS = sgn; if (sgn < tailS) tailS = sgn; });
       const rise = _smooth(Math.max(0, Math.min(1, (leadS + 2 * WIN) / WIN)));
       const fall = 1 - _smooth(Math.max(0, Math.min(1, (tailS - WIN) / WIN)));
       return Math.min(rise, fall);
     }
-    let prox = 0;
-    g.passers.forEach(lid => { const d = Math.hypot(Lpos[lid].x - fx.x, Lpos[lid].y - fx.y);
-      const p = _smooth(Math.max(0, Math.min(1, (REACT_FAR - d) / (REACT_FAR - CLEAR_TGT))));
-      if (p > prox) prox = p; });
+    const me = baseAt(id, t); let prox = 0;
+    mates.forEach(o => { const q = baseAt(o, t), v = reactBump(Math.hypot(q.x - me.x, q.y - me.y)); if (v > prox) prox = v; });
     return prox;
   };
-  const folPoint = (g, t, Lpos, scale) => { const { aB, rB } = folBase(g, t);
-    return _polar(aB, rB + scale * proxAt(g, t, Lpos) * endEnvAt(t) * (folDipR - rB)); };
-  // Solve each dipping follower's amplitude: the *smallest* scale that keeps her ≥ CLEAR_TGT from every
-  // passer across the whole move (the calmest dip that still clears). Naturalness rises monotonically
-  // with scale, so minimal-feasible = minimal-cost. Saturates at 1 if geometry can't reach the target.
-  const worstClear = (g, scale) => { let m = Infinity;
-    for (let s = 0; s < NSMP; s++){ const p = folPoint(g, smpT[s], Lsmp[s], scale);
-      g.passers.forEach(lid => { const d = Math.hypot(Lsmp[s][lid].x - p.x, Lsmp[s][lid].y - p.y); if (d < m) m = d; }); }
+  // Position with a SPLIT radial ease: the corridor (scale·CLEAR_TGT wide) is divided between the leader
+  // (share wL, easing one way) and the follower (1−wL, the other). Clearance depends only on the TOTAL, so
+  // scale is solved once; wL only rebalances *who* yields.
+  const posAt = (id, t, wL, scale) => { const k = kin[id], te = _smooth(t);
+    const a = k.aS + k.sw * te, r = k.rS + (k.rE - k.rS) * te;
+    const share = CLEAR_TGT * (k.role === 'L' ? wL : 1 - wL);
+    const off = (NAT_NOEVADE ? 0 : scale) * share * proxOf(id, t) * endEnvAt(t) * dirOf(id);
+    return _polar(a, r + off);
+  };
+  // Solve the amplitude that holds every crossing pair ≥ CLEAR_TGT (clearance is split-independent, so
+  // evaluate at wL=0.5). An early crossing where the ease hasn't fully opened just deepens both sides.
+  const worstClear = (wL, scale) => { let m = Infinity;
+    for (let s = 0; s < NSMP; s++){ const t = smpT[s], lp = {};
+      leaderIds.forEach(id => lp[id] = posAt(id, t, wL, scale));
+      followerIds.forEach(fid => { if (!passBy[fid].length) return; const fp = posAt(fid, t, wL, scale);
+        passBy[fid].forEach(lid => { const d = Math.hypot(lp[lid].x - fp.x, lp[lid].y - fp.y); if (d < m) m = d; }); }); }
     return m; };
-  // Dip amplitude 1 rides the nominal lane; when leaving a close old partner the leader is still near
-  // the ring at the crossing, so the lane alone can leave them ~33px apart. We let her dip *past* the
-  // lane (scale up to MAX_SCALE) — she does a little more work to clear — which keeps every leader path
-  // and every already-clearing follower untouched, and confines the change to the followers that brush.
-  const MAX_SCALE = 2.6, SCAN = 0.1;
-  followerIds.forEach(id => { const g = fPar[id]; if (!g.dips){ g.scale = 0; return; }
-    let pass = null;                                                      // coarse scan up for the first scale that clears
-    for (let sc = 0; sc <= MAX_SCALE + 1e-9; sc += SCAN){ if (worstClear(g, sc) >= CLEAR_TGT){ pass = sc; break; } }
-    if (pass === null){ g.scale = MAX_SCALE; return; }                    // best effort; the collision test flags any residue
-    let lo = Math.max(0, pass - SCAN), hi = pass;                         // refine down to the minimal clearing amplitude
-    for (let it = 0; it < 10; it++){ const mid = (lo + hi) / 2; if (worstClear(g, mid) >= CLEAR_TGT) hi = mid; else lo = mid; }
-    g.scale = hi;
-  });
+  let scale = 0;
+  if (anyPass){ const MAXS = 3.0, SCAN = 0.1;
+    let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worstClear(0.5, sc) >= CLEAR_TGT){ pass = sc; break; } }
+    if (pass === null) scale = MAXS;
+    else { let lo = Math.max(0, pass - SCAN), hi = pass;
+      for (let it = 0; it < 12; it++){ const m = (lo + hi) / 2; if (worstClear(0.5, m) >= CLEAR_TGT) hi = m; else lo = m; } scale = hi; }
+  }
+  // Balance the split so leader and follower feel EQUALLY natural: a dancer's naturalness cost rises with
+  // its share, so we bisect wL to the point where the worst leader cost meets the worst follower cost.
+  // This makes moving leaders share a stationary follower's evasion (Dame Dos) instead of her lurching
+  // alone, and holds 50/50 when both travel the same (a plain Dame). DAME_WL_FORCE overrides for A/B tests.
+  const roleCost = wL => { let cL = 0, cF = 0;
+    ds.forEach(d => { const k = kin[d.id];
+      const base = smpT.map(tt => { const te = _smooth(tt); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te); });
+      const pts  = smpT.map(tt => posAt(d.id, tt, wL, scale));
+      const c = pathNaturalness(pts, null, base).cost;
+      if (k.role === 'L'){ if (c > cL) cL = c; } else if (c > cF) cF = c; });
+    return { cL, cF }; };
+  let wL = 0.5;
+  if (anyPass && DAME_WL_FORCE == null){
+    let lo = 0, hi = 1;
+    for (let it = 0; it < 16; it++){ const m = (lo + hi) / 2; const { cL, cF } = roleCost(m);
+      if (cL > cF) hi = m; else lo = m; }        // leader too costly ⇒ give the leader a smaller share
+    wL = (lo + hi) / 2;
+  } else if (DAME_WL_FORCE != null) wL = DAME_WL_FORCE;
   // Render. Every dancer faces the way they travel (so they never look "through" another dancer while
   // crossing), then turns to face their new partner as they settle over the last third of the trip.
   const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
@@ -1046,8 +1045,7 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
   const lastFace = {};
   for (let s = 1; s <= STEPS; s++){
     const t = s / STEPS, P = {};
-    leaderIds.forEach(id => P[id] = lAtId[id](t));
-    followerIds.forEach(id => { const g = fPar[id]; P[id] = folPoint(g, t, P, NAT_NOEVADE ? 0 : g.scale); });
+    ds.forEach(d => P[d.id] = posAt(d.id, t, wL, scale));
     const settle = _smooth(Math.max(0, (t - 0.7) / 0.3));   // 0 until 70% of the trip, →1 at the landing
     frames.push(ds.map(d => {
       const a = prevP[d.id], b = P[d.id], moved = Math.hypot(b.x - a.x, b.y - a.y);

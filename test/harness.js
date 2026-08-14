@@ -130,6 +130,7 @@ function load(htmlPath) {
       validFrom, isAfuera, virtualPos,
       runOnWheel, wheelContext, pathNaturalness,
       setNoEvade(v){ NAT_NOEVADE = !!v; },
+      setDameWL(v){ DAME_WL_FORCE = v; },
       circleAt(station, lane, n, ph){ return FORMATIONS.circle.slot(station, lane, n, ph); },
       lineaGeom(){ return Object.assign({}, LM); },
       // Build the Línea Moderna rest state for n couples; return dancers (pos + face) and geometry.
