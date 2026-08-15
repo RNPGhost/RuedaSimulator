@@ -3,6 +3,27 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v118 — Dame Pequeña and Mujeres Arriba as travel intents
+- **Facing rules now span both halves of the model.** A travel intent takes a rule from the same
+  vocabulary the scripted layer uses; inside one, `'partner'` means the partner you are travelling *to*.
+  New: `{from, to, after, dir, ease}` — hold one bearing, then turn onto another — where **`dir` forces
+  the long way round when the figure says so.** A leader who turns to his right turns right even when
+  left is shorter; a short-way blend would silently reverse him.
+- **Dame Pequeña migrated byte-identically.** Leader travels `dh ±2` (even, so no phase flip); follower
+  is scripted — standing still from Exhibela, or a Reverse Adios across her own spoke from Casino — and
+  goes in as an immutable obstacle, so he takes the whole corridor.
+- **Mujeres Arriba migrated** — the role-inverted twin, leaders scripted and women travelling `dh +2`.
+  One agreed change: her final turn was written as "start at frame 18 of 24" and is now "turn over the
+  last 30% of the trip", the same rule the Dames use. Same start and end facings, positions identical to
+  0.000px, ≤4.1° apart mid-turn. Chosen over adding a frame-indexed window to the vocabulary — nothing
+  chose frame 18, so it was an artifact of how the figure was written.
+- **Caught by the invariant count, not the golden:** the first cut of the migration dropped `mujeres`'
+  explicit `segBeats`. Behaviourally identical (the player spreads beats uniformly over the same frames),
+  so the golden would have absorbed it silently under cover of the approved facing re-baseline — but §7
+  stopped counting, 2445 checks became 2444, and that one missing check was the tell. `playTravel` now
+  takes a beat budget and emits the split.
+- 14 movements declarative. 2445 invariants; visual untouched.
+
 ## v117 — Phase 5 stage 3b: travel intents, and the Dame family as data
 - **`playTravel`** — the dynamic half. A traveller declares *where it lands* (a slot address) and *which
   side it passes on*; the path between is planned by `planCrossings`, never authored. Scripted dancers go

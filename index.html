@@ -913,6 +913,9 @@ function landmarkAt(fr, prev, spec){
  *   'perpSpoke'                      — ⟂ to the spoke, clockwise round the wheel
  *   'travel'                         — the direction of travel
  *   'hold'                           — keep the facing the previous segment ended on
+ *   { from, to, after, dir, ease }   — hold bearing `from`, then turn onto `to` over the rest of the
+ *                                      segment (from fraction `after`); `dir` forces cw/ccw the long
+ *                                      way round when the figure says so
  *   { blend: [a, b] }                — sweep from bearing a to bearing b across the segment
  *   { settleTo, over }               — face the way you travel, then settle onto a bearing over the
  *                                      last `over` of the segment
@@ -922,7 +925,8 @@ function landmarkAt(fr, prev, spec){
  *                                      on its start value, not on start+360). */
 function faceAt(rule, fr, u, ctx){
   if (rule === undefined || rule === 'hold') return ctx.prevFace;
-  const base = r => r === 'partner' ? (ctx.partnerXY
+  const base = r => typeof r === 'number' ? r               // a literal bearing, already resolved
+    : r === 'partner' ? (ctx.partnerXY
         ? Math.atan2(ctx.partnerXY.y - ctx.here.y, ctx.partnerXY.x - ctx.here.x) * 180 / Math.PI : fr.atPartner)
     : r === 'partner0'  ? fr.atPartner                     // toward where the partner STARTED (a fixed bearing)
     : r === 'centre'    ? Math.atan2(CY - ctx.here.y, CX - ctx.here.x) * 180 / Math.PI
@@ -933,6 +937,18 @@ function faceAt(rule, fr, u, ctx){
     : ctx.prevFace;
   if (typeof rule === 'string') return base(rule);
   const shortD = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
+  // Hold one bearing, then TURN ONTO another over the rest of the segment. `dir` forces the long way
+  // round when the figure says so — a leader who turns to his right turns right even when left is
+  // shorter, which a short-way blend would silently reverse.
+  if (rule.to !== undefined && rule.from !== undefined){
+    const a = base(rule.from), b2 = base(rule.to), after = rule.after || 0;
+    const w = after >= 1 ? 0 : Math.max(0, (u - after) / (1 - after));
+    const e = rule.ease === 'linear' ? w : _smooth(w);
+    let d2 = shortD(b2, a);
+    if (rule.dir === 'cw' && d2 < 0) d2 += 360;
+    if (rule.dir === 'ccw' && d2 > 0) d2 -= 360;
+    return a + d2 * e;
+  }
   // Blend across the segment from one bearing to another (e.g. from facing your partner to facing the
   // centre), taking the short way round.
   if (rule.blend){ const a = base(rule.blend[0]), b2 = base(rule.blend[1]);
@@ -1335,7 +1351,7 @@ function planCrossings(o){
  *    o.pass(d)      -> +1 | -1                  the radial sense this dancer eases (its pass side)
  *    o.group(d) / o.groups / o.unit(d)          effort sharing, as `planCrossings` takes them
  *    o.phaseBefore                              the config the wheel was resting in on entry
- *    o.steps, o.settle, o.clearance, o.engage, o.forceShare
+ *    o.steps, o.settle, o.beats, o.clearance, o.engage, o.forceShare
  *
  *  Returns { frames, newStation, newPartner } — the frames plus the resolved landing, so a caller can
  *  compose a travel phrase with scripted phrases around it.
@@ -1379,7 +1395,11 @@ function playTravel(ds, N, o){
   const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
   const STEPS = o.steps || 16, frames = [], SET = o.settle || 0.3;
   let prevP = {}; ds.forEach(d => prevP[d.id] = cur[d.id]);
-  const lastFace = {};
+  const lastFace = {}, frame = {}, face0 = {};
+  // A travel intent may take a facing rule from the SAME vocabulary the scripted layer uses; inside one,
+  // 'partner' means the partner you are travelling TO. Without a rule, the Dame's default applies: face
+  // the way you travel, settling onto your new partner over the last of the trip.
+  ds.forEach(d => { frame[d.id] = dancerFrame(d, ds); face0[d.id] = facingAngle(d); });
   for (let s = 1; s <= STEPS; s++){
     const t = s / STEPS, P = {};
     ds.forEach(d => P[d.id] = plan.at(d.id, t));
@@ -1390,13 +1410,20 @@ function playTravel(ds, N, o){
       const partnerFace = npp ? Math.atan2(npp.y - b.y, npp.x - b.x) * 180 / Math.PI
         : (lastFace[d.id] != null ? lastFace[d.id] : facingAngle(d));
       const travel = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-      const face = moved < 1e-6 ? partnerFace : travel + shortDiff(partnerFace, travel) * settle;
+      const rule = o.face && o.face(d.id);
+      const face = rule
+        ? faceAt(rule, frame[d.id], t, { here: b, partnerXY: npp, prevFace: lastFace[d.id] != null ? lastFace[d.id] : facingAngle(d),
+            face0: face0[d.id], travel: moved < 1e-6 ? null : travel })
+        : (moved < 1e-6 ? partnerFace : travel + shortDiff(partnerFace, travel) * settle);
       lastFace[d.id] = face;
       return { ...d, station: d.id in newSt ? newSt[d.id] : d.station, xy: b, face };
     }));
     prevP = P;
   }
-  return { frames, newStation: newSt, newPartner };
+  // A movement that declares its beat budget gets an explicit per-frame split; without one the player
+  // spreads the movement's beats uniformly, which is the same thing but leaves nothing to assert.
+  const segBeats = o.beats ? frames.map(() => o.beats / STEPS) : null;
+  return { frames, segBeats, newStation: newSt, newPartner };
 }
 
 /* Dame / Dame Dos — progresses the leader k couples and lands the whole wheel exactly on the spoke
@@ -1436,104 +1463,56 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
  * Afuera inverts it inside-out: the progression runs clockwise, the Exhibela lanes swap, and the
  * follower's bow mirrors — landing in Afuera Exhibela. Leaders steer clear of everyone. */
 function damePequena(ds, N, fromEnch, afuera){
+  // Declarative (DECLARATIVE.md §7). The asymmetric Dame: the LEADER travels a whole couple (dh ±2, so
+  // the phase does not flip) while the FOLLOWER is scripted — she stands still coming from Exhibela, or
+  // dances a Reverse Adios across her own spoke coming from Casino. She is an immutable obstacle, so he
+  // takes the whole corridor.
   const norm = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
-  const leftOf  = u => ({ x:  u.y, y: -u.x });
-  const rightOf = u => ({ x: -u.y, y:  u.x });
-  const faceOf = d => (typeof d.face === 'number') ? d.face : facingAngle(d);   // actual current facing (afuera-safe)
+  const leftOf = u => ({ x: u.y, y: -u.x }), rightOf = u => ({ x: -u.y, y: u.x });
   const step = afuera ? 1 : -1;                        // progression: anti-clockwise normally, clockwise afuera
   const leaderEndLane = afuera ? 'ccw' : 'cw';         // Exhibela / Afuera-Exhibela leader lane
-  const folTargetLane = afuera ? 'cw'  : 'ccw';        // her Exhibela / Afuera-Exhibela spot (her leader's old spot)
+  const folTargetLane = afuera ? 'cw' : 'ccw';         // her Exhibela spot = her leader's old spot (same spoke)
   const bow = afuera ? leftOf : rightOf;               // Reverse-Adios bow side (mirrors afuera)
-  const cur = {};
-  ds.forEach(d => { cur[d.id] = d.xy ? d.xy : FORMATIONS.circle.slot(d.station, d.lane, N, phase); });
-  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
-  const leaderIds   = ds.filter(d => d.role === 'L').map(d => d.id);
-  const folByStation = {}; ds.forEach(d => { if (d.role === 'F') folByStation[d.station] = d.id; });
-  const nextFolSt = s => (((s + step) % N) + N) % N;   // leader at station s -> follower one couple along
-  const INF = 110;
-
-  // Follower paths: stay put (from Exhibela) or a Reverse Adios across her own spoke (from Casino).
+  const cur = {}; ds.forEach(d => { cur[d.id] = d.xy ? d.xy : FORMATIONS.circle.slot(d.station, d.lane, N, phase); });
+  const isL = {}; ds.forEach(d => isL[d.id] = d.role === 'L');
+  // The follower's scripted figure: stay put, or a Reverse Adios to her leader's old spot on her spoke.
   const fInfo = {};
-  ds.forEach(d => { if (d.role !== 'F') return;
-    const S = cur[d.id];
-    if (fromEnch){ fInfo[d.id] = { kind: 'stay', S, station: d.station, face0: faceOf(d) }; }
-    else {
-      const T = FORMATIONS.circle.slot(d.station, folTargetLane, N);   // her Exhibela spot = her leader's old spot (same spoke)
-      fInfo[d.id] = { kind: 'radios', S, T, station: d.station, perp: bow(norm({ x: T.x - S.x, y: T.y - S.y })), face0: faceOf(d) };
-    }
+  ds.forEach(d => { if (d.role !== 'F') return; const S = cur[d.id];
+    if (fromEnch){ fInfo[d.id] = { kind: 'stay', S }; return; }
+    const T = FORMATIONS.circle.slot(d.station, folTargetLane, N);
+    fInfo[d.id] = { kind: 'radios', S, T, perp: bow(norm({ x: T.x - S.x, y: T.y - S.y })), face0: facingAngle(d) };
   });
-  // Reverse-adios bow amplitude (couple-width based), only used from Casino.
-  let famp = 0;
+  let famp = 0;                                        // Reverse-Adios bow: solved from the couple width
   if (!fromEnch){
-    const anyL = ds.find(d => d.role === 'L'), anyF = folByStation[anyL.station];
-    const D = Math.hypot(cur[anyL.id].x - cur[anyF].x, cur[anyL.id].y - cur[anyF].y), GAPf = 2 * (DOT_R + 1) + 0.5;
+    const anyL = ds.find(d => d.role === 'L'), anyF = ds.find(o => o.station === anyL.station && o.role === 'F');
+    const D = Math.hypot(cur[anyL.id].x - cur[anyF.id].x, cur[anyL.id].y - cur[anyF.id].y), GAPf = 2 * (DOT_R + 1) + 0.5;
     const minGap = A => { let m = Infinity; for (let s = 1; s < 40; s++){ const t = s / 40; m = Math.min(m, Math.hypot(D * (2 * t - 1), 2 * A * Math.sin(Math.PI * t))); } return m; };
     for (let a = 0; a <= 80; a += 0.5){ if (minGap(a) >= GAPf){ famp = a; break; } }
   }
-  const fAt = (id, t) => { const g = fInfo[id]; if (g.kind === 'stay') return g.S;
+  const fAt = id => t => { const g = fInfo[id]; if (g.kind === 'stay') return g.S;
     const k = famp * Math.sin(Math.PI * t);
     return { x: g.S.x + (g.T.x - g.S.x) * t + g.perp.x * k, y: g.S.y + (g.T.y - g.S.y) * t + g.perp.y * k }; };
-
-  // Leader endpoints. The leader is the DYNAMIC dancer here — his couple midpoint moves a full couple —
-  // while the follower is SCRIPTED (she stands still, or dances her Reverse Adios) and never yields.
-  const lInfo = {};
+  // Her Reverse Adios spins her anti-clockwise onto the leader arriving at her spoke — a bearing she can
+  // only know once his landing is resolved, so resolve it the same way the travel intent will.
   ds.forEach(d => { if (d.role !== 'L') return;
-    const ns = nextFolSt(d.station), S = cur[d.id], E = FORMATIONS.circle.slot(ns, leaderEndLane, N);
-    lInfo[d.id] = { S, E, aS: _ang(S), rS: _rad(S), rE: _rad(E),
-      sweep: directedSweep(_ang(S), _ang(E), step * 2 * Math.PI / N),   // one full couple along
-      newStation: ns, newFollower: folByStation[ns] };
-  });
-  const newLeaderOf = {}; leaderIds.forEach(id => { newLeaderOf[lInfo[id].newStation] = id; });
-  // Reverse-Adios followers (from Casino) spin anti-clockwise onto their new leader.
-  ds.forEach(d => { if (d.role !== 'F') return; const g = fInfo[d.id]; if (g.kind !== 'radios') return;
-    const nl = newLeaderOf[d.station], El = nl ? lInfo[nl].E : g.T;
+    const q = resolvePlace(placeOf(d, N, phase), { dh: 2 * step, lane: leaderEndLane }, N, phase);
+    const f = ds.find(o => o.station === q.station && o.role === 'F'); if (!f) return;
+    const g = fInfo[f.id]; if (!g || g.kind !== 'radios') return;
+    const El = FORMATIONS.circle.slot(q.station, leaderEndLane, N);
     g.sweep = norm360(g.face0 - Math.atan2(El.y - g.T.y, El.x - g.T.x) * 180 / Math.PI);
   });
-  // Intended paths. The leader's is a base polar arc S→E (it follows the ring, so it never cuts across
-  // the wheel); the followers' are their scripted figures, fed in as immutable obstacles. The shared
-  // crossing planner deviates the leaders only — so the traveller absorbs the whole corridor instead of
-  // a standing follower lurching out of his way.
-  const leadDir = afuera ? +1 : -1;                      // radial sense the leader eases (toward the centre normally)
   const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
-  const isL = id => !!lInfo[id];
-  const lBase = (id, t, off) => { const g = lInfo[id], te = _smooth(t);
-    return _polar(g.aS + g.sweep * te, g.rS + (g.rE - g.rS) * te + (off || 0) * leadDir); };
-  const pairs = [];
-  leaderIds.forEach(lid => followerIds.forEach(fid => {
-    if (fid === lInfo[lid].newFollower) return; pairs.push([lid, fid]); }));
-  const plan = planCrossings({
-    ids: [...leaderIds, ...followerIds], pairs,
-    base: (id, t) => isL(id) ? lBase(id, t) : fAt(id, t),
-    apply: (id, t, off) => isL(id) ? lBase(id, t, off) : fAt(id, t),
-    yields: id => isL(id),
-    group: id => isL(id) ? 'L' : 'F', groups: ['L', 'F'],
+  return playTravel(ds, N, {
+    phaseBefore: phase,                                // dh is even, so the config is unchanged
+    target: d => isL[d.id] ? { dh: 2 * step, lane: leaderEndLane } : null,
+    scriptAt: id => fAt(id),
+    pass: () => (afuera ? +1 : -1),                    // only the leader yields, easing toward the centre
+    yields: id => isL[id], unit: id => id,
+    group: id => isL[id] ? 'L' : 'F', groups: ['L', 'F'],
+    face: id => isL[id] || fInfo[id].kind === 'stay' ? null
+      : { from: 'start', turn: -fInfo[id].sweep },     // Reverse Adios: anti-clockwise onto her new leader
     clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
-  });
-  const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
-  const STEPS = 16, frames = [];
-  let prevP = {}; leaderIds.forEach(id => prevP[id] = cur[id]);   // leaders face the way they travel (see dameToEnchufla)
-  for (let s = 1; s <= STEPS; s++){
-    const t = s / STEPS, P = {};
-    const settle = _smooth(Math.max(0, (t - 0.7) / 0.3));   // turn to face the new partner over the last third
-    ds.forEach(d => P[d.id] = plan.at(d.id, t));
-    frames.push(ds.map(d => {
-      if (d.role === 'F'){ const g = fInfo[d.id];
-        if (g.kind === 'stay'){ const nl = newLeaderOf[g.station], nlp = nl ? P[nl] : null;
-          const face = nlp ? Math.atan2(nlp.y - P[d.id].y, nlp.x - P[d.id].x) * 180 / Math.PI : g.face0;
-          return { ...d, xy: P[d.id], face }; }
-        return { ...d, xy: P[d.id], face: g.face0 - g.sweep * t };   // Reverse Adios: anti-clockwise onto new leader
-      }
-      const a = prevP[d.id], b = P[d.id], moved = Math.hypot(b.x - a.x, b.y - a.y);
-      const nf = P[lInfo[d.id].newFollower];
-      const partnerFace = Math.atan2(nf.y - b.y, nf.x - b.x) * 180 / Math.PI;
-      let face;
-      if (moved < 1e-6) face = partnerFace;
-      else { const travel = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI; face = travel + shortDiff(partnerFace, travel) * settle; }
-      return { ...d, station: lInfo[d.id].newStation, xy: b, face };
-    }));
-    leaderIds.forEach(id => prevP[id] = P[id]);
-  }
-  return frames;
+  }).frames;
 }
 
 /* Walk every couple to its new place AS A COUPLE: the midpoint runs straight from where it stands to
@@ -2009,80 +1988,33 @@ function dileQueNo4(ds, N){
  * whole way and turning to his RIGHT (clockwise) to meet his new follower as he arrives. Ends in
  * Exhibela: leaders NOT progressed, the pairing shifted by one, no phase change. */
 function mujeresArriba(ds, N){
-  const short = a => ((a + 180) % 360 + 360) % 360 - 180;
-  const cw = a => ((a % 360) + 360) % 360;                   // clockwise (increasing-angle) turn amount, screen coords
+  // Declarative (DECLARATIVE.md §7). Dame Pequeña with the roles inverted: the LEADERS are scripted —
+  // each retraces his 4-beat straight back to his own Exhibela spot, couple midpoint unmoved — and the
+  // FOLLOWERS are the travellers, each crossing a whole couple clockwise (dh +2, even, so no phase flip).
   const cur = {}; ds.forEach(d => cur[d.id] = d.xy ? d.xy : FORMATIONS.circle.slot(d.station, d.lane, N));
-  const leaderByStation = {}; ds.forEach(d => { if (d.role === 'L') leaderByStation[d.station] = d.id; });
-  const nextSt = s => (((s + 1) % N) + N) % N;               // one couple clockwise (station increases)
-  // Leaders: back to their OWN Exhibela spot (cw lane); no progression. New partner = the follower
-  // arriving at this station (her end spot is this station's ccw lane).
-  const lInfo = {};
-  ds.forEach(d => { if (d.role !== 'L') return;
-    lInfo[d.id] = { S: cur[d.id], E: FORMATIONS.circle.slot(d.station, 'cw', N),
-      newFolEnd: FORMATIONS.circle.slot(d.station, 'ccw', N) };
+  const isF = {}; ds.forEach(d => isF[d.id] = d.role === 'F');
+  const lEnd = {}; ds.forEach(d => { if (d.role === 'L') lEnd[d.id] = FORMATIONS.circle.slot(d.station, 'cw', N); });
+  const lAt = id => t => { const S = cur[id], E = lEnd[id], te = _smooth(t);
+    return { x: S.x + (E.x - S.x) * te, y: S.y + (E.y - S.y) * te }; };
+  // Each leader's final bearing: from his own Exhibela spot to the follower arriving beside him. Fixed,
+  // because both endpoints are known before the movement starts.
+  const lFin = {}; ds.forEach(d => { if (d.role !== 'L') return;
+    const her = FORMATIONS.circle.slot(d.station, 'ccw', N);
+    lFin[d.id] = Math.atan2(her.y - lEnd[d.id].y, her.x - lEnd[d.id].x) * 180 / Math.PI; });
+  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
+  return playTravel(ds, N, {
+    phaseBefore: phase,
+    target: d => isF[d.id] ? { dh: 2, lane: 'ccw' } : null,   // one couple clockwise, to the Exhibela follower lane
+    scriptAt: id => lAt(id),
+    pass: () => -1,                                    // the women ease inward, passing under the returning men
+    yields: id => isF[id], unit: id => id,
+    group: id => isF[id] ? 'F' : 'L', groups: ['F', 'L'],
+    steps: 24, settle: 0.3, beats: 4,
+    // He holds facing the centre, then turns to his RIGHT onto his new partner — right even when left is
+    // shorter, which is why the rule takes a direction rather than a short-way blend.
+    face: id => isF[id] ? null : { from: 'centre', to: lFin[id], after: 0.62, dir: 'cw' },
+    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
   });
-  // Followers: progress one couple clockwise to the next station's ccw (Exhibela follower) spot. New
-  // leader = the one who stays at that station (its cw lane).
-  const fInfo = {};
-  ds.forEach(d => { if (d.role !== 'F') return;
-    const ns = nextSt(d.station), S = cur[d.id], E = FORMATIONS.circle.slot(ns, 'ccw', N);
-    fInfo[d.id] = { S, E, aS: _ang(S), rS: _rad(S), rE: _rad(E),
-      sweep: directedSweep(_ang(S), _ang(E), 2 * Math.PI / N), newStation: ns,
-      newLeaderEnd: FORMATIONS.circle.slot(ns, 'cw', N), face0: facingAngle(d) };
-  });
-  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
-  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
-  // Mujeres Arriba is Dame Pequeña with the roles inverted (ENGINE_MODEL §2): the LEADERS are scripted —
-  // each simply retraces his 4-beat back to his own Exhibela spot, his couple midpoint barely moving —
-  // and the FOLLOWERS are the travellers, each crossing a whole couple clockwise. So the leaders go in as
-  // immutable obstacles and the women take the corridor, easing toward the centre to pass under them.
-  const lAt = (id, t) => { const g = lInfo[id], te = _smooth(t); return { x: g.S.x + (g.E.x - g.S.x) * te, y: g.S.y + (g.E.y - g.S.y) * te }; };
-  const fBase = (id, t, off) => { const g = fInfo[id], te = _smooth(t);
-    return _polar(g.aS + g.sweep * te, g.rS + (g.rE - g.rS) * te - (off || 0)); };
-  const isF = id => !!fInfo[id];
-  const pairs = [];
-  followerIds.forEach(fid => leaderIds.forEach(lid => {
-    if (lInfo[lid].E === undefined) return;
-    if (fInfo[fid].newStation === ds.find(d => d.id === lid).station) return;   // her new leader — they gather, not cross
-    pairs.push([fid, lid]); }));
-  const plan = planCrossings({
-    ids: [...followerIds, ...leaderIds], pairs,
-    base: (id, t) => isF(id) ? fBase(id, t) : lAt(id, t),
-    apply: (id, t, off) => isF(id) ? fBase(id, t, off) : lAt(id, t),
-    yields: isF,
-    group: id => isF(id) ? 'F' : 'L', groups: ['F', 'L'],
-    clearance: 2 * (DOT_R + PATH_CLEAR), engage: 2 * (DOT_R + PATH_CLEAR) + 1.4 * DOT_R,
-  });
-  const STEPS = 24, frames = [], segBeats = [];
-  for (let s = 1; s <= STEPS; s++){
-    const t = s / STEPS, P = {};
-    ds.forEach(d => P[d.id] = plan.at(d.id, t));
-    frames.push(ds.map(d => {
-      if (d.role === 'L'){ const g = lInfo[d.id];
-        const toC = Math.atan2(CY - P[d.id].y, CX - P[d.id].x) * 180 / Math.PI;
-        const fin = Math.atan2(g.newFolEnd.y - g.E.y, g.newFolEnd.x - g.E.x) * 180 / Math.PI;
-        const u = _smooth(Math.max(0, Math.min(1, (t - 0.62) / 0.38)));   // hold on the centre, then turn CW to the new partner
-        const face = toC + cw(fin - toC) * u;
-        return { ...d, station: d.station, xy: P[d.id], face }; }
-      const g = fInfo[d.id];
-      return { ...d, station: g.newStation, xy: P[d.id] };   // facing filled in below
-    }));
-  }
-  // followers: face the direction of travel, then turn to the new leader over the last part.
-  const turnStart = Math.round(STEPS * 0.7);
-  followerIds.forEach(id => {
-    const g = fInfo[id]; let prev = g.S;
-    frames.forEach((fr, fi) => {
-      const d = fr.find(x => x.id === id);
-      const travel = Math.atan2(d.xy.y - prev.y, d.xy.x - prev.x) * 180 / Math.PI;
-      const fin = Math.atan2(g.newLeaderEnd.y - g.E.y, g.newLeaderEnd.x - g.E.x) * 180 / Math.PI;
-      let face = travel;
-      if (fi >= turnStart){ const u = _smooth((fi - turnStart) / Math.max(1, STEPS - 1 - turnStart)); face = travel + short(fin - travel) * u; }
-      d.face = face; prev = d.xy;
-    });
-  });
-  for (let i = 0; i < STEPS; i++) segBeats.push(4 / STEPS);
-  return { frames, segBeats };
 }
 
 /* Leader's Right Turn — a 4-beat figure danced in place. The follower stays exactly put and does

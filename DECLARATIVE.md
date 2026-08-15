@@ -195,7 +195,10 @@ playTravel(ds, N, {
 })
 ```
 
-**Migrated: the whole Dame family** — Dame, Dame Dos and their Grande forms — byte-identical, from a
+**Migrated: the Dame family, Dame Pequeña and Mujeres Arriba.** The Dame family and Dame Pequeña are
+byte-identical; Mujeres Arriba needed one agreed change (below).
+
+**The whole Dame family** — Dame, Dame Dos and their Grande forms — byte-identical, from a
 190-line generator to two slot addresses and a pass side:
 
 ```js
@@ -212,11 +215,23 @@ dancers they pass to the left or right of"); while every couple dances in sync, 
 makes per-dancer overrides redundant, and the field is shaped so they can be added later. Beat budgets
 are **per segment** and compose to the movement total — answered by construction in stage 2.
 
+**Facing rules are shared between the two halves.** A travel intent takes a rule from the *same*
+vocabulary the scripted layer uses; inside one, `'partner'` means the partner you are travelling *to*.
+Without a rule the Dame's default applies — face the way you travel, settling onto your new partner over
+the last of the trip. Two rules were added for the asymmetric figures:
+
+- `{from, to, after, dir, ease}` — hold one bearing, then turn onto another over the rest. **`dir`
+  forces the long way round when the figure says so:** a leader who turns to his right turns right even
+  when left is shorter, which a short-way blend would silently reverse. Mujeres Arriba needs this.
+- A literal number is a valid bearing, for a target known before the movement starts.
+
+**The one agreed non-identical migration.** Mujeres Arriba's follower turn was written as *"start turning
+at frame 18 of 24"*; the declarative rule says *"turn over the last 30% of the trip"* — the same rule the
+Dames use. Same start and end facings, **positions identical to 0.000px**, ≤4.1° apart mid-turn. Taken
+deliberately (Sam, v118) rather than adding a frame-indexed window to the vocabulary: nothing chose
+frame 18, so it was an artifact of how the figure was written, not a dance decision.
+
 ## 8. Still to build
-- **Facing rules for travellers.** `playTravel` currently hard-codes the Dame's rule (face the way you
-  travel, settle onto your new partner over the last third). Mujeres Arriba and Dame Pequeña have their
-  own, so the next step is to let a travel intent take a facing rule from the *same* vocabulary the
-  scripted layer uses — which unifies the two halves rather than giving travel its own.
 - **Compound movements** — `dileQueNoYDame` is two phrases in one movement (a scripted 4-beat opening,
   then a travel). The IR needs a movement to be a sequence of phrases with different intents per phrase.
   MOVEMENT_SPEC §4 flagged this as the model assumption most likely to bite; it does, and the fix is
