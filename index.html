@@ -283,7 +283,11 @@ const MOVEMENTS = {
     desc: 'From Casino on the rueda: a Dame that lands the wheel in Rueda Línea Moderna. Each primero couple and the segundo couple one place clockwise of it exchange followers, and the two new couples take the two rings of the mini wheel they now share. The new spokes sit midway between each primero’s spoke and the segundo’s one couple clockwise — exactly where a Dame’s partners meet — so the segundo leaders dance an ordinary Dame onto them, easing out to the outer ring and gathering the primero followers there in Exhibela; those outer couples set the formation’s spokes. Meanwhile each primero leader and the segundo follower one couple clockwise walk straight in to the inner ring of that same spoke, meeting as its inner couple. Ends in the Línea exhibela state, ready for a Dile Que No Grande. Even couple counts only.',
     requires: ['casino'], sets: 'linea_ex', needsEven: true, noAfuera: true, changesLayout: 'linea',
     progresses: true,
-    beats: 4,
+    // Two beats, like the Dame it is. It is a progressing Dame-type figure that closes into a Dile Que
+    // No, so `startBeatOf` snaps it to beat 9 − 2 = 7: it ends on 8 and the Dile Que No Grande lands on
+    // beat 1, giving the call the same 2 + 8 = 10 beats a plain Dame takes. It used to declare 4, which
+    // started it on 5 and made the call 12 — the figure was musically a bar and a half long.
+    beats: 2,
     play: { formation: 'linea_dame' }
   },
   rueda: {

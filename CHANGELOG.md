@@ -3,6 +3,15 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v131 — Dame Línea is a Dame, musically
+- **`dame_linea` declares 2 beats, not 4** (Sam, from the running sim). It is a progressing Dame-type
+  figure that closes into a Dile Que No, so `startBeatOf` already snaps it to beat **9 − beats**: at 2
+  beats it starts on **7**, ends on **8**, and the Dile Que No Grande lands on beat **1** — the same
+  2 + 8 = 10 beats a plain Dame takes. At 4 it started on 5 and made the call 12, so the figure was
+  musically a bar and a half long. One value; the grid-snapping machinery was already right.
+- Golden re-baselined: 24 engine transcript entries, `dame_linea:4b` → `:2b`. End position, end phase and
+  the resulting grid are unchanged at every couple count and phase — only the timing moved.
+
 ## v130 — the pass that wasn't checked, the bow that pointed nowhere, and the path between keyframes
 
 Three faults, one reported from the floor by Sam (*"during Adios Pequeña the leaders collide and overlap
