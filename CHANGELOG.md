@@ -3,6 +3,25 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v115 — Phase 5 stage 2: the scripted-figure primitives
+- **Beat-level primitives, and an interpreter for them.** A scripted figure is now a chain of segments
+  danced in the dancer's own frame (`dancerFrame`: own start, partner's start, couple midpoint, the
+  spoke direction `out`, and `cw` perpendicular to it). Nothing a segment can name mentions another
+  couple — which is what makes scripted figures collision-unaware *by construction* rather than by
+  discipline. A segment is `{to, beats, steps, ease, face, turn, bow}`; see DECLARATIVE.md §6.
+- **8 movements migrated, all byte-identical against the golden** — `exhibela`, `leaders_right_turn`,
+  and the whole `swapMove` family (Enchufla, Vacilala, Adios, Reverse Adios, Reverse Enchufla, Leader's
+  Enchufla). Byte-identical is the point: the golden is a per-frame contract, so it means the primitives
+  reproduce the hand-written geometry *exactly*, not closely.
+- **New invariants §29** lock what each figure IS, as dance rules rather than synthetic unit tests:
+  Leader's Right Turn is danced in place and its full spin lands on the bearing it started from (not on
+  start + 360); Exhibela is a closed loop — everyone ends exactly where they began — while actually
+  travelling; the swap family lands each partner exactly on the other's spot and never brushes crossing.
+- One thing the migrations flushed out: **an amplitude that depends on the geometry cannot be a
+  constant.** `swapMove`'s bow is solved from the couple width, so the solver stays in the generator and
+  hands the primitive a number. Primitives are shapes, not solvers.
+- 2445 invariants; golden and visual untouched.
+
 ## v114 — Phase 5 stage 1: the declarative vocabulary
 - **The two things a movement definition has to be able to say, defined precisely** (DECLARATIVE.md):
   which dancers an intent applies to (`GROUPS` / `selectGroup` — structural predicates, never an index

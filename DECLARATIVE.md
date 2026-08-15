@@ -1,13 +1,14 @@
-# The declarative layer — vocabulary (Phase 5, stage 1)
+# The declarative layer (Phase 5)
 
 Phase 5's goal is that a movement can be **stated as data** rather than written as a generator, so that
 users can eventually compose their own through a UI. The decision taken with Sam was to build the
 **backend precisely first** and defer the UI: the value is in a representation that is unambiguous,
 couple-count independent, and provably able to express the figures we already dance.
 
-This document defines that representation. Stage 1 (built) is the **vocabulary**: the two things a
-movement definition has to be able to say. Stage 2 is the beat-level primitive library and the
-interpreter; stage 3 migrates the existing movements onto it, golden-guarded.
+This document defines that representation. **Stage 1 (built)** is the vocabulary — the two things a
+movement definition has to be able to say (§1–§5). **Stage 2 (built)** is the beat-level primitive
+library and its interpreter, with 8 movements migrated onto it byte-identically (§6). **Stage 3** is the
+join rule and travel intents, which is what the remaining figures need (§7).
 
 Design answers this rests on, settled with Sam:
 
@@ -114,12 +115,54 @@ Three things fall out of this table that were previously spread across prose and
   danced. That is exactly the scripted/dynamic split from MOVEMENT_SPEC §1, arrived at independently.
 - **Afuera/Adentro are pure relabels** — same address, and the position's `inverted` flag does the work.
 
-## 6. Still to build
+## 6. Scripted figures — the beat-level primitive library (stage 2, built)
 
-- **Stage 2 — the primitive library and the interpreter.** Beat-level primitives in a dancer's own local
-  frame (`{S, couple midpoint, e_spoke outward, e_tan clockwise}`), a `to`/`via`/`face`/`beats` segment
-  shape, and a join rule that rounds the corner between consecutive segments — the arc-length-resampled
-  quadratic Bézier already used for the Dile Que No opening, generalised.
-- **Stage 3 — migrate the movements onto it**, one at a time, each golden-guarded.
-- **Open:** how pass sides are attached to a travel intent (per dancer gone by, or per group), and
-  whether a movement declares its beat budget per segment or per phrase.
+A scripted figure is a chain of **beat-level segments** danced in the dancer's own frame. Nothing a
+segment can name mentions another couple, which is what makes scripted figures collision-unaware *by
+construction* rather than by discipline.
+
+**The frame** (`dancerFrame`) — own start `S`, partner's start `P`, couple midpoint `M`, `out` (the
+couple's midpoint spoke pointing away from the wheel centre: the Exhibela line) and `cw` (perpendicular,
+clockwise round the wheel).
+
+**A segment** — `{ to, beats, steps, ease, face, turn, bow }`.
+
+| field | values |
+|---|---|
+| `to` | `'start'` \| `'partner'` \| `'midpoint'` \| `'hold'` \| `{spoke: ±1}` \| `{off: [alongOut, alongCw], from}` |
+| `ease` | `'linear'` (default) \| `'smooth'` |
+| `bow` | `{side: 'left'\|'right', amp}` — one half-sine sideways, zero at both ends so the landing stays exact |
+| `face` | `'partner'` (live) \| `'partner0'` (fixed bearing) \| `'centre'` \| `'outward'` \| `'perpSpoke'` \| `'travel'` \| `'hold'` \| `{from, at, turn, endAt}` |
+| `turn` | render hint for spin direction (`'cw'`/`'ccw'`) |
+
+`face: {from, at, turn, endAt}` reads as "start from this bearing, plus a constant `at`, and rotate
+`turn` degrees across the segment". `endAt` pins the exact value at the end, which is how a 360° spin
+lands on the bearing it started from rather than on start + 360.
+
+**Migrated so far — 8 movements, all byte-identical against the golden:**
+
+| generator | movements | primitives it needed |
+|---|---|---|
+| `exhibela` | Exhibela | four `off` legs along `out`; `partner` (live) and `partner0` facings |
+| `leadersRightTurn` | Leader's Right Turn | `to: 'hold'`; `{turn: 360, endAt: 'base'}` |
+| `swapMove` | Enchufla, Vacilala, Adios, Reverse Adios, Reverse Enchufla, Leader's Enchufla | `to: 'partner'` + `bow` |
+
+Each migration is a real test of the vocabulary: the golden is a per-frame contract, so *byte-identical*
+means the primitives reproduce the hand-written geometry exactly, not merely closely. Invariants **§29**
+then locks what each figure IS — Leader's Right Turn is danced in place and the spin lands on its own
+bearing; Exhibela is a closed loop; the swap family lands each partner exactly on the other's spot and
+never brushes while crossing.
+
+One thing the migrations flushed out: **an amplitude that depends on the geometry cannot be a constant.**
+`swapMove`'s bow is solved from the couple width, so the solver stays in the generator and hands the
+primitive a number. That is the right split — primitives are shapes, not solvers.
+
+## 7. Still to build
+
+- **The join rule.** Consecutive segments meeting at an angle need the corner rounded: an arc-length-
+  resampled quadratic Bézier with the joint as its control point. This already exists, hand-written, in
+  the Dile Que No opening (it took a 61° corner down to 8°); generalising it is what `dile4`,
+  `dileQueNoFull` and the Dile Que No y Dame compounds need before they can migrate.
+- **Travel intents** — the dynamic half, wiring a slot address (§2) and pass sides to `planCrossings`.
+- **Open:** whether pass sides attach per dancer-gone-by or per group, and whether a movement declares
+  its beat budget per segment or per phrase.

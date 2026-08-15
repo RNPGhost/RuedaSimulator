@@ -868,6 +868,120 @@ function selectGroup(ds, pred, n, ph){
   return ds.filter(d => test(d, c));
 }
 
+/* ------------------------------------------------------------------ *
+ *  SCRIPTED FIGURES — the beat-level primitive library (DECLARATIVE.md §6)
+ *
+ *  A scripted figure is a chain of BEAT-LEVEL SEGMENTS danced in the dancer's OWN frame. Nothing a
+ *  segment can name mentions another couple, which is what makes scripted figures collision-unaware by
+ *  construction rather than by discipline — they are choreography, and traffic is `planCrossings`' job.
+ * ------------------------------------------------------------------ */
+
+/* The local frame. `out` is the couple's midpoint spoke pointing away from the wheel centre — the
+ * "Exhibela line" every in-place figure travels along; `cw` is perpendicular to it, clockwise round the
+ * wheel. Landmarks: own start `S`, partner's start `P`, couple midpoint `M`. */
+function dancerFrame(d, ds){
+  const S = pos(d);
+  const pr = ds.find(o => o.station === d.station && o.role !== d.role);
+  const P = pr ? pos(pr) : S;
+  const M = { x: (S.x + P.x) / 2, y: (S.y + P.y) / 2 };
+  const a = Math.atan2(M.y - CY, M.x - CX);
+  const out = { x: Math.cos(a), y: Math.sin(a) };
+  const cw = { x: -out.y, y: out.x };
+  return { S, P, M, out, cw, spokeAng: a,
+    atPartner: Math.atan2(P.y - S.y, P.x - S.x) * 180 / Math.PI };
+}
+
+/* Where a segment ends, resolved in the frame.
+ *   'start' | 'partner' | 'midpoint' | 'hold'   — named landmarks ('hold' = stay where you are)
+ *   { spoke: ±1 }                               — the Dile Que No lane on the couple's own spoke
+ *   { off: [alongOut, alongCw], from }          — an offset from 'start' (default) or 'prev' */
+function landmarkAt(fr, prev, spec){
+  if (spec === 'start') return fr.S;
+  if (spec === 'partner') return fr.P;
+  if (spec === 'midpoint') return fr.M;
+  if (spec === 'hold') return prev;
+  if (spec.spoke !== undefined){ const r = R_MID() + spec.spoke * R_STEP;
+    return { x: CX + r * Math.cos(fr.spokeAng), y: CY + r * Math.sin(fr.spokeAng) }; }
+  const b = spec.from === 'prev' ? prev : fr.S, o = spec.off;
+  return { x: b.x + fr.out.x * o[0] + fr.cw.x * o[1], y: b.y + fr.out.y * o[0] + fr.cw.y * o[1] };
+}
+
+/* Facing rules, evaluated per frame with u = progress through the segment.
+ *   'partner'                        — face the partner's LIVE position (so it tracks a moving partner)
+ *   'partner0'                       — face where the partner STARTED: a fixed bearing, not a track
+ *   'centre' | 'outward'             — along the spoke
+ *   'perpSpoke'                      — ⟂ to the spoke, clockwise round the wheel
+ *   'travel'                         — the direction of travel
+ *   'hold'                           — keep the facing the previous segment ended on
+ *   { from, at, turn, endAt }        — start from a base facing (plus a constant `at`) and rotate `turn`
+ *                                      degrees across the
+ *                                      segment; `endAt` pins the exact value at u = 1 (a 360° spin ends
+ *                                      on its start value, not on start+360). */
+function faceAt(rule, fr, u, ctx){
+  if (rule === undefined || rule === 'hold') return ctx.prevFace;
+  const base = r => r === 'partner' ? (ctx.partnerXY
+        ? Math.atan2(ctx.partnerXY.y - ctx.here.y, ctx.partnerXY.x - ctx.here.x) * 180 / Math.PI : fr.atPartner)
+    : r === 'partner0'  ? fr.atPartner                     // toward where the partner STARTED (a fixed bearing)
+    : r === 'centre'    ? Math.atan2(CY - ctx.here.y, CX - ctx.here.x) * 180 / Math.PI
+    : r === 'outward'   ? Math.atan2(ctx.here.y - CY, ctx.here.x - CX) * 180 / Math.PI
+    : r === 'perpSpoke' ? Math.atan2(fr.out.x, -fr.out.y) * 180 / Math.PI
+    : r === 'travel'    ? (ctx.travel != null ? ctx.travel : ctx.prevFace)
+    : r === 'start'     ? ctx.face0
+    : ctx.prevFace;
+  if (typeof rule === 'string') return base(rule);
+  const b = base(rule.from || 'start') + (rule.at || 0);   // `at` is a constant offset from the base bearing
+  if (u >= 1 && rule.endAt !== undefined) return rule.endAt === 'base' ? b : base(rule.endAt);
+  return b + (rule.turn || 0) * u;
+}
+
+/* Play a scripted figure: segments -> frames. Each segment is
+ *     { to, beats, steps, ease, face, turn }
+ * `ease` is 'linear' (default) or 'smooth'; `turn` is the render hint ('cw'/'ccw') for the spin
+ * direction. Returns { frames: [[{id, xy, face, turn}]], segBeats }. */
+function playScript(ds, plan){
+  const fr = {}, prev = {}, prevFace = {}, face0 = {};
+  ds.forEach(d => { fr[d.id] = dancerFrame(d, ds); prev[d.id] = fr[d.id].S;
+    prevFace[d.id] = face0[d.id] = facingAngle(d); });
+  const nSeg = Math.max(...ds.map(d => plan(d).length));
+  const frames = [], segBeats = [];
+  for (let si = 0; si < nSeg; si++){
+    const steps = Math.max(...ds.map(d => (plan(d)[si] || {}).steps || 1));
+    const beats = Math.max(...ds.map(d => (plan(d)[si] || {}).beats || 0));
+    const from = {}; ds.forEach(d => from[d.id] = prev[d.id]);
+    const to = {}; ds.forEach(d => { const s = plan(d)[si];
+      to[d.id] = s ? landmarkAt(fr[d.id], from[d.id], s.to === undefined ? 'hold' : s.to) : from[d.id]; });
+    for (let k = 1; k <= steps; k++){
+      const raw = k / steps;
+      const P = {}; ds.forEach(d => { const s = plan(d)[si] || {};
+        const u = s.ease === 'smooth' ? _smooth(raw) : raw;
+        const A = from[d.id], B = to[d.id];
+        let x = A.x + (B.x - A.x) * u, y = A.y + (B.y - A.y) * u;
+        if (s.bow){                                       // one half-sine sideways: zero at both ends
+          const vx = B.x - A.x, vy = B.y - A.y, L = Math.hypot(vx, vy) || 1;
+          const sgn = s.bow.side === 'right' ? 1 : -1;    // 90° to the dancer's right / left (screen y-down)
+          const k = s.bow.amp * Math.sin(Math.PI * u);
+          x += sgn * (-vy / L) * k; y += sgn * (vx / L) * k;
+        }
+        P[d.id] = { x, y }; });
+      frames.push(ds.map(d => {
+        const s = plan(d)[si] || {}, pr = ds.find(o => o.station === d.station && o.role !== d.role);
+        const a = k === 1 ? from[d.id] : frames[frames.length - 1].find(x => x.id === d.id).xy;
+        const ctx = { here: P[d.id], partnerXY: pr ? P[pr.id] : null, prevFace: prevFace[d.id],
+          face0: face0[d.id], travel: Math.hypot(P[d.id].x - a.x, P[d.id].y - a.y) > 1e-9
+            ? Math.atan2(P[d.id].y - a.y, P[d.id].x - a.x) * 180 / Math.PI : null };
+        const f = faceAt(s.face, fr[d.id], raw, ctx);
+        const out = { ...d, xy: P[d.id], face: f };
+        if (s.turn) out.turn = s.turn;
+        return out;
+      }));
+      segBeats.push(beats / steps);
+    }
+    ds.forEach(d => { prev[d.id] = to[d.id];
+      prevFace[d.id] = frames[frames.length - 1].find(x => x.id === d.id).face; });
+  }
+  return { frames, segBeats };
+}
+
 function faceTowardPartner(d, state){
   const pr = state.find(o => o.station === d.station && o.role !== d.role);
   if (!pr) return 0;
@@ -903,35 +1017,19 @@ const norm360 = a => ((a % 360) + 360) % 360;
 //   Reverse Enchufla: leader -180 (left),  follower +180 (right), bow right — the
 //                     exact time-reverse of an Enchufla (mirror path, mirror turns).
 function swapMove(ds, N, followerRotDeg, leaderRotDeg = 180, side = 'left'){
-  const perpOf = side === 'right'
-    ? u => ({ x: -u.y, y:  u.x })                    // 90° to the dancer's right
-    : u => ({ x:  u.y, y: -u.x });                   // 90° to the dancer's left (screen y-down)
-  const info = {};
-  ds.forEach(d => {
-    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
-    const S = pos(d), T = pos(pr);                   // heads directly to partner's spot
-    const dx = T.x - S.x, dy = T.y - S.y, len = Math.hypot(dx, dy) || 1;
-    info[d.id] = { S, T, perp: perpOf({ x: dx / len, y: dy / len }), face0: facingAngle(d), rot: d.role === 'L' ? leaderRotDeg : followerRotDeg };
-  });
-  // Lateral amplitude that makes the two dots just miss (~one diameter apart) as
-  // they cross. Depends on the couple width, so solve for it from the geometry.
+  // Declarative: one 4-beat segment — head for your partner's spot, bowing to one side so the two of you
+  // just miss as you cross. The amplitude is the one thing that cannot be a constant: it depends on the
+  // couple width, so it is solved from the geometry and handed to the primitive.
   const anyL = ds.find(d => d.role === 'L');
   const anyF = ds.find(o => o.station === anyL.station && o.role === 'F');
   const D = Math.hypot(pos(anyL).x - pos(anyF).x, pos(anyL).y - pos(anyF).y);
   const GAP = 2 * (DOT_R + 1) + 0.5;
   const minGap = A => { let m = Infinity; for (let s = 1; s < 40; s++){ const t = s / 40; m = Math.min(m, Math.hypot(D * (2 * t - 1), 2 * A * Math.sin(Math.PI * t))); } return m; };
   let amp = 0; for (let a = 0; a <= 80; a += 0.5){ if (minGap(a) >= GAP){ amp = a; break; } }
-  const STEPS = 14, frames = [];
-  for (let step = 1; step <= STEPS; step++){
-    const t = step / STEPS, k = amp * Math.sin(Math.PI * t);
-    frames.push(ds.map(d => {
-      const g = info[d.id];
-      return { ...d,
-        xy: { x: g.S.x + (g.T.x - g.S.x) * t + g.perp.x * k, y: g.S.y + (g.T.y - g.S.y) * t + g.perp.y * k },
-        face: g.face0 + g.rot * t };
-    }));
-  }
-  return frames;
+  const seg = rot => [{ to: 'partner', beats: 4, steps: 14, bow: { side, amp },
+                        face: { from: 'start', turn: rot } }];
+  const lead = seg(leaderRotDeg), foll = seg(followerRotDeg);
+  return playScript(ds, d => d.role === 'L' ? lead : foll).frames;
 }
 
 /* Exhibela — a showy figure danced in place from Exhibela position. The couple never
@@ -945,52 +1043,22 @@ function swapMove(ds, N, followerRotDeg, leaderRotDeg = 180, side = 'left'){
  *            inward, stage 4 spins 270° right while returning to the start.
  * Every dancer ends exactly where and how it began. */
 function exhibela(ds, N){
-  const leftOf = u => ({ x: u.y, y: -u.x });
+  // Declarative (DECLARATIVE.md §6): four beat-level segments along the couple's own spoke line. The
+  // leader's "left" in Exhibela IS the inward spoke direction, so every offset is a pure `out` component
+  // and nothing here needs to know where the wheel centre is beyond the frame it was handed.
   const AL = 26, AF = 30;                        // leader / follower "slight" travel (px)
-  const info = {};
-  ds.forEach(d => {
-    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
-    const S = pos(d), PP = pos(pr);
-    const L0 = d.role === 'L' ? S : PP, F0 = d.role === 'L' ? PP : S;
-    const dx = F0.x - L0.x, dy = F0.y - L0.y, len = Math.hypot(dx, dy) || 1;
-    const u = { x: dx / len, y: dy / len };      // leader -> follower
-    const p = leftOf(u);                         // shared perpendicular (leader's left)
-    const fa0 = Math.atan2(-u.y, -u.x) * 180 / Math.PI;   // follower's start facing (at leader)
-    info[d.id] = { S, p, fa0 };
-  });
-  const STEPS = 12, frames = [];
-  [1, 2, 3, 4].forEach(stage => {
-    for (let k = 1; k <= STEPS; k++){
-      const s = k / STEPS;
-      // signed offset along p for this stage: leader scaled by AL, follower by AF.
-      let lOff, fOff;
-      if (stage === 1){ lOff =  s;         fOff = -s;        }
-      if (stage === 2){ lOff =  1 - s;     fOff = -(1 - s);  }
-      if (stage === 3){ lOff = -s;         fOff =  s;        }
-      if (stage === 4){ lOff = -(1 - s);   fOff =  1 - s;    }
-      frames.push(ds.map(d => {
-        const g = info[d.id];
-        if (d.role === 'L'){
-          return { ...d, _L: true, xy: { x: g.S.x + g.p.x * AL * lOff, y: g.S.y + g.p.y * AL * lOff } };
-        }
-        let face;
-        if (stage === 1) face = g.fa0 + 90 * s;
-        else if (stage === 2 || stage === 3) face = g.fa0 + 90;
-        else face = g.fa0 + 90 + 270 * s;
-        return { ...d, xy: { x: g.S.x + g.p.x * AF * fOff, y: g.S.y + g.p.y * AF * fOff }, face, turn: 'cw' };
-      }));
-    }
-  });
-  // leader faces the follower's actual position in every frame
-  frames.forEach(fr => {
-    const fBy = {};
-    fr.forEach(d => { if (d.role === 'F') fBy[d.station] = d.xy; });
-    fr.forEach(d => {
-      if (d._L){ const f = fBy[d.station]; d.face = Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI; delete d._L; }
-    });
-  });
+  const S = 12;
+  const leg = (o, face, turn) => ({ to: { off: [o, 0] }, beats: 2, steps: S, face, turn });
+  const F = (at, turn) => ({ from: 'partner0', at, turn });
+  const lead = [                                 // dips inward, back, outward, back — facing her throughout
+    leg(-AL, 'partner'), leg(0, 'partner'), leg(AL, 'partner'), leg(0, 'partner'),
+  ];
+  const foll = [                                 // steps out turning 90° right, back, in, then spins 270°
+    leg( AF, F(0,  90), 'cw'), leg(0, F(90, 0), 'cw'),
+    leg(-AF, F(90,  0), 'cw'), leg(0, F(90, 270), 'cw'),
+  ];
   // 8 beats total: each of the 4 stages takes 2 beats (uniform across its frames).
-  return { frames, segBeats: frames.map(() => 2 / STEPS) };
+  return playScript(ds, d => d.role === 'L' ? lead : foll);
 }
 
 /* ------------------------------------------------------------------ *
@@ -2063,15 +2131,12 @@ function mujeresArriba(ds, N){
  * facing exactly the way he began. Nothing moves position. Danced after an Enchufla it leaves the
  * couple looking like Exhibela, but in the new Afuera Casino position (an inside-out Casino). */
 function leadersRightTurn(ds, N){
-  const STEPS = 12, frames = [];
-  const face0 = {}; ds.forEach(d => { if (d.role === 'L') face0[d.id] = facingAngle(d); });
-  for (let s = 1; s <= STEPS; s++){
-    frames.push(ds.map(d => {
-      if (d.role === 'L'){ const f = s === STEPS ? face0[d.id] : face0[d.id] + 360 * (s / STEPS); return { ...d, face: f, turn: 'cw' }; }
-      return { ...d };                                   // follower unchanged (fixed spot, faces her partner)
-    }));
-  }
-  return { frames, segBeats: frames.map(() => 4 / STEPS) };
+  // Declarative: one 4-beat segment each. Nobody moves; the leader spins a full turn to his right,
+  // `endAt: 'base'` landing him back on the exact bearing he started from rather than on start + 360.
+  const spin = [{ to: 'hold', beats: 4, steps: 12, turn: 'cw',
+                  face: { from: 'start', turn: 360, endAt: 'base' } }];
+  const still = [{ to: 'hold', beats: 4, steps: 12, face: 'hold' }];   // fixed spot, keeps facing her partner
+  return playScript(ds, d => d.role === 'L' ? spin : still);
 }
 
 /* ------------------------------ render ------------------------------ */

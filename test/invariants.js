@@ -909,6 +909,64 @@ function run() {
     }
   }
 
+  // 29: the scripted-figure primitives (DECLARATIVE.md §6), asserted as the dance rules they encode
+  //     rather than as synthetic unit tests — these are the properties that make each figure that figure,
+  //     and they are what would break if a primitive were subtly wrong.
+  for (const from of POSITIONS) {
+    for (const n of NS) {
+      const xyOf = (fr, id) => fr.find(d => d.id === id).xy;
+      const faceOf = (fr, id) => fr.find(d => d.id === id).face;
+      // (a) Leader's Right Turn is danced IN PLACE: nobody moves at all, and the leader's full spin lands
+      //     back on the exact bearing he began on (not on start + 360).
+      if (T.validFrom('leaders_right_turn', from)) {
+        T.setupRest(from, n, 0); const s0 = T._snap();
+        const ev = T.captureMovement('leaders_right_turn', from, n, 0).frames;
+        let moved = 0, spin = 0, endErr = 0;
+        s0.forEach(d => {
+          ev.forEach(fr => { moved = Math.max(moved, Math.hypot(xyOf(fr, d.id).x - d.xy.x, xyOf(fr, d.id).y - d.xy.y)); });
+          if (d.role !== 'L') return;
+          let prev = d.face, tot = 0;
+          ev.forEach(fr => { const f = faceOf(fr, d.id); tot += norm180(f - prev); prev = f; });
+          spin = Math.max(spin, Math.abs(Math.abs(tot) - 360));
+          endErr = Math.max(endErr, Math.abs(norm180(faceOf(ev[ev.length - 1], d.id) - d.face)));
+        });
+        nChecks++; check(moved <= 0.01, `leaders_right_turn|${from}|n${n}: danced in place, but someone moved ${moved.toFixed(2)}px`);
+        nChecks++; check(spin <= 0.5, `leaders_right_turn|${from}|n${n}: leader turned ${(360 + spin).toFixed(1)}°, want a full 360`);
+        nChecks++; check(endErr <= 0.01, `leaders_right_turn|${from}|n${n}: leader ended ${endErr.toFixed(2)}° off the bearing he started on`);
+      }
+      // (b) Exhibela is a CLOSED LOOP — "every dancer ends exactly where and how it began" — and the two
+      //     partners stay on their own lines, moving oppositely along the couple's spoke.
+      if (T.validFrom('exhibela', from)) {
+        T.setupRest(from, n, 0); const s0 = T._snap();
+        const ev = T.captureMovement('exhibela', from, n, 0).frames;
+        const last = ev[ev.length - 1];
+        let back = 0, excursion = 0;
+        s0.forEach(d => {
+          back = Math.max(back, Math.hypot(xyOf(last, d.id).x - d.xy.x, xyOf(last, d.id).y - d.xy.y));
+          ev.forEach(fr => { excursion = Math.max(excursion, Math.hypot(xyOf(fr, d.id).x - d.xy.x, xyOf(fr, d.id).y - d.xy.y)); });
+        });
+        nChecks++; check(back <= 0.01, `exhibela|${from}|n${n}: not a closed loop — ends ${back.toFixed(2)}px from the start`);
+        nChecks++; check(excursion > 20, `exhibela|${from}|n${n}: nobody actually travelled (max ${excursion.toFixed(1)}px)`);
+      }
+      // (c) The swap family trades places exactly: each partner lands on the other's start spot, and the
+      //     bow that lets them miss is zero at both ends (so the landing is exact, not merely close).
+      for (const key of ['enchufla', 'vacilala', 'adios', 'reverse_adios', 'reverse_enchufla', 'leaders_enchufla']) {
+        if (!T.validFrom(key, from)) continue;
+        T.setupRest(from, n, 0); const s0 = T._snap();
+        const spot = {}; s0.forEach(d => spot[d.station + d.role] = d.xy);
+        const ev = T.captureMovement(key, from, n, 0).frames, last = ev[ev.length - 1];
+        let swapErr = 0, minGap = Infinity;
+        s0.forEach(d => { const want = spot[d.station + (d.role === 'L' ? 'F' : 'L')];
+          swapErr = Math.max(swapErr, Math.hypot(xyOf(last, d.id).x - want.x, xyOf(last, d.id).y - want.y)); });
+        ev.forEach(fr => { s0.filter(d => d.role === 'L').forEach(L => {
+          const F = s0.find(o => o.station === L.station && o.role === 'F');
+          minGap = Math.min(minGap, Math.hypot(xyOf(fr, L.id).x - xyOf(fr, F.id).x, xyOf(fr, L.id).y - xyOf(fr, F.id).y)); }); });
+        nChecks++; check(swapErr <= 0.01, `${key}|${from}|n${n}: partners did not land exactly on each other's spots (${swapErr.toFixed(2)}px)`);
+        nChecks++; check(minGap >= GAP, `${key}|${from}|n${n}: partners brushed at ${minGap.toFixed(1)}px crossing (< ${GAP}) — the bow is too shallow`);
+      }
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());
