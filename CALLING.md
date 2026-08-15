@@ -286,6 +286,40 @@ Both land in Casino on the rueda. Couple travel is the shared `coupleWalkFrames`
 the way out moves exactly like the way in — including the rule that a couple heading **inward turns early**
 and one heading **outward turns late** (turn where there's room, so nobody swings through the middle).
 
+## Panel grouping and availability (UI)
+
+Both panels are grouped, and the groups are **derived, never hand-labelled** — a movement's group falls
+out of what it already declares, and a call's falls out of the movements it expands to. A new movement
+therefore lands in the right group without anyone maintaining a list, and the two panels cannot disagree.
+
+| Movements | rule |
+|---|---|
+| Formation & frame | changes formation (`play.formation`), or is a relabel (Afuera / Adentro) |
+| Progressions that flip the phase | `progresses` and `flipsPhase` |
+| Progressions on the same phase | `progresses`, no flip |
+| Standard | everything else |
+
+Calls take the group of the strongest thing in their sequence: formation, then progression, then
+standard; a `modifier` is an Interruption. Afuera and Adentro sit with **Formation & frame** (agreed with
+Sam): they keep the same partner in the same slot, but every figure afterwards is danced point-reflected,
+which is closer to changing formation than to an ordinary figure.
+
+**Availability.**
+
+- **Movements are all disabled while anything is playing.** A movement is a bite-sized unit that runs to
+  completion — it cannot be interrupted, so offering one mid-flight would be a lie.
+- **Calls stay available mid-sequence only where they can actually go somewhere.** Either the call can
+  *interrupt* (it is an interruption call **and** an interruption point is still ahead in the sequence),
+  or it can be *lined up behind* the current one (the wheel will finish somewhere the call can start
+  from). `projectedEndPos()` walks the remaining queue plus the default that follows it to work that out.
+  Offering anything else invites a click that silently does nothing.
+
+Each panel has two toggles: **show** (the whole section, default on) and **hide unavailable** (default
+off, so unavailable entries grey out as before). Hiding is applied per button *and* per group, so an
+empty group takes its heading with it. Buttons live in a fixed **grid**, not a wrapping flex row: a hover
+or a state change can alter a button's ink but never its cell, so nothing reflows and a button can no
+longer slide out from under the pointer mid-click.
+
 ## Decision points, queue, and the two modes
 
 As a call plays, the engine keeps a **queue** of the movements still to run for the current

@@ -3,6 +3,28 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v129 — UI: grouped panels, availability that means something, no reflow
+- **Both panels are grouped, and the groups are DERIVED** rather than hand-labelled. A movement's group
+  falls out of what it already declares (changes formation / progresses / flips the phase); a call's falls
+  out of the movements it expands to. A new movement lands in the right group with no list to maintain,
+  and the two panels cannot disagree about what something is.
+- Afuera / Adentro sit with **Formation & frame** (agreed with Sam): same partner, same slot, but every
+  figure afterwards is danced point-reflected — closer to changing formation than to an ordinary figure.
+- **Availability now means something.** Movements are all disabled while anything plays — a movement runs
+  to completion and cannot be interrupted. Calls stay available mid-sequence only where they can actually
+  go somewhere: either they interrupt (an interruption call **and** a juncture still ahead), or they can
+  be lined up behind (the wheel will finish somewhere they can start from). `projectedEndPos()` walks the
+  remaining queue plus the default that follows it.
+- **Nothing reflows on hover.** Buttons live in a fixed grid rather than a wrapping flex row, so a state
+  change alters a button's ink but never its cell. Verified by measuring every button's box before and
+  after a hover: **0 moved**. This was the bug where reaching for a call made it grow, wrap to the next
+  row, and deselect itself.
+- Per-panel toggles: **show** (default on) and **hide unavailable** (default off — grey out, as before).
+  Hiding applies per button *and* per group, so an empty group takes its heading with it.
+- One subtle CSS fix on the way: the section-title controls were floated, and a float makes an adjacent
+  flex container shrink to fit beside it — which was squeezing the Movements grid to half width and
+  forcing it into one column. Flexbox instead of float.
+
 ## v128 — documentation brought current, and an agent skill for extending the app
 - **`rueda-movements.skill`** — a packaged skill (source: `skills-rueda-movements.md`) for whoever adds
   the next movement, call, position or formation. It carries the intake questions to ask a *dancer*

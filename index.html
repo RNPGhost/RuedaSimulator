@@ -53,6 +53,21 @@
   }
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .calls{display:flex;flex-wrap:wrap;gap:8px}
+  /* Buttons live in a fixed GRID, not a wrapping flex row: a hover or a state change can alter a
+     button's ink but never its cell, so nothing reflows and a button can't slide out from under the
+     pointer mid-click (which used to deselect a call as you tried to pick it). */
+  .btngrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:5px}
+  .btngrid button{width:100%;padding:6px 6px;font-size:11.5px;text-align:center;
+                  white-space:normal;line-height:1.15;min-height:32px;display:flex;
+                  align-items:center;justify-content:center}
+  .grouped{display:flex;flex-direction:column;gap:10px}
+  .grouped.off{display:none}
+  .grp-title{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+             margin:0 0 4px;font-weight:600}
+  .grp.empty{display:none}
+  .secctl{display:flex;gap:10px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0}
+  .secctl label.ctl{font-size:11px;gap:4px}
+  .secctl input{margin:0}
   button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
          padding:9px 14px;border-radius:10px;transition:transform .05s, border-color .15s, background .15s}
   button:hover{border-color:var(--accent)}
@@ -87,7 +102,7 @@
   .modebtn{padding:6px 12px;border-radius:8px;background:var(--panel2);font-size:13px}
   .modebtn.active{background:var(--accent);color:#0b1020;border-color:var(--accent);font-weight:600}
   .section{margin-top:12px}
-  .sectitle{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 7px}
+  .sectitle{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 7px;display:flex;align-items:center;gap:8px}
   .sectitle .hint{text-transform:none;letter-spacing:0;font-size:11px;opacity:.75}
   .decision{margin:12px 0;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;
             background:rgba(91,140,255,.08);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -161,14 +176,24 @@
 
   <aside class="side">
     <div class="calls-pin">
-      <div class="sectitle">Calls</div>
-      <div class="calls" id="callButtons"></div>
+      <div class="sectitle"><span>Calls</span>
+        <span class="secctl" style="margin-left:auto">
+          <label class="ctl"><input type="checkbox" id="callsHideUnavail"> hide unavailable</label>
+          <label class="ctl"><input type="checkbox" id="callsOn" checked> show</label>
+        </span>
+      </div>
+      <div class="grouped" id="callButtons"></div>
     </div>
 
     <div class="side-scroll">
       <div class="section" style="margin-top:0">
-        <div class="sectitle">Movements <span class="hint">— fire one at a time to test</span></div>
-        <div class="calls" id="moveButtons"></div>
+        <div class="sectitle"><span>Movements <span class="hint">— fire one at a time to test</span></span>
+          <span class="secctl" style="margin-left:auto">
+            <label class="ctl"><input type="checkbox" id="movesHideUnavail"> hide unavailable</label>
+            <label class="ctl"><input type="checkbox" id="movesOn" checked> show</label>
+          </span>
+        </div>
+        <div class="grouped" id="moveButtons"></div>
       </div>
 
       <div class="card">
@@ -2440,6 +2465,23 @@ function setMode(m){
   else updateUI();
 }
 
+/* Panel toggles: show/hide the whole section, and whether unavailable entries grey out (default) or
+ * disappear. Hiding is applied per BUTTON and per GROUP, so an empty group takes its heading with it. */
+function applyPanelPrefs(){
+  [['callsOn', 'callsHideUnavail', 'callButtons', callBtns],
+   ['movesOn', 'movesHideUnavail', 'moveButtons', moveBtns]].forEach(([onId, hideId, hostId, btns]) => {
+    const on = document.getElementById(onId), hide = document.getElementById(hideId), host = document.getElementById(hostId);
+    if (!host) return;
+    host.classList.toggle('off', !!(on && !on.checked));
+    const hiding = !!(hide && hide.checked);
+    Object.values(btns || {}).forEach(b => { b.style.display = (hiding && b.disabled) ? 'none' : ''; });
+    host.querySelectorAll('.grp').forEach(g => {
+      const any = [...g.querySelectorAll('button')].some(b => b.style.display !== 'none');
+      g.classList.toggle('empty', !any);
+    });
+  });
+}
+
 function updateUI(){
   const idle = !engineActive && !animating && !awaiting;
   const pn = document.getElementById('posname'); if (pn) pn.textContent = (POSITIONS[posState] || {}).name || '—';
@@ -2448,19 +2490,31 @@ function updateUI(){
   document.getElementById('modeLive').classList.toggle('active', mode === 'live');
   document.getElementById('modeStep').classList.toggle('active', mode === 'step');
 
+  // A call is offerable MID-SEQUENCE only if it can actually go somewhere: either it interrupts (it is an
+  // interruption call and there is still a juncture ahead where one can land), or it can be lined up
+  // behind the current sequence (the wheel will finish somewhere the call can start from). Offering
+  // anything else invites a click that silently does nothing.
+  const endPos = idle ? posState : projectedEndPos();
+  const canFollow = c => !c.from || c.from.includes(endPos);
+  const okHere = c => (!c.from || c.from.includes(posState)) && !(c.minCouples && N < c.minCouples);
   Object.entries(CALLS).forEach(([key, c]) => {
     const b = callBtns[key]; if (!b) return;
-    const valid = (!c.from || c.from.includes(posState)) && !(c.minCouples && N < c.minCouples);
+    const fits = !(c.minCouples && N < c.minCouples);
     let en;
-    if (c.placeholder) en = idle && valid;
-    else if (mode === 'live') en = idle ? (!c.modifier && valid) : true;   // queue anything mid-sequence
-    else en = awaiting ? (c.modifier ? posState === 'exhibela' : (valid || ((key === 'dame' || key === 'dame_dos') && pendingDefault === 'dile'))) : (idle ? (!c.modifier && valid) : false);
+    if (c.placeholder) en = idle && okHere(c);
+    else if (idle) en = !c.modifier && okHere(c);
+    else if (mode === 'step' && awaiting)
+      en = c.modifier ? posState === 'exhibela'
+         : (okHere(c) || ((key === 'dame' || key === 'dame_dos') && pendingDefault === 'dile'));
+    else en = fits && (c.modifier ? interruptionPointAhead() : canFollow(c));
     b.disabled = !en;
   });
+  // A movement runs to completion — it cannot be interrupted — so the whole panel is dead while one plays.
   Object.entries(MOVEMENTS).forEach(([key, m]) => {
     const b = moveBtns[key]; if (!b) return;
     b.disabled = !(idle && validFrom(key, posState));
   });
+  applyPanelPrefs();
 
   const dec = document.getElementById('decision');
   if (mode === 'step' && awaiting){
@@ -2617,21 +2671,101 @@ function logLine(move, note, undo=false){
 }
 
 /* ------------------------------ wiring ------------------------------ */
+/* ------------------------------------------------------------------ *
+ *  Grouping — DERIVED, never hand-labelled. A movement's group falls out of what it already declares
+ *  (does it change formation, does it progress, does it flip the phase), and a call's falls out of the
+ *  movements it expands to. So a new movement lands in the right group without anyone maintaining a
+ *  list, and the two panels can never disagree about what something is.
+ * ------------------------------------------------------------------ */
+const MOVE_GROUPS = [
+  ['formation',  'Formation & frame'],
+  ['phaseflip',  'Progressions that flip the phase'],
+  ['samephase',  'Progressions on the same phase'],
+  ['standard',   'Standard'],
+];
+const CALL_GROUPS = [
+  ['formation',  'Formation & frame'],
+  ['progressive','Progressions'],
+  ['interrupt',  'Interruptions'],
+  ['standard',   'Standard'],
+];
+function moveGroup(key){
+  const m = MOVEMENTS[key]; if (!m) return 'standard';
+  // A formation change replaces the slot set; a relabel (Afuera/Adentro) turns the whole wheel
+  // inside out. Neither moves anyone to a new partner, but both change how everything after is danced.
+  if ((m.play && m.play.formation) || m.relabel) return 'formation';
+  if (!m.progresses) return 'standard';
+  return m.flipsPhase ? 'phaseflip' : 'samephase';
+}
+function callGroup(key){
+  const c = CALLS[key]; if (!c) return 'standard';
+  if (c.modifier) return 'interrupt';
+  const groups = (c.seq || []).map(moveGroup);
+  if (groups.includes('formation')) return 'formation';
+  if (groups.includes('phaseflip') || groups.includes('samephase')) return 'progressive';
+  return 'standard';
+}
+
+/* Where the wheel will be RESTING once everything currently queued — and the default that follows it —
+ * has run. This is what decides which calls may be lined up behind the one playing: a call can follow
+ * if the wheel will be somewhere it can start from. */
+function projectedEndPos(){
+  let p = posState; const q = queue.slice();
+  for (let guard = 0; guard < 40; guard++){
+    while (q.length && !validFrom(q[0], p)) q.shift();
+    let k = null;
+    if (q.length) k = q.shift();
+    else if ((POSITIONS[p] || {}).variant === 'exhibela') k = 'dile';
+    else if (p === 'linea_ex') k = 'dile_grande';
+    else if (p === 'linea_pex') k = 'dile_peq';
+    else break;
+    if (!MOVEMENTS[k]) break;
+    p = resolveSets(MOVEMENTS[k], p) || p;
+  }
+  return p;
+}
+/* Is there still a juncture in the current sequence where an interruption could land? */
+function interruptionPointAhead(){
+  let p = posState; const q = queue.slice();
+  for (let guard = 0; guard < 40; guard++){
+    while (q.length && !validFrom(q[0], p)) q.shift();
+    let k = null;
+    if (q.length) k = q[0];
+    else if ((POSITIONS[p] || {}).variant === 'exhibela') k = 'dile';
+    else if (p === 'linea_ex') k = 'dile_grande';
+    else if (p === 'linea_pex') k = 'dile_peq';
+    else break;
+    if (INTERRUPTIBLE.has(k)) return true;
+    if (q.length) q.shift(); else return false;
+    if (!MOVEMENTS[k]) break;
+    p = resolveSets(MOVEMENTS[k], p) || p;
+  }
+  return false;
+}
+
 function buildButtons(){
-  const cb = document.getElementById('callButtons'); cb.innerHTML = ''; callBtns = {};
-  Object.entries(CALLS).forEach(([key, c]) => {
-    const b = document.createElement('button');
-    b.className = 'call'; b.textContent = c.label;
-    b.onclick = () => issueCall(key);
-    cb.appendChild(b); callBtns[key] = b;
-  });
-  const mb = document.getElementById('moveButtons'); mb.innerHTML = ''; moveBtns = {};
-  Object.entries(MOVEMENTS).forEach(([key, m]) => {
-    const b = document.createElement('button');
-    b.className = 'call'; b.textContent = m.label;
-    b.onclick = () => doMovement(key);
-    mb.appendChild(b); moveBtns[key] = b;
-  });
+  // Both panels render the same way: one block per group, each a fixed grid of equal cells.
+  const build = (hostId, groups, entries, groupOf, labelOf, onClick) => {
+    const host = document.getElementById(hostId); host.innerHTML = '';
+    const btns = {}, blocks = {};
+    groups.forEach(([g, title]) => {
+      const wrap = document.createElement('div'); wrap.className = 'grp'; wrap.dataset.group = g;
+      const h = document.createElement('div'); h.className = 'grp-title'; h.textContent = title;
+      const grid = document.createElement('div'); grid.className = 'btngrid';
+      wrap.appendChild(h); wrap.appendChild(grid); host.appendChild(wrap);
+      blocks[g] = { wrap, grid };
+    });
+    entries.forEach(key => {
+      const b = document.createElement('button');
+      b.className = 'call'; b.textContent = labelOf(key); b.title = labelOf(key);
+      b.onclick = () => onClick(key);
+      (blocks[groupOf(key)] || blocks.standard).grid.appendChild(b);
+      btns[key] = b;
+    });
+    return btns;
+  };
+  callBtns = build('callButtons', CALL_GROUPS, Object.keys(CALLS), callGroup, k => CALLS[k].label, issueCall);
+  moveBtns = build('moveButtons', MOVE_GROUPS, Object.keys(MOVEMENTS), moveGroup, k => MOVEMENTS[k].label, doMovement);
   const pips = document.getElementById('beatpips'); pips.innerHTML = '';
   for (let i = 0; i < 8; i++) pips.appendChild(document.createElement('span'));
 }
@@ -2666,6 +2800,9 @@ document.getElementById('modeLive').onclick = () => setMode('live');
 document.getElementById('modeStep').onclick = () => setMode('step');
 document.getElementById('silenceBtn').onclick = takeDefault;
 
+['callsOn','callsHideUnavail','movesOn','movesHideUnavail'].forEach(id => {
+  const el = document.getElementById(id); if (el) el.addEventListener('change', applyPanelPrefs);
+});
 buildButtons();
 reset();
 requestAnimationFrame(metronome);
