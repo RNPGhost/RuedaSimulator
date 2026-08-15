@@ -153,6 +153,11 @@ candidate ever contained two leaders. That reads as obviously safe on the full w
 progress in lockstep, and is false on a Línea mini-wheel, where `dh: -2` sends both leaders across a
 2-couple wheel. They passed within 10.5px at 8 couples and nothing failed, because nothing was asked.
 
+Nor is it planned formation by formation. Línea Moderna's mini-wheels used to be solved one at a time,
+so dancers in different mini-wheels were never compared; the whole formation is now planned together
+after the sub-wheels merge. Nothing deviates today (they clear by 60.2px) — the point is that the pair is
+looked at.
+
 **Group membership decides how a corridor is shared, never who is looked at.** The planner also reports
 now: a solve that cannot hold its corridor records a `PLAN_FAULTS` entry instead of returning its
 solver cap in silence.

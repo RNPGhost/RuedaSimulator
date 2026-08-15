@@ -3,6 +3,21 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v132 — the whole formation is one collision problem
+- **Línea Moderna is planned as one formation, not as m separate mini-wheels.** Each mini-wheel was
+  solved entirely on its own, so two dancers in *different* mini-wheels were never compared — the same
+  blindness as the cross-group pair bug, one level up. `pequenaFrames` now runs a planning pass over the
+  merged formation after the sub-wheels are stitched together. Same-wheel pairs are excluded because
+  their spacing was already solved, and re-solving pairs that sit exactly *on* the corridor would let
+  float noise reopen them.
+- It finds nothing to do today — measured, dancers in different mini-wheels clear by **60.2px** against a
+  35px corridor, tightest at 4 couples where the wheels sit closest — so the frames come out unchanged
+  and the golden does not move. That is the point: it is the net a tighter formation or an overlapping
+  movement will need, wired now rather than after someone notices two dancers sharing a spot.
+- **§37** asserts both halves: that they clear, *and* that a solve covering every dancer actually happens.
+  Only the second half catches the regression — deleting the pass leaves every distance check green,
+  which is exactly the state the engine was in when two leaders passed within 10.5px.
+
 ## v131 — Dame Línea is a Dame, musically
 - **`dame_linea` declares 2 beats, not 4** (Sam, from the running sim). It is a progressing Dame-type
   figure that closes into a Dile Que No, so `startBeatOf` already snaps it to beat **9 − beats**: at 2

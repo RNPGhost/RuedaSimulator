@@ -1801,6 +1801,49 @@ function run() {
     }
   }
 
+  // 37: CROSS-MINI-WHEEL COVERAGE. Línea Moderna is a ring of mini 2-couple wheels and each one used to
+  //     be planned entirely on its own, so two dancers in DIFFERENT mini-wheels were never compared —
+  //     the same blindness as the cross-group pair bug, one level up. They clear comfortably today, which
+  //     is exactly why it needed asserting rather than observing: a gap nobody looks at stays invisible
+  //     until the day it closes. Both halves are checked — that they clear, and that they are looked at.
+  {
+    const CLEAR = 2 * (T.DOT_R + T.PATH_CLEAR);
+    const timeline = cap => {
+      const ids = cap.frames[0].map(d => d.id), P = {}, st = cap.start || {};
+      ids.forEach(id => P[id] = (st[id] ? [st[id]] : []).concat(cap.frames.map(fr => fr.find(d => d.id === id).xy)));
+      return { ids, P };
+    };
+    let worst = Infinity, wctx = '', seen = 0;
+    for (const seq of [['adios_peq', 'dame_peq'], ['enchufla_peq'], ['dame_peq'], ['adios_peq']])
+      for (const n of [4, 6, 8, 10, 12]) for (const ph of [0, 1]){
+        let first = true, cap = null;
+        for (const mv of seq){
+          try { cap = first ? T.captureLineaMovement(mv, n, ph) : T.fireHere(mv); } catch (e) { cap = null; break; }
+          first = false;
+        }
+        if (!cap || !cap.frames) continue;
+        seen++;
+        const m = n / 2, wheelOf = {};
+        cap.frames[0].forEach(d => wheelOf[d.id] = d.station % m);   // station j and m+j share mini-wheel j
+        const { ids, P } = timeline(cap), F = P[ids[0]].length;
+        for (let s = 0; s < F; s++) for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++){
+          if (wheelOf[ids[i]] === wheelOf[ids[j]]) continue;
+          const d = Math.hypot(P[ids[i]][s].x - P[ids[j]][s].x, P[ids[i]][s].y - P[ids[j]][s].y);
+          if (d < worst){ worst = d; wctx = `[${seq}] n=${n} p${ph} ${ids[i]}/${ids[j]} @kf${s}`; }
+        }
+      }
+    nChecks++; check(seen > 20, `§37 only ${seen} Línea cases reached — the cross-wheel sweep is not running`);
+    nChecks++; check(worst >= GAP, `§37 dancers in different mini-wheels come within ${worst.toFixed(1)}px (${wctx})`);
+    // …and the planner is actually given those pairs. pequenaFrames plans the whole formation after
+    // merging the sub-wheels, so a solve covering every dancer must appear — not just the 4-dancer ones.
+    T.clearFaults();
+    T.captureLineaMovement('dame_peq', 8, 0);
+    const wide = T.PLAN_LOG.filter(e => e.n === 16);
+    nChecks++; check(wide.length > 0,
+      '§37 no solve saw the whole formation — the mini-wheels are still being planned in isolation');
+    T.clearFaults();
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());
