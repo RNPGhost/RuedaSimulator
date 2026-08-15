@@ -3,6 +3,23 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v122 — travel as data too
+- **`TRAVELS` — the dynamic half as plain JSON.** Per role: where that dancer lands and which side it
+  passes on; `scripted: true` marks a role that dances a figure instead. Four entries cover the whole
+  Dame family, Dame Pequeña and Mujeres Arriba.
+- Reading down the `dh` column now tells you which movements flip the phase (odd totals) and which do
+  not (even) — the property is visible in the data rather than buried in a generator.
+- **`mirror` at instantiation** turns a definition inside out for the afuera positions: `dh` signs flip,
+  lanes swap, pass sides swap. One definition covers both, so there is no `dame_afuera`.
+- **A unification fell out.** Dame Pequeña's follower dances a Reverse Adios across her own spoke, and her
+  bow amplitude was solved by a private copy of the same search the swap figures use. Same question —
+  how wide must a bow be for two partners to trade places without brushing — so she now calls
+  `SOLVERS.justMiss`. The numbers were identical to the pixel.
+- **§30 now covers both registries**, and runs *two* definitions the app has never seen: a scripted
+  figure and a whole-couple travel, both written as JSON text in the test, which must land where they say
+  they will, on the grid, without collision.
+- 2490 invariants; golden and visual untouched.
+
 ## v121 — figures as pure data, and a test that proves it
 - **`FIGURES` — a registry of scripted figures as plain JSON.** No functions, no closures, nothing that
   could not have come out of a file a user wrote. `exhibela`, `leaders_right_turn`, `swap` (six

@@ -274,3 +274,38 @@ against the original — but `JSON.stringify` **silently drops** a function rath
 `{face: () => 1}` round-trips "successfully" to `{}`. The check now walks the structure and names the
 offending path, and it **self-tests against a known-bad sample** so it cannot rot into something that
 passes everything.
+
+
+## 10. Travel as data — the `TRAVELS` registry (built)
+
+The dynamic half, as plain JSON. A travel definition says, per role, **where that dancer lands** and
+**which side it passes on**; `scripted: true` marks a role that dances a figure instead, whose path the
+engine supplies and treats as an immutable obstacle.
+
+```js
+dame:         { groups: ['L','F'], L: { dh: -1, lane: 'cw',  pass: 'in'  },
+                                   F: { dh:  1, lane: 'ccw', pass: 'out' } },
+dame_dos:     { groups: ['L','F'], L: { dh: -3, lane: 'cw',  pass: 'in'  },
+                                   F: { dh:  1, lane: 'ccw', pass: 'out' } },
+dame_pequena: { groups: ['L','F'], L: { dh: -2, lane: 'cw',  pass: 'in'  },
+                                   F: { scripted: true, lane: 'ccw' } },
+mujeres:      { groups: ['F','L'], F: { dh:  2, lane: 'ccw', pass: 'in'  },
+                                   L: { scripted: true, lane: 'cw'  } },
+```
+
+That is the entire Dame family, Dame Pequeña and Mujeres Arriba. Reading down the `dh` column tells you
+which movements flip the phase (odd totals: Dame, Dame Dos) and which do not (even: Dame Pequeña,
+Mujeres Arriba) — the property is visible in the data rather than buried in a generator.
+
+**`mirror` at instantiation** turns a definition inside out for the afuera positions: `dh` signs flip,
+lanes swap, pass sides swap. One definition covers both, which is why there is no `dame_afuera` entry.
+
+**A unification that fell out.** Dame Pequeña's follower dances a Reverse Adios across her own spoke, and
+her bow amplitude was solved by a private copy of the same search the swap figures use. It is the same
+question — *how wide must a bow be for two partners to trade places without brushing* — so she now calls
+`SOLVERS.justMiss`, and the numbers were identical to the pixel.
+
+**§30 covers both registries.** Every figure and travel definition is walked for purity and round-tripped
+through JSON, and *two* definitions the app has never seen — a scripted figure and a whole-couple travel,
+both written as JSON text in the test — are run through the engine and must land where they say, on the
+grid, without collision.

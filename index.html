@@ -1402,25 +1402,13 @@ function playTravel(ds, N, o){
  * computed here; the PATHS between them come from the pathing router above: leaders ride the inner
  * lane and cut straight to the new partner, passed followers bow to the outer lane and back. */
 function dameToEnchufla(ds, N, k, fromEnch, afuera){
-  // Declarative travel (DECLARATIVE.md §7). The whole figure is two slot addresses and a pass side:
-  // the leader travels (2k−1) half-spacings one way, the follower 1 the other, which together advance
-  // the pairing k full couples. Their total is ODD, which is *why* a Dame always flips the phase —
-  // nothing here declares that, it falls out of the arithmetic.
-  const dir = afuera ? -1 : 1;                                 // afuera progresses the other way
-  const leaderEndLane = afuera ? 'ccw' : 'cw', folEndLane = afuera ? 'cw' : 'ccw';
-  const lDelta = -(2 * k - 1) * dir, fDelta = dir;
-  const leadDir = afuera ? +1 : -1;                            // leader eases toward the centre (out, afuera)
-  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
-  const isL = {}; ds.forEach(d => isL[d.id] = d.role === 'L');
-  return playTravel(ds, N, {
-    // The Dame is danced from the pre-flip config: `phase` has already been advanced by the engine.
-    phaseBefore: phase ^ 1,
-    target: d => d.role === 'L' ? { dh: lDelta, lane: leaderEndLane } : { dh: fDelta, lane: folEndLane },
-    pass: id => (isL[id] ? leadDir : -leadDir),                // leader and follower pass on each other's left
-    group: id => isL[id] ? 'L' : 'F', groups: ['L', 'F'],
-    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
-    forceShare: DAME_WL_FORCE,
-  }).frames;
+  // The whole figure is a travel definition (DECLARATIVE.md §10): two slot addresses and a pass side.
+  // `mirror` turns it inside out for the afuera positions. Nothing declares the phase flip — the two
+  // dh values sum to an odd number, and the arithmetic does the rest.
+  return playTravel(ds, N, resolveTravel(k === 2 ? 'dame_dos' : 'dame', ds, {
+    phaseBefore: phase ^ 1,                                  // a Dame is danced from the pre-flip config
+    mirror: !!afuera, forceShare: DAME_WL_FORCE,
+  })).frames;
 }
 
 /* Dame Pequena — progresses the leader one couple WITHOUT changing the spoke config: the couples stay
@@ -1434,32 +1422,25 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
  * Afuera inverts it inside-out: the progression runs clockwise, the Exhibela lanes swap, and the
  * follower's bow mirrors — landing in Afuera Exhibela. Leaders steer clear of everyone. */
 function damePequena(ds, N, fromEnch, afuera){
-  // Declarative (DECLARATIVE.md §7). The asymmetric Dame: the LEADER travels a whole couple (dh ±2, so
-  // the phase does not flip) while the FOLLOWER is scripted — she stands still coming from Exhibela, or
-  // dances a Reverse Adios across her own spoke coming from Casino. She is an immutable obstacle, so he
-  // takes the whole corridor.
+  // The asymmetric Dame (DECLARATIVE.md §10): the LEADER travels a whole couple (dh ±2, even, so the
+  // phase does not flip) while the FOLLOWER is scripted — standing still from Exhibela, or dancing a
+  // Reverse Adios across her own spoke from Casino. She is an immutable obstacle, so he takes the whole
+  // corridor. Her bow uses the SAME `justMiss` solver the swap figures do: it is the same question —
+  // how wide must a bow be for two partners to trade places without brushing.
   const norm = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
   const leftOf = u => ({ x: u.y, y: -u.x }), rightOf = u => ({ x: -u.y, y: u.x });
-  const step = afuera ? 1 : -1;                        // progression: anti-clockwise normally, clockwise afuera
-  const leaderEndLane = afuera ? 'ccw' : 'cw';         // Exhibela / Afuera-Exhibela leader lane
-  const folTargetLane = afuera ? 'cw' : 'ccw';         // her Exhibela spot = her leader's old spot (same spoke)
-  const bow = afuera ? leftOf : rightOf;               // Reverse-Adios bow side (mirrors afuera)
+  const step = afuera ? 1 : -1;
+  const leaderEndLane = afuera ? 'ccw' : 'cw', folTargetLane = afuera ? 'cw' : 'ccw';
+  const bow = afuera ? leftOf : rightOf;
   const cur = {}; ds.forEach(d => { cur[d.id] = d.xy ? d.xy : FORMATIONS.circle.slot(d.station, d.lane, N, phase); });
   const isL = {}; ds.forEach(d => isL[d.id] = d.role === 'L');
-  // The follower's scripted figure: stay put, or a Reverse Adios to her leader's old spot on her spoke.
   const fInfo = {};
   ds.forEach(d => { if (d.role !== 'F') return; const S = cur[d.id];
     if (fromEnch){ fInfo[d.id] = { kind: 'stay', S }; return; }
     const T = FORMATIONS.circle.slot(d.station, folTargetLane, N);
     fInfo[d.id] = { kind: 'radios', S, T, perp: bow(norm({ x: T.x - S.x, y: T.y - S.y })), face0: facingAngle(d) };
   });
-  let famp = 0;                                        // Reverse-Adios bow: solved from the couple width
-  if (!fromEnch){
-    const anyL = ds.find(d => d.role === 'L'), anyF = ds.find(o => o.station === anyL.station && o.role === 'F');
-    const D = Math.hypot(cur[anyL.id].x - cur[anyF.id].x, cur[anyL.id].y - cur[anyF.id].y), GAPf = 2 * (DOT_R + 1) + 0.5;
-    const minGap = A => { let m = Infinity; for (let s = 1; s < 40; s++){ const t = s / 40; m = Math.min(m, Math.hypot(D * (2 * t - 1), 2 * A * Math.sin(Math.PI * t))); } return m; };
-    for (let a = 0; a <= 80; a += 0.5){ if (minGap(a) >= GAPf){ famp = a; break; } }
-  }
+  const famp = fromEnch ? 0 : SOLVERS.justMiss(ds);
   const fAt = id => t => { const g = fInfo[id]; if (g.kind === 'stay') return g.S;
     const k = famp * Math.sin(Math.PI * t);
     return { x: g.S.x + (g.T.x - g.S.x) * t + g.perp.x * k, y: g.S.y + (g.T.y - g.S.y) * t + g.perp.y * k }; };
@@ -1472,18 +1453,12 @@ function damePequena(ds, N, fromEnch, afuera){
     const El = FORMATIONS.circle.slot(q.station, leaderEndLane, N);
     g.sweep = norm360(g.face0 - Math.atan2(El.y - g.T.y, El.x - g.T.x) * 180 / Math.PI);
   });
-  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
-  return playTravel(ds, N, {
-    phaseBefore: phase,                                // dh is even, so the config is unchanged
-    target: d => isL[d.id] ? { dh: 2 * step, lane: leaderEndLane } : null,
+  return playTravel(ds, N, resolveTravel('dame_pequena', ds, {
+    phaseBefore: phase, mirror: !!afuera,
     scriptAt: id => fAt(id),
-    pass: () => (afuera ? +1 : -1),                    // only the leader yields, easing toward the centre
-    yields: id => isL[id], unit: id => id,
-    group: id => isL[id] ? 'L' : 'F', groups: ['L', 'F'],
     face: id => isL[id] || fInfo[id].kind === 'stay' ? null
-      : { from: 'start', turn: -fInfo[id].sweep },     // Reverse Adios: anti-clockwise onto her new leader
-    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
-  }).frames;
+      : { from: 'start', turn: -fInfo[id].sweep },          // Reverse Adios: anti-clockwise onto her new leader
+  })).frames;
 }
 
 /* Walk every couple to its new place AS A COUPLE: the midpoint runs straight from where it stands to
@@ -1941,6 +1916,44 @@ function playFigure(figure, ds, params){
   return playScript(ds, resolveFigure(typeof figure === 'string' ? FIGURES[figure] : figure, ds, params));
 }
 
+/* TRAVELS — the dynamic half as pure data. A travel definition says, per role, WHERE that dancer lands
+ * (a slot address, §2) and WHICH SIDE it passes on. `scripted: true` marks a role that dances a figure
+ * instead of travelling; the engine supplies its path and treats it as an immutable obstacle.
+ *
+ * `mirror` at instantiation turns a figure inside out for the afuera positions — dh signs flip, lanes
+ * swap, pass sides swap. One definition covers both, which is why there is no `dame_afuera` here. */
+const PASS_DIR = { in: -1, out: 1 };
+const TRAVELS = {
+  // A Dame: the leader crosses an ODD number of half-spacings and the follower one the other way, which
+  // together advance the pairing a whole couple — and, being odd, always flip the phase.
+  dame:         { groups: ['L', 'F'], L: { dh: -1, lane: 'cw', pass: 'in' },
+                                      F: { dh:  1, lane: 'ccw', pass: 'out' } },
+  dame_dos:     { groups: ['L', 'F'], L: { dh: -3, lane: 'cw', pass: 'in' },
+                                      F: { dh:  1, lane: 'ccw', pass: 'out' } },
+  // Dame Pequeña: the leader does all the travelling (an EVEN dh, so no phase flip) and the follower is
+  // scripted. Mujeres Arriba is the same shape with the roles inverted.
+  dame_pequena: { groups: ['L', 'F'], L: { dh: -2, lane: 'cw', pass: 'in' },
+                                      F: { scripted: true, lane: 'ccw' } },
+  mujeres:      { groups: ['F', 'L'], F: { dh:  2, lane: 'ccw', pass: 'in' },
+                                      L: { scripted: true, lane: 'cw' } },
+};
+/* Turn a travel definition into the options `playTravel` takes. `o` supplies the engine-side wiring a
+ * definition cannot state: the scripted roles' paths, any facing rules, and the beat/step budget. */
+function resolveTravel(name, ds, o){
+  const def = typeof name === 'string' ? TRAVELS[name] : name;
+  const mir = o.mirror ? -1 : 1;
+  const laneOf = r => { const l = def[r].lane; return o.mirror ? LANE_SWAP[l] : l; };
+  const role = {}; ds.forEach(d => role[d.id] = d.role);
+  const CLEAR = 2 * (DOT_R + PATH_CLEAR);
+  return Object.assign({
+    target: d => def[d.role].scripted ? null : { dh: mir * def[d.role].dh, lane: laneOf(d.role) },
+    pass: id => mir * PASS_DIR[def[role[id]].pass || 'in'],
+    yields: id => !def[role[id]].scripted,
+    group: id => role[id], groups: def.groups,
+    clearance: CLEAR, engage: CLEAR + 1.4 * DOT_R,
+  }, o);
+}
+
 const FIGURES = {
   // The 4-beat Dile Que No opening: dip out along your own Exhibela line, back, onto the couple's
   // midpoint spoke, pause. Beats 2 and 3 are `round`, so they join into ONE curve through the start
@@ -2042,20 +2055,12 @@ function mujeresArriba(ds, N){
   const lFin = {}; ds.forEach(d => { if (d.role !== 'L') return;
     const her = FORMATIONS.circle.slot(d.station, 'ccw', N);
     lFin[d.id] = Math.atan2(her.y - lEnd[d.id].y, her.x - lEnd[d.id].x) * 180 / Math.PI; });
-  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
-  return playTravel(ds, N, {
-    phaseBefore: phase,
-    target: d => isF[d.id] ? { dh: 2, lane: 'ccw' } : null,   // one couple clockwise, to the Exhibela follower lane
-    scriptAt: id => lAt(id),
-    pass: () => -1,                                    // the women ease inward, passing under the returning men
-    yields: id => isF[id], unit: id => id,
-    group: id => isF[id] ? 'F' : 'L', groups: ['F', 'L'],
-    steps: 24, settle: 0.3, beats: 4,
+  return playTravel(ds, N, resolveTravel('mujeres', ds, {
+    phaseBefore: phase, scriptAt: id => lAt(id), steps: 24, settle: 0.3, beats: 4,
     // He holds facing the centre, then turns to his RIGHT onto his new partner — right even when left is
     // shorter, which is why the rule takes a direction rather than a short-way blend.
     face: id => isF[id] ? null : { from: 'centre', to: lFin[id], after: 0.62, dir: 'cw' },
-    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
-  });
+  }));
 }
 
 /* Leader's Right Turn — a 4-beat figure danced in place. The follower stays exactly put and does

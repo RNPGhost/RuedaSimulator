@@ -992,12 +992,38 @@ function run() {
     // Self-test the walker, so it cannot rot into something that passes everything.
     nChecks++; check(impure({ L: [{ face: () => 1 }] }, 'x') !== null, 'purity check does not detect a function');
     nChecks++; check(impure({ L: [{ to: 'start', off: [1, 2] }] }, 'x') === null, 'purity check rejects plain data');
-    for (const name of Object.keys(T.FIGURES)) {
-      const def = T.FIGURES[name];
-      const bad = impure(def, name);
-      nChecks++; check(bad === null, `figure "${name}" is not pure data — ${bad}`);
-      nChecks++; check(JSON.stringify(JSON.parse(JSON.stringify(def))) === JSON.stringify(def),
-        `figure "${name}" does not survive a JSON round-trip`);
+    for (const [kind, reg] of [['figure', T.FIGURES], ['travel', T.TRAVELS]]) {
+      for (const name of Object.keys(reg)) {
+        const def = reg[name], bad = impure(def, name);
+        nChecks++; check(bad === null, `${kind} "${name}" is not pure data — ${bad}`);
+        nChecks++; check(JSON.stringify(JSON.parse(JSON.stringify(def))) === JSON.stringify(def),
+          `${kind} "${name}" does not survive a JSON round-trip`);
+      }
+    }
+    // A TRAVEL the app has never seen, written as JSON text: everyone crosses a whole couple clockwise,
+    // leaders passing inside and followers outside. It must land the wheel on the grid, without collision.
+    {
+      const NEW_TRAVEL = `{
+        "groups": ["L", "F"],
+        "L": { "dh": 2, "lane": "ccw", "pass": "in"  },
+        "F": { "dh": 2, "lane": "cw",  "pass": "out" }
+      }`;
+      const def = JSON.parse(NEW_TRAVEL);
+      for (const n of NS) {
+        const out = T.playTravelFrom(def, 'casino', n, 0);
+        const fr = out && out.frames;
+        nChecks++; check(!!fr && fr.length > 0, `data-defined travel n${n}: produced no frames`);
+        if (!fr) continue;
+        let worst = Infinity, offGrid = 0;
+        fr.forEach(f => { worst = Math.min(worst, minPairDist(f)); });
+        // dh +2 is a whole couple clockwise: every dancer must land exactly on the next station's slot
+        fr[fr.length - 1].forEach(d => { const want = T.circleAt(d.station, d.role === 'L' ? 'ccw' : 'cw', n, 0);
+          offGrid = Math.max(offGrid, Math.hypot(d.xy.x - want.x, d.xy.y - want.y)); });
+        nChecks++; check(offGrid <= 0.2, `data-defined travel n${n}: did not land on the grid (${offGrid.toFixed(2)}px)`);
+        nChecks++; check(worst >= GAP, `data-defined travel n${n}: collides (minClear ${worst.toFixed(1)})`);
+        const bad2 = fr.some(f => f.some(d => !isFinite(d.xy.x) || !isFinite(d.xy.y) || !isFinite(d.face)));
+        nChecks++; check(!bad2, `data-defined travel n${n}: produced NaN`);
+      }
     }
     // A figure that exists nowhere in the source: step out along your own spoke, hold, come back,
     // turning to face the wheel centre and back to your partner. Written as TEXT and parsed.
