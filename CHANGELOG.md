@@ -3,6 +3,22 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v128 — documentation brought current, and an agent skill for extending the app
+- **`rueda-movements.skill`** — a packaged skill (source: `skills-rueda-movements.md`) for whoever adds
+  the next movement, call, position or formation. It carries the intake questions to ask a *dancer*
+  (in their vocabulary, not the maintainer's), the six descriptor kinds to express the answer in, the
+  proof procedure, and **the five ways this codebase has actually been broken**: a second way to do
+  something that already has a way; hand-specifying what the engine should solve; a magic number that is
+  really a rule; counting in couples or frames instead of half-spacings or fractions; and anchoring on an
+  index instead of a structure. Each is a real incident from this project's history.
+- It also says what **not** to ask: never ask what a path looks like, how wide anyone swings, or where
+  they are at beat 3. Those are solved, and asking invites a pixel answer — which is a bug.
+- **Docs brought current.** `MOVEMENT_SPEC` and `CALLING` said "write a generator as a pure function",
+  which has been false since v127; both now say write a descriptor. `PATHING` named generators that no
+  longer exist, and still claimed the naturalness split shifts for a Dame Dos — measured, it lands on
+  0.50 everywhere, and the doc now says so. `ARCHITECTURE_REVIEW`, `REFACTOR_PLAN` and `SMOOTH_PATHS_PLAN`
+  are marked **HISTORICAL** at the top so they are not read as current guidance.
+
 ## v127 — Phase 5 complete: every movement is a descriptor
 - **No `frames` generators remain.** Every movement in the app is a `play` descriptor, across six kinds:
   `figure`, `travel`, `phrases`, `formation`, `compose` and `hold`. **§30 asserts it** — the engine keeps

@@ -1,5 +1,9 @@
 # Refactor plan — behaviour-preserving, test-gated
 
+> **HISTORICAL — not current guidance.** Completed. The engine it describes has since been rebuilt again — see ENGINE_MODEL.md §5.
+> Kept as the record of what was decided and why. For how the system works today, start at **README.md**
+> → **MOVEMENT_SPEC.md**.
+
 Goal: carry out the structural rework from `ARCHITECTURE_REVIEW.md` **without changing any observable
 behaviour and without adding Línea Moderna (or any feature)**. Every step is shippable on its own and
 is gated by an automated regression suite that must stay green.

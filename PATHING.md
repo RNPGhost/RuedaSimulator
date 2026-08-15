@@ -1,8 +1,9 @@
 # Pathing rules
 
-How dancers *travel* between positions in the progressing figures. Agreed spec for the Phase-4
-rework. Only **paths** are governed here — every **endpoint** (pairings, the two-config flip,
-meet-at-midway, progress-k, grid-exact rests) is unchanged from before the rework.
+How dancers *travel* between positions. Only **paths** are governed here — every **endpoint** (pairings,
+the two-config flip, meet-at-midway, progress-k, grid-exact rests) is stated as data in the movement's
+descriptor: see **DECLARATIVE.md**. `planCrossings` is the only code in the app that avoids collisions,
+and every traveller goes through it.
 
 ## The corridor (scales with the wheel)
 
@@ -25,7 +26,7 @@ meet-at-midway, progress-k, grid-exact rests) is unchanged from before the rewor
   along the track — they never temporarily change order. (Holds for all current moves; may relax once
   different couples do different things.)
 
-## Dame crossing model (`dameToEnchufla` — Dame, Dame Dos, and their Grande forms)
+## Dame crossing model (the `dame` / `dame_dos` travel definitions, and their Grande forms)
 
 Every dancer travels a **base polar arc**: the angle sweeps S→E and the radius interpolates S→E, so the
 path follows the ring and never cuts across the wheel. On a clear move a dancer **stays exactly on that
@@ -52,15 +53,17 @@ width `CLEAR_TGT` (the lane clearance) — the leader eases one way, the followe
 - **One amplitude, solved.** Clearance depends only on the *total* corridor width, so a single scale is
   solved (coarse scan then bisect) to hold every crossing pair ≥ `CLEAR_TGT`; an early crossing where the
   ease hasn't fully opened just deepens both sides together.
-- **The split is balanced for equal naturalness.** Given the solved amplitude, the leader's share `wL`
-  (and the follower's `1−wL`) is bisected to the point where the two dancers' path-naturalness costs
-  *meet* — so neither is more frantic than the other. A plain Dame (both travel the same) lands 50/50; a
-  Dame Dos (the follower stands still while two leaders pass) makes the **moving leaders share her
-  evasion** rather than her lurching the whole corridor alone.
+- **The split is balanced for equal naturalness.** Given the solved amplitude, the leader's share (and
+  the follower's `1−share`) is bisected to where the two dancers' path-naturalness costs *meet*, so
+  neither is more frantic than the other. **Measured, every shipped movement lands on exactly 0.50** —
+  the two groups are mirror images of each other, so an even split genuinely *is* the equal-naturalness
+  split. It shifts (to 0.485) only when a dancer's engagements **overlap**, merging into one wider crest
+  that costs more than a single pass; invariants §32 builds that case, because nothing we dance produces
+  it. Where one group is **scripted** the share is pinned at 1 and the traveller takes the whole corridor.
 
 Everyone faces the way they travel, settling to face the new partner over the last third (see below).
 
-## Dame Pequeña (`damePequena`) — the asymmetric case, now on the shared planner
+## Dame Pequeña — the asymmetric case
 
 Pequeña is *defined* as "the leader does all the travel": from Exhibela the follower stays put and the
 leader rides the whole way to the next spoke; from Casino she dances a Reverse Adios across her own
@@ -106,8 +109,9 @@ obstacle** (`yields: false`) and he is the only free variable. Consequences, all
   the old "stay deep and rise late to pass under the leaders" turned out to be unnecessary (they clear
   by 41.4px against a 35px corridor with no evasion at all) as well as the jerkiest part of the figure.
 - **Dile Que No y Dame = 4-beat Dile Que No → Dame-from-Dile-Que-No-position** (and likewise the Dos)
-  — *still the pre-existing single `dileQueNoYDame` generator; routing the compounds through the new
-  first-class position is deferred (Phase 4 part 3, not yet done).*
+  — *a two-phrase descriptor: the shared 4-beat opening figure, then a travel in which the follower
+  dances her ¾ circle back to her own spot while the leader crosses. Its opening is literally the same
+  definition the standalone 4-beat Dile Que No dances.*
 
 ## Scope
 

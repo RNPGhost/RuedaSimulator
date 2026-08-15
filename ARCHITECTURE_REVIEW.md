@@ -1,5 +1,9 @@
 # Architecture review — Rueda de Casino Simulator
 
+> **HISTORICAL — not current guidance.** Everything it proposed has been built (see ENGINE_MODEL.md and DECLARATIVE.md).
+> Kept as the record of what was decided and why. For how the system works today, start at **README.md**
+> → **MOVEMENT_SPEC.md**.
+
 A from-scratch design assessment, written just before adding a second real formation
 (Rueda Línea Moderna). No code has been changed. The goal is to decide which of the
 current foundations to keep and which to rework *before* formations multiply the surface area.

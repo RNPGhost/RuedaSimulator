@@ -235,10 +235,12 @@ concept and the couple-midpoint discriminator both arrived.
 
 ## 5. Mechanics
 
-1. Write the generator as a pure function `(ds, N, from) => frames` (or `{frames, segBeats}`), using
-   `planCrossings` for every traveller. Reuse `coupleWalkFrames` for bonded-couple travel and
-   `runOnWheel` to compose onto sub-wheels.
-2. Add a `MOVEMENTS` entry: `label`, `desc`, `requires`, `sets`, `frames`, `beats`, optional `anim`.
+1. **Write a `play` descriptor, not a generator.** Every movement in the app is data (DECLARATIVE.md
+   §11); there are no generators left and invariants §30 asserts it. Pick the kind that fits — `figure`,
+   `travel`, `phrases`, `formation`, `compose`, `hold` — and add the figure or travel it names to
+   `FIGURES` / `TRAVELS` if it is new. Those registries are **pure JSON**: if you find yourself writing a
+   function inside one, stop and read §4.
+2. Add a `MOVEMENTS` entry: `label`, `desc`, `requires`, `sets`, `play`, `beats`, optional `anim`.
 3. Add a `CALLS` entry if it is callable (see CALLING.md — do **not** append the trailing Dile Que No;
    the default rule does that).
 4. Measure before you look: clearances, jolt, turn angles, midpoint shifts. Every design decision in

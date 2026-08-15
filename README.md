@@ -116,7 +116,10 @@ Movements are being moved onto a **declarative vocabulary** ([DECLARATIVE.md](DE
 structural group predicates and couple-count-independent slot addresses — so they can eventually be
 composed rather than written.
 
-**Adding a movement: read [MOVEMENT_SPEC.md](MOVEMENT_SPEC.md) first.** It has the model, the
+**Extending it?** There is a packaged agent skill — `rueda-movements.skill`, source in
+[skills-rueda-movements.md](skills-rueda-movements.md) — with the questions to ask a dancer before
+building, the data model to express the answer in, and the five ways this codebase has historically been
+broken. **Adding a movement: read [MOVEMENT_SPEC.md](MOVEMENT_SPEC.md) first.** It has the model, the
 questions to settle before writing code, the conformance checklist, and what to do when a figure
 doesn't fit the model.
 

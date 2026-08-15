@@ -1,5 +1,9 @@
 # Smooth Dame paths — analysis & plan
 
+> **HISTORICAL — not current guidance.** Completed and superseded: the evasion solver it plans is now `planCrossings` (PATHING.md).
+> Kept as the record of what was decided and why. For how the system works today, start at **README.md**
+> → **MOVEMENT_SPEC.md**.
+
 Goal: every Dame evasion is one continuous, gentle arc — no sudden hop off the rueda line onto a
 passing lane, no sudden hop back. Longer term, this is the first real piece of the **progression
 pathing engine** from the roadmap: given any baseline path and any set of crossings, produce smooth,

@@ -83,9 +83,9 @@ reflects the frames back (+180° to facings). Because a 180° rotation preserves
 direction while inside↔outside and the Casino↔Exhibela look both flip — exactly the contract above,
 and exact to the pixel (an afuera Enchufla is the normal Enchufla point-reflected).
 
-**Progressing figures.** Dame and Dame Dos handle afuera inside `dameToEnchufla` via an `afuera`
-flag: it reverses the progression (`k → −k`, so the leader goes to the couple *clockwise*) and ends
-him on the opposite side of his new follower; the steering and facings read live positions, so they
+**Progressing figures.** Dame and Dame Dos handle afuera through `mirror` on their travel descriptor:
+it negates each `dh` and swaps the lanes and pass sides, so the leader goes to the couple *clockwise*
+and ends on the opposite side of his new follower; the steering and facings read live positions, so they
 adapt automatically. Verified: the leader progresses clockwise, every couple ends at the right width
 facing correctly, and it's collision-free at 4/6/8 couples (the Dame Dos steering cap was raised so
 the tighter afuera path still clears).
@@ -94,9 +94,8 @@ the tighter afuera path still clears).
 Dame, Enchufla, Setenta, the Adios family, La Familia, etc. all work afuera and loop back to Afuera
 Casino, progressing the wheel *clockwise*.
 
-**Compounds.** The **Dile Que No y Dame / Dame Dos** compounds now invert too (`dileQueNoYDame`
-takes an `afuera` flag: progression `k → −k`, inside↔outside swapped for the gather and the
-follower's circle, leader faces away from centre on the pause). So merging a Dame into a pending Dile
+**Compounds.** The **Dile Que No y Dame / Dame Dos** compounds invert too — their descriptor mirrors
+both phrases, so the opening figure turns inside out (`mirrorFigure`) and the travel negates its `dh`. So merging a Dame into a pending Dile
 Que No works while afuera — including calling several Dames in a row.
 
 **Afuera / Adentro (relabel moves).** Two 0-beat, no-animation movements flip the wheel's frame in
@@ -463,10 +462,9 @@ dynamic, units, the planner contract), the questions to ask Sam *before* writing
 checklist, and the protocol for when a movement genuinely doesn't fit the model. Do not start from the
 mechanics below without reading it — the geometry is the easy part.
 
-Mechanically: write the generator as a pure function `(ds, N, from) => frames` (each frame is the dancer
-list with `xy` / `face`, and optional `turn` / `snapTurn`), using `planCrossings` for every traveller;
-add a `MOVEMENTS` entry with `label`, `desc`, `requires`, `sets`, `frames`, `beats` and (if needed)
-`anim`. It appears in the Movements panel automatically and can be fired on its own for testing.
+Mechanically: add a `MOVEMENTS` entry with `label`, `desc`, `requires`, `sets`, **`play`**, `beats` and
+(if needed) `anim`. `play` is a data descriptor naming a figure or a travel from the registries — see
+DECLARATIVE.md. It appears in the Movements panel automatically and can be fired on its own for testing.
 
 ## How to add a new **call**
 
