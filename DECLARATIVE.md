@@ -309,3 +309,33 @@ question — *how wide must a bow be for two partners to trade places without br
 through JSON, and *two* definitions the app has never seen — a scripted figure and a whole-couple travel,
 both written as JSON text in the test — are run through the engine and must land where they say, on the
 grid, without collision.
+
+
+## 11. Movements as data — the `play` descriptor (built)
+
+A movement entry may carry a **`play` descriptor** instead of a `frames` generator:
+
+```js
+enchufla: { …, play: { figure: 'swap', params: { leaderRot: 180, followerRot: -180, side: 'left' } } }
+dame:     { …, play: { travel: 'dame', mirror: true } }
+```
+
+`movementFrames` dispatches on it: a named figure from `FIGURES`, or a named travel from `TRAVELS` with
+`mirror` applying the afuera inside-out flip. **This is the seam a user-authored movement arrives
+through** — it will have a `play` descriptor and nothing else, so anything expressible here is
+expressible by a user.
+
+On descriptors today: Dame, Dame Dos, and all six swap figures (Enchufla, Vacilala, Adios, Reverse
+Adios, Reverse Enchufla, Leader's Enchufla), plus Exhibela and Leader's Right Turn. The rest still carry
+generators: Dame Pequeña and Mujeres Arriba need engine-side wiring a definition cannot state (their
+scripted role's path and its facing rule), the compounds are phrase sequences, and the Línea entries and
+exits are formation changes, which redefine the slot set and so need their own descriptor kind.
+
+**A gap this uncovered in the golden.** `segBeats` — a movement's beat timing, how its beats are spread
+across its frames — was being *recorded* in the baseline and **never compared**. A figure could have been
+re-timed, or lost its explicit timing altogether, with the golden saying nothing; only §7's sum check
+would have caught a change that also broke the total. `diffFrames` now compares it. Switching the six
+swap movements to descriptors was what surfaced it: they gained explicit timing (`null` → a uniform
+array), the golden passed regardless, and only checking the field by hand showed the difference. The
+timing itself is unchanged — every new array is uniform, which is exactly what the player already did
+with `null` — but it is now *stated*, so §7 asserts it.

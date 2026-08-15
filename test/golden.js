@@ -160,6 +160,11 @@ function diffFrames(base, cur, caseKey, diffs) {
   if (base.frames.length !== cur.frames.length) { diffs.push(`${caseKey}: frame count ${base.frames.length} -> ${cur.frames.length}`); return; }
   if (base.endPos !== cur.endPos || base.endPhase !== cur.endPhase)
     diffs.push(`${caseKey}: end ${base.endPos}/${base.endPhase} -> ${cur.endPos}/${cur.endPhase}`);
+  // segBeats is the movement's BEAT TIMING — how its beats are spread across its frames. It was being
+  // recorded in the baseline and never compared, so a figure could be re-timed (or lose its explicit
+  // timing altogether) with the golden saying nothing. Compare it.
+  const sb = x => x.segBeats ? x.segBeats.join(',') : 'null';
+  if (sb(base) !== sb(cur)) diffs.push(`${caseKey}: segBeats ${sb(base).slice(0, 48)} -> ${sb(cur).slice(0, 48)}`);
   for (let fi = 0; fi < base.frames.length && diffs.length < 40; fi++) {
     const a = base.frames[fi], b = cur.frames[fi];
     for (let j = 0; j < a.length; j++) {

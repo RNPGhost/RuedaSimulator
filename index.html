@@ -222,7 +222,7 @@ const MOVEMENTS = {
     requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true, flipsPhase: true,
     anim: { duration: 700 },
     beats: (from) => virtualPos(from) === 'casino' ? 2 : 4,
-    frames: (ds, N, from) => dameToEnchufla(ds, N, 1, virtualPos(from) === 'exhibela', isAfuera(from))
+    play: { travel: 'dame', mirror: true }
   },
   dame_dos: {
     label: 'Dame Dos',
@@ -230,7 +230,7 @@ const MOVEMENTS = {
     requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true, flipsPhase: true,
     anim: { duration: 820 },
     beats: 4,
-    frames: (ds, N, from) => dameToEnchufla(ds, N, 2, virtualPos(from) === 'exhibela', isAfuera(from))
+    play: { travel: 'dame_dos', mirror: true }
   },
   dame_pequena: {
     label: 'Dame Pequena',
@@ -322,7 +322,7 @@ const MOVEMENTS = {
     requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
     anim: { duration: 700 },
     beats: 4,
-    frames: (ds, N) => swapMove(ds, N, -180)
+    play: { figure: 'swap', params: { leaderRot: 180, followerRot: -180, side: 'left' } }
   },
   vacilala: {
     label: 'Vacilala',
@@ -330,7 +330,7 @@ const MOVEMENTS = {
     requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
     anim: { duration: 820 },
     beats: 4,
-    frames: (ds, N) => swapMove(ds, N, 540)
+    play: { figure: 'swap', params: { leaderRot: 180, followerRot: 540, side: 'left' } }
   },
   adios: {
     label: 'Adios',
@@ -338,7 +338,7 @@ const MOVEMENTS = {
     requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
     anim: { duration: 780 },
     beats: 4,
-    frames: (ds, N) => swapMove(ds, N, 180)
+    play: { figure: 'swap', params: { leaderRot: 180, followerRot: 180, side: 'left' } }
   },
   reverse_adios: {
     label: 'Reverse Adios',
@@ -346,7 +346,7 @@ const MOVEMENTS = {
     requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
     anim: { duration: 780 },
     beats: 4,
-    frames: (ds, N) => swapMove(ds, N, -180, -180, 'right')
+    play: { figure: 'swap', params: { leaderRot: -180, followerRot: -180, side: 'right' } }
   },
   reverse_enchufla: {
     label: 'Reverse Enchufla',
@@ -354,7 +354,7 @@ const MOVEMENTS = {
     requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
     anim: { duration: 700 },
     beats: 4,
-    frames: (ds, N) => swapMove(ds, N, 180, -180, 'right')
+    play: { figure: 'swap', params: { leaderRot: -180, followerRot: 180, side: 'right' } }
   },
   leaders_enchufla: {
     label: "Leader's Enchufla",
@@ -362,14 +362,14 @@ const MOVEMENTS = {
     requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'exhibela' : 'casino',
     anim: { duration: 700 },
     beats: 4,
-    frames: (ds, N) => swapMove(ds, N, 180, -180, 'left')
+    play: { figure: 'swap', params: { leaderRot: -180, followerRot: 180, side: 'left' } }
   },
   exhibela: {
     label: 'Exhibela',
     desc: 'A showy figure danced in place from Exhibela position. The couple never leaves two fixed parallel lines (each perpendicular to the line joining the partners). The leader faces the follower throughout, dipping in then out along his line; the follower steps out turning 90° to her right to face along her line, returns, continues, then spins 270° right back to the start. Ends exactly where it began.',
     requires: ['exhibela'], sets: 'exhibela',
     beats: 8,
-    frames: (ds, N) => exhibela(ds, N),
+    play: { figure: 'exhibela' },
     anim: { speed: 0.075, rotSpeed: 0.42 }
   },
   leaders_right_turn: {
@@ -377,7 +377,7 @@ const MOVEMENTS = {
     desc: 'Danced in place: the follower stays put and does not rotate while the leader turns a full 360° to his right (clockwise) on the spot, ending exactly where and how he began. Used inside Enchufla Afuera / Enchufla Adentro; also allowed on its own from Casino or Exhibela (the position is unchanged either way).',
     requires: ['casino', 'exhibela'], sets: (from) => from,
     beats: 4,
-    frames: (ds, N) => leadersRightTurn(ds, N),
+    play: { figure: 'leaders_right_turn' },
     anim: { speed: 0.10, rotSpeed: 0.5 }
   },
   afuera: {
@@ -1636,10 +1636,12 @@ function dameLinea(ds, N){
   const m = N / 2;
   ds.forEach(d => { if (!d.xy) d.xy = pos(d); });          // freeze the rest positions before the layout switches
   const start = {}; ds.forEach(d => start[d.id] = d.xy);
-  const byStation = {}; ds.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
   const cant = ds.find(d => d.id === cantanteId) || ds.find(d => d.role === 'L');
-  const c = cant.station, at = (s, role) => byStation[s].find(d => d.role === role);
-  const st = i => (((c + i) % N) + N) % N;
+  const c = cant.station;
+  // Who is a primero and who is a segundo is structural — the cantante's couple and every other one
+  // clockwise — so read it from the group vocabulary rather than from index arithmetic.
+  const ctx = groupContext(ds, N, phase);
+  const spokeOf = d => Math.floor((((d.station - c) % N) + N) % N / 2);
   const base = BASE_ANG + (c + 0.5) * 360 / N + phase * 180 / N;   // half a couple round: the Dame's meeting spokes
   layoutName = 'linea'; LM_BASE = norm360(base); phase = 0; computeWheel(N);
   const HALF = Math.PI / N;                                 // half a couple, in radians
@@ -1648,21 +1650,21 @@ function dameLinea(ds, N){
     return t => { const te = _smooth(t); return _polar(aS + sw * te, rS + (rE - rS) * te); }; };
   const walkTo = (S, E) => t => { const te = _smooth(t); return { x: S.x + (E.x - S.x) * te, y: S.y + (E.y - S.y) * te }; };
   const path = {}, endSt = {}, endLane = {}, partner = {}, kind = {};
-  for (let j = 0; j < m; j++){
-    const priL = at(st(2 * j), 'L'),     priF = at(st(2 * j), 'F');
-    const segL = at(st(2 * j + 1), 'L'), segF = at(st(2 * j + 1), 'F');
-    const place = (d, station, lane) => { endSt[d.id] = station; endLane[d.id] = lane;
-      return FORMATIONS.linea.slot(station, lane, N, 0); };
-    const eSegL = place(segL, m + j, 'cw'), eOutF = place(priF, m + j, 'ccw');   // outer couple: Exhibela
-    const ePriL = place(priL, j, 'ccw'),    eInF  = place(segF, j, 'cw');        // inner couple: afuera Exhibela
-    path[segL.id] = arcTo(start[segL.id], eSegL, -HALF);    // the Dame proper: half a couple anti-clockwise…
-    path[priF.id] = arcTo(start[priF.id], eOutF,  HALF);    // …meeting his new follower coming the other half
-    path[priL.id] = walkTo(start[priL.id], ePriL);          // the inner couple walks straight to its spoke
-    path[segF.id] = walkTo(start[segF.id], eInF);
-    kind[segL.id] = kind[priF.id] = 'arc'; kind[priL.id] = kind[segF.id] = 'walk';
-    partner[segL.id] = priF.id; partner[priF.id] = segL.id;
-    partner[priL.id] = segF.id; partner[segF.id] = priL.id;
-  }
+  // The exchange is a SWAP within each primero/segundo pair, not a uniform progression:
+  //   · the segundo LEADER and the primero FOLLOWER meet on the OUTER ring, each dancing half a Dame
+  //     round the wheel — his anti-clockwise, hers clockwise — and their spoke sets the formation's;
+  //   · the primero LEADER and the segundo FOLLOWER walk straight IN to the inner ring of that spoke.
+  ds.forEach(d => {
+    const j = spokeOf(d), primero = ctx.parity(d) === 0, L = d.role === 'L';
+    const outward = primero ? !L : L;                       // segundo leaders and primero followers go out
+    const station = outward ? m + j : j;
+    const lane = outward ? (L ? 'cw' : 'ccw') : (L ? 'ccw' : 'cw');
+    endSt[d.id] = station; endLane[d.id] = lane;
+    const E = FORMATIONS.linea.slot(station, lane, N, 0);
+    kind[d.id] = outward ? 'arc' : 'walk';
+    path[d.id] = outward ? arcTo(start[d.id], E, L ? -HALF : HALF) : walkTo(start[d.id], E);
+  });
+  ds.forEach(d => { const o = ds.find(x => x !== d && endSt[x.id] === endSt[d.id]); partner[d.id] = o ? o.id : d.id; });
   // Everyone here is a traveller — they all land in a new couple — so they all go through the planner.
   // Nobody is bonded during the walk (each dancer crosses alone to meet a new partner), so each is its own
   // unit; the two groups are the half of the exchange that arcs round the ring and the half that walks
@@ -2229,7 +2231,7 @@ function afueraFrames(mv, dsReal, N, from){
   const swapLane = l => l === 'cw' ? 'ccw' : l === 'ccw' ? 'cw' : l;
   const virt = dsReal.map(d => ({ ...d, xy: refl(d.id, P[d.id]), lane: swapLane(d.lane), face: (typeof d.face === 'number') ? d.face + 180 : d.face }));
   const saved = dancers; dancers = virt;
-  let out; try { out = mv.frames(virt, N, virtualPos(from)); } finally { dancers = saved; }
+  let out; try { out = movementFrames(mv, virt, N, virtualPos(from)); } finally { dancers = saved; }
   const vframes = Array.isArray(out) ? out : out.frames;
   const segBeats = Array.isArray(out) ? null : out.segBeats;
   const frames = vframes.map(fr => fr.map(d => {
@@ -2268,7 +2270,7 @@ function grandeFrames(circleKey, from){
   const runRing = (subDs, R, dDeg, fromPos) => runOnWheel(
     { CX, CY, R_RING: R, DELTA_DEG: dDeg, N: m, BASE_ANG: LM_BASE, phase }, subDs,
     () => { const useAfuera = isAfuera(fromPos) && !mv.progresses && !mv.relabel;
-      const out = useAfuera ? afueraFrames(mv, subDs, m, fromPos) : mv.frames(subDs, m, fromPos);
+      const out = useAfuera ? afueraFrames(mv, subDs, m, fromPos) : movementFrames(mv, subDs, m, fromPos);
       return Array.isArray(out) ? { frames: out, segBeats: null } : out; });
   const inO = runRing(innerSub, LM.Ri, LM.di * 180 / Math.PI, sub.inner);
   const outO = runRing(outerSub, LM.Ro, LM.doO * 180 / Math.PI, sub.outer);
@@ -2305,7 +2307,7 @@ function pequenaFrames(circleKey, from){
     const mc = FORMATIONS.linea.miniCenter(k);
     const thk = LM_BASE + k * 360 / m + phase * 180 / m;
     const out = runOnWheel({ CX: mc.x, CY: mc.y, R_RING: LM.R2, DELTA_DEG: LM.d2 * 180 / Math.PI, N: 2, BASE_ANG: thk, phase: 0 }, sub,
-      () => { const o = mv.frames(sub, 2, fromPos); return Array.isArray(o) ? { frames: o, segBeats: null } : o; });
+      () => { const o = movementFrames(mv, sub, 2, fromPos); return Array.isArray(o) ? { frames: o, segBeats: null } : o; });
     wheels.push(out); Fcount = Math.max(Fcount, out.frames.length); segB = segB || out.segBeats;
   }
   const frames = [];
@@ -2320,9 +2322,25 @@ function pequenaFrames(circleKey, from){
 }
 
 // Resolve a movement's frames + beat timing and animate it (leadBeats = a lead-in hold on the spot).
+/* A movement's frames. Where the movement carries a declarative `play` descriptor — a named figure or a
+ * named travel from the registries — the engine builds them from data; otherwise it calls the movement's
+ * own generator. This is the seam a user-authored movement arrives through: it will have a `play`
+ * descriptor and nothing else, so anything expressible here is expressible by a user.
+ *   play := { figure, params } | { travel, mirror, opts }
+ * `mirror: true` mirrors the definition inside out when danced from an afuera position. */
+function movementFrames(mv, ds, N, from){
+  const p = mv.play;
+  if (!p) return mv.frames(ds, N, from);
+  if (p.figure) return playFigure(p.figure, ds, p.params);
+  return playTravel(ds, N, resolveTravel(p.travel, ds, Object.assign({
+    phaseBefore: mv.flipsPhase ? phase ^ 1 : phase,
+    mirror: p.mirror ? isAfuera(from) : false,
+  }, p.opts || {})));
+}
+
 function playMovement(mv, from, onDone, leadBeats = 0){
   if (mv.relabel || mv.beats === 0){ snapRestLanes(); render(); renderTable(); updateUI(); if (onDone) onDone(); return; }
-  const out = (isAfuera(from) && !mv.progresses && !mv.relabel) ? afueraFrames(mv, dancers, N, from) : mv.frames(dancers, N, from);
+  const out = (isAfuera(from) && !mv.progresses && !mv.relabel) ? afueraFrames(mv, dancers, N, from) : movementFrames(mv, dancers, N, from);
   const fr = Array.isArray(out) ? out : out.frames;
   snapRestLanes(fr[fr.length - 1]);
   const segBeats = Array.isArray(out) ? null : out.segBeats;

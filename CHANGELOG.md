@@ -3,6 +3,25 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v123 — movements carry `play` descriptors, and the golden learns to check beat timing
+- **`play` descriptors.** A movement may name a figure or a travel from the registries instead of
+  carrying a generator: `play: { figure: 'swap', params: {…} }` or `play: { travel: 'dame', mirror: true }`.
+  `movementFrames` dispatches on it. **This is the seam a user-authored movement arrives through** — it
+  will have a descriptor and nothing else, so anything expressible here is expressible by a user.
+- On descriptors: Dame, Dame Dos, all six swap figures, Exhibela and Leader's Right Turn.
+- **`dameLinea`'s placement is now structural too** — the last generator still using index arithmetic.
+  The rule it states is the real one: the segundo leader and the primero follower meet on the outer ring,
+  each dancing half a Dame round the wheel; the other two walk straight in to the inner ring.
+- **A real gap in the golden, found and closed.** `segBeats` — a movement's beat timing — was being
+  *recorded* in the baseline and **never compared**. A figure could have been re-timed, or lost its
+  explicit timing entirely, and the golden would have said nothing; only §7's sum check would have caught
+  a change that also broke the total. `diffFrames` now compares it.
+- Switching the swap movements to descriptors is what surfaced that: they gained explicit timing
+  (`null` → a uniform array), the golden passed anyway, and only checking the field by hand showed it.
+  The timing itself is unchanged — every new array is uniform, which is exactly what the player already
+  did with `null` — but it is now stated, so §7 asserts it. Baseline updated for those six movements.
+- 2514 invariants; visual untouched.
+
 ## v122 — travel as data too
 - **`TRAVELS` — the dynamic half as plain JSON.** Per role: where that dancer lands and which side it
   passes on; `scripted: true` marks a role that dances a figure instead. Four entries cover the whole
