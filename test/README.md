@@ -53,3 +53,31 @@ MOVEMENT_SPEC.md §3.
   regardless of animation).
 - Movement cases are captured from *constructed* canonical rest states, so the golden is a self-
   consistent contract; the invariants (not the golden) are what assert real-world correctness.
+
+## Properties vs recordings
+
+Two kinds of test live here and they are not interchangeable.
+
+The **golden** is a *characterisation* test: it records behaviour as it currently is. That makes it a
+change detector, not an authority on what is right. When the pathing engine improves, the golden will
+diff — and the diff is a question, not a verdict. Read it, confirm each change is the improvement you
+asked for, re-baseline in one deliberate commit.
+
+**Invariants** are *property* tests: they state something any engine must be true of — no two dancers
+overlap, the phase flip is a rotation, a mini-wheel figure is couple-count invariant, no direction is
+derived from a vector too small to have one. These do not constrain what the engine may do next; they
+are the acceptance criteria it has to keep meeting. New rules go here, not in the golden.
+
+Sections **§33** (systemic properties) and **§34** (the renderer) exist because of a real escape: two
+leaders passed within 10.5px during Adios Pequeña and the whole suite was silent. Two reasons, both
+worth remembering when adding coverage:
+
+1. **Reachable states, not just rest states.** The Línea figures were only ever captured *from rest*, and
+   the fault only appears mid-sequence — from rest the arithmetic cancels to an exact zero and the bug
+   hides. §33a now walks every Línea call movement by movement.
+2. **Coverage is part of the contract.** Narrowing the planner's candidate set back to cross-group-only
+   leaves *every* behavioural check green, because the pairs nobody looks at happen to clear anyway
+   today. A collision test can only find what it looked at, so §33f asserts the size of the candidate
+   set directly rather than inferring it from what the dancers did.
+
+Every section self-tests: it is shown an input it must fail on, so that a green run means something.

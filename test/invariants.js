@@ -810,9 +810,7 @@ function run() {
       const nx = vy / L, ny = -vx / L;                     // left of the walk
       return { x: S.x + vx * t + nx * (off || 0), y: S.y + vy * t + ny * (off || 0) + sgn(id) * W / 2 };
     };
-    const pairs = [];
-    for (let i = 0; i < IDS.length; i++) for (let j = i + 1; j < IDS.length; j++) pairs.push([IDS[i], IDS[j]]);
-    const plan = T.planCrossings({ ids: IDS, pairs, base: (id, t) => at(id, t), apply: at,
+    const plan = T.planCrossings({ ids: IDS, base: (id, t) => at(id, t), apply: at,
       unit: uOf, group: uOf, groups: ['A', 'B'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
     let worst = Infinity, stretch = 0, split = 0;
     for (let s = 0; s <= SMP; s++) {
@@ -837,7 +835,7 @@ function run() {
     // resolve: offer the planner a bonded pair standing closer than the clearance and it must do nothing.
     {
       const near = (id, t, off) => ({ x: (id === 'AL' ? 0 : 20) + 100 * t + (off || 0), y: 0 });
-      const p2 = T.planCrossings({ ids: ['AL', 'AF'], pairs: [['AL', 'AF']], base: (id, t) => near(id, t),
+      const p2 = T.planCrossings({ ids: ['AL', 'AF'], base: (id, t) => near(id, t),
         apply: near, unit: () => 'A', group: () => 'A', groups: ['A', 'B'], clearance: CLEAR });
       nChecks++; check(p2.scale === 0, `rigid pair: the planner tried to separate two partners (scale ${p2.scale})`);
     }
@@ -1156,7 +1154,9 @@ function run() {
       const vx = E.x - S.x, vy = E.y - S.y, L = Math.hypot(vx, vy) || 1;
       return { x: S.x + vx * t + (vy / L) * (off || 0), y: S.y + vy * t - (vx / L) * (off || 0) }; };
     const ids = Object.keys(paths), pairs = [['B', 'A1'], ['B', 'A2']];
-    const mk = forceShare => T.planCrossings({ ids, pairs, base: (i, t) => at(i, t), apply: at,
+    // A1 and A2 run past each other by construction; this case is about how B shares with the A's, so
+    // that one pair is declared out rather than left to be silently absent.
+    const mk = forceShare => T.planCrossings({ ids, exclude: [['A1', 'A2']], base: (i, t) => at(i, t), apply: at,
       group: i => i[0] === 'B' ? 'B' : 'A', groups: ['B', 'A'],
       clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R, forceShare });
     const costOf = (plan, id) => { const bl = [], pts = [];
@@ -1175,6 +1175,416 @@ function run() {
       pairs.forEach(([a, b]) => { const p = auto.at(a, t), q = auto.at(b, t);
         worst = Math.min(worst, Math.hypot(p.x - q.x, p.y - q.y)); }); }
     nChecks++; check(worst >= CLEAR - 0.5, `naturalness split: rebalancing broke the clearance (${worst.toFixed(1)})`);
+  }
+
+  // 33: SYSTEMIC PROPERTIES — the rules that hold for every movement, in every formation, at every
+  //     couple count and in either phase. None of these records a path, so none of them constrains what
+  //     the engine may do next; they state what any engine has to be true of. That distinction is the
+  //     whole point: the golden is a change detector and will move when the pathing engine improves,
+  //     whereas these are the acceptance criteria the improved engine must still satisfy.
+  //
+  //     They exist because of a real escape. Adios Pequeña put two leaders 10.5px apart at 8 couples —
+  //     a third of a dancer — and the suite was silent, for two reasons worth naming. (a) The Línea
+  //     figures were only ever captured FROM REST, and the fault only appears mid-sequence, where the
+  //     arithmetic stops cancelling to an exact zero. (b) The planner was handed cross-group pairs only,
+  //     so no candidate pair ever contained two leaders: nothing failed because nothing was asked.
+  {
+    const TOUCH = GAP;
+    const SUB = 8;                       // sub-samples per drawn segment
+    const NS_WIDE = [4, 6, 8, 10, 12];   // deliberately beyond the golden's 4/6/8
+
+    // Every dancer's DRAWN timeline: waypoint 0 is where the move starts from, then each keyframe —
+    // exactly what playFrames builds. Sampling this rather than the keyframes is what makes the check
+    // see the path the audience sees.
+    // Each capture carries ITS OWN waypoint 0: reading the live capture hook here instead would give
+    // every case the last capture's start point, which silently turns segment 0 into a jump across the
+    // wheel and reports overlaps that never happen.
+    const timeline = cap => {
+      const ids = cap.frames[0].map(d => d.id), P = {}, st = cap.start || {};
+      ids.forEach(id => P[id] = (st[id] ? [st[id]] : []).concat(cap.frames.map(fr => fr.find(d => d.id === id).xy)));
+      return { ids, P };
+    };
+    const closest = (cap, sampler, sub) => {
+      const { ids, P } = timeline(cap);
+      let worst = Infinity, ctx = '';
+      const F = P[ids[0]].length - 1;
+      for (let s = 0; s < F; s++) for (let k = 0; k < sub; k++){
+        const u = k / sub, at = {};
+        ids.forEach(id => at[id] = sampler(P[id], s, u));
+        for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++){
+          const d = Math.hypot(at[ids[i]].x - at[ids[j]].x, at[ids[i]].y - at[ids[j]].y);
+          if (d < worst){ worst = d; ctx = `${ids[i]}/${ids[j]} seg${s}`; }
+        }
+      }
+      return { worst, ctx };
+    };
+    const keyOnly = (pts, s) => pts[s];
+
+    // ---- 33a: nobody ever overlaps, at a keyframe or between two ----------------------------------
+    const cases = [];
+    for (const key of T.keys().movements) for (const from of POSITIONS){
+      if (!T.validFrom(key, from)) continue;
+      for (const n of NS_WIDE) for (const ph of PHASES){
+        let cap; try { cap = T.captureMovement(key, from, n, ph); } catch (e) { continue; }
+        if (cap && cap.frames) cases.push([`${key}|${from}|n${n}|p${ph}`, cap]);
+      }
+    }
+    // …and every Línea call walked movement BY MOVEMENT, which is the coverage that was missing: a
+    // figure danced from the state its predecessor left, not from rest.
+    for (const [ck, c] of Object.entries(T.CALLS)){
+      if (!c.from || !c.from.includes('linea') || !c.seq) continue;
+      for (const n of NS_WIDE) for (const ph of PHASES){
+        let first = true;
+        for (const mv of c.seq){
+          let cap; try { cap = first ? T.captureLineaMovement(mv, n, ph) : T.fireHere(mv); } catch (e) { break; }
+          first = false;
+          if (cap && cap.frames) cases.push([`${ck}>${mv}|n${n}|p${ph}`, cap]);
+        }
+      }
+    }
+    let worstKF = Infinity, worstKFtag = '', worstDR = Infinity, worstDRtag = '';
+    for (const [tag, cap] of cases){
+      const kf = closest(cap, keyOnly, 1);
+      if (kf.worst < worstKF){ worstKF = kf.worst; worstKFtag = `${tag} ${kf.ctx}`; }
+      nChecks++; check(kf.worst >= TOUCH, `§33a overlap at a keyframe: ${tag} ${kf.ctx} ${kf.worst.toFixed(1)}px < ${TOUCH}`);
+      const dr = closest(cap, T.samplePath, SUB);
+      if (dr.worst < worstDR){ worstDR = dr.worst; worstDRtag = `${tag} ${dr.ctx}`; }
+      nChecks++; check(dr.worst >= TOUCH, `§33a overlap between keyframes: ${tag} ${dr.ctx} ${dr.worst.toFixed(1)}px < ${TOUCH}`);
+    }
+    nChecks++; check(cases.length > 800, `§33a sweep collapsed to ${cases.length} cases — coverage lost`);
+    // Self-test: the sweep must be able to SEE an overlap, or "0 overlaps" means nothing. Feed the same
+    // comparison a frame with two dancers on the same spot and require it to report it.
+    {
+      const fake = { start: { X: { x: 0, y: 0 }, Y: { x: 1, y: 0 } },
+                     frames: [[{ id: 'X', xy: { x: 0, y: 0 } }, { id: 'Y', xy: { x: 1, y: 0 } }]] };
+      const seen = closest(fake, keyOnly, 1).worst;
+      nChecks++; check(seen < TOUCH, `§33a self-test: the overlap check failed to notice a 1px gap (saw ${seen})`);
+    }
+
+    // ---- 33b: PHASE IS A ROTATION ----------------------------------------------------------------
+    // Sam's rule, and the engine's: the phase flip moves the whole formation round by half a station and
+    // changes nothing else. So rotating the phase-0 trajectory must reproduce the phase-1 one exactly,
+    // dancer for dancer. This is the check that catches an asymmetry no collision test can see — a
+    // figure can be phase-dependent and still never collide.
+    const CXc = T.CX, CYc = T.CY;
+    const rotated = (p, rad) => { const dx = p.x - CXc, dy = p.y - CYc;
+      return { x: CXc + dx * Math.cos(rad) - dy * Math.sin(rad), y: CYc + dx * Math.sin(rad) + dy * Math.cos(rad) }; };
+    const mismatch = (capA, capB, deg) => {
+      const A = timeline(capA);
+      const B = timeline(capB);
+      const rad = deg * Math.PI / 180;
+      let worst = 0, ctx = '';
+      for (const id of A.ids){
+        if (!B.P[id] || B.P[id].length !== A.P[id].length) return { worst: Infinity, ctx: `${id} timeline length differs` };
+        for (let i = 0; i < A.P[id].length; i++){
+          const r = rotated(A.P[id][i], rad);
+          const e = Math.hypot(r.x - B.P[id][i].x, r.y - B.P[id][i].y);
+          if (e > worst){ worst = e; ctx = `${id} @${i}`; }
+        }
+      }
+      return { worst, ctx };
+    };
+    // Two tolerances, because there are two different claims and only one of them is about dancing.
+    // The FIGURE's own symmetry is exact arithmetic and holds to float noise (measured worst: 1.7e-13px).
+    // The DRAWN path additionally passes through the evasion solver, whose amplitude and share are found
+    // by fixed-iteration bisection — share to 2^-16, scale to 0.1·2^-12 — so a 1e-13 difference in the
+    // inputs can flip a comparison near a bisection boundary and land on the adjacent point. That floor
+    // is CLEAR·2^-16 ≈ 5.3e-4px, which is what is measured. Admitting it is not slack: 0.01px is still
+    // 1750× tighter than the 17.5px asymmetry this section exists to catch.
+    const TOL_FIGURE = 1e-9, TOL_DRAWN = 0.01;
+    const symCases = [];
+    for (const key of T.keys().movements) for (const from of POSITIONS){
+      if (!T.validFrom(key, from)) continue;
+      // A movement that CHANGES formation lands on a different slot set, so the rotation that maps one
+      // run to the other is the LANDING formation's, not the one it started in.
+      if (T.MOVEMENTS[key].changesLayout) continue;
+      for (const n of NS_WIDE) symCases.push([key, from, n]);
+    }
+    for (const [noEvade, tol, what] of [[true, TOL_FIGURE, 'the figure'], [false, TOL_DRAWN, 'the drawn path']]){
+      T.setNoEvade(noEvade);
+      for (const [key, from, n] of symCases){
+        let a, b; try { a = T.captureMovement(key, from, n, 0); b = T.captureMovement(key, from, n, 1); } catch (e) { continue; }
+        if (!a || !a.frames || !b || !b.frames) continue;
+        const m = mismatch(a, b, 180 / n);                    // circle: half a station
+        nChecks++; check(m.worst < tol,
+          `§33b phase is not a rotation of ${what}: ${key}|${from}|n${n} differs by ${m.worst.toExponential(2)}px (${m.ctx})`);
+      }
+      T.setNoEvade(false);
+    }
+    for (const [ck, c] of Object.entries(T.CALLS)){
+      if (!c.from || !c.from.includes('linea') || !c.seq) continue;
+      for (const n of NS_WIDE){
+        const runs = [0, 1].map(ph => { const out = []; let first = true;
+          for (const mv of c.seq){ let cap; try { cap = first ? T.captureLineaMovement(mv, n, ph) : T.fireHere(mv); } catch (e) { break; }
+            first = false; if (cap && cap.frames) out.push([mv, cap]); }
+          return out; });
+        if (runs[0].length !== runs[1].length) continue;
+        for (let i = 0; i < runs[0].length; i++){
+          const [mv, capA] = runs[0][i], [, capB] = runs[1][i];
+          if (T.MOVEMENTS[mv].changesLayout) continue;
+          const m = mismatch(capA, capB, 360 / n);            // Línea: half a MINI-wheel spacing
+          nChecks++; check(m.worst < TOL_DRAWN,
+            `§33b phase is not a rotation: ${ck}>${mv}|n${n} differs by ${m.worst.toExponential(2)}px (${m.ctx})`);
+        }
+      }
+    }
+    // Self-test: the comparison must reject a WRONG rotation, or it is measuring nothing.
+    {
+      const a = T.captureMovement('dame', 'casino', 6, 0), b = T.captureMovement('dame', 'casino', 6, 1);
+      const wrong = mismatch(a, b, 180 / 6 + 5);
+      nChecks++; check(wrong.worst > 1, `§33b self-test: a 5° error went unnoticed (${wrong.worst.toFixed(3)}px)`);
+    }
+
+    // ---- 33c: A MINI-WHEEL FIGURE IS COUPLE-COUNT INVARIANT ---------------------------------------
+    // Línea Moderna is a ring of mini 2-couple wheels, each built to the same size whatever the couple
+    // count — only how far apart they sit changes. So a pequeña figure danced on one of them is the SAME
+    // figure at 4 couples and at 100: same relative start, same relative end, same wheel. Measured in the
+    // mini-wheel's own frame it must be identical, and any couple-count dependence is a bug by definition.
+    {
+      const LMB = -90;                                   // the harness's Línea base angle
+      const localPaths = (seq, n) => {
+        let first = true, out = null;
+        for (const mv of seq){ let cap; try { cap = first ? T.captureLineaMovement(mv, n, 0) : T.fireHere(mv); } catch (e) { return null; }
+          first = false; if (!cap || !cap.frames) return null; out = cap; }
+        if (!out) return null;
+        const { ids, P } = timeline(out);
+        const st = {}; out.frames[0].forEach(d => st[d.id] = d.station);
+        const m = n / 2, LM = T.lineaGeom(), th = LMB * Math.PI / 180;
+        const ox = CXc + LM.mcR * Math.cos(th), oy = CYc + LM.mcR * Math.sin(th);
+        const mine = ids.filter(id => st[id] === 0 || st[id] === m);     // mini-wheel 0 only
+        const res = {};
+        mine.forEach(id => res[id] = P[id].map(p => { const dx = p.x - ox, dy = p.y - oy;
+          return { x: dx * Math.cos(-th) - dy * Math.sin(-th), y: dx * Math.sin(-th) + dy * Math.cos(-th) }; }));
+        return res;
+      };
+      for (const seq of [['adios_peq', 'dame_peq'], ['enchufla_peq'], ['dame_peq'], ['adios_peq']]){
+        const base = localPaths(seq, 4);
+        if (!base) continue;
+        for (const n of [6, 8, 10, 12]){
+          const other = localPaths(seq, n);
+          if (!other) continue;
+          let worst = 0, ctx = '';
+          for (const id of Object.keys(base)){
+            if (!other[id] || other[id].length !== base[id].length){ worst = Infinity; ctx = `${id} length`; break; }
+            for (let i = 0; i < base[id].length; i++){
+              const e = Math.hypot(base[id][i].x - other[id][i].x, base[id][i].y - other[id][i].y);
+              if (e > worst){ worst = e; ctx = `${id} @${i}`; }
+            }
+          }
+          nChecks++; check(worst < TOL_FIGURE,
+            `§33c mini-wheel figure depends on couple count: [${seq}] n=${n} vs n=4 differs by ${worst.toFixed(2)}px (${ctx})`);
+        }
+      }
+    }
+
+    // ---- 33d: the planner never silently fails to hold its corridor ------------------------------
+    // solveScale returns its cap when no amplitude satisfies every pair. Returning that quietly is how
+    // two dancers end up sharing a spot with nothing in the logs, so planCrossings now records a fault
+    // and the contract is that the list stays empty for everything we ship.
+    {
+      T.clearFaults();
+      for (const [, cap] of cases.slice(0, 0)) void cap;      // (cases were captured above)
+      for (const key of T.keys().movements) for (const from of POSITIONS){
+        if (!T.validFrom(key, from)) continue;
+        for (const n of NS_WIDE) for (const ph of PHASES){ try { T.captureMovement(key, from, n, ph); } catch (e) {} }
+      }
+      const faults = T.PLAN_FAULTS;
+      nChecks++; check(faults.length === 0,
+        `§33d planner could not clear in ${faults.length} solve(s); closest ${faults.length ? faults[0].clear.toFixed(2) : '-'}px`);
+      T.clearFaults();
+    }
+
+    // ---- 33f: the safety check's COVERAGE, not just its verdict ----------------------------------
+    // Every behavioural check here can only find what the planner looked at. Narrowing the candidate set
+    // back to cross-group-only leaves all 5000-odd of them green, because the pairs nobody checks happen
+    // to clear on their own today — which is precisely the state the engine was in when two leaders
+    // passed within 10.5px. So the size of the set is asserted directly: for every solve, every pair of
+    // dancers that are not one rigid body and were not declared as gathering MUST have been held apart.
+    {
+      T.clearFaults();
+      for (const key of T.keys().movements) for (const from of POSITIONS){
+        if (!T.validFrom(key, from)) continue;
+        for (const n of NS_WIDE) for (const ph of PHASES){ try { T.captureMovement(key, from, n, ph); } catch (e) {} }
+      }
+      for (const [ck, c] of Object.entries(T.CALLS)){
+        if (!c.from || !c.from.includes('linea') || !c.seq) continue;
+        for (const n of NS_WIDE) for (const ph of PHASES){ let first = true;
+          for (const mv of c.seq){ try { first ? T.captureLineaMovement(mv, n, ph) : T.fireHere(mv); } catch (e) { break; } first = false; } }
+      }
+      const log = T.PLAN_LOG.slice();
+      nChecks++; check(log.length > 100, `§33f only ${log.length} solves were recorded — the coverage probe is not wired in`);
+      let short = 0, worstTag = '';
+      for (const e of log){
+        let sameUnit = 0;
+        for (let i = 0; i < e.units.length; i++) for (let j = i + 1; j < e.units.length; j++)
+          if (e.units[i] === e.units[j]) sameUnit++;
+        const expected = (e.n * (e.n - 1)) / 2 - sameUnit - e.excluded;
+        if (e.checked < expected){ short++; if (!worstTag) worstTag = `${e.checked} of ${expected} pairs with ${e.n} dancers`; }
+      }
+      nChecks++; check(short === 0,
+        `§33f ${short} solve(s) checked fewer pairs than exist — dancers invisible to the planner (e.g. ${worstTag})`);
+      T.clearFaults();
+    }
+
+    // ---- 33e: no direction is ever derived from a displacement too small to have one --------------
+    // The class behind the Adios Pequeña bug. A bow, a lane side, a bearing — anything taken as the
+    // normal or the direction of a difference — is undefined when that difference is rounding error, and
+    // `|| 1` guards only the exact zero, which was never the dangerous case: 5.7e-14px normalises to a
+    // full unit vector pointing wherever the arithmetic happened to land. Slots are discrete, so every
+    // real displacement is tens of pixels and every non-displacement is exact. This asserts that the gap
+    // between those two populations is real, so a future figure landing in the middle fails here rather
+    // than picking a direction from the 14th decimal place.
+    {
+      T.clearDirs();
+      for (const key of T.keys().movements) for (const from of POSITIONS){
+        if (!T.validFrom(key, from)) continue;
+        for (const n of NS_WIDE) for (const ph of PHASES){ try { T.captureMovement(key, from, n, ph); } catch (e) {} }
+      }
+      for (const [ck, c] of Object.entries(T.CALLS)){
+        if (!c.from || !c.from.includes('linea') || !c.seq) continue;
+        for (const n of NS_WIDE) for (const ph of PHASES){ let first = true;
+          for (const mv of c.seq){ try { first ? T.captureLineaMovement(mv, n, ph) : T.fireHere(mv); } catch (e) { break; } first = false; } }
+      }
+      const seen = T.DIR_DERIVATIONS.slice();
+      const AMBIG_HI = 0.5;                                  // below half a pixel is not a step
+      const ambiguous = seen.filter(L => L >= T.STILL_PX && L < AMBIG_HI);
+      nChecks++; check(seen.length > 0, '§33e no direction derivations were recorded — the probe is not wired in');
+      nChecks++; check(ambiguous.length === 0,
+        `§33e ${ambiguous.length} direction(s) derived from an ambiguous displacement, e.g. ${ambiguous[0]}px`);
+      // The gap itself, stated: everything recorded is either an exact stand-still or a real step.
+      const steps = seen.filter(L => L >= AMBIG_HI);
+      nChecks++; check(steps.every(L => L > 5),
+        `§33e a "step" as small as ${Math.min(...steps).toFixed(3)}px — the two populations are no longer separated`);
+      T.clearDirs();
+    }
+
+    if (process.env.RUEDA_VERBOSE){
+      console.log(`   §33a ${cases.length} cases; closest at a keyframe ${worstKF.toFixed(2)}px (${worstKFtag}); ` +
+                  `closest as drawn ${worstDR.toFixed(2)}px (${worstDRtag})`);
+    }
+  }
+
+  // 34: THE RENDERER — what happens BETWEEN keyframes. Everything above this line, and the whole golden,
+  //     samples the engine at its keyframes; nothing looked at the path actually drawn between them. That
+  //     blind spot had a visible bug living in it: a couple crossing rings appeared to squeeze together
+  //     and spring apart on the way, fifteen times, while every keyframe had it at exactly 64.0px. Joining
+  //     keyframes with straight lines draws the CHORD of a curved path, and a chord is shorter than the
+  //     arc its endpoints sit on. These assert properties of the drawing, not a recording of it.
+  {
+    // Each capture carries its own waypoint 0 — where the move starts from — then its keyframes: the
+    // same array playFrames builds, so what is sampled here is what the screen draws.
+    const timeline = cap => {
+      const ids = cap.frames[0].map(d => d.id), P = {}, st = cap.start || {};
+      ids.forEach(id => P[id] = (st[id] ? [st[id]] : []).concat(cap.frames.map(fr => fr.find(d => d.id === id).xy)));
+      return { ids, P };
+    };
+    const sample = (pts, sub, fn) => { const out = [];
+      for (let s = 0; s < pts.length - 1; s++) for (let k = 0; k < sub; k++) out.push(fn(pts, s, k / sub));
+      out.push(pts[pts.length - 1]); return out; };
+    const chord = (pts, s, u) => ({ x: pts[s].x + (pts[s + 1].x - pts[s].x) * u,
+                                    y: pts[s].y + (pts[s + 1].y - pts[s].y) * u });
+    const onCircle = (n, stepDeg, r) => { const p = [];
+      for (let i = 0; i < n; i++){ const a = i * stepDeg * Math.PI / 180; p.push({ x: r * Math.cos(a), y: r * Math.sin(a) }); }
+      return p; };
+
+    // 34a: circles are reproduced EXACTLY. This is the property the fix rests on — a rigid pair turning
+    //      about its own midpoint is circular motion, so getting circles right is what keeps the couple's
+    //      spacing constant rather than merely closer to constant.
+    for (const [n, step, r] of [[6, 30, 100], [4, 45, 80], [12, 28, 150], [3, 20, 60]]){
+      const pts = onCircle(n, step, r);
+      let worst = 0;
+      sample(pts, 20, T.samplePath).forEach(p => { worst = Math.max(worst, Math.abs(Math.hypot(p.x, p.y) - r)); });
+      nChecks++; check(worst < 1e-9, `§34a a circle sampled every ${step}° is drawn ${worst.toExponential(2)}px off it`);
+    }
+    // 34b: a straight line stays straight, and a genuine reversal stays sharp — an interpolator that
+    //      rounds corners would be inventing choreography the engine did not ask for. (The engine rounds
+    //      the corners it wants rounded: the 4-beat opening's beat-2/3 join is built as one arc on purpose.)
+    {
+      const line = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 20, y: 0 }, { x: 30, y: 0 }];
+      let bend = 0; sample(line, 20, T.samplePath).forEach(p => { bend = Math.max(bend, Math.abs(p.y)); });
+      nChecks++; check(bend < 1e-9, `§34b a straight line was drawn with a ${bend.toExponential(2)}px bow`);
+      const back = [{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 40, y: 0 }, { x: 20, y: 0 }, { x: 0, y: 0 }];
+      let stray = 0; sample(back, 20, T.samplePath).forEach(p => { stray = Math.max(stray, Math.abs(p.y), p.x - 40); });
+      nChecks++; check(stray < 1e-9, `§34b an out-and-back was rounded into a loop by ${stray.toFixed(2)}px`);
+    }
+    // 34c: A RIGID PAIR DOES NOT BREATHE. The reported bug, as a property. Any two dancers the ENGINE
+    //      holds at a constant distance across every keyframe must also be held there between them.
+    // 34d: …and the drawn path never wanders far from the keyframes it interpolates, so no smoothing
+    //      can quietly bulge a dancer outside the corridor the planner solved on those keyframes.
+    {
+      const RIGID_TOL = 0.15, STRAY_TOL = 3.0;
+      let worstBreath = 0, breathTag = '', worstStray = 0, strayTag = '';
+      let worstChordBreath = 0;
+      for (const key of T.keys().movements) for (const from of POSITIONS){
+        if (!T.validFrom(key, from)) continue;
+        for (const n of [4, 6, 8]){
+          let cap; try { cap = T.captureMovement(key, from, n, 0); } catch (e) { continue; }
+          if (!cap || !cap.frames) continue;
+          const { ids, P } = timeline(cap);
+          const F = P[ids[0]].length;
+          for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++){
+            const a = ids[i], b = ids[j];
+            let lo = Infinity, hi = -Infinity;
+            for (let k = 0; k < F; k++){
+              const d = Math.hypot(P[a][k].x - P[b][k].x, P[a][k].y - P[b][k].y);
+              lo = Math.min(lo, d); hi = Math.max(hi, d);
+            }
+            if (hi - lo > 1e-6) continue;                     // not rigid across this movement
+            const A = sample(P[a], 12, T.samplePath), B = sample(P[b], 12, T.samplePath);
+            const Ac = sample(P[a], 12, chord), Bc = sample(P[b], 12, chord);
+            for (let k = 0; k < A.length; k++){
+              const dev = Math.abs(Math.hypot(A[k].x - B[k].x, A[k].y - B[k].y) - hi);
+              if (dev > worstBreath){ worstBreath = dev; breathTag = `${key}|${from}|n${n} ${a}/${b}`; }
+              worstChordBreath = Math.max(worstChordBreath,
+                Math.abs(Math.hypot(Ac[k].x - Bc[k].x, Ac[k].y - Bc[k].y) - hi));
+            }
+          }
+          // 34d: distance from each drawn point to the nearest keyframe segment.
+          for (const id of ids){
+            const drawn = sample(P[id], 12, T.samplePath);
+            drawn.forEach(p => {
+              let near = Infinity;
+              for (let s = 0; s < F - 1; s++){
+                const A0 = P[id][s], A1 = P[id][s + 1];
+                const vx = A1.x - A0.x, vy = A1.y - A0.y, L2 = vx * vx + vy * vy;
+                const t = L2 ? Math.max(0, Math.min(1, ((p.x - A0.x) * vx + (p.y - A0.y) * vy) / L2)) : 0;
+                near = Math.min(near, Math.hypot(p.x - (A0.x + vx * t), p.y - (A0.y + vy * t)));
+              }
+              if (near > worstStray){ worstStray = near; strayTag = `${key}|${from}|n${n} ${id}`; }
+            });
+          }
+        }
+      }
+      nChecks++; check(worstBreath < RIGID_TOL,
+        `§34c a rigid pair breathes by ${worstBreath.toFixed(2)}px as drawn (${breathTag})`);
+      nChecks++; check(worstStray < STRAY_TOL,
+        `§34d the drawn path strays ${worstStray.toFixed(2)}px from its keyframes (${strayTag})`);
+      // Self-test: the property must be able to SEE the bug it exists for. Built rather than borrowed —
+      // the shipped movements now emit enough keyframes that even chord interpolation barely pinches
+      // them, so relying on those would leave the check quietly toothless. A couple 64px apart turning
+      // a full circle in 8 keyframes is the case in its raw form: joined by chords it squeezes by 4.9px,
+      // and since each partner's path is exactly a circle, arcs must reproduce it exactly.
+      {
+        const W = 64, KF = 8, pc = [], pd = [];
+        for (let k = 0; k <= KF; k++){
+          const a = 2 * Math.PI * (k / KF);              // a full turn in 8 keyframes: 45° apiece
+          pc.push({ x: (W / 2) * Math.cos(a), y: (W / 2) * Math.sin(a) });
+          pd.push({ x: -(W / 2) * Math.cos(a), y: -(W / 2) * Math.sin(a) });
+        }
+        const spread = fn => { let worst = 0;
+          const A = sample(pc, 12, fn), B = sample(pd, 12, fn);
+          for (let k = 0; k < A.length; k++)
+            worst = Math.max(worst, Math.abs(Math.hypot(A[k].x - B[k].x, A[k].y - B[k].y) - W));
+          return worst; };
+        const byChord = spread(chord), byArc = spread(T.samplePath);
+        nChecks++; check(byChord > 2,
+          `§34c self-test: chord interpolation pinched a fast-turning couple by only ${byChord.toFixed(2)}px — ` +
+          `the property cannot see the bug it exists for`);
+        nChecks++; check(byArc < 1e-9,
+          `§34c arc interpolation left ${byArc.toExponential(2)}px of pinch on a pure rotation, ` +
+          `against the chord's ${byChord.toFixed(2)}px — circles must be exact`);
+      }
+    }
   }
 
   // 8: determinism — the golden generator produces identical output twice.

@@ -113,6 +113,49 @@ obstacle** (`yields: false`) and he is the only free variable. Consequences, all
   dances her ¾ circle back to her own spot while the leader crosses. Its opening is literally the same
   definition the standalone 4-beat Dile Que No dances.*
 
+## Drawing between keyframes
+
+Keyframes are samples of a curved path, so joining them with straight lines draws the **chord** of that
+path: the drawing cuts every corner, dipping inside the intended line mid-segment and snapping back at
+each keyframe. `samplePath` instead blends the two circles through the neighbouring keyframes —
+circle(A,B,C) and circle(B,C,D) for the segment B→C — weighted from the first to the second across it.
+
+- **Circles are exact.** Four keyframes on one circle give two identical arcs, so the blend is that
+  circle. Rigid rotation about a midpoint *is* circular motion, which is why this fixes a turning
+  couple's spacing outright rather than merely reducing the error.
+- **C1 across joins for free.** Segment B→C starts on circle(A,B,C); segment A→B ends on the same
+  circle. The tangents agree with no continuity condition to impose.
+- **Bounded.** The drawn point lies between two arcs sharing the segment's endpoints, so it cannot bulge
+  past them the way a spline with free tension can.
+- **Corners are the engine's business.** A genuine reversal (a Dile, an Exhibela) falls back to the
+  straight line it deserves; the engine already rounds the corners it wants rounded. The threshold sits
+  in an empty band of the measured data — across every movement the per-keyframe direction change is
+  31,801 samples below 30°, **nothing at all between 120° and 170°**, and 396 samples at 170–190°.
+
+Arcs fix the circular part exactly, but a partner in a couple changing ring is rotating about a
+*translating* midpoint, which is not a circle — so the residue only falls with sampling density.
+`coupleWalkFrames` therefore **derives** its keyframe count from the turn it has to make: enough that no
+single keyframe carries more than 6° of rotation (16 when nothing turns, up to 90 for an Adios sweep,
+which spends three or four times the rotation of its tight twin). Rigid-pair breathing, measured:
+**2.67px chord → 1.44px arcs → 0.06px arcs + derived density.**
+
+## Who gets checked
+
+`planCrossings` **builds its own candidate set**. A caller declares only the pairs the figure holds
+together — partners gathering into one couple — and the planner pairs up everything else that is not one
+rigid unit. This is not a detail: the set used to be built per caller as *every cross-group pair*, so no
+candidate ever contained two leaders. That reads as obviously safe on the full wheel, where leaders
+progress in lockstep, and is false on a Línea mini-wheel, where `dh: -2` sends both leaders across a
+2-couple wheel. They passed within 10.5px at 8 couples and nothing failed, because nothing was asked.
+
+**Group membership decides how a corridor is shared, never who is looked at.** The planner also reports
+now: a solve that cannot hold its corridor records a `PLAN_FAULTS` entry instead of returning its
+solver cap in silence.
+
+Known limit, worth knowing before authoring: the planner can *detect* a same-role head-on crossing but
+cannot yet *resolve* one — two dancers in a group share a share and a pass side, so they would offset
+together. Nothing danced today needs it, and it now fails loudly rather than quietly.
+
 ## Scope
 
 - **On the shared planner (`planCrossings`) — every traveller in the app:** Dame, Dame Dos and their

@@ -50,10 +50,25 @@ function load(htmlPath) {
     const _origPF = playFrames;
     playFrames = function(frames, anim, onDone, timing){
       cap.frames = frames;
+      // Waypoint 0 — the on-screen position the move starts FROM. playFrames prepends exactly this
+      // to each dancer's timeline, so without it the test layer would be blind to the first segment.
+      cap.start = {}; dancers.forEach(d => { cap.start[d.id] = pos(d); });
       cap.segBeats = (timing && timing.segBeats) ? timing.segBeats.slice() : null;
       dancers = frames[frames.length - 1].map(({ turn, snapTurn, ...r }) => r);
       animating = false;
       if (onDone) onDone();
+    };
+    // planCrossings -> record every invocation: which dancers were candidates, which pairs were
+    // actually tested, and what came out. Collision bugs are usually about who was never CONSIDERED,
+    // and that is invisible in the frames.
+    const _origPC = planCrossings;
+    cap.pc = [];
+    planCrossings = function(o){
+      const r = _origPC(o);
+      cap.pc.push({ ids: o.ids.slice(), pairs: (o.pairs || []).map(p => p.slice()),
+        groups: o.groups ? o.groups.slice() : null, clearance: o.clearance,
+        share: r && r.share, amp: r && r.amp });
+      return r;
     };
     // playMovement -> record the transition (posState/phase already advanced by runMovement).
     const _origPM = playMovement;
@@ -131,6 +146,13 @@ function load(htmlPath) {
       keys(){ return { movements: Object.keys(MOVEMENTS), calls: Object.keys(CALLS) }; },
       validFrom, isAfuera, virtualPos,
       runOnWheel, wheelContext, pathNaturalness, planCrossings,
+      // The renderer's own sub-keyframe interpolation, so test/render.js samples what the
+      // screen actually draws rather than a re-implementation of it.
+      samplePath, get CORNER_DEG(){ return CORNER_DEG; },
+      get PLAN_FAULTS(){ return PLAN_FAULTS; }, clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; },
+      get PLAN_LOG(){ return PLAN_LOG; },
+      get STILL_PX(){ return STILL_PX; },
+      get DIR_DERIVATIONS(){ return DIR_DERIVATIONS; }, clearDirs(){ DIR_DERIVATIONS.length = 0; },
       placeOf, resolvePlace, selectGroup, groupContext, GROUPS,
       FIGURES, SOLVERS, TRAVELS,
       // Run a TRAVEL definition straight from data, as if it had come out of a file.
@@ -158,7 +180,7 @@ function load(htmlPath) {
         dancers = lineaBaseState(n);
         cap.frames = null; cap.segBeats = null;
         doMovement(key);
-        const r = { frames: cap.frames, segBeats: cap.segBeats, endPos: posState, endPhase: phase, dancers: this._snap() };
+        const r = { frames: cap.frames, start: cap.start, segBeats: cap.segBeats, endPos: posState, endPhase: phase, dancers: this._snap() };
         layoutName = 'circle';
         return r;
       },
@@ -169,7 +191,7 @@ function load(htmlPath) {
         for (const k of setupKeys) doMovement(k);
         cap.frames = null; cap.segBeats = null;
         doMovement(key);
-        const r = { frames: cap.frames, segBeats: cap.segBeats, endPos: posState, endPhase: phase, dancers: this._snap() };
+        const r = { frames: cap.frames, start: cap.start, segBeats: cap.segBeats, endPos: posState, endPhase: phase, dancers: this._snap() };
         layoutName = 'circle';
         return r;
       },
@@ -178,7 +200,7 @@ function load(htmlPath) {
       fireHere(key){
         if (!validFrom(key, posState)) return null;
         cap.frames = null; doMovement(key);
-        return { frames: cap.frames, endPos: posState, endPhase: phase };
+        return { frames: cap.frames, start: cap.start, endPos: posState, endPhase: phase };
       },
       // Issue a Línea call in live mode and run to rest; return transcript + end grid.
       runLineaCall(callKey, n){
@@ -200,7 +222,7 @@ function load(htmlPath) {
         setupRest(from, n, ph);
         cap.frames = null; cap.segBeats = null;
         doMovement(key);
-        return { frames: cap.frames, segBeats: cap.segBeats, endPos: posState, endPhase: phase };
+        return { frames: cap.frames, start: cap.start, segBeats: cap.segBeats, endPos: posState, endPhase: phase };
       },
       // Issue a call in live mode and let the (now-synchronous) engine run to rest.
       runCallLive(callKey, from, n, ph){

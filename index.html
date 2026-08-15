@@ -1249,8 +1249,13 @@ function arcLenPath(pts){
  *                   they are immutable obstacles: they are planned around, never deviated.
  *    o.apply(id,t,off)  the dancer's position with a signed offset `off` applied along its pass side.
  *                   The caller owns the geometry (radial on a ring; the path normal in general).
- *    o.pairs        candidate [a,b] pairs that MAY cross (the figure knows who is whose partner);
- *                   the planner keeps only those whose intended paths actually crowd.
+ *    o.exclude      [a,b] pairs the FIGURE holds together and the planner must not try to separate —
+ *                   partners gathering into one couple. Everything else is a candidate: the planner
+ *                   builds the pair set itself from o.ids rather than accepting one, because a caller
+ *                   that builds its own can narrow the safety check by accident. It did: the set used
+ *                   to be cross-group only, so no candidate ever contained two leaders, and two leaders
+ *                   passed within 10.5px on a Línea mini-wheel with nothing to report it. A caller can
+ *                   now only ever EXCLUDE a named pair, never quietly omit a class of them.
  *    o.unit(id)     which free variable this dancer belongs to (default: itself). Dancers sharing a unit
  *                   share ONE offset, so a bonded couple deviates as a rigid body; partners inside a
  *                   unit are never treated as a crossing pair. Collisions stay dancer-vs-dancer.
@@ -1264,6 +1269,15 @@ function arcLenPath(pts){
  *
  *  Returns { at(id,t), share, scale }.
  * ------------------------------------------------------------------ */
+// Every solve that could not hold its corridor, in order. Empty is the contract.
+const PLAN_FAULTS = [];
+/* Every solve's COVERAGE: how many dancers were in play and how many pairs were actually held apart.
+ * A collision test can only ever find what it looked at, so the size of the candidate set is itself
+ * part of the contract — and it is not observable from the frames, because a pair nobody checked
+ * usually clears anyway. It did here: narrowing the set back to cross-group only leaves every measured
+ * path unchanged and every behavioural check green, which is exactly why this is recorded structurally
+ * and asserted by invariants §33f rather than inferred from what the dancers did. */
+const PLAN_LOG = [];
 function planCrossings(o){
   const NSMP = o.samples || 40, smpT = [];
   for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
@@ -1289,7 +1303,15 @@ function planCrossings(o){
   // a swell — but the amplitude is solved against ALL of these, because an evasion can push a pair
   // together that was never in trouble to begin with. Two couples passing head-on are the clean example:
   // each sidesteps away from the partner it was going to hit and straight toward the other one.
-  const checkPairs = (o.pairs || []).filter(pr => unit(pr[0]) !== unit(pr[1]));
+  const skip = new Set();
+  (o.exclude || []).forEach(pr => { skip.add(pr[0] + '\u0000' + pr[1]); skip.add(pr[1] + '\u0000' + pr[0]); });
+  const checkPairs = [];
+  for (let i = 0; i < o.ids.length; i++) for (let j = i + 1; j < o.ids.length; j++){
+    const a = o.ids[i], b = o.ids[j];
+    if (unit(a) === unit(b)) continue;                 // one rigid body: the figure fixes their spacing
+    if (skip.has(a + '\u0000' + b)) continue;          // declared as gathering into one couple
+    checkPairs.push([a, b]);
+  }
   checkPairs.forEach(pr => {
     const a = pr[0], b = pr[1];
     let crowd = false;
@@ -1370,7 +1392,22 @@ function planCrossings(o){
   // balance moved the share, re-solve the amplitude at the share actually used. (Measured: without this,
   // a rebalanced overlapping crossing sat 0.9px inside the corridor.)
   if (live.length && Math.abs(share - wSolve) > 1e-9) scale = solveScale(share);
-  return { at: (id, t) => at(id, t, share, scale), share, scale };
+  // POSTCONDITION — say so when the corridor could not be held. `solveScale` returns its cap when no
+  // amplitude satisfies every pair, and returning that quietly is exactly how two dancers end up sharing
+  // a spot with nothing in the logs. The planner is the only thing that knows whether it succeeded, so it
+  // is the only thing that can report it; `clear` is the closest any checked pair actually comes, and
+  // invariants §33 asserts no shipped movement ever records a fault.
+  // …except with evasion switched off, where the paths are MEANT to collide: NAT_NOEVADE generates the
+  // no-evade baseline the naturalness metric measures against, so a shortfall there is the point.
+  PLAN_LOG.push({ n: o.ids.length, checked: checkPairs.length, excluded: (o.exclude || []).length,
+    units: o.ids.map(id => unit(id)) });
+  const clear = (checkPairs.length && !NAT_NOEVADE) ? worst(share, scale) : Infinity;
+  if (live.length && clear < CLEAR - 0.05){
+    PLAN_FAULTS.push({ clear, need: CLEAR, ids: o.ids.slice(), pairs: checkPairs.length });
+    if (typeof console !== 'undefined' && console.warn)
+      console.warn(`planCrossings could not clear: closest ${clear.toFixed(2)}px, needs ${CLEAR.toFixed(2)}px [${o.ids.join(",")}] share=${share.toFixed(3)} scale=${scale.toFixed(2)}`);
+  }
+  return { at: (id, t) => at(id, t, share, scale), share, scale, clear };
 }
 
 /* ------------------------------------------------------------------ *
@@ -1411,17 +1448,13 @@ function playTravel(ds, N, o){
     const te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te); };
   const applyAt = (id, t, off) => { const k = kin[id]; if (!k) return o.scriptAt(id)(t);
     const te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te + off * o.pass(id)); };
-  // Candidates: every cross-group pair that is not gathering into the same couple.
-  const pairs = [];
+  // The only pairs the planner must NOT try to separate are the ones gathering into a couple; it works
+  // out every other candidate itself. Group membership decides how a corridor is SHARED, never who is
+  // looked at — deciding both in one place is what let an assumption about the choreography silently
+  // narrow the safety check.
   const ids = ds.map(d => d.id);
-  for (let i = 0; i < ids.length; i++) for (let j = 0; j < ids.length; j++){
-    const a = ids[i], b = ids[j];
-    if (o.group(a) === o.group(b)) continue;
-    if (o.groups.indexOf(o.group(a)) > o.groups.indexOf(o.group(b))) continue;   // one ordered pair each
-    if (newPartner[a] === b) continue;
-    pairs.push([a, b]);
-  }
-  const plan = planCrossings({ ids, pairs, base: baseAt, apply: applyAt,
+  const gathering = ids.filter(a => newPartner[a]).map(a => [a, newPartner[a]]);
+  const plan = planCrossings({ ids, exclude: gathering, base: baseAt, apply: applyAt,
     group: o.group, groups: o.groups, unit: o.unit, yields: o.yields,
     clearance: o.clearance, engage: o.engage, forceShare: o.forceShare });
   // Render: everyone faces the way they travel — so they never look *through* another dancer while
@@ -1556,18 +1589,31 @@ function coupleWalkFrames(ds, start, target, endSt, endLane, turnDir){
   };
   const sideOf = {}; ds.forEach(d => sideOf[d.id] = d.role === 'L' ? 'L' : 'F');
   const at1 = (id, t, off) => posOf(partnerKey[id], t, off)[sideOf[id]];
-  const wPairs = [];
-  for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++)
-    if (partnerKey[ds[i].id] !== partnerKey[ds[j].id]) wPairs.push([ds[i].id, ds[j].id]);
   const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
   const plan = planCrossings({
-    ids: ds.map(d => d.id), pairs: wPairs,
+    ids: ds.map(d => d.id),                            // same-unit pairs are excluded by `unit` below
     base: (id, t) => at1(id, t), apply: at1,
     unit: id => partnerKey[id],
     group: id => cp[partnerKey[id]].inward ? 'in' : 'out', groups: ['in', 'out'],
     clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
   });
-  const STEPS = 16, frames = [];
+  /* How many keyframes to emit. A couple changing ring TURNS about its own midpoint, so each partner
+   * traces an arc, and the renderer can only interpolate what it is given: too few keyframes and the
+   * drawn path cuts every corner, which for a rigid pair reads as the couple squeezing together and
+   * springing apart on the way across. Arc interpolation (see samplePath) fixes the circular part of
+   * that exactly, but a partner's real path is a rotation superimposed on a TRANSLATING midpoint — not
+   * a circle — so the residue only falls with sampling density, as the square of the per-keyframe turn.
+   * The Adios forms sweep the long way round, cramming three or four times the rotation into the same
+   * span, which is why they were the visible ones.
+   *
+   * So the count is DERIVED from the turn rather than fixed: enough keyframes that no single one carries
+   * more than TURN_PER_KF of rotation. `_smooth` peaks at 1.5× the average rate, and the turn is spent
+   * over LM_ROT_SPAN of the trip, so both scale the requirement. A figure that does not turn at all
+   * keeps the old 16 and is unaffected. */
+  const TURN_PER_KF = 6 * Math.PI / 180;
+  const maxTurn = couples.reduce((m, k) => Math.max(m, Math.abs(turnOf(k))), 0);
+  const STEPS = Math.max(16, Math.min(96, Math.ceil(1.5 * maxTurn / (LM_ROT_SPAN * TURN_PER_KF))));
+  const frames = [];
   for (let s = 1; s <= STEPS; s++){
     const t0 = s / STEPS, P = {};
     ds.forEach(d => P[d.id] = plan.at(d.id, t0));
@@ -1710,12 +1756,9 @@ function dameLinea(ds, N){
     const vx = b.x - a.x, vy = b.y - a.y, L = Math.hypot(vx, vy) || 1;
     return { x: p.x + (vy / L) * off, y: p.y - (vx / L) * off }; };
   const off = {}; ds.forEach(d => off[d.id] = offsetPath(path[d.id]));
-  const dlPairs = [];
-  for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++)
-    if (partner[ds[i].id] !== ds[j].id) dlPairs.push([ds[i].id, ds[j].id]);
   const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
   const plan = planCrossings({
-    ids: ds.map(d => d.id), pairs: dlPairs,
+    ids: ds.map(d => d.id), exclude: ds.map(d => [d.id, partner[d.id]]).filter(pr => pr[1]),
     base: (id, t) => off[id](t), apply: (id, t, o2) => off[id](t, o2),
     group: id => kind[id], groups: ['arc', 'walk'],
     clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
@@ -1889,6 +1932,25 @@ const FORMATION_CHANGES = {
   linea_dame: (ds, N) => dameLinea(ds, N),
 };
 
+/* Below this, a dancer has not moved — she has been left where she was by arithmetic that did not
+ * cancel exactly. Slots are discrete, so a real step is tens of pixels and a non-step is ~1e-14: there
+ * is nothing in between, and invariants §33 asserts that gap rather than trusting it. Any direction
+ * DERIVED from a displacement (a normal, a bearing, a lane side) has to test against this before it
+ * normalises, because dividing a residue by its own length yields a confident unit vector pointing
+ * nowhere in particular. */
+const STILL_PX = 1e-6;
+/* Every displacement a DIRECTION has been derived from. Recording rather than asserting keeps the app
+ * silent in production and puts the judgement in invariants §33e, which asserts the gap is real: a step
+ * is tens of pixels, a non-step is exact, and a value in between means something is about to normalise
+ * noise into a confident unit vector. Any future code that takes a bearing from a difference should
+ * come through here — that is what makes the check a CLASS check rather than a note about one function. */
+const DIR_DERIVATIONS = [];
+function dirFrom(vx, vy){
+  const len = Math.hypot(vx, vy);
+  DIR_DERIVATIONS.push(len);
+  return len < STILL_PX ? null : { x: vx / len, y: vy / len, len };
+}
+
 const SCRIPT_KINDS = {
   /* The Dile Que No y Dame follower's close: a ¾ circle from her spoke point, out through its mirror on
    * the far side of the ring, and back to the spot she started the movement on. Her couple midpoint never
@@ -1925,9 +1987,18 @@ const SCRIPT_KINDS = {
     const amp = cfg.bow ? SOLVERS[cfg.bow.amp](ds) : 0;
     const at = {};
     ds.filter(d => d.role === role).forEach(d => { const S = pos(d), E = FORMATIONS[layoutName].slot(d.station, lane, N);
-      const vx = E.x - S.x, vy = E.y - S.y, L = Math.hypot(vx, vy) || 1, sg = side === 'right' ? 1 : -1;
+      const vx = E.x - S.x, vy = E.y - S.y, sg = side === 'right' ? 1 : -1;
+      // A dancer whose lane slot is where she already stands does not travel — and a dancer who does
+      // not travel has no side to bow to. The bow is the NORMAL to her travel, so a zero travel vector
+      // leaves that normal undefined. Guarding the division alone (`|| 1`) is not enough and was the
+      // bug: an exact zero fell back to no bow, while a residue of 5.7e-14px normalised to a full unit
+      // vector pointing wherever the rounding happened to land — a 17.5px sidestep aimed by the 14th
+      // decimal place. That is what made Dame Pequeña differ between phases and between couple counts
+      // when, geometrically, it is the same figure on the same mini-wheel every time. She stands.
+      const u = dirFrom(vx, vy);
+      if (!u){ at[d.id] = () => ({ x: S.x, y: S.y }); return; }
       at[d.id] = t => { const te = cfg.ease === 'smooth' ? _smooth(t) : t, k = amp * Math.sin(Math.PI * t);
-        return { x: S.x + vx * te + sg * (-vy / L) * k, y: S.y + vy * te + sg * (vx / L) * k }; };
+        return { x: S.x + vx * te + sg * (-u.y) * k, y: S.y + vy * te + sg * u.x * k }; };
     });
     return at;
   },
@@ -2542,6 +2613,89 @@ function updateUI(){
     } else ql.innerHTML = '<div class="qempty">— nothing queued —</div>';
   }
 }
+/* ------------------------------------------------------------------ *
+ *  Sub-keyframe interpolation — how the renderer gets BETWEEN keyframes.
+ *
+ *  Keyframes are samples of a curved path, so joining them with straight lines renders a
+ *  CHORD of the true arc: the drawn path cuts every corner, dipping inside the intended
+ *  line mid-segment and snapping back at each keyframe. Measured before this existed, that
+ *  cost up to 2.7px on the worst figure and showed up as a visible pulse — most obviously on
+ *  the Línea entries and exits, where a rigid couple rotating about its own midpoint appeared
+ *  to squeeze together and spring apart 15 times on the way across. Nothing was wrong with
+ *  the movement: every keyframe had the couple at exactly 64.0px. It was the drawing.
+ *
+ *  So a segment is drawn as a blend of the two CIRCLES through its neighbouring keyframes —
+ *  circle(A,B,C) and circle(B,C,D) for the segment B→C — weighted from the first to the
+ *  second across the segment. Three properties earn it its place:
+ *
+ *   - **Circles are exact.** If the four keyframes lie on one circle both arcs ARE that
+ *     circle, so the blend is too. Rigid rotation about a midpoint is circular motion, which
+ *     is why this fixes the couple pulse completely rather than merely reducing it.
+ *   - **It is C1 across joins for free.** Segment B→C starts on circle(A,B,C); the previous
+ *     segment A→B ends on circle(A,B,C) — literally the same circle — so the tangents agree
+ *     with no continuity condition to impose.
+ *   - **It cannot overshoot far.** The drawn point stays between two arcs that share the
+ *     segment's endpoints, so the departure from the straight line is bounded by their
+ *     sagittae; unlike a spline it has no free tension to bulge past the keyframes.
+ *
+ *  CORNERS ARE THE ENGINE'S BUSINESS, NOT THE RENDERER'S. Where a figure genuinely reverses
+ *  — the out-and-back of a Dile or an Exhibela — there is no arc to find and rounding it off
+ *  would invent choreography. The engine already rounds the corners it wants rounded (the
+ *  4-beat opening's beat-2/3 arc is built that way on purpose), so a reversal here is meant.
+ *  Measured across every movement, the per-keyframe direction change is sharply bimodal:
+ *  31,801 samples below 30°, nothing at all between 120° and 170°, and 396 samples at
+ *  170–190° (the reversals). CORNER_DEG sits in that empty band, so the split is read off the
+ *  data rather than tuned — and a corner falls back to the straight line it deserves. */
+const CORNER_DEG = 150;          // direction change above which a keyframe is a genuine corner
+const ARC_MIN_SAG = 0.01;        // px — below this the arc and the chord are the same line
+function _circleArc(A, B, C, u){
+  // The point at parameter u along B→C on the circle through A, B, C. Returns null when there
+  // is no usable circle: a corner, a stationary leg, or three points near enough to a straight
+  // line that the chord already IS the arc.
+  if (!A || !C || !B) return null;
+  const abx = B.x - A.x, aby = B.y - A.y, bcx = C.x - B.x, bcy = C.y - B.y;
+  const lab = Math.hypot(abx, aby), lbc = Math.hypot(bcx, bcy);
+  if (lab < 1e-6 || lbc < 1e-6) return null;                       // a leg with no direction
+  const cosT = Math.max(-1, Math.min(1, (abx * bcx + aby * bcy) / (lab * lbc)));
+  if (Math.acos(cosT) * 180 / Math.PI > CORNER_DEG) return null;   // genuine corner: leave it sharp
+  // Circumcentre of A, B, C.
+  const d = 2 * (A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
+  if (Math.abs(d) < 1e-9) return null;                             // collinear
+  const a2 = A.x * A.x + A.y * A.y, b2 = B.x * B.x + B.y * B.y, c2 = C.x * C.x + C.y * C.y;
+  const ox = (a2 * (B.y - C.y) + b2 * (C.y - A.y) + c2 * (A.y - B.y)) / d;
+  const oy = (a2 * (C.x - B.x) + b2 * (A.x - C.x) + c2 * (B.x - A.x)) / d;
+  const r = Math.hypot(B.x - ox, B.y - oy);
+  if (!isFinite(r) || r < 1e-6) return null;
+  const tB = Math.atan2(B.y - oy, B.x - ox);
+  let dA = Math.atan2(C.y - oy, C.x - ox) - tB;
+  while (dA >  Math.PI) dA -= 2 * Math.PI;                          // the short way round the circle
+  while (dA < -Math.PI) dA += 2 * Math.PI;
+  if (r * (1 - Math.cos(dA / 2)) < ARC_MIN_SAG) return null;        // indistinguishable from the chord
+  const t = tB + dA * u;
+  return { x: ox + r * Math.cos(t), y: oy + r * Math.sin(t) };
+}
+/* Draw the path `pts` at parameter `u` within segment `sg` (from pts[sg] to pts[sg+1]).
+ * Pure: same inputs, same point — which is what lets the test layer sample exactly what the
+ * screen shows instead of a re-implementation of it. */
+function samplePath(pts, sg, u){
+  const B = pts[sg], C = pts[sg + 1];
+  if (!C) return { x: B.x, y: B.y };
+  const lin = { x: B.x + (C.x - B.x) * u, y: B.y + (C.y - B.y) * u };
+  const p1 = _circleArc(pts[sg - 1], B, C, u);                      // circle through the point behind
+  const p2 = _arcFwd(B, C, pts[sg + 2], u);                         // circle through the point ahead
+  // A missing arc means one of two different things and they are not interchangeable. At the FIRST
+  // or LAST segment of a path there is simply no neighbour to fit a circle to, so the one arc that
+  // does exist carries the whole segment — otherwise the two end segments of every movement would
+  // still be drawn half-straight, which measures as 2.01px of error on an exact circle. Everywhere
+  // else a null means the fit was REFUSED (a corner, a stationary leg, a straight line), and there
+  // the straight line is the answer: blending lin→arc leaves a corner sharp and then curves away.
+  const a = p1 || (sg > 0 ? lin : (p2 || lin));
+  const b = p2 || (sg + 2 < pts.length ? lin : (p1 || lin));
+  return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u };
+}
+// The forward circle is the one through B, C and the point AHEAD; parameterised on B→C it is
+// the same construction read backwards, so it reuses _circleArc with the ends swapped.
+function _arcFwd(B, C, D, u){ const p = _circleArc(D, C, B, 1 - u); return p; }
 // Continuous player: turns a list of keyframes into per-dancer position/rotation
 // timelines and animates them with requestAnimationFrame, so nothing relies on
 // interrupted CSS transitions (which caused jitter). Move-generation is unchanged.
@@ -2614,8 +2768,8 @@ function playFrames(frames, opts = {}, onDone, timing = {}){
       const span = cum[sg + 1] - cum[sg], lt = span > 0 ? (e2 - cum[sg]) / span : 1;
       ids.forEach(id => {
         const n = nodes[id]; if (!n) return;
-        const a = P[id][sg], b = P[id][sg + 1];
-        n.g.style.transform = `translate(${a.x + (b.x - a.x) * lt}px,${a.y + (b.y - a.y) * lt}px)`;
+        const p = samplePath(P[id], sg, lt);
+        n.g.style.transform = `translate(${p.x}px,${p.y}px)`;
         const ra = ROT[id][sg], rb = ROT[id][sg + 1];
         n.rot = SNAP[id][sg + 1] ? rb : ra + (rb - ra) * lt;   // snapped turns jump at segment start
         n.arrowG.style.transform = `rotate(${n.rot}deg)`;

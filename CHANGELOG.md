@@ -3,6 +3,77 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v130 — the pass that wasn't checked, the bow that pointed nowhere, and the path between keyframes
+
+Three faults, one reported from the floor by Sam (*"during Adios Pequeña the leaders collide and overlap
+in the middle — but only in one phase"*), two found while chasing it.
+
+- **A bow aimed by floating-point noise.** `to_lane` gives a scripted dancer a sideways bow so partners
+  trading places just miss, and took its DIRECTION from the normal to her start→end vector. In Dame
+  Pequeña she ends where she starts, so that vector is zero — and the `|| 1` guard only caught the exact
+  zero, which was never the dangerous case. A residue of `5.684e-14px` normalises to a full unit vector
+  pointing wherever the arithmetic happened to land, so she took a **17.5px sidestep aimed by the 14th
+  decimal place**. Measured: the residue was `0` at one phase and `2.8e-14` at another, which is the
+  entire reason Adios Pequeña behaved differently in the two phases and at different couple counts.
+  Fixed by naming the case (`STILL_PX`): a dancer who does not travel has no side to bow to, so she
+  stands. Phase symmetry went from a 17.5–35px mismatch to **0.00px**, and the collision — 28.3px at 4
+  couples, **10.5px at 8**, against 32px of dancer — to a clean 35.1px at every couple count and phase.
+- **Sam's rule, confirmed by measurement.** *"A mini-wheel is the same size whatever the couple count, so
+  the same figure danced on it must be identical."* The geometry already agreed — `R2`, `d2`, `mid2` and
+  the partner distance are constant from 4 couples to 12, and only `mcR` (how far apart the wheels sit)
+  grows — so the couple-count dependence could not be geometric, and wasn't. It is now **0.0000px**
+  across 4, 6, 8, 10 and 12 couples measured in the mini-wheel's own frame.
+- **The planner now owns its candidate set.** It used to be handed one, built per caller as *every
+  cross-group pair* — so no candidate ever contained two leaders. True on the full wheel, false on a
+  2-couple mini-wheel where `dh: -2` sends both leaders across it: they passed head-on and **nothing
+  failed because nothing was asked**. Callers now declare only the pairs the figure holds together
+  (partners gathering into a couple); `planCrossings` derives every other candidate itself, so a caller
+  can no longer narrow the safety check by accident. Group membership decides how a corridor is SHARED,
+  never who is looked at.
+- **The planner reports failure.** `solveScale` returned its cap when no amplitude could hold the
+  corridor, silently, and the caller drew it anyway. It now records a `PLAN_FAULTS` entry and returns
+  `clear` — the closest any checked pair actually comes.
+- **Curves are drawn as curves.** Keyframes were joined with straight lines, which draws the CHORD of a
+  curved path: the drawing cut every corner and sprang back at each keyframe. On a rigid couple rotating
+  into the inner ring that read as the pair squeezing together and apart fifteen times on the way across,
+  while every keyframe had them at exactly 64.0px — the engine was never wrong. It was a global effect
+  (`dame_pequena` 2.1px, `dame_dos` 2.0px, the Dile family 1.4px), visible on the Adios forms only
+  because a couple gives the eye a reference. `samplePath` now blends the two circles through the
+  neighbouring keyframes: circles come out exact, joins are C1 for free, and a declared reversal stays
+  sharp (corners are the engine's business — the 4-beat opening's beat-2/3 join is rounded on purpose).
+- **…and the keyframe count follows the turn.** Arcs fix the circular part exactly, but a partner's real
+  path is a rotation on a TRANSLATING midpoint, so the residue only falls with sampling density.
+  `coupleWalkFrames` now derives its keyframe count so no single one carries more than 6° of rotation
+  (16 when nothing turns, up to 90 for an Adios sweep). Rigid-pair breathing: **2.67px → 1.44px → 0.06px**.
+  The extra keyframes are the same curve resampled, not a new one: every old keyframe lies within
+  **0.048px** of the new path and the landings moved by at most **0.0063px**.
+
+### Tests — properties, deliberately not recordings
+Agreed with Sam: the golden is a change detector and will move when the pathing engine improves, so
+nothing new records a path. Every check below states something any engine must be true of.
+- **§33a** no two dancers ever overlap — 920 cases across every movement × formation × 4–12 couples ×
+  both phases, **and every Línea call walked movement by movement**, which is the coverage that was
+  missing (the fault only appears mid-sequence; from rest the arithmetic cancels to an exact zero).
+  Checked at the keyframes and on the drawn path. Closest anywhere: 34.94px / 34.71px.
+- **§33b** the phase flip is a rotation and nothing else. Two tolerances, because there are two claims:
+  the FIGURE is exact arithmetic (1e-9), the DRAWN path additionally passes through a fixed-iteration
+  bisection whose convergence floor is CLEAR·2⁻¹⁶ ≈ 5.3e-4px (0.01) — still 1750× tighter than the bug.
+- **§33c** a mini-wheel figure is couple-count invariant, in the mini-wheel's own frame.
+- **§33d** the planner never silently fails to hold its corridor.
+- **§33e** no direction is ever derived from a displacement too small to have one — the CLASS behind the
+  bow bug. `dirFrom` records every displacement a bearing is taken from; the check asserts the two
+  populations (a real step, an exact stand-still) stay separated with nothing in the noise band between.
+- **§33f** the safety check's COVERAGE, not just its verdict. Every behavioural check stays green with
+  the candidate set narrowed back to cross-group-only — the pairs nobody looks at happen to clear on
+  their own today, which is exactly the state the engine was in when two leaders passed within 10.5px.
+  So the size of the set is asserted directly.
+- **§34** the renderer: circles exact, straight lines straight, reversals sharp, rigid pairs don't
+  breathe, and the drawn path never strays from the keyframes it interpolates.
+- Every section self-tests. §33a is shown a 1px gap, §33b a 5° error, §34c a couple turning a full circle
+  in 8 keyframes — each must fail on the bad input, or "0 problems found" means nothing.
+- Mutation-tested: reverting the bow fix trips **81 checks across §33a/b/c/e**; narrowing the candidate
+  set trips §33f on 316 solves and *nothing else*, which is why §33f had to be structural.
+
 ## v129 — UI: grouped panels, availability that means something, no reflow
 - **Both panels are grouped, and the groups are DERIVED** rather than hand-labelled. A movement's group
   falls out of what it already declares (changes formation / progresses / flips the phase); a call's falls
