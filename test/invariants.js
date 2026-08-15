@@ -1587,6 +1587,76 @@ function run() {
     }
   }
 
+  // 35: WHICH SIDE A PASS ACTUALLY HAPPENED ON. The engine has always declared a pass side (`pass:'in'`
+  //     or `'out'`), but that is an instruction to an offset, not a constraint on the outcome — it could
+  //     only ever be checked by reading the code. This measures it: at the frame of closest approach,
+  //     the sign of cross(heading, other − self) says which shoulder the pass happened over. It is the
+  //     groundwork for the declarative pass constraints (PASSING.md), and it already earns its keep by
+  //     pinning down what the engine does today, unanimously, so any future change to it is deliberate.
+  {
+    const CLEAR = 2 * (T.DOT_R + T.PATH_CLEAR), ENGAGE = CLEAR + 1.4 * T.DOT_R;
+    const cross = (u, v) => u.x * v.y - u.y * v.x;      // screen coords (y down): +1 ⇒ other is on your RIGHT
+    const timeline = cap => {
+      const ids = cap.frames[0].map(d => d.id), P = {}, st = cap.start || {};
+      ids.forEach(id => P[id] = (st[id] ? [st[id]] : []).concat(cap.frames.map(fr => fr.find(d => d.id === id).xy)));
+      return { ids, P };
+    };
+    const headOn = [], parallel = [], sameRole = [];
+    for (const key of T.keys().movements) for (const from of POSITIONS){
+      if (!T.validFrom(key, from)) continue;
+      for (const n of NS){
+        let cap; try { cap = T.captureMovement(key, from, n, 0); } catch (e) { continue; }
+        if (!cap || !cap.frames) continue;
+        const { ids, P } = timeline(cap);
+        const s0 = {}, s1 = {};
+        cap.frames[0].forEach(d => s0[d.id] = d.station);
+        cap.frames[cap.frames.length - 1].forEach(d => s1[d.id] = d.station);
+        const F = P[ids[0]].length;
+        for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++){
+          const a = ids[i], b = ids[j];
+          // Partner interactions are the FIGURE's handedness, not traffic — the measured sign there
+          // splits along the forward/reverse axis (adios vs reverse_adios, enchufla vs reverse_enchufla),
+          // which is the figure being itself. Only dancers who are not a couple before OR after are traffic.
+          if (s0[a] === s0[b] || s1[a] === s1[b]) continue;
+          let best = Infinity, k = -1;
+          for (let s = 0; s < F; s++){ const d = Math.hypot(P[a][s].x - P[b][s].x, P[a][s].y - P[b][s].y);
+            if (d < best){ best = d; k = s; } }
+          if (best > ENGAGE || k < 1 || k >= F - 1) continue;
+          const ha = { x: P[a][k + 1].x - P[a][k - 1].x, y: P[a][k + 1].y - P[a][k - 1].y };
+          const hb = { x: P[b][k + 1].x - P[b][k - 1].x, y: P[b][k + 1].y - P[b][k - 1].y };
+          const la = Math.hypot(ha.x, ha.y), lb = Math.hypot(hb.x, hb.y);
+          if (la < 1 || lb < 1) continue;                 // one of them is standing: no side to speak of
+          const r = { x: P[b][k].x - P[a][k].x, y: P[b][k].y - P[a][k].y };
+          const sa = Math.sign(cross(ha, r)), sb = Math.sign(cross(hb, { x: -r.x, y: -r.y }));
+          const dot = (ha.x * hb.x + ha.y * hb.y) / (la * lb);
+          const rec = { tag: `${key}|${from}|n${n} ${a}/${b}`, sa, sb, gap: best };
+          if (a[0] === b[0]) sameRole.push(rec);
+          else if (dot < -0.3) headOn.push(rec);
+          else if (dot > 0.3) parallel.push(rec);
+        }
+      }
+    }
+    // A head-on pass has a side both dancers agree on; a parallel one CANNOT — if b is on a's left while
+    // they travel the same way, a is necessarily on b's right. So a side is only ever stated from one
+    // dancer's point of view, which is why "pass on each other's left" is not a usable specification.
+    nChecks++; check(headOn.length > 50, `§35 only ${headOn.length} head-on traffic passes found — the probe is not finding encounters`);
+    const notMutual = headOn.filter(r => r.sa !== r.sb);
+    nChecks++; check(notMutual.length === 0,
+      `§35 ${notMutual.length} head-on pass(es) where the two dancers disagree on the side, e.g. ${notMutual[0] && notMutual[0].tag}`);
+    const mutualParallel = parallel.filter(r => r.sa === r.sb);
+    nChecks++; check(parallel.length === 0 || mutualParallel.length === 0,
+      `§35 ${mutualParallel.length} parallel pass(es) claiming a mutual side, which is geometrically impossible`);
+    // Every head-on leader/follower pass in the app happens over the SAME shoulder. Locking the measured
+    // value in means the day it changes is a decision someone made, not a drift. See PASSING.md: the
+    // NAMING of this side is an open question with Sam, but its consistency is not.
+    const odd = headOn.filter(r => r.sa !== headOn[0].sa);
+    nChecks++; check(odd.length === 0,
+      `§35 traffic passes are not all on the same side: ${odd.length} of ${headOn.length} differ, e.g. ${odd[0] && odd[0].tag}`);
+    if (process.env.RUEDA_VERBOSE)
+      console.log(`   §35 ${headOn.length} head-on (all sign ${headOn[0] && headOn[0].sa}), ` +
+                  `${parallel.length} parallel, ${sameRole.length} same-role traffic encounter(s)`);
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());
