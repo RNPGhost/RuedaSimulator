@@ -6,8 +6,9 @@ occur inside one "movement".*
 
 ## 1. Where we actually are
 
-*(The audit as taken, at v108. Rows struck through in §5 have since been migrated: `dameToEnchufla`'s
-planner is now the top-level `planCrossings`, and `damePequena` calls it. The rest still stand.)*
+*(The audit as taken, at v108 — kept as the record of what this document set out to fix. **None of it
+is true any more:** phases 1–3 (§5) folded every generator in this table onto one shared planner, and
+`planCrossings` is now the only code in the app that knows about collisions.)*
 
 Four different collision-avoidance mechanisms have grown up, and **the good one is not reusable**:
 
@@ -48,24 +49,30 @@ couple. Moved ⇒ dynamic (engine). Unmoved ⇒ scripted.** Measured over every 
 |---|---|---|---|
 | in-couple figures (Enchufla, Adios, Vacilala, Reverse/Leader's, Exhibela, Right Turn) | 0.0px | 0.0px | both scripted |
 | `dile` (8-beat Dile Que No) | 0.0px | 0.0px | both scripted |
-| `dile4` | 3.4px | 3.4px | both scripted *(see tolerance)* |
+| `dile4` | 0.0px | 0.0px | both scripted *(3.4px until the v112 fix — see below)* |
 | `dame`, `dame_dos` | 78–213px | 78px | both dynamic |
 | **`dame_pequena`** | **150.6px** | **0.0px** | **leader dynamic, follower scripted** |
 | **`dile_dame` / `dile_dame_dos`** | **150.6 / 260.9px** | **0.0px** | **leader dynamic, follower scripted** |
-| **`mujeres`** | **3.4px** | **152.3px** | **follower dynamic, leader scripted** |
+| **`mujeres`** | **0.0px** | **150.6px** | **follower dynamic, leader scripted** |
 | Línea entries/exits | 94–130px | 94–130px | both dynamic |
 
 Every case lands where it should, and the two hardest ones fall out with no special-casing: Dame
 Pequeña's follower is **exactly 0.0px**, and Mujeres Arriba inverts the roles — confirming that role
 could never have been the axis.
 
-**One wrinkle: it needs a tolerance.** A couple can legitimately *close up or open out within its own
-slot*: `dile4` shifts its midpoint 3.4px as the partners gather onto the spoke, and Mujeres Arriba's
-leaders likewise. Stated precisely, the rule is *"does the dancer end in a different couple **slot**"* —
-the midpoint is how a slot is **identified** (which is what makes it work in Línea, where slots share a
-spoke), not a raw pixel comparison. In practice a threshold of about a dancer radius separates them with
-a 23× margin: **3.4px (same slot) vs 78px (the smallest real transition)**. Where the formation already
-enumerates slots, the station index is the exact form of the same test.
+**The test is EXACT — no tolerance — with one scoping rule.** It was written above needing a ~23px
+threshold, because `dile4` shifted its midpoint 3.4px as the partners gathered onto the spoke (and
+Mujeres Arriba's leaders with it). That turned out to be a defect in the Dile Que No position, not a
+property of the rule: the position was built on the ring rather than on the couple-midpoint radius.
+Fixed in v112 (§8), and with it the numbers become **0.00px scripted vs 76.02px for the smallest real
+transition** — measured across every in-formation movement at 4, 6 and 8 couples. No fudge factor.
+
+The scoping rule: **the test holds within a formation.** A formation change redefines the slot set, so
+every dancer necessarily lands in a new slot and the whole ensemble is dynamic — which is exactly what
+the Línea entries do, and is why they read as "both dynamic" in the table above rather than as a
+borderline case. (Measured, a Línea segundo couple shifts its midpoint only 7px while an inner couple
+shifts 18px; treating those two numbers as a scripted/dynamic boundary would be meaningless, whereas
+"the formation changed, so everyone re-slots" is exact.)
 
 ## 3. Proposed model
 
@@ -223,17 +230,21 @@ happen to compute them. Two notes worth keeping in view rather than acting on:
 scripted dancer's path is identical with and without evasion (she never yields), and scripted dancers
 clear each other unaided (she never needs to). 287 new checks; both hold everywhere today.
 
-## 8. Known fix to make
+## 8. Fixed
 
-- **`dile4` shifts its couple midpoint 3.4px.** The Dile Que No position places the partners at
-  `R_RING ± R_STEP`, so their midpoint sits on the ring, while a Casino couple's midpoint sits at
-  `R_RING·cos(δ)` — 3.4px further in. The Dile Que No position should share the midpoint of the Casino
-  position in the same slot, i.e. be built on `R_mid ± R_STEP`. Harmless today (it is the only reason the
-  midpoint test needs a tolerance at all), so scheduled rather than urgent.
+- ~~**`dile4` shifts its couple midpoint 3.4px.**~~ **DONE (v112).** The Dile Que No position placed the
+  partners at `R_RING ± R_STEP`, so their midpoint sat on the ring, while a Casino couple's midpoint sits
+  at `R_RING·cos δ` — 3.4px further in. It is now built on `R_MID() ± R_STEP`, the same radius the couple
+  was already standing on, so gathering onto the spoke keeps the slot's midpoint exactly. `R_MID()` is a
+  function, not a constant, so it follows the sub-wheel context and the Línea mini-wheels get the same
+  treatment (`LM.mid2` in place of `LM.R2`) — which is what keeps the position identical however you
+  arrive at it. Measured after: `dile4` Δmid **0.00px**, and Mujeres Arriba's leaders with it.
 
-## 9. Remaining open question
+## 9. Resolved
 
-- **Tolerance vs slot identity.** Implement the midpoint test with a numeric threshold (~a dancer
-  radius), or have each formation enumerate its couple slots and compare slot identity directly? The
-  numeric version works today and is formation-agnostic; the slot version is exact but asks more of the
-  formation definition. Recommendation: numeric now, slot identity when formations become user-defined.
+- ~~**Tolerance vs slot identity.**~~ The question dissolved rather than being decided: it existed only
+  because of the `dile4` defect above. With the position built correctly the numeric test is *exact*
+  (0.00 vs 76.02px), so there is nothing for a slot-identity scheme to buy — and the one place a naive
+  numeric test really does break down, a formation change, is not a tolerance problem but a scoping one:
+  the slot set itself is being replaced, so everyone is dynamic by definition. Both halves are now
+  enforced by invariants §25.

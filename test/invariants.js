@@ -719,11 +719,15 @@ function run() {
   //       (b) she never NEEDS to yield: scripted dancers must clear one another unaided. If two scripted
   //           figures collide, the figure is wrong — this catches it at its source rather than letting an
   //           evasion paper over it.
-  //     The midpoint test needs a tolerance (a dancer radius): a couple may legitimately close up inside
-  //     its own slot — dile4 gathers its partners onto the spoke, shifting the midpoint 3.4px — while the
-  //     smallest real transition moves it 78px, so the two never come close to being confused.
+  //     The test is EXACT — no tolerance — with one scoping rule: it holds *within a formation*. A
+  //     formation change redefines the slot set, so every dancer necessarily lands in a new slot and the
+  //     whole ensemble is dynamic; the Línea entries are skipped here and covered by §19/§21/§23.
+  //     Measured across every in-formation movement: scripted 0.00px vs the smallest real transition
+  //     76.02px. (Until v112 dile4 shifted its midpoint 3.4px, because the Dile Que No position was built
+  //     on the ring rather than on the couple-midpoint radius; that was the only reason a tolerance was
+  //     ever needed, and fixing the position removed it.)
   {
-    const SLOT_TOL = T.DOT_R;
+    const SLOT_TOL = 0.05;                                  // float noise only — the real gap is 76px
     const midOf = (ds, id) => { const d = ds.find(x => x.id === id);
       const p = ds.find(x => x.station === d.station && x.role !== d.role);
       return { x: (d.xy.x + p.xy.x) / 2, y: (d.xy.y + p.xy.y) / 2 }; };
@@ -732,7 +736,8 @@ function run() {
         if (!T.validFrom(key, from)) continue;
         for (const n of NS) {
           T.setupRest(from, n, 0); const start = T.state().dancers;
-          const ev = T.captureMovement(key, from, n, 0).frames; if (!ev) continue;
+          const cap = T.captureMovement(key, from, n, 0); const ev = cap.frames; if (!ev) continue;
+          if (!POSITIONS.includes(cap.endPos)) continue;    // formation change — everyone re-slots (§19/§21/§23)
           const end = T.state().dancers;
           T.setNoEvade(true); const iv = T.captureMovement(key, from, n, 0).frames; T.setNoEvade(false);
           const tag = `${key}|${from}|n${n}`;

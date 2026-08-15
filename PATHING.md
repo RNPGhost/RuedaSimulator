@@ -92,9 +92,12 @@ obstacle** (`yields: false`) and he is the only free variable. Consequences, all
   own (beats 1–2 out-and-back along the Exhibela line, beat 3 onto the spoke, pause on 4; smoothed so
   2→3 is even speed), landing on…
 - **Dile Que No position** *(built — `posState === 'dile'`)* — follower on the **inner** lane, leader
-  on the **outer** lane (the formation's own `inner`/`outer` slots, `R_RING ∓ R_STEP`), both on the
-  couple's midpoint spoke. Facings: follower ~clockwise / perpendicular to the spoke, leader facing the
-  centre. A resting position; `pos()`/grid-exactness go through `slot()`.
+  on the **outer** lane (the formation's own `inner`/`outer` slots), both on the couple's midpoint spoke,
+  a step `R_STEP` either side of `R_MID()`. Built on the **couple-midpoint radius, not the ring**: the
+  partners are gathering onto the spoke they already straddle, so the couple keeps its midpoint exactly
+  (it sat 3.4px out on the ring until v112, which is what used to make the scripted/dynamic test need a
+  tolerance). Facings: follower ~clockwise / perpendicular to the spoke, leader facing the centre. A
+  resting position; `pos()`/grid-exactness go through `slot()`.
 - **Mujeres Arriba** *(built — movement `mujeres`)* — from the Dile Que No position, the women each
   progress one couple **clockwise** to the next Exhibela spot, while each leader retraces his 4-beat in
   reverse back to his own Exhibela spot (facing centre, then a 90° right turn onto his new partner).

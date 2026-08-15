@@ -3,6 +3,26 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v112 — the Dile Que No position keeps its couple's midpoint
+- **The scheduled `dile4` fix.** The position placed the partners at `R_RING ± R_STEP`, so their midpoint
+  sat on the ring, while the Casino couple they came from has its midpoint at `R_RING·cos δ` — 3.4px
+  further in. Gathering onto your own spoke should not move your couple. Now built on the new
+  **`R_MID()`**, a function (not a constant) so it follows the sub-wheel context; the Línea mini-wheels
+  get the same treatment via `LM.mid2` in place of `LM.R2`, which is what keeps the position identical
+  however you arrive at it.
+- **The scripted/dynamic discriminator is now exact.** It was written needing a ~23px tolerance
+  (ENGINE_MODEL §2) purely because of this defect. Measured across every in-formation movement at 4, 6
+  and 8 couples: **0.00px scripted vs 76.02px for the smallest real transition**. `dile4` and Mujeres
+  Arriba's leaders both land on 0.00.
+- **And it settled the open question rather than deciding it.** "Numeric threshold vs slot identity"
+  existed only to paper over the 3.4px. With the position built correctly there is nothing for a
+  slot-identity scheme to buy — and the one case a naive numeric test really does mishandle turned out
+  not to be a tolerance problem at all but a **scoping** one: a formation change replaces the slot set,
+  so everyone is dynamic by definition. Invariants §25 now tests exactly (0.05px float epsilon) and
+  skips formation changes, which §19/§21/§23 already cover.
+- Golden re-baselined on 36 cases (`dile4`, `mujeres`, the `dile_dame` compounds); 3 visual scenes
+  re-captured. 1786 invariants green.
+
 ## v111 — Phase 3: `planCrossings` is now the only avoidance in the app
 - **Mujeres Arriba migrated.** Leaders scripted (they retrace their 4-beat, couple midpoint barely
   moving), women planned. `RISE` deleted — measured, the plain polar arc needs **no evasion at all**

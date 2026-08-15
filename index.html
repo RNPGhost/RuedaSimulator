@@ -539,6 +539,13 @@ const ARROW_LEN = 30;
 // dancer and the arrow, and it is the SINGLE definition of that spacing: the circle and Línea slots and
 // the Dile Que No y Dame compound all read it, so the position is identical however you arrive at it.
 const R_STEP = (ARROW_LEN + DOT_R) / 2;
+// The couple-midpoint radius: where a Casino/Exhibela couple's midpoint sits, slightly INSIDE the ring
+// line (the two partners stand ±δ round the ring, so their chord's midpoint is R·cos δ). The Dile Que No
+// position is built on this, NOT on the ring, so a couple that gathers onto its spoke keeps the midpoint
+// of the slot it is standing in — which is what makes "did the couple midpoint move?" an exact test for
+// scripted-vs-dynamic rather than one needing a fudge factor. A function, not a constant: R_RING and
+// DELTA_DEG change with the couple count and with the sub-wheel context.
+const R_MID = () => R_RING * Math.cos(DELTA_DEG * Math.PI / 180);
 /* A Formation owns the geometry of one layout: where each (station, lane) slot sits, how the wheel
  * sizes to the couple count, and the faint guide drawn behind the dancers. Movements and rendering
  * reach geometry through here rather than hard-coding a layout.
@@ -555,8 +562,8 @@ const FORMATIONS = {
       if (lane === 'cw')        a = theta + delta;                    // clockwise side of the ring
       else if (lane === 'ccw')  a = theta - delta;                    // anti-clockwise side of the ring
       else if (lane === 'pickup') a = theta + delta + (360 / N) * 0.15; // just clockwise of the cw follower
-      else if (lane === 'inner') r = R_RING - R_STEP;                 // toward the centre of the wheel
-      else if (lane === 'outer') r = R_RING + R_STEP;                 // outside the wheel
+      else if (lane === 'inner') r = R_MID() - R_STEP;                // a step in along the couple's own spoke
+      else if (lane === 'outer') r = R_MID() + R_STEP;                // a step out along it
       a = a * Math.PI / 180;
       return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
     },
@@ -590,7 +597,7 @@ const FORMATIONS = {
       // the main centre, so for it 'outer' is further in.
       if (lane === 'outer' || lane === 'inner'){
         const sgn = inner ? -1 : 1;
-        const rr = g.mcR + sgn * (g.R2 + (lane === 'outer' ? R_STEP : -R_STEP));
+        const rr = g.mcR + sgn * (g.mid2 + (lane === 'outer' ? R_STEP : -R_STEP));
         return { x: CX + rr * Math.cos(th), y: CY + rr * Math.sin(th) };
       }
       const R = inner ? g.Ri : g.Ro, d = inner ? g.di : g.doO;
@@ -611,7 +618,10 @@ const FORMATIONS = {
       const outerMid = innerMid + sep, mcR = innerMid + sep / 2;
       const R2 = Math.hypot(sep / 2, W / 2), d2 = Math.asin(W / (2 * R2));   // actual mini-wheel
       const Ro = Math.hypot(outerMid, W / 2), doO = Math.asin((W / 2) / Ro); // outer ring
-      LM = { m, R2, d2, Ri, di, mcR, Ro, doO };
+      // mid2 = a mini-wheel couple's midpoint radius from its mini centre (= sep/2, since R2 is the
+      // hypotenuse of sep/2 and W/2). The Dile Que No lanes step either side of THAT, not of R2, so the
+      // position keeps its couple's midpoint — the circle formation's rule, applied to the mini wheel.
+      LM = { m, R2, d2, mid2: sep / 2, Ri, di, mcR, Ro, doO };
       R_RING = Ro; DELTA_DEG = doO * 180 / Math.PI;                  // sane fallbacks for any circle-based code
     },
     // Mini-wheel centre for spoke k (radius mcR along the spoke, at the current phase) — used by the
@@ -1593,7 +1603,7 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
     const inA = Math.atan2(CY - M0.y, CX - M0.x);
     const inward = { x: Math.cos(inA), y: Math.sin(inA) };          // toward centre (Exhibela-line direction)
     const out = { x: -inward.x, y: -inward.y };
-    const Xs = { x: CX + R_RING * out.x, y: CY + R_RING * out.y };   // where the midpoint spoke meets the ring
+    const Xs = { x: CX + R_MID() * out.x, y: CY + R_MID() * out.y };  // the couple-midpoint point on their spoke
     const amp = d.role === 'L' ? AL : AF;
     if (d.role === 'F'){
       const Pf   = { x: Xs.x + io * HALF * inward.x, y: Xs.y + io * HALF * inward.y };  // beat-3 spoke point (inside normally, outside afuera)
