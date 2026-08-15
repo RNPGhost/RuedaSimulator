@@ -1280,16 +1280,16 @@ function planCrossings(o){
         const d = Math.hypot(P[a].x - P[b].x, P[a].y - P[b].y); if (d < m) m = d; }); }
     return m; };
   const wSolve = (fixedShare != null) ? fixedShare : 0.5;   // clearance is split-independent when both yield
-  let scale = 0;
   // The cap is a solver bound, not a style choice: a rigid unit needs a far wider corridor than a solo
   // dancer (two couples passing must separate by a couple width PLUS the clearance, ~2.5× on its own),
   // so 3.0 sat right on top of the rigid-pair case. Nothing today comes near this.
-  if (live.length){ const MAXS = 6.0, SCAN = 0.1;
-    let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worst(wSolve, sc) >= CLEAR){ pass = sc; break; } }
-    if (pass === null) scale = MAXS;
-    else { let lo = Math.max(0, pass - SCAN), hi = pass;
-      for (let it = 0; it < 12; it++){ const m = (lo + hi) / 2; if (worst(wSolve, m) >= CLEAR) hi = m; else lo = m; } scale = hi; }
-  }
+  const solveScale = w => { const MAXS = 6.0, SCAN = 0.1;
+    let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worst(w, sc) >= CLEAR){ pass = sc; break; } }
+    if (pass === null) return MAXS;
+    let lo = Math.max(0, pass - SCAN), hi = pass;
+    for (let it = 0; it < 12; it++){ const m = (lo + hi) / 2; if (worst(w, m) >= CLEAR) hi = m; else lo = m; }
+    return hi; };
+  let scale = live.length ? solveScale(wSolve) : 0;
   // Balance the split so the two groups feel equally natural: a dancer's naturalness cost rises with its
   // share, so bisect until the worst cost in each group meets.
   const groupCost = w => { const c = {};
@@ -1307,6 +1307,11 @@ function planCrossings(o){
       if ((c[gA] || 0) > (c[gB] || 0)) hi = m; else lo = m; }
     share = (lo + hi) / 2;
   } else if (o.forceShare != null) share = o.forceShare;
+  // The corridor total is split-independent ONLY while the two dancers of a pair share a swell shape,
+  // which stops being true when one has OVERLAPPING engagements merged into a wider crest. So if the
+  // balance moved the share, re-solve the amplitude at the share actually used. (Measured: without this,
+  // a rebalanced overlapping crossing sat 0.9px inside the corridor.)
+  if (live.length && Math.abs(share - wSolve) > 1e-9) scale = solveScale(share);
   return { at: (id, t) => at(id, t, share, scale), share, scale };
 }
 

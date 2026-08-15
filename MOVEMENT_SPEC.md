@@ -179,6 +179,10 @@ where it lives in `test/invariants.js`.
 Then: `node test/run.js` (golden + invariants) and `node test/visual.js` (render path). Re-baseline the
 golden **only** when the change was deliberate, and say in the commit which cases moved and why.
 
+**Mutation runs leave mutants behind if they crash or time out.** Check `git diff` before you commit
+after one — a `newPartner` mutation once survived a timed-out run, got captured as the "original" by the
+next run, and was only caught because the golden failed on the way to committing.
+
 **When you suspect the tests, mutate the code.** Break something deliberately and see whether the suite
 notices — it is the only way to find a test that passes for the wrong reason. A round of this found four
 rules with nothing behind them: `lane` authority (disabling `snapRestLanes` entirely passed everything),

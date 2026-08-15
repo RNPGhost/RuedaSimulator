@@ -1128,6 +1128,43 @@ function run() {
     }
   }
 
+  // 32: the EQUAL-NATURALNESS SPLIT actually splits. Given the solved amplitude, the leader's share of
+  //     the corridor is bisected to where the two groups' path-naturalness costs meet, so neither ends up
+  //     more frantic than the other. Mutation testing found that **hardcoding it to 0.5 passes the whole
+  //     suite**: in every shipped movement the two groups are mirror images, so an even split IS the
+  //     equal-naturalness split and the bisection has nothing to correct. It is not dead — it moves when
+  //     a dancer's engagements OVERLAP, merging into one wider crest that costs more than a single pass —
+  //     so the case is built here rather than left untested until a future figure depends on it.
+  {
+    const CLEAR = 2 * (T.DOT_R + T.PATH_CLEAR);
+    const paths = { B:  [{ x: 0, y: 0 }, { x: 400, y: 0 }],
+                    A1: [{ x: 120, y: -90 }, { x: 120, y: 90 }],
+                    A2: [{ x: 150, y: 90 }, { x: 150, y: -90 }] };
+    const at = (id, t, off) => { const [S, E] = paths[id];
+      const vx = E.x - S.x, vy = E.y - S.y, L = Math.hypot(vx, vy) || 1;
+      return { x: S.x + vx * t + (vy / L) * (off || 0), y: S.y + vy * t - (vx / L) * (off || 0) }; };
+    const ids = Object.keys(paths), pairs = [['B', 'A1'], ['B', 'A2']];
+    const mk = forceShare => T.planCrossings({ ids, pairs, base: (i, t) => at(i, t), apply: at,
+      group: i => i[0] === 'B' ? 'B' : 'A', groups: ['B', 'A'],
+      clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R, forceShare });
+    const costOf = (plan, id) => { const bl = [], pts = [];
+      for (let s = 1; s <= 40; s++){ const t = s / 40; bl.push(at(id, t)); pts.push(plan.at(id, t)); }
+      return T.pathNaturalness(pts, null, bl).cost; };
+    const spread = plan => Math.abs(costOf(plan, 'B') - Math.max(costOf(plan, 'A1'), costOf(plan, 'A2')));
+    const auto = mk(null), even = mk(0.5);
+    nChecks++; check(Math.abs(auto.share - 0.5) > 0.005,
+      `naturalness split: overlapping engagements should shift the share off even (got ${auto.share.toFixed(4)})`);
+    nChecks++; check(spread(auto) < spread(even),
+      `naturalness split: the bisected share (${spread(auto).toFixed(4)}) should equalise the two groups' ` +
+      `costs better than an even one (${spread(even).toFixed(4)})`);
+    // …and it must still clear: balancing who yields never changes the total corridor.
+    let worst = Infinity;
+    for (let s = 0; s <= 40; s++){ const t = s / 40;
+      pairs.forEach(([a, b]) => { const p = auto.at(a, t), q = auto.at(b, t);
+        worst = Math.min(worst, Math.hypot(p.x - q.x, p.y - q.y)); }); }
+    nChecks++; check(worst >= CLEAR - 0.5, `naturalness split: rebalancing broke the clearance (${worst.toFixed(1)})`);
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

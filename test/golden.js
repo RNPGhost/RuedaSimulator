@@ -38,7 +38,11 @@ function genMovements(T) {
           ids.forEach(id => { const d = byId[id]; flat.push(round(d.xy.x), round(d.xy.y), round(d.face)); });
           return flat;
         });
-        out[caseKey] = { kind: 'frames', ids, frames, segBeats: cap.segBeats ? cap.segBeats.map(round) : null,
+        // A movement's declared BEAT COUNT is part of its contract — it is how long the figure takes,
+        // musically. It was not recorded at all, so re-timing a movement was invisible here.
+        const mv = T.MOVEMENTS[key];
+        const beats = typeof mv.beats === 'function' ? mv.beats(from) : (mv.beats === undefined ? 4 : mv.beats);
+        out[caseKey] = { kind: 'frames', ids, frames, beats, segBeats: cap.segBeats ? cap.segBeats.map(round) : null,
           endPos: cap.endPos, endPhase: cap.endPhase };
       }
     }
@@ -59,7 +63,7 @@ function genEngine(T) {
         const res = T.runCallLive(key, from, n, ph);
         if (!res) continue;
         out[`${key}|${from}|n${n}|p${ph}`] = {
-          transcript: res.transcript.map(t => `${t.key}:${t.from}->${t.to}:p${t.phaseBefore}->${t.phaseAfter}`),
+          transcript: res.transcript.map(t => `${t.key}:${t.from}->${t.to}:p${t.phaseBefore}->${t.phaseAfter}:${t.beats}b`),
           endPos: res.endPos, endPhase: res.endPhase,
           grid: res.grid.map(g => `${g.L}/${g.F}`).join(','),
         };
@@ -107,7 +111,9 @@ function genLineaChains(T) {
     const ids = cap.frames[0].map(d => d.id).sort();
     const frames = cap.frames.map(fr => { const byId = {}; fr.forEach(d => byId[d.id] = d);
       const flat = []; ids.forEach(id => { const d = byId[id]; flat.push(round(d.xy.x), round(d.xy.y), round(d.face)); }); return flat; });
-    out[`${setup.join('>')}>${key}|linea|n${n}`] = { kind: 'frames', ids, frames,
+    const cmv = T.MOVEMENTS[key];
+    const cbeats = typeof cmv.beats === 'function' ? cmv.beats('linea') : (cmv.beats === undefined ? 4 : cmv.beats);
+    out[`${setup.join('>')}>${key}|linea|n${n}`] = { kind: 'frames', ids, frames, beats: cbeats,
       segBeats: cap.segBeats ? cap.segBeats.map(round) : null, endPos: cap.endPos, endPhase: cap.endPhase };
   }
   return out;
@@ -120,8 +126,10 @@ function genLineaMovements(T) {
     const ids = cap.frames[0].map(d => d.id).sort();
     const frames = cap.frames.map(fr => { const byId = {}; fr.forEach(d => byId[d.id] = d);
       const flat = []; ids.forEach(id => { const d = byId[id]; flat.push(round(d.xy.x), round(d.xy.y), round(d.face)); }); return flat; });
-    out[`${key}|linea|n${n}|p0`] = { kind: 'frames', ids, frames, segBeats: cap.segBeats ? cap.segBeats.map(round) : null,
-      endPos: cap.endPos, endPhase: cap.endPhase };
+    const lmv = T.MOVEMENTS[key];
+    const lbeats = typeof lmv.beats === 'function' ? lmv.beats('linea') : (lmv.beats === undefined ? 4 : lmv.beats);
+    out[`${key}|linea|n${n}|p0`] = { kind: 'frames', ids, frames, beats: lbeats,
+      segBeats: cap.segBeats ? cap.segBeats.map(round) : null, endPos: cap.endPos, endPhase: cap.endPhase };
   }
   return out;
 }
@@ -165,6 +173,7 @@ function diffFrames(base, cur, caseKey, diffs) {
   // timing altogether) with the golden saying nothing. Compare it.
   const sb = x => x.segBeats ? x.segBeats.join(',') : 'null';
   if (sb(base) !== sb(cur)) diffs.push(`${caseKey}: segBeats ${sb(base).slice(0, 48)} -> ${sb(cur).slice(0, 48)}`);
+  if (base.beats !== cur.beats) diffs.push(`${caseKey}: beats ${base.beats} -> ${cur.beats}`);
   for (let fi = 0; fi < base.frames.length && diffs.length < 40; fi++) {
     const a = base.frames[fi], b = cur.frames[fi];
     for (let j = 0; j < a.length; j++) {

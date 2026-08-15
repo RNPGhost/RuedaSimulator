@@ -3,6 +3,28 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v125 — a second mutation round: two more blind spots, and a real planner bug
+- **A movement's declared `beats` was not in the golden at all.** Changing how long a figure takes —
+  Dame from 2 beats to 4 — passed the entire suite. `segBeats` (v123) covers how beats are *spread*;
+  nothing covered how many there are. The baseline now records `beats` for every case, including the
+  Línea grande/pequeña ones, and the call transcripts carry it too.
+- **The equal-naturalness split never moved off 0.5 in any shipped movement**, so hardcoding it passed
+  everything. It is not dead code — measured, it shifts to 0.485 when a dancer's engagements **overlap**,
+  merging into one wider crest that costs more than a single pass. In every figure we dance the two
+  groups are mirror images, so an even split genuinely *is* the equal-naturalness split. New invariants
+  **§32** builds the asymmetric case rather than leaving the feature untested until something depends on
+  it.
+- **Building that test found a real bug in `planCrossings`.** The amplitude was solved once at an even
+  split, on the assumption that the corridor total is split-independent. That holds only while the two
+  dancers of a pair have the *same* swell shape — which stops being true exactly when one has overlapping
+  engagements. Rebalancing then left the crossing **0.9px inside the corridor**. The amplitude is now
+  re-solved at the share actually used. Latent for shipped movements (all of which sit at 0.5), and the
+  golden is unchanged.
+- Two of the round's "uncaught" results were **my own bad mutations** — a no-op guard and an unused key —
+  which is worth stating: a mutation that does not actually change behaviour proves nothing about the
+  tests.
+- 2700 invariants; visual untouched.
+
 ## v124 — mutation testing, and four rules that had no test behind them
 - **Deliberately broke 27 things and checked whether the suite noticed.** The golden caught almost
   everything that moves a dancer. Four mutations passed the entire suite, each a real rule the code
