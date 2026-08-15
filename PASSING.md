@@ -50,9 +50,13 @@ they travel the same way, a is necessarily on b's right. So a side can only be s
 point of view**. "Pass on each other's left" is a sentence that only parses for a head-on pass, and the
 vocabulary cannot be built on it.
 
-**Same-role traffic is untested territory.** In the entire app there is exactly **one** same-role
-encounter (`linea_moderna`, `L0/L2`, at 43.2px — comfortable, no crossing). So whatever convention we
-write down for leader-passing-leader is a decision, not an observation.
+**Same-role traffic hides where you don't look for it.** Sweeping the circle resting positions turns up
+exactly **one** same-role encounter (`linea_moderna`, `L0/L2`, at 43.2px), which made it look like a
+convention we would be inventing rather than observing. It isn't: the sweep starts from circle rest
+states, and the real case lives one formation deeper — two leaders dancing a Dame from Exhibela on a
+2-couple mini rueda meet in the middle of the wheel, at every couple count. That is the same encounter
+that had them passing within 10.5px before v130, and the same coverage gap (figures captured only from
+rest) that hid the bug in the first place.
 
 ## The vocabulary
 
@@ -89,24 +93,49 @@ This is what turns a declaration into a constraint: `pass:'in'` could only ever 
 code, whereas a declared side can be measured against what the dancers actually did. Invariant §35 asserts
 it for every encounter in every movement.
 
-## Open question — "left" or "right"?
+## Terminology — settled, and easy to get backwards
 
-`PATHING.md` says:
+> "The leader passes on the left hand side of the follower and the follower passes on the left hand side
+> of the leader, so their partner passes past their right shoulder." — Sam
+
+**"A passes on B's left" means A travels along B's left-hand side.** Said from A's own point of view, that
+puts B over A's *right* shoulder. One geometry, two phrasings, and reading one as the other inverts
+everything downstream — which is exactly the mistake this document made in its first draft, concluding
+that `PATHING.md` contradicted the engine. It did not. Both clauses of
 
 > Leader ↔ follower pass on each other's **left** ⇒ the leader takes the **inner** lane, the follower the
-> **outer** lane.
+> **outer** lane
 
-The engine obeys the second clause exactly: measured at closest approach during a Dame, the leader is at
-radius 136.5 and the follower at 171.5, at every couple count, without exception. But that geometry puts
-each dancer on the **other's right shoulder** — 144 of 144 head-on leader/follower traffic passes, sign
-`+1`, unanimous.
+are true, and the engine has always obeyed them.
 
-So the two clauses contradict each other, and the arrow between them is wrong. One of these is true:
+## The conventions, and the measurements behind them
 
-- the **lanes** are right and the word "left" is a slip — the engine already dances right-shoulder passes,
-  and `PASS_CONVENTION['L,F'] = 'right'`; or
-- the **word** is right and the lanes are inverted — the engine has been passing on the wrong shoulder all
-  along, and fixing it swaps every `pass:'in'`/`'out'` in the travel registry.
+| pair | side you pass on | the other appears over your | measured |
+|---|---|---|---|
+| leader ↔ follower | their **left** | right shoulder | 144 / 144 |
+| leader ↔ leader, follower ↔ follower | their **right** | left shoulder | 9 / 9 |
 
-This is a dance question, not a code question, and it has to be settled before the default is written
-down: get it wrong and every movement authored afterwards is inverted.
+The second row is not hypothetical. Two leaders dancing a Dame from Exhibela on a 2-couple mini rueda
+meet in the middle of the wheel — it is the same encounter that had them passing within 10.5px before
+v130 — and they already pass on each other's right at every couple count.
+
+Both rows now live in the engine as `PASS_CONVENTION`, with `PASS_SIGN` naming the one correspondence
+between a side and the measured sign so no other code rederives it. Invariant §35 asserts them by name,
+and self-tests by checking that the inverted convention matches nothing.
+
+## Not in scope for a passing convention
+
+**Partner interactions.** The measured sign there splits exactly along the forward/reverse axis, which is
+the figure being itself, not a traffic rule.
+
+**Rigid-unit formation changes.** In the Línea entries and exits each couple travels as one body to a
+spoke the formation has already fixed. `linea_moderna` takes two primero leaders past each other at
+43.2px and the resulting shoulder is a consequence of where their couples had to go, not a choice anyone
+made. Excluded from §35 for now, and noted as an open item rather than a permanent exemption: when
+couples-as-units gain pass constraints of their own, this comes back in.
+
+## Still to build (step 3)
+
+The vocabulary above is resolvable but not yet *honoured* — the engine can measure a side and assert it,
+but it cannot yet dance to a declared one, because a dancer still has a single offset and a single pass
+sign for the whole movement. That is what per-encounter deviation is for.

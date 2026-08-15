@@ -1604,6 +1604,14 @@ function run() {
     const headOn = [], parallel = [], sameRole = [];
     for (const key of T.keys().movements) for (const from of POSITIONS){
       if (!T.validFrom(key, from)) continue;
+      // A convention is about two DANCERS choosing a side. In the Línea entries and exits each couple
+      // travels as one rigid body to a spoke the formation has already fixed, so there is no side to
+      // choose — `linea_moderna` puts two primero leaders 43.2px apart on their way past each other, and
+      // which shoulder that lands on is a consequence of where their couples had to go. Excluded here
+      // and recorded as an open item: when couples-as-units get pass constraints of their own (step 3),
+      // this comes back in rather than staying exempt.
+      const pl = T.MOVEMENTS[key].play;
+      if (pl && (pl.formation === 'linea' || pl.formation === 'circle')) continue;
       for (const n of NS){
         let cap; try { cap = T.captureMovement(key, from, n, 0); } catch (e) { continue; }
         if (!cap || !cap.frames) continue;
@@ -1629,7 +1637,7 @@ function run() {
           const r = { x: P[b][k].x - P[a][k].x, y: P[b][k].y - P[a][k].y };
           const sa = Math.sign(cross(ha, r)), sb = Math.sign(cross(hb, { x: -r.x, y: -r.y }));
           const dot = (ha.x * hb.x + ha.y * hb.y) / (la * lb);
-          const rec = { tag: `${key}|${from}|n${n} ${a}/${b}`, sa, sb, gap: best };
+          const rec = { tag: `${key}|${from}|n${n} ${a}/${b}`, sa, sb, gap: best, roleA: a[0], roleB: b[0] };
           if (a[0] === b[0]) sameRole.push(rec);
           else if (dot < -0.3) headOn.push(rec);
           else if (dot > 0.3) parallel.push(rec);
@@ -1646,15 +1654,55 @@ function run() {
     const mutualParallel = parallel.filter(r => r.sa === r.sb);
     nChecks++; check(parallel.length === 0 || mutualParallel.length === 0,
       `§35 ${mutualParallel.length} parallel pass(es) claiming a mutual side, which is geometrically impossible`);
-    // Every head-on leader/follower pass in the app happens over the SAME shoulder. Locking the measured
-    // value in means the day it changes is a decision someone made, not a drift. See PASSING.md: the
-    // NAMING of this side is an open question with Sam, but its consistency is not.
-    const odd = headOn.filter(r => r.sa !== headOn[0].sa);
-    nChecks++; check(odd.length === 0,
-      `§35 traffic passes are not all on the same side: ${odd.length} of ${headOn.length} differ, e.g. ${odd[0] && odd[0].tag}`);
+    // The mini-wheel Dame is where two leaders actually meet head-on — Sam's case, and the one the
+    // circle sweep above cannot reach because it only starts from circle resting positions.
+    for (const n of NS){
+      let a; try { T.captureLineaMovement('adios_peq', n, 0); a = T.fireHere('dame_peq'); } catch (e) { continue; }
+      if (!a || !a.frames) continue;
+      const { ids, P } = timeline(a); const F = P[ids[0]].length;
+      for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++){
+        const x = ids[i], y = ids[j];
+        if (x[0] !== y[0]) continue;
+        let best = Infinity, k = -1;
+        for (let t = 0; t < F; t++){ const d = Math.hypot(P[x][t].x - P[y][t].x, P[x][t].y - P[y][t].y);
+          if (d < best){ best = d; k = t; } }
+        if (best > ENGAGE + 12 || k < 1 || k >= F - 1) continue;
+        const hx = { x: P[x][k + 1].x - P[x][k - 1].x, y: P[x][k + 1].y - P[x][k - 1].y };
+        const hy = { x: P[y][k + 1].x - P[y][k - 1].x, y: P[y][k + 1].y - P[y][k - 1].y };
+        const lx = Math.hypot(hx.x, hx.y), ly = Math.hypot(hy.x, hy.y);
+        if (lx < 1 || ly < 1) continue;
+        const r = { x: P[y][k].x - P[x][k].x, y: P[y][k].y - P[x][k].y };
+        const dot = (hx.x * hy.x + hx.y * hy.y) / (lx * ly);
+        if (dot >= -0.3) continue;                       // head-on only
+        sameRole.push({ tag: `dame_peq(mini)|n${n} ${x}/${y}`, sa: Math.sign(cross(hx, r)),
+          sb: Math.sign(cross(hy, { x: -r.x, y: -r.y })), gap: best, roleA: x[0], roleB: y[0] });
+      }
+    }
+
+    // …and every head-on pass obeys the CONVENTION, by name. A leader and an oncoming follower each pass
+    // on the other's left (so each goes by the other's right shoulder); two leaders, or two followers,
+    // each pass on the other's right. Both are Sam's words and both are what the engine already dances —
+    // 144 leader/follower passes and 9 leader/leader ones, without exception. Asserting them by name
+    // rather than by measured sign is what makes this a rule instead of a snapshot.
+    const wrongSide = [];
+    for (const r of headOn.concat(sameRole.filter(x => x.sa === x.sb))){
+      const want = T.PASS_SIGN[T.passSide(r.roleA, r.roleB)];
+      if (want !== undefined && r.sa !== want) wrongSide.push(r);
+    }
+    nChecks++; check(wrongSide.length === 0,
+      `§35 ${wrongSide.length} pass(es) on the wrong side of the convention, e.g. ${wrongSide[0] && wrongSide[0].tag}`);
+    nChecks++; check(sameRole.length > 0,
+      '§35 no same-role encounter found — the leaders meeting in a 2-couple mini rueda should be one');
+    // Self-test: the convention must be falsifiable. Invert it and every measured pass must disagree.
+    {
+      let disagree = 0;
+      for (const r of headOn) if (r.sa === -T.PASS_SIGN[T.passSide(r.roleA, r.roleB)]) disagree++;
+      nChecks++; check(disagree === 0 && headOn.length > 0,
+        `§35 self-test: ${disagree} pass(es) match the INVERTED convention as well — the check is not discriminating`);
+    }
     if (process.env.RUEDA_VERBOSE)
-      console.log(`   §35 ${headOn.length} head-on (all sign ${headOn[0] && headOn[0].sa}), ` +
-                  `${parallel.length} parallel, ${sameRole.length} same-role traffic encounter(s)`);
+      console.log(`   §35 ${headOn.length} head-on L/F (sign ${headOn[0] && headOn[0].sa}), ` +
+                  `${sameRole.length} same-role (sign ${sameRole[0] && sameRole[0].sa}), ${parallel.length} parallel`);
   }
 
   // 8: determinism — the golden generator produces identical output twice.

@@ -151,6 +151,7 @@ function load(htmlPath) {
       samplePath, get CORNER_DEG(){ return CORNER_DEG; },
       get PLAN_FAULTS(){ return PLAN_FAULTS; }, clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; },
       get PLAN_LOG(){ return PLAN_LOG; },
+      PASS_CONVENTION, PASS_SIGN, passSide,
       get STILL_PX(){ return STILL_PX; },
       get DIR_DERIVATIONS(){ return DIR_DERIVATIONS; }, clearDirs(){ DIR_DERIVATIONS.length = 0; },
       placeOf, resolvePlace, selectGroup, groupContext, GROUPS,

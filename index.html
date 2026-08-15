@@ -1269,6 +1269,36 @@ function arcLenPath(pts){
  *
  *  Returns { at(id,t), share, scale }.
  * ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ *
+ *  PASSING CONVENTIONS  (see PASSING.md)
+ *
+ *  "A passes on B's LEFT" means A travels along B's left-hand side. Said from A's own point of view,
+ *  that puts B over A's RIGHT shoulder. The two phrasings describe one geometry and it is easy to read
+ *  one as the other, so the mapping is written down once, here, and everything else refers to it.
+ *
+ *      side(a sees b) = sign( cross(heading_a, position_b − position_a) )
+ *
+ *  In screen coordinates (y is down) a POSITIVE cross means b is on a's right — so a is passing on b's
+ *  left. `PASS_SIGN` names that correspondence so no other code has to rederive it.
+ *
+ *  The conventions are DESCRIPTIVE, not aspirational: measured across every movement, every resting
+ *  position and 4/6/8 couples, all 144 head-on leader/follower traffic passes already obey the first
+ *  line, and all 9 leader/leader passes in the Línea mini-wheels obey the second. Invariants §35 asserts
+ *  both. A movement will be able to name an exception; until then this is the whole rule.
+ * ------------------------------------------------------------------ */
+const PASS_SIGN = { left: +1, right: -1 };     // the side of the OTHER dancer that you travel along
+const PASS_CONVENTION = {
+  'F,L': 'left',      // a leader and an oncoming follower each pass on the other's left,
+  'L,F': 'left',      //   so each goes by the other's RIGHT shoulder
+  'L,L': 'right',     // two leaders meeting head-on — as they do when a Dame from Exhibela on a
+  'F,F': 'right',     //   2-couple mini rueda brings them together in the middle — pass on each
+};                    //   other's right, so each goes by the other's LEFT shoulder
+// The side `a` should pass `b` on, resolved from the pair's roles. A movement's own `passes` map wins.
+function passSide(roleA, roleB, passes){
+  const key = roleA + ',' + roleB;
+  return (passes && passes[key]) || PASS_CONVENTION[key] || null;
+}
+
 // Every solve that could not hold its corridor, in order. Empty is the contract.
 const PLAN_FAULTS = [];
 /* Every solve's COVERAGE: how many dancers were in play and how many pairs were actually held apart.

@@ -19,9 +19,14 @@ and every traveller goes through it.
 ## Passing conventions (facing-relative, mutual)
 
 - **Leader ↔ follower** pass on each other's **left** ⇒ the leader takes the **inner** lane, the
-  follower the **outer** lane.
-- **Leader ↔ leader** and **follower ↔ follower** pass on each other's **right**. Largely moot while
-  every couple is synchronised; upheld by the no-overtaking rule.
+  follower the **outer** lane. "On each other's left" means each *travels along the other's left-hand
+  side*, so each goes by the other's **right shoulder** — the two phrasings describe one geometry and
+  are easy to read as opposites. See `PASSING.md`; the mapping is written down once, in `PASS_SIGN`.
+- **Leader ↔ leader** and **follower ↔ follower** pass on each other's **right**, so each goes by the
+  other's **left shoulder**. Not hypothetical: two leaders dancing a Dame from Exhibela on a 2-couple
+  mini rueda meet in the middle of the wheel.
+- Both are **measured, not aspirational** — 144/144 leader/follower passes and 9/9 leader/leader ones
+  already obey them, asserted by invariants §35.
 - **No overtaking:** leaders keep their cyclic order around the wheel and make equal angular progress
   along the track — they never temporarily change order. (Holds for all current moves; may relax once
   different couples do different things.)
