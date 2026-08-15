@@ -232,9 +232,15 @@ deliberately (Sam, v118) rather than adding a frame-indexed window to the vocabu
 frame 18, so it was an artifact of how the figure was written, not a dance decision.
 
 ## 8. Still to build
-- **Compound movements** — `dileQueNoYDame` is two phrases in one movement (a scripted 4-beat opening,
-  then a travel). The IR needs a movement to be a sequence of phrases with different intents per phrase.
-  MOVEMENT_SPEC §4 flagged this as the model assumption most likely to bite; it does, and the fix is
-  additive rather than a rethink.
+**Phrases (built).** A movement may be a **sequence of phrases** with different intents in each, each phrase
+starting from where the last left the dancers (`playPhrases`). MOVEMENT_SPEC §4 listed "a dancer whose
+couple midpoint moves and then returns within one movement" as the model assumption most likely to need
+extending; it did, and the extension was additive rather than a rethink.
+
+`dileQueNoYDame` is the case: a scripted 4-beat opening, then a travel in which the follower dances her ¾
+circle back to her own spot (midpoint unmoved, so scripted) while the leader crosses to his new partner.
+Its opening is now **literally the same definition** the standalone 4-beat Dile Que No dances — one
+`dileOpeningPlan(io)`, so the two can no longer drift apart. Byte-identical, and it removed ~40 lines of
+duplicated geometry.
 - **Then:** the Línea entries/exits (`coupleWalkFrames`) and `dameLinea`, which are rigid-couple travel —
   the same travel intent with `unit` set.

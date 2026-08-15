@@ -1799,7 +1799,7 @@ function dileQueNoFull(ds, N){
  * mirror just outside the ring, and back to her own start spot — facing her travel direction,
  * then turning to her new leader at the end. Ends in a clean Exhibela, leaders progressed k. */
 function dileQueNoYDame(ds, N, k = 1, afuera = false){
-  const AL = 16, AF = 18, TWO = 2 * Math.PI, HALF = R_STEP;   // beat-3 offset each side of the ring: the Dile Que No position's own spacing
+  const TWO = 2 * Math.PI, HALF = R_STEP;                     // the Dile Que No position's own spacing
   const kk = afuera ? -k : k, io = afuera ? -1 : 1;   // afuera: progress the other way, and swap inside<->outside
   const short = a => ((a + 180) % 360 + 360) % 360 - 180;
   const spot = {}; ds.forEach(d => spot[d.id] = pos(d));
@@ -1822,7 +1822,6 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
     const inward = { x: Math.cos(inA), y: Math.sin(inA) };          // toward centre (Exhibela-line direction)
     const out = { x: -inward.x, y: -inward.y };
     const Xs = { x: CX + R_MID() * out.x, y: CY + R_MID() * out.y };  // the couple-midpoint point on their spoke
-    const amp = d.role === 'L' ? AL : AF;
     if (d.role === 'F'){
       const Pf   = { x: Xs.x + io * HALF * inward.x, y: Xs.y + io * HALF * inward.y };  // beat-3 spoke point (inside normally, outside afuera)
       const Pout = { x: Xs.x - io * HALF * inward.x, y: Xs.y - io * HALF * inward.y };  // same distance the other side of the ring
@@ -1831,21 +1830,17 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
       const nrm = x => ((x % TWO) + TWO) % TWO;
       const dAB = nrm(aB - aA), dAC = nrm(aC - aA);
       let dir, sweep; if (dAB < dAC){ dir = 1; sweep = dAC; } else { dir = -1; sweep = TWO - dAC; }
-      const perpFace = Math.atan2(out.x, -out.y) * 180 / Math.PI;     // ⟂ spoke, clockwise round the wheel (tcw = (-out.y, out.x))
       const newLeaderFace = Math.atan2(L0.y - F0.y, L0.x - F0.x) * 180 / Math.PI;
-      info[d.id] = { role: 'F', S, F0, inward, amp, face0: facingAngle(d), spoke: Pf, O, rho, aA, dir, sweep, perpFace, newLeaderFace };
+      info[d.id] = { role: 'F', S, F0, inward, spoke: Pf, O, rho, aA, dir, sweep, newLeaderFace };
     } else {
       const Pl = { x: Xs.x - io * HALF * inward.x, y: Xs.y - io * HALF * inward.y };  // beat-3 spoke point (outside normally, inside afuera)
       const ns = (((st - kk) % N) + N) % N;
-      info[d.id] = { role: 'L', S, inward, amp, spoke: Pl, orbitStart: Pl, End: spot[stationL[ns]], newStation: ns, nfId: stationF[ns] };
+      info[d.id] = { role: 'L', S, inward, spoke: Pl, orbitStart: Pl, End: spot[stationL[ns]], newStation: ns, nfId: stationF[ns] };
     }
   });
   const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
   const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
 
-  // beats 1-2: out along the Exhibela line and back; beat 3: move onto the midpoint spoke; beat 4: pause
-  const dipAt = (g, s) => { const off = io * (g.role === 'L' ? 1 : -1) * g.amp * s;   // afuera: dip out instead of in
-    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off }; };
   // follower beats 5-8: ~3/4 circle through her spoke point, its outside-the-ring mirror, and her own spot
   const folTravel = (g, t) => { const a = g.aA + g.dir * g.sweep * t; return { x: g.O.x + g.rho * Math.cos(a), y: g.O.y + g.rho * Math.sin(a) }; };
   // Leader beats 5-8. His couple midpoint moves a whole couple, so he is the DYNAMIC dancer and the
@@ -1888,68 +1883,82 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
   const plan = (outOk && (!inOk || outPlan.scale <= inPlan.scale)) ? outPlan : inPlan;
   const leaderAt = (id, t) => plan.at(id, t);
 
-  // assemble frames
-  const SS = 8, PH = 4, NT = 32, frames = [], segBeats = [];
-  const push = (mapper, bps) => { frames.push(ds.map(mapper)); segBeats.push(bps); };
-  // Beats 2-3 are ONE rounded arc (out-spot -> round the start -> spoke), exactly as in the standalone
-  // 4-beat Dile Que No: a quadratic Bézier with the start point as its control, resampled by arc length
-  // so the speed is even. Two straight legs meeting at the start used to turn a hard ~60° corner there.
-  ds.forEach(d => { const g = info[d.id], P0 = dipAt(g, 1), pts = [];
-    for (let i = 0; i <= 24; i++){ const u = i / 24, v = 1 - u;
-      pts.push({ x: v * v * P0.x + 2 * v * u * g.S.x + u * u * g.spoke.x,
-                 y: v * v * P0.y + 2 * v * u * g.S.y + u * u * g.spoke.y }); }
-    g.arc = arcLenPath(pts);
-  });
-  for (let j = 1; j <= SS; j++){ const s = j / SS;                      // beat 1: out along the Exhibela line
-    push(d => ({ ...d, xy: dipAt(info[d.id], s) }), 1 / SS); }
-  for (let j = 1; j <= 2 * SS; j++){ const u = j / (2 * SS);            // beats 2-3: back and on, as one arc
-    push(d => ({ ...d, xy: info[d.id].arc(u) }), 1 / SS); }
-  for (let j = 0; j < PH; j++) push(d => ({ ...d, xy: info[d.id].spoke }), 1 / PH);   // beat-4 pause
-  for (let j = 1; j <= NT; j++){ const t = j / NT;
-    push(d => { const g = info[d.id];
-      if (g.role === 'F') return { ...d, xy: folTravel(g, t) };
-      return { ...d, station: g.newStation, xy: leaderAt(d.id, t) }; }, 4 / NT); }
+  // Two PHRASES. The opening is the shared 4-beat Dile Que No figure — literally the same definition the
+  // standalone movement dances, so they cannot drift. The close is a travel phrase: the follower dances
+  // her ¾ circle back to her own spot (scripted, midpoint unmoved) while the leader crosses to his new
+  // partner. This is the compound shape MOVEMENT_SPEC §4 predicted the model would need.
+  const NT = 32;
+  const openPhrase = cur => playScript(cur, dileOpeningPlan(io));
+  const closePhrase = cur => {
+    const frames = [], segBeats = [], turnStart = Math.round(NT * 0.72);
+    const prevXY = {}; ds.forEach(d => prevXY[d.id] = info[d.id].spoke);
+    const travelAtTurn = {};
+    for (let j = 1; j <= NT; j++){
+      const t = j / NT, fj = j - 1, P = {};
+      ds.forEach(d => { const g = info[d.id];
+        P[d.id] = g.role === 'F' ? folTravel(g, t) : leaderAt(d.id, t); });
+      frames.push(ds.map(d => {
+        const g = info[d.id], p = P[d.id];
+        if (g.role === 'L'){
+          const f = P[stationF[g.newStation]] || P[g.nfId];
+          return { ...d, station: g.newStation, xy: p,
+            face: f ? Math.atan2(f.y - p.y, f.x - p.x) * 180 / Math.PI : facingAngle(d) };
+        }
+        let tf = Math.atan2(p.y - prevXY[d.id].y, p.x - prevXY[d.id].x) * 180 / Math.PI;
+        let face;
+        if (fj < turnStart){ face = tf; travelAtTurn[d.id] = tf; }
+        else { const u = (fj - turnStart) / Math.max(1, NT - 1 - turnStart), sm = u * u * (3 - 2 * u);
+               face = travelAtTurn[d.id] + short(g.newLeaderFace - travelAtTurn[d.id]) * sm; }
+        return { ...d, xy: p, face };
+      }));
+      ds.forEach(d => prevXY[d.id] = P[d.id]);
+      segBeats.push(4 / NT);
+    }
+    return { frames, segBeats };
+  };
+  return playPhrases(ds, N, [openPhrase, closePhrase]);
+}
 
-  const openCount = 3 * SS + PH;
-  // leaders: face their current follower (beats 1-2), turn to the centre by beat 3 and hold (beat 4),
-  // then face their new follower through the travel.
-  frames.forEach((fr, fi) => {
-    const fpos = {}; fr.forEach(d => { if (d.role === 'F') fpos[d.station] = d.xy; });
-    fr.forEach(d => { if (d.role !== 'L') return;
-      const toC = Math.atan2(io * (CY - d.xy.y), io * (CX - d.xy.x)) * 180 / Math.PI;   // afuera: face away from centre
-      if (fi < 2 * SS){ const f = fpos[d.station]; d.face = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; }
-      else if (fi < 3 * SS){ const f = fpos[d.station], ff = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; d.face = ff + short(toC - ff) * ((fi - 2 * SS + 1) / SS); }
-      else if (fi < openCount){ d.face = toC; }
-      else { const f = fpos[info[d.id].newStation]; d.face = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; }
-    });
+/* A movement may be a SEQUENCE OF PHRASES with different intents in each — a scripted opening, then a
+ * travel, say. Each phrase starts from where the last one left the dancers. (MOVEMENT_SPEC §4 listed
+ * "a dancer whose couple midpoint moves and then returns within one movement" as the model assumption
+ * most likely to need extending; this is that extension, and it is additive.) */
+function playPhrases(ds, N, phrases){
+  let cur = ds; const frames = [], segBeats = []; let haveBeats = true;
+  phrases.forEach(ph => {
+    const out = ph(cur);
+    const fs = Array.isArray(out) ? out : out.frames;
+    const sb = Array.isArray(out) ? null : out.segBeats;
+    frames.push(...fs);
+    if (sb) segBeats.push(...sb); else { haveBeats = false; fs.forEach(() => segBeats.push(0)); }
+    cur = fs[fs.length - 1].map(d => ({ ...d }));
   });
-  // followers: beats 1-2 turn to the centre and hold; beat 3 turn to ⟂-spoke (clockwise) and pause on 4;
-  // travel: face the direction of travel, then a final turn to the new leader over the last part of the circle.
-  const turnStart = openCount + Math.round(NT * 0.72);
-  followerIds.forEach(id => {
-    const g = info[id];
-    let prev = null, travelAtTurn = g.perpFace;
-    frames.forEach((fr, fi) => {
-      const d = fr.find(x => x.id === id);
-      let face;
-      if (fi < SS) face = g.face0 + 90 * ((fi + 1) / SS);                                 // out, turn 90° right to centre
-      else if (fi < 3 * SS){                       // beats 2-3: face the way she travels round the arc…
-        const j = fi - SS + 1, u = j / (2 * SS);
-        const a = g.arc((j - 1) / (2 * SS)), b = g.arc(u);
-        const tv = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-        face = tv + short(g.perpFace - tv) * _smooth(Math.max(0, (u - 0.7) / 0.3));   // …settling onto ⟂-spoke by beat 4
-      }
-      else if (fi < openCount) face = g.perpFace;                                          // beat-4 pause
-      else {
-        let tf = prev ? Math.atan2(d.xy.y - prev.y, d.xy.x - prev.x) * 180 / Math.PI : g.perpFace;
-        if (fi < turnStart){ face = tf; travelAtTurn = tf; }
-        else { const u = (fi - turnStart) / Math.max(1, frames.length - 1 - turnStart); const sm = u * u * (3 - 2 * u);
-               face = travelAtTurn + short(g.newLeaderFace - travelAtTurn) * sm; }
-      }
-      d.face = face; prev = d.xy;
-    });
-  });
-  return { frames, segBeats };
+  return { frames, segBeats: haveBeats ? segBeats : null };
+}
+
+/* The 4-beat Dile Que No OPENING as a scripted figure: dip out along your own Exhibela line, back, onto
+ * the couple's midpoint spoke, pause. Beats 2 and 3 are marked `round`, so they join into ONE curve
+ * through the start point rather than meeting at a hard corner there.
+ * `io` is +1 normally and −1 afuera, which mirrors the figure inside out.
+ * ONE definition, shared by the standalone 4-beat Dile Que No and by the Dile Que No y Dame compounds
+ * that open with exactly these four beats — so the two can no longer drift apart. */
+function dileOpeningPlan(io){
+  const AL = 16, AF = 18, SS = 8, PH = 4;                    // Exhibela-line dip amplitudes
+  const centre = io > 0 ? 'centre' : 'outward';              // afuera faces away from the wheel centre
+  const lead = [
+    { to: { off: [-io * AL, 0] }, beats: 1, steps: SS, face: 'partner' },        // leader dips IN
+    { to: 'start',                beats: 1, steps: SS, face: 'partner' },
+    { to: { spoke:  io },         beats: 1, steps: SS, round: true, face: { blend: ['partner', centre] } },
+    { to: 'hold',                 beats: 1, steps: PH, face: centre },
+  ];
+  const foll = [
+    { to: { off: [ io * AF, 0] }, beats: 1, steps: SS, face: { from: 'start', turn: 90 } },   // steps OUT
+    { to: 'start',                beats: 1, steps: SS, face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
+    { to: { spoke: -io },         beats: 1, steps: SS, round: true,
+      face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
+    { to: 'hold',                 beats: 1, steps: PH, face: 'perpSpoke' },
+  ];
+  return d => d.role === 'L' ? lead : foll;
 }
 
 /* 4-beat Dile Que No (Exhibela -> Dile Que No position). The opening of a Dile Que No y Dame, danced
@@ -1960,25 +1969,7 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
  * to perpendicular-to-the-spoke (clockwise) on beat 3 and holds. Ends in the Dile Que No position —
  * no progression, no phase change. */
 function dileQueNo4(ds, N){
-  // Declarative (DECLARATIVE.md §6). Four beats: dip out along your own Exhibela line, back, onto the
-  // couple's midpoint spoke, pause. Beats 2 and 3 are marked `round`, so the interpreter joins them into
-  // ONE curve through the start point instead of two straight legs meeting at a hard corner there.
-  const AL = 16, AF = 18;                                    // Exhibela-line dip amplitudes
-  const SS = 8, PH = 4;
-  const lead = [
-    { to: { off: [-AL, 0] }, beats: 1, steps: SS, face: 'partner' },          // leader dips IN
-    { to: 'start',           beats: 1, steps: SS, face: 'partner' },
-    { to: { spoke:  1 },     beats: 1, steps: SS, round: true, face: { blend: ['partner', 'centre'] } },
-    { to: 'hold',            beats: 1, steps: PH, face: 'centre' },
-  ];
-  const foll = [
-    { to: { off: [ AF, 0] }, beats: 1, steps: SS, face: { from: 'start', turn: 90 } },   // follower steps OUT
-    { to: 'start',           beats: 1, steps: SS, face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
-    { to: { spoke: -1 },     beats: 1, steps: SS, round: true,
-      face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
-    { to: 'hold',            beats: 1, steps: PH, face: 'perpSpoke' },
-  ];
-  return playScript(ds, d => d.role === 'L' ? lead : foll);
+  return playScript(ds, dileOpeningPlan(1));
 }
 
 /* Mujeres Arriba (Dile Que No position -> Exhibela). The women advance: every follower progresses one

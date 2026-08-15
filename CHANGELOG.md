@@ -3,6 +3,23 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v119 — Phrases, and the Dile Que No y Dame compounds
+- **A movement may be a sequence of PHRASES** (`playPhrases`), each starting from where the last left the
+  dancers. MOVEMENT_SPEC §4 named "a dancer whose couple midpoint moves and then returns within one
+  movement" as the model assumption most likely to need extending — it did, and the extension is additive
+  rather than a rethink.
+- **`dileQueNoYDame` restructured into its two real phrases**, byte-identical: a scripted 4-beat opening,
+  then a travel in which the follower dances her ¾ circle back to her own spot (midpoint unmoved, so
+  scripted) while the leader crosses to his new partner.
+- **The opening is now literally the same definition the standalone 4-beat Dile Que No dances** —
+  one `dileOpeningPlan(io)`, mirrored inside-out for afuera by a single parameter. The two can no longer
+  drift apart, and ~40 lines of duplicated geometry went with it.
+- MOVEMENT_SPEC's checklist now says to watch the invariant **count**, not just pass/fail: a re-baseline
+  is the suite's blind spot, and it is widest exactly when a change to the same movement has already been
+  approved. (Written up from the v118 near-miss.)
+- 2445 invariants; golden and visual untouched. `index.html` is 2641 lines — smaller than before Phase 5
+  began, with an engine layer added.
+
 ## v118 — Dame Pequeña and Mujeres Arriba as travel intents
 - **Facing rules now span both halves of the model.** A travel intent takes a rule from the same
   vocabulary the scripted layer uses; inside one, `'partner'` means the partner you are travelling *to*.

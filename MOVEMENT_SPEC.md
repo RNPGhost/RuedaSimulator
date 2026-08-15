@@ -179,6 +179,14 @@ where it lives in `test/invariants.js`.
 Then: `node test/run.js` (golden + invariants) and `node test/visual.js` (render path). Re-baseline the
 golden **only** when the change was deliberate, and say in the commit which cases moved and why.
 
+**Watch the invariant COUNT, not just the pass/fail.** A re-baseline is the suite's blind spot, and it
+is widest exactly when you have legitimately approved a change to the same movement — the diff you meant
+to accept hides the one you didn't. Treat an unexplained drop in the check count as a hard stop. This is
+not hypothetical: migrating Mujeres Arriba silently dropped its explicit `segBeats`, which was
+behaviourally identical (the player spreads beats uniformly over the same frames) and so would have been
+absorbed by a re-baseline that had already been approved for an unrelated facing change. Nothing failed;
+§7 simply stopped counting, and 2445 checks became 2444.
+
 **On the golden and "perceived requirements".** A golden diff is a question, not a verdict. When one
 appears, classify it: a genuine rule of rueda, dance or physics that you broke — fix the code; or an
 artifact of a past implementation choice that hardened into a baseline — fix the test, and write down
