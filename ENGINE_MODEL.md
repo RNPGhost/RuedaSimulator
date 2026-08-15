@@ -26,38 +26,43 @@ anywhere in 0.20–0.70), so it shapes the *look*, not the safety — the PATHIN
 late to pass under the leaders" overstates it. And `damePequena`'s reactive dip measures 0.0px/frame
 jolt, so it isn't broken — it is simply a second implementation of a solved problem, which will drift.
 
-## 2. The discriminator: not role, and not "new partner"
+## 2. The discriminator: **does the couple midpoint change?**
 
-**Role is the wrong axis — it flips.** In Dame Pequeña the *follower* is the scripted one and the leader
-travels; in Mujeres Arriba the *leaders* are scripted and the followers travel. So "leader paths vs
-follower paths" would be a false split.
+**Role is the wrong axis — it flips.** In Dame Pequeña the *follower* is scripted and the leader travels;
+in Mujeres Arriba the *leaders* are scripted and the followers travel.
 
-**"Changes partner" is also wrong.** Measured at 6 couples:
+**"Changes partner" is wrong** — Dame Pequeña's follower gains a new partner with **0px** displacement,
+and the Dile Que No y Dame follower travels 179px to land exactly where she started.
 
-| case | net displacement | path | partner |
+**"Different spoke" is also insufficient** (Sam): in Línea Moderna several couple midpoints share one
+spoke, so a Dame Pequeña — where an inner couple becomes an outer couple — changes nothing by that test
+while obviously being a transition.
+
+**The rule: compare the midpoint of the dancer's ENDING couple with the midpoint of their STARTING
+couple. Moved ⇒ dynamic (engine). Unmoved ⇒ scripted.** Measured over every movement at 6 couples:
+
+| movement | leader Δmid | follower Δmid | classification |
 |---|---|---|---|
-| `dame_pequena` \| exhibela, follower | **0px** | 28px | new partner |
-| `dile_dame` \| exhibela, follower | **0px** | 179px | new partner |
-| `enchufla`, both | 64px | 75px | same partner |
-| `mujeres`, leader | 41px | 41px | new partner |
-| `mujeres`, follower | 118px | 119px | new partner |
+| in-couple figures (Enchufla, Adios, Vacilala, Reverse/Leader's, Exhibela, Right Turn) | 0.0px | 0.0px | both scripted |
+| `dile` (8-beat Dile Que No) | 0.0px | 0.0px | both scripted |
+| `dile4` | 3.4px | 3.4px | both scripted *(see tolerance)* |
+| `dame`, `dame_dos` | 78–213px | 78px | both dynamic |
+| **`dame_pequena`** | **150.6px** | **0.0px** | **leader dynamic, follower scripted** |
+| **`dile_dame` / `dile_dame_dos`** | **150.6 / 260.9px** | **0.0px** | **leader dynamic, follower scripted** |
+| **`mujeres`** | **3.4px** | **152.3px** | **follower dynamic, leader scripted** |
+| Línea entries/exits | 94–130px | 94–130px | both dynamic |
 
-The Dame Pequeña follower gets a new partner without moving at all; the Dile Que No y Dame follower
-travels 179px and lands exactly where she started; Enchufla partners swap 64px apart without changing
-partner. None of these are separated by "new partner".
+Every case lands where it should, and the two hardest ones fall out with no special-casing: Dame
+Pequeña's follower is **exactly 0.0px**, and Mujeres Arriba inverts the roles — confirming that role
+could never have been the axis.
 
-**What does separate them cleanly: does the dancer cross between couple slots?** i.e. does their
-endpoint sit on a *different spoke* from their start. Checked against every case above and every one
-Sam named:
-
-- **Scripted** — Enchufla/Adios/Vacilala (swap within the couple), every Dile Que No (the couple turns
-  about its own midpoint and ends on its own spoke), `dile4` (onto the couple's *own* midpoint spoke),
-  Dame Pequeña's follower (stays on her spoke, or rotates across it), Mujeres Arriba's leaders (back to
-  their own spot).
-- **Engine** — every Dame leader, the Dame follower (she meets him on the *between*-spoke), Mujeres
-  Arriba's followers (on to the next spoke), and all four Línea entries/exits (new formation spoke).
-
-That matches Sam's rule and his two worked examples exactly, without needing partner identity at all.
+**One wrinkle: it needs a tolerance.** A couple can legitimately *close up or open out within its own
+slot*: `dile4` shifts its midpoint 3.4px as the partners gather onto the spoke, and Mujeres Arriba's
+leaders likewise. Stated precisely, the rule is *"does the dancer end in a different couple **slot**"* —
+the midpoint is how a slot is **identified** (which is what makes it work in Línea, where slots share a
+spoke), not a raw pixel comparison. In practice a threshold of about a dancer radius separates them with
+a 23× margin: **3.4px (same slot) vs 78px (the smallest real transition)**. Where the formation already
+enumerates slots, the station index is the exact form of the same test.
 
 ## 3. Proposed model
 
@@ -120,12 +125,22 @@ Beat clock, frames, facing conventions (travel-facing + settle) stay as they are
 
 Phases 1–2 are the load-bearing ones; 3 onwards is repayment.
 
-## 6. Open questions
+## 6. Decisions (settled with Sam)
 
-1. **Dame from Casino** — both partners converge onto the *between*-spoke, so by the rule both are
-   travellers (16px each). Right? Or should the near-stationary one count as scripted?
-2. **Should a scripted dancer ever yield** if a custom formation makes a collision otherwise
-   unavoidable? Recommendation: **no** — the planner reports infeasible and asks the user to change a
-   pass side, consistent with "the engine solves what it can, the user re-picks a side when it can't".
-3. **In-couple figures in custom formations** — keep their prescribed shapes and only *consult* the
-   planner to validate (flagging a collision) rather than letting it deform them?
+1. **Dame from Casino: both dancers are dynamic.** They each move to a new couple midpoint (78px), even
+   though each only walks 16px — the midpoint test catches it where a displacement test would not.
+2. **Scripted dancers never yield — and should never need to.** If a scripted figure collides, *the
+   scripted figure is wrong*, not the planner. This is a strong enough claim to be **testable**: add an
+   invariant that scripted dancers never come within the clearance floor of one another, so a bad
+   scripted shape is caught at its source rather than papered over by an evasion. (Revisit only if a
+   future formation makes it genuinely impossible.)
+3. **In-couple figures in custom formations: validation only** for now — the planner flags a collision
+   but never deforms a prescribed shape. The assumption is that by the time custom formations land, the
+   scripted library will be defined generally enough not to need deforming; revisit if that proves false.
+
+## 7. Remaining open question
+
+- **Tolerance vs slot identity.** Implement the midpoint test with a numeric threshold (~a dancer
+  radius), or have each formation enumerate its couple slots and compare slot identity directly? The
+  numeric version works today and is formation-agnostic; the slot version is exact but asks more of the
+  formation definition. Recommendation: numeric now, slot identity when formations become user-defined.
