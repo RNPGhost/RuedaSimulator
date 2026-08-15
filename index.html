@@ -2866,6 +2866,35 @@ function samplePath(pts, sg, u){
 // The forward circle is the one through B, C and the point AHEAD; parameterised on B→C it is
 // the same construction read backwards, so it reuses _circleArc with the ends swapped.
 function _arcFwd(B, C, D, u){ const p = _circleArc(D, C, B, 1 - u); return p; }
+/* How long each keyframe segment lasts. Pure, so the test layer can ask the SAME code what the tempo
+ * will be instead of re-deriving it — a re-derivation cannot see state the renderer carries, and this
+ * function's inputs are precisely that state.
+ *
+ * Either the movement states its own per-segment beats, or time is shared out in proportion to each
+ * segment's "cost": how far the busiest dancer moves, or how far the busiest dancer turns, whichever is
+ * the greater demand at reference speeds. The pacing then looks the same while the total follows the
+ * music. */
+const SREF = 0.12, RREF = 0.55;                      // reference px and degrees per unit of cost
+function segmentTimes(ids, P, ROT, SNAP, timing, msPerBeat){
+  const F = P[ids[0]].length - 1, seg = [];
+  if (timing.segBeats && timing.segBeats.length === F){
+    for (let i = 0; i < F; i++) seg.push(timing.segBeats[i] * msPerBeat);
+    return seg;
+  }
+  const cost = []; let tot = 0;
+  for (let i = 0; i < F; i++){
+    let tr = 0, ro = 0;
+    ids.forEach(id => {
+      const a = P[id][i], b = P[id][i + 1];
+      tr = Math.max(tr, Math.hypot(b.x - a.x, b.y - a.y));
+      if (!SNAP[id][i + 1]) ro = Math.max(ro, Math.abs(ROT[id][i + 1] - ROT[id][i]));
+    });
+    const c = Math.max(tr / SREF, ro / RREF); cost.push(c); tot += c;
+  }
+  const total = (timing.beats || 4) * msPerBeat;
+  for (let i = 0; i < F; i++) seg.push(tot > 0 ? cost[i] / tot * total : total / F);
+  return seg;
+}
 // Continuous player: turns a list of keyframes into per-dancer position/rotation
 // timelines and animates them with requestAnimationFrame, so nothing relies on
 // interrupted CSS transitions (which caused jitter). Move-generation is unchanged.
@@ -2899,22 +2928,19 @@ function playFrames(frames, opts = {}, onDone, timing = {}){
   // the movement's explicit per-segment beats, or (default) in proportion to each segment's
   // natural cost at reference speeds — so the pacing looks the same but the total follows the music.
   const msPerBeat = BASE_MS_PER_BEAT / speedMul;
-  const seg = [];
-  if (timing.segBeats && timing.segBeats.length === F){
-    for (let i = 0; i < F; i++) seg.push(timing.segBeats[i] * msPerBeat);
-  } else {
-    const SREF = 0.12, RREF = 0.55, cost = []; let tot = 0;
-    for (let i = 0; i < F; i++){
-      let tr = 0, ro = 0;
-      ids.forEach(id => {
-        const a = P[id][i], b = P[id][i + 1];
-        tr = Math.max(tr, Math.hypot(b.x - a.x, b.y - a.y));
-        if (!SNAP[id][i + 1]) ro = Math.max(ro, Math.abs(ROT[id][i + 1] - ROT[id][i]));
-      });
-      const c = Math.max(tr / SREF, ro / RREF); cost.push(c); tot += c;
-    }
-    const total = (timing.beats || 4) * msPerBeat;
-    for (let i = 0; i < F; i++) seg.push(tot > 0 ? cost[i] / tot * total : total / F);
+  const seg = segmentTimes(ids, P, ROT, SNAP, timing, msPerBeat);
+  /* Tempo tracing. `nodes[id].rot` is the one piece of renderer state that survives a movement, and it
+   * is what seeds ROT above — so a movement's pacing can depend on what danced before it, invisibly.
+   * Turn this on in the console (`__RUEDA_TRACE = true`) and each movement prints where its time went. */
+  if (typeof globalThis !== 'undefined' && globalThis.__RUEDA_TRACE){
+    const worst = Math.max(...seg), total = seg.reduce((a, b) => a + b, 0);
+    const spin = ids.map(id => ({ id, r0: ROT[id][0], face0: facingAngle(byId[id]),
+      max: Math.max(...ROT[id].slice(1).map((r, i) => Math.abs(r - ROT[id][i]))) }))
+      .sort((a, b) => b.max - a.max)[0];
+    console.log(`[tempo] ${currentMoveLabel || '?'}  total ${total.toFixed(0)}ms  ` +
+      `longest segment ${worst.toFixed(0)}ms (${(worst / total * 100).toFixed(0)}%)  ` +
+      `biggest turn ${spin.max.toFixed(0)}° by ${spin.id} (starts at rot ${spin.r0.toFixed(0)}°, facing ${spin.face0.toFixed(0)}°)  ` +
+      `seg=[${seg.map(x => x.toFixed(0)).join(',')}]`);
   }
   const cum = [0]; for (let i = 0; i < F; i++) cum.push(cum[i] + seg[i]);
   // A lead-in hold on the spot (snapping the movement to its start beat) precedes the movement.

@@ -50,6 +50,32 @@ function load(htmlPath) {
     const _origPF = playFrames;
     playFrames = function(frames, anim, onDone, timing){
       cap.frames = frames;
+      /* Model the ONE piece of renderer state that survives a movement: nodes[id].rot, the accumulated
+       * on-screen angle. resolveRot with a declared direction only ever adds (cw) or subtracts (ccw), so
+       * it does not wrap — it carries across movements, and playFrames seeds each new timeline from it.
+       * Headless there are no DOM nodes, so the harness used to take the facingAngle branch and start
+       * every movement from a clean wrapped angle. That made the test suite structurally unable to see
+       * anything that depends on what danced BEFORE, which is exactly where the Dame Pequeña tempo bug
+       * lived. Reproduced here, and the real segmentTimes is then asked what tempo results. */
+      const preMove = dancers, byId = {}; preMove.forEach(d => byId[d.id] = d);
+      const ids = preMove.map(d => d.id);
+      const RP = {}, RR = {}, RS = {}, rprev = {};
+      ids.forEach(id => {
+        RP[id] = [pos(byId[id])];
+        RR[id] = [cap.nodeRot && cap.nodeRot[id] !== undefined ? cap.nodeRot[id] : facingAngle(byId[id])];
+        RS[id] = [false]; rprev[id] = RR[id][0];
+      });
+      const keep = dancers;
+      frames.forEach(fr => { dancers = fr; fr.forEach(d => {
+        const target = facingAngle(d);
+        const rr = d.snapTurn ? target : resolveRot(rprev[d.id], target, d.turn);
+        RP[d.id].push(pos(d)); RR[d.id].push(rr); RS[d.id].push(!!d.snapTurn); rprev[d.id] = rr; }); });
+      dancers = keep;
+      cap.rot = RR; cap.rotStart = {}; ids.forEach(id => cap.rotStart[id] = RR[id][0]);
+      cap.seg = segmentTimes(ids, RP, RR, RS, timing || {}, BASE_MS_PER_BEAT / speedMul);
+      cap.segPath = RP;
+      cap.nodeRot = cap.nodeRot || {};
+      ids.forEach(id => { cap.nodeRot[id] = RR[id][RR[id].length - 1]; });
       // Waypoint 0 — the on-screen position the move starts FROM. playFrames prepends exactly this
       // to each dancer's timeline, so without it the test layer would be blind to the first segment.
       cap.start = {}; dancers.forEach(d => { cap.start[d.id] = pos(d); });
@@ -129,7 +155,7 @@ function load(htmlPath) {
       animating = false; justIssued = false; beatCursor = 0;
       currentCallLabel = null; currentMoveLabel = null;
       history = []; histPos.length = 0; histPhase.length = 0; histQueue.length = 0; histQueueCalls.length = 0;
-      mode = 'live'; cap.transcript = [];
+      mode = 'live'; cap.transcript = []; cap.nodeRot = {};   // a reset clears the DOM nodes too
     }
     function setupRest(from, n, ph){
       // layout first: computeWheel dispatches on it, and a formation-changing movement may have left
@@ -151,6 +177,7 @@ function load(htmlPath) {
       samplePath, get CORNER_DEG(){ return CORNER_DEG; },
       get PLAN_FAULTS(){ return PLAN_FAULTS; }, clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; SIDE_FAULTS.length = 0; },
       get PLAN_LOG(){ return PLAN_LOG; },
+      lastTiming(){ return { seg: cap.seg, rot: cap.rot, path: cap.segPath, rotStart: cap.rotStart }; },
       get SIDE_FAULTS(){ return SIDE_FAULTS; }, clearSideFaults(){ SIDE_FAULTS.length = 0; },
       PASS_CONVENTION, PASS_SIGN, passSide,
       get STILL_PX(){ return STILL_PX; },
