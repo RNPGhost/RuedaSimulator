@@ -346,9 +346,36 @@ already is. The two movements differ only in their facing, and `byVirtualPos` st
 Pequeña's follower spins anti-clockwise onto it; Mujeres Arriba's leader holds the centre and then turns
 clockwise onto it. Both had been computing that bearing by hand from a resolved landing.
 
-On descriptors today: Dame, Dame Dos, Dame Pequeña, Mujeres Arriba, all six swap figures, Exhibela and
-Leader's Right Turn — twelve. Still carrying generators: the compounds (phrase sequences) and the Línea
-entries and exits (formation changes, which redefine the slot set and so need their own descriptor kind).
+**Every movement in the app is now a `play` descriptor — there are no `frames` generators left.** Six
+descriptor kinds cover all of them:
+
+| kind | means | used by |
+|---|---|---|
+| `figure` | a named scripted figure, optionally `mirror`ed inside out for afuera | the swap family, Exhibela, Leader's Right Turn, both Dile Que No's |
+| `travel` | a named travel, with `script`/`face` for the scripted role | the Dames, Dame Pequeña, Mujeres Arriba |
+| `phrases` | a sequence, each starting where the last left off | the Dile Que No y Dame compounds |
+| `formation` | a change of formation — a new slot set | the Línea entries and exits, Dame Línea |
+| `compose` | the same figure danced by Línea's sub-wheels | every grande and pequeña |
+| `hold` | a 0-beat relabel; nobody moves | Afuera, Adentro |
+
+The engine keeps a `frames` escape hatch for a figure that genuinely cannot be stated as data, but
+**nothing uses it**, and §30 asserts that: anything that starts to has to justify itself against
+MOVEMENT_SPEC §4 rather than slip in as a quiet exception.
+
+**`mirrorFigure`** turns a figure inside out for the afuera positions. Only three things carry that
+sense — the `out` component of an offset, which side of the spoke a `{spoke: ±1}` step lands on, and
+whether a facing names the centre or away from it. Turns are *not* mirrored: a follower who turns 90° to
+her right does so whichever way the wheel is inside out. This replaced a set of `io`-derived parameters.
+
+**`freeze`** was the one genuinely new idea the compounds needed: it pins the starting bearing at the
+moment a turn begins instead of tracking a base that is still moving. A dancer spinning onto a new
+partner turns a *definite* amount from wherever she happened to be pointing; without it she chases a
+bearing that shifts under her, which measured 21.5° off at the end of the ¾ circle.
+
+**A pass side that used to be searched is now stated.** The compounds picked their side by planning both
+and keeping the smaller amplitude. The definitions say `pass: 'out'` for the single and `pass: 'in'` for
+the Dos — the answers that search produced — which is where a pass side belongs, since it is the control
+the roadmap hands to users.
 
 **A gap this uncovered in the golden.** `segBeats` — a movement's beat timing, how its beats are spread
 across its frames — was being *recorded* in the baseline and **never compared**. A figure could have been

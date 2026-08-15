@@ -251,7 +251,7 @@ const MOVEMENTS = {
     desc: 'From Casino on the rueda: the wheel opens into the two-ring Rueda Línea Moderna. The cantante’s couple and every other couple clockwise (the primeros) walk in to the inner ring, each landing on the spoke one couple clockwise of where it started, turning ANTI-CLOCKWISE as a couple (a tight turn, always less than a full circle) into their new orientation; the couples between them (the segundos) walk straight out along their own spokes to the outer ring without turning, so the segundos’ spokes become the formation’s spokes and each primero ends in a mini 2-couple wheel with the segundo that was next clockwise. Everyone stays in Casino, partners facing each other throughout. Requires an even number of couples.',
     requires: ['casino'], sets: 'linea', needsEven: true, noAfuera: true, changesLayout: 'linea',
     beats: 8,
-    frames: (ds, N) => lineaModerna(ds, N, 'ccw')
+    play: { formation: 'linea', turn: 'ccw' }
   },
   dame_linea: {
     label: 'Dame Línea',
@@ -259,35 +259,35 @@ const MOVEMENTS = {
     requires: ['casino'], sets: 'linea_ex', needsEven: true, noAfuera: true, changesLayout: 'linea',
     progresses: true,
     beats: 4,
-    frames: (ds, N) => dameLinea(ds, N)
+    play: { formation: 'linea_dame' }
   },
   rueda: {
     label: 'Rueda',
     desc: 'From Rueda Línea Moderna (Casino): the two rings fold back into a single rueda. The outer couples keep their exact midpoint spokes and simply walk straight in to the ring without turning — so the new rueda inherits the formation’s orientation. Each inner couple comes out to the place one clockwise of where its own mini-wheel partner lands, travelling as a couple and turning ANTI-CLOCKWISE until it matches its new spot. Everyone stays in Casino, partners facing each other throughout.',
     requires: ['linea'], sets: 'casino', changesLayout: 'circle',
     beats: 8,
-    frames: (ds, N) => lineaToRueda(ds, N, 'ccw')
+    play: { formation: 'circle', turn: 'ccw' }
   },
   adios_rueda: {
     label: 'Adios Rueda',
     desc: 'The same exit from Rueda Línea Moderna as Rueda — outer couples walk straight in on their own spokes, inner couples come out one place clockwise of them — except the inner couples sweep CLOCKWISE the long way round into their new orientation instead of taking the tight anti-clockwise turn.',
     requires: ['linea'], sets: 'casino', changesLayout: 'circle',
     beats: 8,
-    frames: (ds, N) => lineaToRueda(ds, N, 'cw')
+    play: { formation: 'circle', turn: 'cw' }
   },
   adios_linea: {
     label: 'Adios Línea',
     desc: 'The same entry into Rueda Línea Moderna as Línea Moderna — primeros in to the inner ring one spoke clockwise, segundos straight out to the outer ring — but the primeros sweep CLOCKWISE the long way round into their new orientation instead of taking the tight anti-clockwise turn, which gives the figure its Adios-like character. Requires an even number of couples.',
     requires: ['casino'], sets: 'linea', needsEven: true, noAfuera: true, changesLayout: 'linea',
     beats: 8,
-    frames: (ds, N) => lineaModerna(ds, N, 'cw')
+    play: { formation: 'linea', turn: 'cw' }
   },
   dile: {
     label: 'Dile Que No',
     desc: "From Exhibela: both open with the first three Exhibela stages along their Exhibela lines (leader dips in/back/out facing the follower throughout; follower steps out turning 90° right to the centre, back, then in turning 90° left to the tangent), then a 180° anti-clockwise orbit settles them into Casino — the follower turning a further 180° left to face her leader.",
     requires: ['exhibela'], sets: 'casino',
     beats: 8,
-    frames: (ds, N) => dileQueNoFull(ds, N),
+    play: { figure: 'dile_full' },
     anim: { speed: 0.092, rotSpeed: 0.40 }
   },
   dile_dame: {
@@ -295,7 +295,14 @@ const MOVEMENTS = {
     desc: 'Both dance beats 1–2 of a Dile Que No (out along the Exhibela line and back), then on beat 3 move onto the midpoint spoke (the radial from the wheel centre through the couple’s start midpoint) and pause on 4 — landing equidistant either side of where the spoke meets the ring (follower just inside, leader just outside, far enough apart not to collide): the follower facing perpendicular to the spoke (≈ clockwise), the leader facing the centre. On 5–8 the leader does a straight Dame to his new follower one couple anti-clockwise (facing her); meanwhile the follower walks about three-quarters of a circle through her spoke point, its mirror just outside the ring, and back to her own spot, facing her direction of travel then turning to her new leader. Ends in Exhibela position, leaders progressed one couple.',
     requires: ['exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
     beats: 8,
-    frames: (ds, N, from) => dileQueNoYDame(ds, N, 1, isAfuera(from)),
+    play: { phrases: [
+      { figure: 'dile_opening', mirror: true },
+      { travel: 'dile_dame', mirror: true, opts: { steps: 32, settle: 0.28, beats: 4 },
+        script: { F: { kind: 'three_quarter_circle' } },
+        // He faces the woman he is crossing to, the whole way. She faces the way she travels round her
+        // circle, turning onto him over its last quarter.
+        face: { L: 'partner', F: { from: 'travel', to: 'partnerEnd', after: 0.75, freeze: true } } },
+    ] },
     anim: { speed: 0.10, rotSpeed: 0.42 }
   },
   dile_dame_dos: {
@@ -303,7 +310,14 @@ const MOVEMENTS = {
     desc: 'Exactly like Dile Que No y Dame, but on 5–8 the leader travels to the follower two couples anti-clockwise instead of one. Same opening (both move onto the midpoint spoke and pause), same follower three-quarter circle back to her own spot; the leader heads straight for his new Exhibela spot with a single gentle arc (bowing to his right, keeping right of the other leaders) just large enough to stay clear. Ends in Exhibela position.',
     requires: ['exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
     beats: 8,
-    frames: (ds, N, from) => dileQueNoYDame(ds, N, 2, isAfuera(from)),
+    play: { phrases: [
+      { figure: 'dile_opening', mirror: true },
+      { travel: 'dile_dame_dos', mirror: true, opts: { steps: 32, settle: 0.28, beats: 4 },
+        script: { F: { kind: 'three_quarter_circle' } },
+        // He faces the woman he is crossing to, the whole way. She faces the way she travels round her
+        // circle, turning onto him over its last quarter.
+        face: { L: 'partner', F: { from: 'travel', to: 'partnerEnd', after: 0.75, freeze: true } } },
+    ] },
     anim: { speed: 0.10, rotSpeed: 0.42 }
   },
   dile4: {
@@ -311,7 +325,7 @@ const MOVEMENTS = {
     desc: 'The 4-beat opening of a Dile Que No, danced on its own from Exhibela: beats 1-2 dip out along the Exhibela line and back, beat 3 step onto the couple’s midpoint spoke (leader to the outer lane just outside the ring, follower to the inner lane just inside), pause on beat 4 — leader facing the centre, follower facing perpendicular to the spoke. Ends in the Dile Que No position (no progression, no phase change).',
     requires: ['exhibela'], sets: 'dile', entryOnly: true,
     beats: 4,
-    frames: (ds, N) => dileQueNo4(ds, N),
+    play: { figure: 'dile_opening' },
     anim: { speed: 0.10, rotSpeed: 0.42 }
   },
   mujeres: {
@@ -394,14 +408,14 @@ const MOVEMENTS = {
     desc: 'Turn the wheel inside-out with no movement (0 beats): Casino becomes Afuera Exhibela, and Exhibela becomes Afuera Casino. A pure re-labelling — the dots do not move — that switches the wheel into the inverted (afuera) frame.',
     requires: ['casino', 'exhibela'], sets: (from) => from === 'casino' ? 'afuera_exhibela' : 'afuera', relabel: true,
     beats: 0,
-    frames: (ds, N) => [ds.map(d => ({ ...d }))]
+    play: { hold: true }
   },
   adentro: {
     label: 'Adentro',
     desc: 'The inverse of Afuera, with no movement (0 beats): Afuera Casino becomes Exhibela, and Afuera Exhibela becomes Casino. A pure re-labelling that returns the wheel to the normal (inside) frame.',
     requires: ['afuera', 'afuera_exhibela'], sets: (from) => from === 'afuera_exhibela' ? 'casino' : 'exhibela', relabel: true,
     beats: 0,
-    frames: (ds, N) => [ds.map(d => ({ ...d }))]
+    play: { hold: true }
   }
 };
 
@@ -430,7 +444,7 @@ const MOVEMENTS = {
       requires: m.requires.map(gMap), sets: mapSets(m.sets, gMap, gUn),
       progresses: m.progresses, flipsPhase: m.flipsPhase,
       beats: mapBeats(m.beats, gUn), anim: m.anim,
-      frames: (ds, N, from) => grandeFrames(key, from),
+      play: { compose: 'grande', of: key },
     };
     // pequeña: a Dame becomes a Dame Pequeña (progress one couple within the mini-wheel, no phase flip)
     const pKey = (key === 'dame' || key === 'dame_dos') ? 'dame_pequena' : key;
@@ -440,7 +454,7 @@ const MOVEMENTS = {
       requires: m.requires.map(pMap), sets: mapSets(m.sets, pMap, pUn),
       progresses: m.progresses,                                   // never flips phase
       beats: mapBeats(pm.beats, pUn), anim: pm.anim,
-      frames: (ds, N, from) => pequenaFrames(pKey, from),
+      play: { compose: 'pequena', of: pKey },
     };
   }
   // Pequeña-only figures. The 4-beat Dile Que No and Mujeres Arriba are defined against the couple's own
@@ -459,7 +473,7 @@ const MOVEMENTS = {
       // limit — people don't shrink with the wheel — so the figure is offered from 6 couples up, where
       // there is room (37.5px clear at 6 and 8).
       minCouples: 6,
-      frames: (ds, N, from) => pequenaFrames(key, from),
+      play: { compose: 'pequena', of: key },
     };
   }
 })();
@@ -924,9 +938,11 @@ function landmarkAt(fr, prev, spec){
  *   'perpSpoke'                      — ⟂ to the spoke, clockwise round the wheel
  *   'travel'                         — the direction of travel
  *   'hold'                           — keep the facing the previous segment ended on
- *   { from, to, after, dir, ease }   — hold bearing `from`, then turn onto `to` over the rest of the
+ *   { from, to, after, dir, ease, freeze }
+ *                                    — hold bearing `from`, then turn onto `to` over the rest of the
  *                                      segment (from fraction `after`); `dir` forces cw/ccw the long
- *                                      way round when the figure says so
+ *                                      way round when the figure says so; `freeze` pins the starting
+ *                                      bearing at the moment the turn begins rather than tracking it
  *   { blend: [a, b] }                — sweep from bearing a to bearing b across the segment
  *   { settleTo, over }               — face the way you travel, then settle onto a bearing over the
  *                                      last `over` of the segment
@@ -953,7 +969,12 @@ function faceAt(rule, fr, u, ctx){
   // round when the figure says so — a leader who turns to his right turns right even when left is
   // shorter, which a short-way blend would silently reverse.
   if (rule.to !== undefined && rule.from !== undefined){
-    const a = base(rule.from), b2 = base(rule.to), after = rule.after || 0;
+    const after = rule.after || 0;
+    // `freeze` pins the starting bearing at the moment the turn begins, instead of tracking a base that
+    // is still moving. A dancer spinning onto a new partner turns a DEFINITE amount from wherever she
+    // happened to be pointing; without this she chases a bearing that shifts under her as she travels.
+    const a = (rule.freeze && u >= after && ctx.frozen != null) ? ctx.frozen : base(rule.from);
+    const b2 = base(rule.to);
     const w = after >= 1 ? 0 : Math.max(0, (u - after) / (1 - after));
     const e = rule.ease === 'linear' ? w : _smooth(w);
     let d2 = shortD(b2, a);
@@ -1388,7 +1409,7 @@ function playTravel(ds, N, o){
     endBearing[d.id] = Math.atan2(endOf[np].y - endOf[d.id].y, endOf[np].x - endOf[d.id].x) * 180 / Math.PI; });
   const STEPS = o.steps || 16, frames = [], SET = o.settle || 0.3;
   let prevP = {}; ds.forEach(d => prevP[d.id] = cur[d.id]);
-  const lastFace = {}, frame = {}, face0 = {};
+  const lastFace = {}, frame = {}, face0 = {}, frozen = {};
   // A travel intent may take a facing rule from the SAME vocabulary the scripted layer uses; inside one,
   // 'partner' means the partner you are travelling TO. Without a rule, the Dame's default applies: face
   // the way you travel, settling onto your new partner over the last of the trip.
@@ -1406,10 +1427,12 @@ function playTravel(ds, N, o){
       const rule = o.face && o.face(d.id);
       const face = rule
         ? faceAt(rule, frame[d.id], t, { here: b, partnerXY: npp, partnerEnd: endBearing[d.id],
+            frozen: frozen[d.id],
             prevFace: lastFace[d.id] != null ? lastFace[d.id] : facingAngle(d),
             face0: face0[d.id], travel: moved < 1e-6 ? null : travel })
         : (moved < 1e-6 ? partnerFace : travel + shortDiff(partnerFace, travel) * settle);
       lastFace[d.id] = face;
+      if (rule && rule.freeze && t < (rule.after || 0)) frozen[d.id] = face;
       return { ...d, station: d.id in newSt ? newSt[d.id] : d.station, xy: b, face };
     }));
     prevP = P;
@@ -1704,28 +1727,6 @@ function dameLinea(ds, N){
 // (endpoints and the 180° facing turn unchanged), so the couple stays tighter through the turn. Applied
 // to every 8-beat Dile Que No — it keeps the plain-rueda look and is what lets the Línea Moderna Dile
 // (two radially-adjacent groups) clear instead of bulging into each other.
-const DILE_PINCH = 0.6;
-function dileQueNoFull(ds, N){
-  // Declarative (DECLARATIVE.md §6). Three 1-beat legs along the couple's own Exhibela line, a 1-beat
-  // pause, then a 4-beat half-turn onto the partner's spot. The orbit is the swap: a Dile Que No lands
-  // each partner exactly where the other stood, which is why `to: 'partner'` is the whole of its target.
-  const AL = 16, AF = 18;                                    // Exhibela-line travel in the opening (kept small)
-  const SS = 8, PH = 4, SO = 16;
-  const leg = (o, face, turn) => ({ to: { off: [o, 0] }, beats: 1, steps: SS, face, turn });
-  const F = (at, turn) => ({ from: 'start', at, turn });
-  const orbit = face => ({ to: 'partner', beats: 4, steps: SO, face, turn: 'ccw',
-                           orbit: { dir: 'ccw', pinch: DILE_PINCH } });
-  const lead = [                                             // dips inward, back, outward — facing her throughout
-    leg(-AL, 'partner'), leg(0, 'partner'), leg(AL, 'partner'),
-    { to: 'hold', beats: 1, steps: PH, face: 'partner' }, orbit('partner'),
-  ];
-  const foll = [                                             // steps out turning 90° right, back, in turning back
-    leg( AF, F(0, 90), 'cw'), leg(0, F(90, 0)), leg(-AF, F(90, -90), 'ccw'),
-    { to: 'hold', beats: 1, steps: PH, face: F(0, 0), turn: 'ccw' },
-    orbit(F(0, -180)),                                       // …then a half-turn left onto her leader
-  ];
-  return playScript(ds, d => d.role === 'L' ? lead : foll);
-}
 
 /* Dile Que No y Dame — both dancers dance beats 1-2 of a Dile Que No (out along the Exhibela
  * line and back), then on beat 3 move onto the MIDPOINT SPOKE (the radial line from the wheel
@@ -1736,126 +1737,6 @@ function dileQueNoFull(ds, N){
  * (Dame-style, facing her); the follower walks ~3/4 of a circle through her spoke point, its
  * mirror just outside the ring, and back to her own start spot — facing her travel direction,
  * then turning to her new leader at the end. Ends in a clean Exhibela, leaders progressed k. */
-function dileQueNoYDame(ds, N, k = 1, afuera = false){
-  const TWO = 2 * Math.PI, HALF = R_STEP;                     // the Dile Que No position's own spacing
-  const kk = afuera ? -k : k, io = afuera ? -1 : 1;   // afuera: progress the other way, and swap inside<->outside
-  const short = a => ((a + 180) % 360 + 360) % 360 - 180;
-  const spot = {}; ds.forEach(d => spot[d.id] = pos(d));
-  const stationF = {}, stationL = {};
-  ds.forEach(d => { (d.role === 'F' ? stationF : stationL)[d.station] = d.id; });
-  const circ3 = (A, B, C) => {
-    const d = 2 * (A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
-    const A2 = A.x*A.x+A.y*A.y, B2 = B.x*B.x+B.y*B.y, C2 = C.x*C.x+C.y*C.y;
-    const O = { x: (A2*(B.y-C.y)+B2*(C.y-A.y)+C2*(A.y-B.y)) / d, y: (A2*(C.x-B.x)+B2*(A.x-C.x)+C2*(B.x-A.x)) / d };
-    return { O, rho: Math.hypot(A.x - O.x, A.y - O.y) };
-  };
-
-  const info = {};
-  ds.forEach(d => {
-    const st = d.station, S = spot[d.id];
-    const pr = ds.find(o => o.station === st && o.role !== d.role);
-    const L0 = d.role === 'L' ? S : spot[pr.id], F0 = d.role === 'L' ? spot[pr.id] : S;
-    const M0 = { x: (L0.x + F0.x) / 2, y: (L0.y + F0.y) / 2 };
-    const inA = Math.atan2(CY - M0.y, CX - M0.x);
-    const inward = { x: Math.cos(inA), y: Math.sin(inA) };          // toward centre (Exhibela-line direction)
-    const out = { x: -inward.x, y: -inward.y };
-    const Xs = { x: CX + R_MID() * out.x, y: CY + R_MID() * out.y };  // the couple-midpoint point on their spoke
-    if (d.role === 'F'){
-      const Pf   = { x: Xs.x + io * HALF * inward.x, y: Xs.y + io * HALF * inward.y };  // beat-3 spoke point (inside normally, outside afuera)
-      const Pout = { x: Xs.x - io * HALF * inward.x, y: Xs.y - io * HALF * inward.y };  // same distance the other side of the ring
-      const { O, rho } = circ3(Pf, Pout, F0);
-      const aA = Math.atan2(Pf.y - O.y, Pf.x - O.x), aB = Math.atan2(Pout.y - O.y, Pout.x - O.x), aC = Math.atan2(F0.y - O.y, F0.x - O.x);
-      const nrm = x => ((x % TWO) + TWO) % TWO;
-      const dAB = nrm(aB - aA), dAC = nrm(aC - aA);
-      let dir, sweep; if (dAB < dAC){ dir = 1; sweep = dAC; } else { dir = -1; sweep = TWO - dAC; }
-      const newLeaderFace = Math.atan2(L0.y - F0.y, L0.x - F0.x) * 180 / Math.PI;
-      info[d.id] = { role: 'F', S, F0, inward, spoke: Pf, O, rho, aA, dir, sweep, newLeaderFace };
-    } else {
-      const Pl = { x: Xs.x - io * HALF * inward.x, y: Xs.y - io * HALF * inward.y };  // beat-3 spoke point (outside normally, inside afuera)
-      const ns = (((st - kk) % N) + N) % N;
-      info[d.id] = { role: 'L', S, inward, spoke: Pl, orbitStart: Pl, End: spot[stationL[ns]], newStation: ns, nfId: stationF[ns] };
-    }
-  });
-  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
-  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
-
-  // follower beats 5-8: ~3/4 circle through her spoke point, its outside-the-ring mirror, and her own spot
-  const folTravel = (g, t) => { const a = g.aA + g.dir * g.sweep * t; return { x: g.O.x + g.rho * Math.cos(a), y: g.O.y + g.rho * Math.sin(a) }; };
-  // Leader beats 5-8. His couple midpoint moves a whole couple, so he is the DYNAMIC dancer and the
-  // follower — who dances her ¾ circle back to the spot she started on, midpoint unmoved — is SCRIPTED.
-  // He therefore rides the same intended path as every other traveller (a polar arc along the ring, so
-  // he never cuts across the wheel) and `planCrossings` opens whatever corridor her orbit forces, which
-  // he takes alone. This retires the solved-bow amplitude search AND its shared-outer-arc fallback: with
-  // polar arcs every leader sweeps the same angle at the same radius, so leaders hold constant spacing
-  // and the diametric swap that a single straight-line bow could never separate simply cannot arise.
-  leaderIds.forEach(id => { const g = info[id];
-    g.aS = _ang(g.orbitStart); g.rS = _rad(g.orbitStart); g.rE = _rad(g.End);
-    g.sw = directedSweep(g.aS, _ang(g.End), -kk * TWO / N); });
-  const lArc = (id, t, off) => { const g = info[id], te = _smooth(t);
-    return _polar(g.aS + g.sw * te, g.rS + (g.rE - g.rS) * te + (off || 0)); };
-  const lPairs = [];
-  leaderIds.forEach(lid => followerIds.forEach(fid => {
-    if (fid === info[lid].nfId) return;                       // his new partner — they gather, not cross
-    lPairs.push([lid, fid]); }));
-  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
-  // Pass side: the leaders all ease the same way (so they stay ordered), outward or inward. Try both and
-  // keep the one that clears with the least deviation — the sign is exactly the pass-side control the
-  // roadmap exposes, rather than an amplitude search over a hand-built bow.
-  const planFor = side => planCrossings({
-    ids: [...leaderIds, ...followerIds], pairs: lPairs,
-    base: (id, t) => info[id].role === 'L' ? lArc(id, t) : folTravel(info[id], t),
-    apply: (id, t, off) => info[id].role === 'L' ? lArc(id, t, off * side) : folTravel(info[id], t),
-    yields: id => info[id].role === 'L',
-    group: id => info[id].role, groups: ['L', 'F'],
-    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
-  });
-  const scoreOf = pl => { let m = Infinity;
-    for (let s = 1; s < 60; s++){ const t = s / 60;
-      const all = ds.map(d => ({ id: d.id, p: pl.at(d.id, t) }));
-      for (let a = 0; a < all.length; a++) for (let b = a + 1; b < all.length; b++)
-        m = Math.min(m, Math.hypot(all[a].p.x - all[b].p.x, all[a].p.y - all[b].p.y)); }
-    return m; };
-  const outPlan = planFor(+1), inPlan = planFor(-1);
-  const GAP_FLOOR = 2 * (DOT_R + 1) + 0.5;                    // the collision floor the suite holds everything to
-  const outOk = scoreOf(outPlan) >= GAP_FLOOR, inOk = scoreOf(inPlan) >= GAP_FLOOR;
-  const plan = (outOk && (!inOk || outPlan.scale <= inPlan.scale)) ? outPlan : inPlan;
-  const leaderAt = (id, t) => plan.at(id, t);
-
-  // Two PHRASES. The opening is the shared 4-beat Dile Que No figure — literally the same definition the
-  // standalone movement dances, so they cannot drift. The close is a travel phrase: the follower dances
-  // her ¾ circle back to her own spot (scripted, midpoint unmoved) while the leader crosses to his new
-  // partner. This is the compound shape MOVEMENT_SPEC §4 predicted the model would need.
-  const NT = 32;
-  const openPhrase = cur => playFigure('dile_opening', cur, dileOpeningParams(io));
-  const closePhrase = cur => {
-    const frames = [], segBeats = [], turnStart = Math.round(NT * 0.72);
-    const prevXY = {}; ds.forEach(d => prevXY[d.id] = info[d.id].spoke);
-    const travelAtTurn = {};
-    for (let j = 1; j <= NT; j++){
-      const t = j / NT, fj = j - 1, P = {};
-      ds.forEach(d => { const g = info[d.id];
-        P[d.id] = g.role === 'F' ? folTravel(g, t) : leaderAt(d.id, t); });
-      frames.push(ds.map(d => {
-        const g = info[d.id], p = P[d.id];
-        if (g.role === 'L'){
-          const f = P[stationF[g.newStation]] || P[g.nfId];
-          return { ...d, station: g.newStation, xy: p,
-            face: f ? Math.atan2(f.y - p.y, f.x - p.x) * 180 / Math.PI : facingAngle(d) };
-        }
-        let tf = Math.atan2(p.y - prevXY[d.id].y, p.x - prevXY[d.id].x) * 180 / Math.PI;
-        let face;
-        if (fj < turnStart){ face = tf; travelAtTurn[d.id] = tf; }
-        else { const u = (fj - turnStart) / Math.max(1, NT - 1 - turnStart), sm = u * u * (3 - 2 * u);
-               face = travelAtTurn[d.id] + short(g.newLeaderFace - travelAtTurn[d.id]) * sm; }
-        return { ...d, xy: p, face };
-      }));
-      ds.forEach(d => prevXY[d.id] = P[d.id]);
-      segBeats.push(4 / NT);
-    }
-    return { frames, segBeats };
-  };
-  return playPhrases(ds, N, [openPhrase, closePhrase]);
-}
 
 /* ------------------------------------------------------------------ *
  *  FIGURE REGISTRY — scripted figures as pure DATA (DECLARATIVE.md §9)
@@ -1898,8 +1779,29 @@ function resolveFigure(def, ds, params){
   const plan = sub(def);
   return d => plan[d.role] || plan.all || [];
 }
-function playFigure(figure, ds, params){
-  return playScript(ds, resolveFigure(typeof figure === 'string' ? FIGURES[figure] : figure, ds, params));
+/* Mirror a figure inside out, for the afuera positions: what pointed away from the wheel centre points
+ * toward it. Only three things carry that sense — the `out` component of an offset, which side of the
+ * spoke a `{spoke: ±1}` step lands on, and whether a facing names the centre or away from it. Turns are
+ * NOT mirrored: a follower who turns 90° to her right does so whichever way the wheel is inside out. */
+function mirrorFigure(v){
+  if (Array.isArray(v)) return v.map(mirrorFigure);
+  if (v && typeof v === 'object'){
+    const o = {};
+    for (const k in v){
+      if (k === 'off') o[k] = [-v[k][0], v[k][1]];
+      else if (k === 'spoke') o[k] = -v[k];
+      else o[k] = mirrorFigure(v[k]);
+    }
+    return o;
+  }
+  if (v === 'centre') return 'outward';
+  if (v === 'outward') return 'centre';
+  return v;
+}
+function playFigure(figure, ds, params, mirror){
+  let def = typeof figure === 'string' ? FIGURES[figure] : figure;
+  if (mirror) def = mirrorFigure(def);
+  return playScript(ds, resolveFigure(def, ds, params));
 }
 
 /* TRAVELS — the dynamic half as pure data. A travel definition says, per role, WHERE that dancer lands
@@ -1920,6 +1822,12 @@ const TRAVELS = {
   // scripted. Mujeres Arriba is the same shape with the roles inverted.
   dame_pequena: { groups: ['L', 'F'], L: { dh: -2, lane: 'cw', pass: 'in' },
                                       F: { scripted: true, lane: 'ccw' } },
+  // The close of a Dile Que No y Dame: the leader crosses to his new partner while the follower dances
+  // her ¾ circle back to the spot she began the whole movement on.
+  dile_dame:     { groups: ['L', 'F'], L: { dh: -2, lane: 'cw', pass: 'out' },
+                                       F: { scripted: true, lane: 'ccw' } },
+  dile_dame_dos: { groups: ['L', 'F'], L: { dh: -4, lane: 'cw', pass: 'in' },
+                                       F: { scripted: true, lane: 'ccw' } },
   mujeres:      { groups: ['F', 'L'], F: { dh:  2, lane: 'ccw', pass: 'in' },
                                       L: { scripted: true, lane: 'cw' } },
 };
@@ -1944,7 +1852,47 @@ function resolveTravel(name, ds, o){
  * it the way it references a solver. One kind covers every case we dance: walk to your own couple's slot
  * in the lane your role lands in, optionally bowing so two partners trading places just miss. Standing
  * still is the same thing when that slot is where you already are, so it needs no separate kind. */
+/* FORMATION_CHANGES — a movement that replaces the slot set rather than moving within it. The two
+ * directions are named the way script kinds and solvers are; a descriptor states which formation it
+ * lands in and which way the travelling couples turn, which is the only thing separating each entry and
+ * exit from its Adios-flavoured twin. */
+const FORMATION_CHANGES = {
+  linea:  (ds, N, turn) => lineaModerna(ds, N, turn),
+  circle: (ds, N, turn) => lineaToRueda(ds, N, turn),
+  // Dame Línea is a formation change too, but its dancers do NOT travel as bonded couples — each crosses
+  // alone to meet a new partner — so it is its own kind rather than a turn direction on the walk.
+  linea_dame: (ds, N) => dameLinea(ds, N),
+};
+
 const SCRIPT_KINDS = {
+  /* The Dile Que No y Dame follower's close: a ¾ circle from her spoke point, out through its mirror on
+   * the far side of the ring, and back to the spot she started the movement on. Her couple midpoint never
+   * moves, so she is scripted — but the shape is a circle through three known points rather than anything
+   * the segment primitives can state, which is why it is a named kind. */
+  three_quarter_circle(ds, N, cfg, mirror, role){
+    const TWO = 2 * Math.PI, io = mirror ? -1 : 1;
+    const circ3 = (A, B, C) => {
+      const d = 2 * (A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
+      const A2 = A.x*A.x+A.y*A.y, B2 = B.x*B.x+B.y*B.y, C2 = C.x*C.x+C.y*C.y;
+      return { x: (A2*(B.y-C.y)+B2*(C.y-A.y)+C2*(A.y-B.y)) / d, y: (A2*(C.x-B.x)+B2*(A.x-C.x)+C2*(B.x-A.x)) / d };
+    };
+    const at = {};
+    ds.filter(d => d.role === role).forEach(d => {
+      const F0 = cfg.startOf[d.id], fr = dancerFrame(d, ds);
+      const Xs = { x: CX + R_MID() * fr.out.x, y: CY + R_MID() * fr.out.y };
+      const Pf   = { x: Xs.x - io * R_STEP * fr.out.x, y: Xs.y - io * R_STEP * fr.out.y };   // her spoke point
+      const Pout = { x: Xs.x + io * R_STEP * fr.out.x, y: Xs.y + io * R_STEP * fr.out.y };   // its mirror
+      const O = circ3(Pf, Pout, F0), rho = Math.hypot(Pf.x - O.x, Pf.y - O.y);
+      const aA = Math.atan2(Pf.y - O.y, Pf.x - O.x), aB = Math.atan2(Pout.y - O.y, Pout.x - O.x);
+      const aC = Math.atan2(F0.y - O.y, F0.x - O.x);
+      const nrm = x => ((x % TWO) + TWO) % TWO;
+      const dAB = nrm(aB - aA), dAC = nrm(aC - aA);
+      const dir = dAB < dAC ? 1 : -1, sweep = dAB < dAC ? dAC : TWO - dAC;
+      at[d.id] = t => { const a = aA + dir * sweep * t; return { x: O.x + rho * Math.cos(a), y: O.y + rho * Math.sin(a) }; };
+    });
+    return at;
+  },
+
   // `ds` is the WHOLE wheel (a solver may need to measure the couple), `role` picks whose paths to build.
   to_lane(ds, N, cfg, mirror, role){
     const lane = mirror ? LANE_SWAP[cfg.lane] : cfg.lane;
@@ -1965,18 +1913,35 @@ const FIGURES = {
   // midpoint spoke, pause. Beats 2 and 3 are `round`, so they join into ONE curve through the start
   // point rather than meeting at a hard corner there. `io` mirrors the whole figure inside out for
   // afuera. Shared by the standalone 4-beat Dile Que No and by the Dile Que No y Dame compounds.
+  // The 8-beat Dile Que No: three 1-beat legs along the couple's own Exhibela line, a 1-beat pause, then
+  // a 4-beat half-turn onto the partner's spot — a Dile Que No IS a swap, so `to: 'partner'` is the whole
+  // of its target. `pinch` flattens the orbit toward the start→end chord (the old `DILE_PINCH`), keeping
+  // a turning couple tight instead of swinging wide — which is what lets the Línea Dile Que No's two
+  // radially-adjacent rings clear instead of bulging into each other.
+  dile_full: {
+    L: [{ to: { off: [-16, 0] }, beats: 1, steps: 8, face: 'partner' },
+        { to: { off: [0, 0] },   beats: 1, steps: 8, face: 'partner' },
+        { to: { off: [16, 0] },  beats: 1, steps: 8, face: 'partner' },
+        { to: 'hold',            beats: 1, steps: 4, face: 'partner' },
+        { to: 'partner', beats: 4, steps: 16, turn: 'ccw', face: 'partner',
+          orbit: { dir: 'ccw', pinch: 0.6 } }],
+    F: [{ to: { off: [18, 0] },  beats: 1, steps: 8, turn: 'cw',  face: { from: 'start', at: 0,  turn: 90 } },
+        { to: { off: [0, 0] },   beats: 1, steps: 8,              face: { from: 'start', at: 90, turn: 0 } },
+        { to: { off: [-18, 0] }, beats: 1, steps: 8, turn: 'ccw', face: { from: 'start', at: 90, turn: -90 } },
+        { to: 'hold',            beats: 1, steps: 4, turn: 'ccw', face: { from: 'start', at: 0, turn: 0 } },
+        { to: 'partner', beats: 4, steps: 16, turn: 'ccw', face: { from: 'start', at: 0, turn: -180 },
+          orbit: { dir: 'ccw', pinch: 0.6 } }],
+  },
   dile_opening: {
-    L: [{ to: { off: [{ param: 'dipL' }, 0] }, beats: 1, steps: 8, face: 'partner' },
-        { to: 'start',                          beats: 1, steps: 8, face: 'partner' },
-        { to: { spoke: { param: 'io' } },       beats: 1, steps: 8, round: true,
-          face: { blend: ['partner', { param: 'centre' }] } },
-        { to: 'hold',                           beats: 1, steps: 4, face: { param: 'centre' } }],
-    F: [{ to: { off: [{ param: 'dipF' }, 0] }, beats: 1, steps: 8, face: { from: 'start', turn: 90 } },
-        { to: 'start',                          beats: 1, steps: 8,
+    L: [{ to: { off: [-16, 0] }, beats: 1, steps: 8, face: 'partner' },          // leader dips IN
+        { to: 'start',           beats: 1, steps: 8, face: 'partner' },
+        { to: { spoke: 1 },      beats: 1, steps: 8, round: true, face: { blend: ['partner', 'centre'] } },
+        { to: 'hold',            beats: 1, steps: 4, face: 'centre' }],
+    F: [{ to: { off: [18, 0] },  beats: 1, steps: 8, face: { from: 'start', turn: 90 } },   // she steps OUT
+        { to: 'start',           beats: 1, steps: 8, face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
+        { to: { spoke: -1 },     beats: 1, steps: 8, round: true,
           face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
-        { to: { spoke: { param: 'ioNeg' } },    beats: 1, steps: 8, round: true,
-          face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
-        { to: 'hold',                           beats: 1, steps: 4, face: 'perpSpoke' }],
+        { to: 'hold',            beats: 1, steps: 4, face: 'perpSpoke' }],
   },
   // Exhibela — four legs along the couple's own spoke line, ending exactly where it began.
   exhibela: {
@@ -2028,9 +1993,6 @@ function playPhrases(ds, N, phrases){
  * `io` is +1 normally and −1 afuera, which mirrors the figure inside out.
  * ONE definition, shared by the standalone 4-beat Dile Que No and by the Dile Que No y Dame compounds
  * that open with exactly these four beats — so the two can no longer drift apart. */
-function dileOpeningParams(io){
-  return { io, ioNeg: -io, dipL: -io * 16, dipF: io * 18, centre: io > 0 ? 'centre' : 'outward' };
-}
 
 /* 4-beat Dile Que No (Exhibela -> Dile Que No position). The opening of a Dile Que No y Dame, danced
  * on its own: beats 1-2 dip out along the Exhibela line and back; beat 3 step onto the couple's
@@ -2039,7 +2001,6 @@ function dileOpeningParams(io){
  * centre by beat 3 and holds; the follower turns 90° right to the centre on beat 1, holds, then turns
  * to perpendicular-to-the-spoke (clockwise) on beat 3 and holds. Ends in the Dile Que No position —
  * no progression, no phase change. */
-function dileQueNo4(ds, N){ return playFigure('dile_opening', ds, dileOpeningParams(1)); }
 
 /* Mujeres Arriba (Dile Que No position -> Exhibela). The women advance: every follower progresses one
  * partnership CLOCKWISE to the next couple's Exhibela spot, doing ALL the travelling so the spokes and
@@ -2314,14 +2275,27 @@ function pequenaFrames(circleKey, from){
 function movementFrames(mv, ds, N, from){
   const p = mv.play;
   if (!p) return mv.frames(ds, N, from);
-  if (p.figure) return playFigure(p.figure, ds, p.params);
+  // A movement may be a SEQUENCE OF PHRASES with different intents in each — a scripted opening, then a
+  // travel. Each phrase starts from where the last left the dancers.
+  if (p.phrases){
+    const start = {}; ds.forEach(d => start[d.id] = pos(d));
+    return playPhrases(ds, N, p.phrases.map(ph =>
+      cur => movementFrames({ play: Object.assign({ startOf: start }, ph), flipsPhase: mv.flipsPhase }, cur, N, from)));
+  }
+  if (p.figure) return playFigure(p.figure, ds, p.params, p.mirror ? isAfuera(from) : false);
+  if (p.formation) return FORMATION_CHANGES[p.formation](ds, N, p.turn);
+  // A 0-beat relabel: nobody moves, the position's name changes. One frame, everyone as they are.
+  if (p.hold) return [ds.map(d => ({ ...d }))];
+  // Composed onto Línea Moderna's sub-wheels: the same circle figure danced by the whole two-ring wheel
+  // (grande) or by each mini 2-couple wheel (pequeña).
+  if (p.compose) return (p.compose === 'grande' ? grandeFrames : pequenaFrames)(p.of, from);
   const mirror = p.mirror ? isAfuera(from) : false;
   const def = TRAVELS[p.travel];
   // The scripted role's path and facing, both stated in the descriptor: a named SCRIPT_KIND for the
   // path, and a facing rule that may branch on the position the movement was called from.
   const roleOf = {}; ds.forEach(d => roleOf[d.id] = d.role);
   const paths = {};
-  for (const r in (p.script || {})){ const cfg = Object.assign({ lane: def[r].lane }, p.script[r]);
+  for (const r in (p.script || {})){ const cfg = Object.assign({ lane: def[r].lane, startOf: p.startOf }, p.script[r]);
     Object.assign(paths, SCRIPT_KINDS[cfg.kind](ds, N, cfg, mirror, r)); }
   const pick = spec => spec && spec.byVirtualPos ? spec.byVirtualPos[virtualPos(from)] : spec;
   return playTravel(ds, N, resolveTravel(p.travel, ds, Object.assign({

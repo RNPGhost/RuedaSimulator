@@ -3,6 +3,27 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v127 — Phase 5 complete: every movement is a descriptor
+- **No `frames` generators remain.** Every movement in the app is a `play` descriptor, across six kinds:
+  `figure`, `travel`, `phrases`, `formation`, `compose` and `hold`. **§30 asserts it** — the engine keeps
+  an escape hatch for a figure that genuinely cannot be data, but nothing uses it, so anything that
+  starts to has to justify itself rather than slip in quietly.
+- **`mirrorFigure`** turns a figure inside out for afuera. Only three things carry that sense: the `out`
+  component of an offset, which side of the spoke a `{spoke: ±1}` step lands on, and whether a facing
+  names the centre or away from it. Turns are *not* mirrored — a follower who turns 90° to her right does
+  so whichever way the wheel is inside out. Replaced the `io`-derived parameter set.
+- **The Dile Que No y Dame compounds are phrase descriptors**, and the 8-beat Dile Que No moved into
+  `FIGURES` (taking `DILE_PINCH` with it as a shape parameter of that figure).
+- **`freeze`** — the one genuinely new idea the compounds needed. It pins the starting bearing at the
+  moment a turn begins rather than tracking a base that is still moving: a dancer spinning onto a new
+  partner turns a *definite* amount from wherever she happened to be pointing. Without it she chases a
+  bearing that shifts under her — measured 21.5° off at the end of her ¾ circle, too much to wave through.
+- **A pass side that used to be searched is now stated.** The compounds picked their side by planning both
+  and keeping the smaller amplitude; the definitions now say `pass: 'out'` for the single and `'in'` for
+  the Dos. That is where a pass side belongs — it is the control the roadmap hands to users.
+- Seven mutations of the new descriptor machinery were all caught. 2784 invariants; golden and visual
+  untouched throughout. `index.html` is 2666 lines, against 2718 when Phase 5 began.
+
 ## v126 — Dame Pequeña and Mujeres Arriba lose their generators
 - **Both are now pure `play` descriptors** — the functions are deleted. Twelve movements are on
   descriptors.

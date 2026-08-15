@@ -995,7 +995,12 @@ function run() {
     // A movement's `play` descriptor is the form a user-authored movement arrives in, so it is held to
     // the same standard as the registries: pure data, no closures.
     for (const key of T.keys().movements) {
-      const play = T.MOVEMENTS[key].play; if (!play) continue;
+      const play = T.MOVEMENTS[key].play;
+      // EVERY movement is a descriptor. The engine still has a `frames` escape hatch for a figure that
+      // genuinely cannot be stated as data — but nothing uses it, and anything that starts to should have
+      // to justify itself here first (MOVEMENT_SPEC §4), not slip in as a quiet exception.
+      nChecks++; check(!!play, `movement "${key}" carries a generator instead of a play descriptor`);
+      if (!play) continue;
       const bad = impure(play, `${key}.play`);
       nChecks++; check(bad === null, `movement "${key}" has a non-data play descriptor — ${bad}`);
     }
