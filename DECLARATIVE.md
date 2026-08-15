@@ -179,12 +179,44 @@ primitive a number. That is the right split — primitives are shapes, not solve
 
 ## 7. Still to build
 
-- **Travel intents** — the dynamic half: wiring a slot address (§2) and pass sides to `planCrossings`,
-  which is what the Dames, Mujeres Arriba and Dame Pequeña need. Settled: pass sides attach **per
-  group** (facing-relative, per Sam's "which other dancers they pass to the left or right of"; while
-  every couple dances in sync, the no-overtaking rule makes per-dancer overrides redundant, and the
-  field is shaped so they can be added later). Beat budgets are **per segment** and compose to the
-  movement total — answered by construction in stage 2.
+## 7. Travel intents — the dynamic half (built)
+
+A traveller declares **where it lands** (a slot address, §2) and **which side it passes on**. The path
+between is planned, never authored: a base polar arc along the ring plus whatever corridor
+`planCrossings` finds it needs. Scripted dancers go in alongside as immutable obstacles.
+
+```
+playTravel(ds, N, {
+  target(d)  -> { dh, lane } | null     the slot it lands in; null ⇒ SCRIPTED
+  scriptAt(d)-> t => {x,y}              a scripted dancer's own path
+  pass(d)    -> +1 | -1                 the radial sense it eases — its pass side
+  group / groups / unit / yields        effort sharing, as planCrossings takes them
+  phaseBefore, steps, settle, clearance, engage
+})
+```
+
+**Migrated: the whole Dame family** — Dame, Dame Dos and their Grande forms — byte-identical, from a
+190-line generator to two slot addresses and a pass side:
+
+```js
+target: d => d.role === 'L' ? { dh: -(2k-1)·dir, lane: 'cw' }
+                            : { dh: dir,         lane: 'ccw' },
+pass:   leader inward, follower outward          // "on each other's left"
+```
+
+That is the whole figure. And the phase flip is not declared anywhere: the two `dh` values sum to an odd
+number, and §5's arithmetic does the rest.
+
+**Settled while building it:** pass sides attach **per group** (facing-relative, per Sam's "which other
+dancers they pass to the left or right of"); while every couple dances in sync, the no-overtaking rule
+makes per-dancer overrides redundant, and the field is shaped so they can be added later. Beat budgets
+are **per segment** and compose to the movement total — answered by construction in stage 2.
+
+## 8. Still to build
+- **Facing rules for travellers.** `playTravel` currently hard-codes the Dame's rule (face the way you
+  travel, settle onto your new partner over the last third). Mujeres Arriba and Dame Pequeña have their
+  own, so the next step is to let a travel intent take a facing rule from the *same* vocabulary the
+  scripted layer uses — which unifies the two halves rather than giving travel its own.
 - **Compound movements** — `dileQueNoYDame` is two phrases in one movement (a scripted 4-beat opening,
   then a travel). The IR needs a movement to be a sequence of phrases with different intents per phrase.
   MOVEMENT_SPEC §4 flagged this as the model assumption most likely to bite; it does, and the fix is

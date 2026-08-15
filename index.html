@@ -1323,110 +1323,106 @@ function planCrossings(o){
   return { at: (id, t) => at(id, t, share, scale), share, scale };
 }
 
-/* Dame / Dame Dos — progresses the leader k couples and lands the whole wheel exactly on the spoke
- * grid (no drift). Endpoints (who pairs with whom, the two-config flip, the exact grid spots) are
- * computed here; the PATHS between them come from the pathing router above: leaders ride the inner
- * lane and cut straight to the new partner, passed followers bow to the outer lane and back. */
-function dameToEnchufla(ds, N, k, fromEnch, afuera){
-  const dir = afuera ? -1 : 1;                                 // afuera progresses the other way
-  const leaderEndLane = afuera ? 'ccw' : 'cw', folEndLane = afuera ? 'cw' : 'ccw';   // end orientation (Exhibela / afuera-Exhibela)
-  const norm = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
-  const leftOf = u => ({ x: u.y, y: -u.x });
-  const cur = {}, leaderAt = {}, followerAt = {};
-  // Spoke bookkeeping in HALF-spacings: h = 2*station + phaseBefore. A Dame ALWAYS lands the wheel on the
-  // *between*-spokes (the other of the two configs): the follower steps half a couple one way and the
-  // leader travels an odd number of half-spacings the other way, so the net shift is always odd → the
-  // phase always flips (single Dame and Dame Dos alike). Recover phaseBefore, shift each dancer's h, read
-  // the new station back off h so the direction is consistent regardless of which config we started in.
-  const twoN = 2 * N, phaseBefore = phase ^ 1;
-  // Resting starts must be read at the PRE-flip phase. When a dancer has no live xy (e.g. the first
-  // Dame right after a reset), pos() would fall through to the formation slot with the already-flipped global
-  // phase and place the start in the wrong config — a visible jump. Pin the start to phaseBefore.
-  ds.forEach(d => { cur[d.id] = d.xy ? d.xy : FORMATIONS.circle.slot(d.station, d.lane, N, phaseBefore); });
-  ds.forEach(d => { (d.role === 'L' ? leaderAt : followerAt)[d.station] = d.id; });
-  const INF = 110;
-  // Leader travels (2k-1) half-spacings one way (Dame: −1 = ½ couple to the couple 1 over; Dame Dos: −3
-  // = 1½ couples, passing one follower to reach the next); the follower always steps +1 half-spacing (½ a
-  // couple) the other way to the between-spoke. Both together advance the pairing k full couples.
-  const lDelta = -(2 * k - 1) * dir;
-  const fDelta = dir;
-  const newSt = (st, delta) => { const nh = (((2 * st + phaseBefore + delta) % twoN) + twoN) % twoN; return (nh - phase) / 2; };
-  // followers travel along the ring to their exact new grid spot (clockwise; afuera anti-clockwise)
-  const fInfo = {}, folByNewSt = {};
-  ds.forEach(d => { if (d.role !== 'F') return;
-    const ns = newSt(d.station, fDelta), S = cur[d.id], E = FORMATIONS.circle.slot(ns, folEndLane, N);
-    let a0 = Math.atan2(S.y - CY, S.x - CX), a1 = Math.atan2(E.y - CY, E.x - CX), da = a1 - a0;
-    while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
-    const rS = Math.hypot(S.x - CX, S.y - CY), rE = Math.hypot(E.x - CX, E.y - CY);
-    fInfo[d.id] = { S, E, a0, da, rS, rE, newStation: ns, face0: facingAngle(d) };
-    folByNewSt[ns] = d.id;
+/* ------------------------------------------------------------------ *
+ *  TRAVEL INTENTS — the DYNAMIC half of a movement (DECLARATIVE.md §7)
+ *
+ *  A traveller declares WHERE it lands (a slot address, §2) and WHICH SIDE it passes on. The path
+ *  between is planned, never authored: a base polar arc along the ring plus whatever corridor
+ *  `planCrossings` finds it needs. Scripted dancers come in as immutable obstacles.
+ *
+ *    o.target(d)    -> { dh, lane } | null      the slot it lands in; null ⇒ SCRIPTED
+ *    o.scriptAt(d)  -> t => {x,y}               a scripted dancer's own path
+ *    o.pass(d)      -> +1 | -1                  the radial sense this dancer eases (its pass side)
+ *    o.group(d) / o.groups / o.unit(d)          effort sharing, as `planCrossings` takes them
+ *    o.phaseBefore                              the config the wheel was resting in on entry
+ *    o.steps, o.settle, o.clearance, o.engage, o.forceShare
+ *
+ *  Returns { frames, newStation, newPartner } — the frames plus the resolved landing, so a caller can
+ *  compose a travel phrase with scripted phrases around it.
+ * ------------------------------------------------------------------ */
+function playTravel(ds, N, o){
+  const F = FORMATIONS[layoutName];
+  const cur = {}, kin = {}, newSt = {}, endXY = {};
+  ds.forEach(d => { cur[d.id] = d.xy ? d.xy : F.slot(d.station, d.lane, N, o.phaseBefore); });
+  // Resolve every traveller's landing from its slot address — the one place a couple count enters.
+  ds.forEach(d => { const ref = o.target(d); if (!ref) return;
+    const p = placeOf(d, N, o.phaseBefore), q = resolvePlace(p, ref, N, phase);
+    newSt[d.id] = q.station; endXY[d.id] = F.slot(q.station, q.lane, N);
+    const S = cur[d.id], E = endXY[d.id];
+    kin[d.id] = { aS: _ang(S), rS: _rad(S), rE: _rad(E),
+      sw: directedSweep(_ang(S), _ang(E), ref.dh * Math.PI / (p.span / 2)) };
   });
-  const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
-  const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
-  // ---- Endpoints and intended paths; the crossing planner does the rest ------------------------------
-  const leadDir = afuera ? +1 : -1;                        // radial sense the LEADER eases (toward centre normally)
-  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);              // corridor to hold between a crossing pair
-  const STEPS = 16;
-  // Leader endpoints.
-  const lInfo = {};
-  ds.forEach(d => { if (d.role !== 'L') return;
-    const ns = newSt(d.station, lDelta), S = cur[d.id], E = FORMATIONS.circle.slot(ns, leaderEndLane, N);
-    lInfo[d.id] = { S, E, sweep: directedSweep(_ang(S), _ang(E), lDelta * Math.PI / N),
-      aS: _ang(S), rS: _rad(S), rE: _rad(E), newStation: ns, newFollower: folByNewSt[ns] };
-  });
-  const newLeaderOf = {}; leaderIds.forEach(id => { newLeaderOf[lInfo[id].newStation] = id; });
-  // Intended path: a base polar arc (angle + radius interpolated S→E), so it follows the ring and never
-  // cuts across the wheel. On a clear move a dancer stays exactly on it.
-  const kin = {};
-  leaderIds.forEach(id => { const g = lInfo[id]; kin[id] = { role: 'L', aS: g.aS, sw: g.sweep, rS: g.rS, rE: g.rE }; });
-  followerIds.forEach(id => { const g = fInfo[id];
-    kin[id] = { role: 'F', aS: _ang(g.S), sw: directedSweep(_ang(g.S), _ang(g.E), fDelta * Math.PI / N), rS: _rad(g.S), rE: _rad(g.E) }; });
-  const baseAt = (id, t) => { const k = kin[id], te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te); };
-  // Who MIGHT cross: every leader × every follower who isn't his new partner (nor he her new leader).
-  // The planner keeps only the pairs whose intended paths actually crowd.
+  // Who ends up with whom — needed both to exclude a pair that is meant to gather and to aim the settle.
+  const partnerAt = {}; ds.forEach(d => { const st = d.id in newSt ? newSt[d.id] : d.station;
+    (partnerAt[st] = partnerAt[st] || []).push(d.id); });
+  const newPartner = {}; ds.forEach(d => { const st = d.id in newSt ? newSt[d.id] : d.station;
+    newPartner[d.id] = (partnerAt[st] || []).find(x => x !== d.id); });
+  const baseAt = (id, t) => { const k = kin[id]; if (!k) return o.scriptAt(id)(t);
+    const te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te); };
+  const applyAt = (id, t, off) => { const k = kin[id]; if (!k) return o.scriptAt(id)(t);
+    const te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te + off * o.pass(id)); };
+  // Candidates: every cross-group pair that is not gathering into the same couple.
   const pairs = [];
-  leaderIds.forEach(lid => { const gl = lInfo[lid];
-    followerIds.forEach(fid => { if (fid === gl.newFollower) return; if (newLeaderOf[fInfo[fid].newStation] === lid) return;
-      pairs.push([lid, fid]); }); });
-  const plan = planCrossings({
-    ids: [...leaderIds, ...followerIds], pairs,
-    base: baseAt,
-    apply: (id, t, off) => { const k = kin[id], te = _smooth(t);
-      return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te + off * (k.role === 'L' ? leadDir : -leadDir)); },
-    group: id => kin[id].role, groups: ['L', 'F'],
-    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
-    forceShare: DAME_WL_FORCE,
-  });
-  // Render. Every dancer faces the way they travel (so they never look "through" another dancer while
-  // crossing), then turns to face their new partner as they settle over the last third of the trip.
+  const ids = ds.map(d => d.id);
+  for (let i = 0; i < ids.length; i++) for (let j = 0; j < ids.length; j++){
+    const a = ids[i], b = ids[j];
+    if (o.group(a) === o.group(b)) continue;
+    if (o.groups.indexOf(o.group(a)) > o.groups.indexOf(o.group(b))) continue;   // one ordered pair each
+    if (newPartner[a] === b) continue;
+    pairs.push([a, b]);
+  }
+  const plan = planCrossings({ ids, pairs, base: baseAt, apply: applyAt,
+    group: o.group, groups: o.groups, unit: o.unit, yields: o.yields,
+    clearance: o.clearance, engage: o.engage, forceShare: o.forceShare });
+  // Render: everyone faces the way they travel — so they never look *through* another dancer while
+  // crossing — then turns onto their new partner as they settle over the last of the trip.
   const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
-  const frames = [];
+  const STEPS = o.steps || 16, frames = [], SET = o.settle || 0.3;
   let prevP = {}; ds.forEach(d => prevP[d.id] = cur[d.id]);
   const lastFace = {};
   for (let s = 1; s <= STEPS; s++){
     const t = s / STEPS, P = {};
     ds.forEach(d => P[d.id] = plan.at(d.id, t));
-    const settle = _smooth(Math.max(0, (t - 0.7) / 0.3));   // 0 until 70% of the trip, →1 at the landing
+    const settle = _smooth(Math.max(0, (t - (1 - SET)) / SET));
     frames.push(ds.map(d => {
       const a = prevP[d.id], b = P[d.id], moved = Math.hypot(b.x - a.x, b.y - a.y);
-      let partnerFace, station;
-      if (d.role === 'F'){ const g = fInfo[d.id], nl = newLeaderOf[g.newStation], nlp = nl ? P[nl] : null;
-        partnerFace = nlp ? Math.atan2(nlp.y - b.y, nlp.x - b.x) * 180 / Math.PI : (lastFace[d.id] != null ? lastFace[d.id] : g.face0);
-        station = g.newStation;
-      } else { const nf = P[lInfo[d.id].newFollower];
-        partnerFace = Math.atan2(nf.y - b.y, nf.x - b.x) * 180 / Math.PI;
-        station = lInfo[d.id].newStation;
-      }
-      let face;
-      if (moved < 1e-6) face = partnerFace;                 // barely moving — just face the partner
-      else { const travel = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-        face = travel + shortDiff(partnerFace, travel) * settle; }
+      const np = newPartner[d.id], npp = np ? P[np] : null;
+      const partnerFace = npp ? Math.atan2(npp.y - b.y, npp.x - b.x) * 180 / Math.PI
+        : (lastFace[d.id] != null ? lastFace[d.id] : facingAngle(d));
+      const travel = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      const face = moved < 1e-6 ? partnerFace : travel + shortDiff(partnerFace, travel) * settle;
       lastFace[d.id] = face;
-      return { ...d, station, xy: b, face };
+      return { ...d, station: d.id in newSt ? newSt[d.id] : d.station, xy: b, face };
     }));
     prevP = P;
   }
-  return frames;
+  return { frames, newStation: newSt, newPartner };
+}
+
+/* Dame / Dame Dos — progresses the leader k couples and lands the whole wheel exactly on the spoke
+ * grid (no drift). Endpoints (who pairs with whom, the two-config flip, the exact grid spots) are
+ * computed here; the PATHS between them come from the pathing router above: leaders ride the inner
+ * lane and cut straight to the new partner, passed followers bow to the outer lane and back. */
+function dameToEnchufla(ds, N, k, fromEnch, afuera){
+  // Declarative travel (DECLARATIVE.md §7). The whole figure is two slot addresses and a pass side:
+  // the leader travels (2k−1) half-spacings one way, the follower 1 the other, which together advance
+  // the pairing k full couples. Their total is ODD, which is *why* a Dame always flips the phase —
+  // nothing here declares that, it falls out of the arithmetic.
+  const dir = afuera ? -1 : 1;                                 // afuera progresses the other way
+  const leaderEndLane = afuera ? 'ccw' : 'cw', folEndLane = afuera ? 'cw' : 'ccw';
+  const lDelta = -(2 * k - 1) * dir, fDelta = dir;
+  const leadDir = afuera ? +1 : -1;                            // leader eases toward the centre (out, afuera)
+  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
+  const isL = {}; ds.forEach(d => isL[d.id] = d.role === 'L');
+  return playTravel(ds, N, {
+    // The Dame is danced from the pre-flip config: `phase` has already been advanced by the engine.
+    phaseBefore: phase ^ 1,
+    target: d => d.role === 'L' ? { dh: lDelta, lane: leaderEndLane } : { dh: fDelta, lane: folEndLane },
+    pass: id => (isL[id] ? leadDir : -leadDir),                // leader and follower pass on each other's left
+    group: id => isL[id] ? 'L' : 'F', groups: ['L', 'F'],
+    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
+    forceShare: DAME_WL_FORCE,
+  }).frames;
 }
 
 /* Dame Pequena — progresses the leader one couple WITHOUT changing the spoke config: the couples stay

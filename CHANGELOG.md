@@ -3,6 +3,17 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v117 — Phase 5 stage 3b: travel intents, and the Dame family as data
+- **`playTravel`** — the dynamic half. A traveller declares *where it lands* (a slot address) and *which
+  side it passes on*; the path between is planned by `planCrossings`, never authored. Scripted dancers go
+  in alongside as immutable obstacles.
+- **The whole Dame family migrated byte-identically** — Dame, Dame Dos and both Grande forms — from a
+  190-line generator down to two slot addresses and a pass side. The leader travels −(2k−1) half-spacings
+  and the follower +1 the other way; that is the entire figure.
+- **The phase flip is now declared nowhere at all.** The two `dh` values sum to an odd number and the
+  arithmetic does the rest — the property v114 measured is now the mechanism, not a comment.
+- 2445 invariants; golden and visual untouched. 12 movements are declarative.
+
 ## v116 — Phase 5 stage 3a: the join rule, and two more figures as data
 - **The join rule, generalised.** A segment marked `round: true` merges with its predecessor into one
   quadratic Bézier — from where the first began, the **joint as control point**, to where the last ends,
