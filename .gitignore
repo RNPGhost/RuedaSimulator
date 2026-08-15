@@ -1,3 +1,5 @@
 node_modules/
 package-lock.json
 *.log
+# one-off visualisation renders (explanatory screenshots, not project files)
+*.svg
