@@ -131,6 +131,7 @@ function load(htmlPath) {
       keys(){ return { movements: Object.keys(MOVEMENTS), calls: Object.keys(CALLS) }; },
       validFrom, isAfuera, virtualPos,
       runOnWheel, wheelContext, pathNaturalness, planCrossings,
+      placeOf, resolvePlace, selectGroup, groupContext, GROUPS,
       setNoEvade(v){ NAT_NOEVADE = !!v; },
       setDameWL(v){ DAME_WL_FORCE = v; },
       circleAt(station, lane, n, ph){ return FORMATIONS.circle.slot(station, lane, n, ph); },

@@ -767,6 +767,107 @@ function runOnWheel(ctx, subDancers, gen){
 /* Facing is a property of layout + role (+ couple parity in línea), NOT of
  * the partner. In Rueda leaders face clockwise round the wheel, followers
  * anti-clockwise. In Línea Moderna couples alternate up/down down the line. */
+/* ------------------------------------------------------------------ *
+ *  DECLARATIVE VOCABULARY  (see DECLARATIVE.md)
+ *
+ *  The two things a movement definition has to be able to SAY, defined once and precisely, so that a
+ *  movement means the same thing at 4 couples as at 8 and in either phase:
+ *
+ *    · WHICH dancers an intent applies to      -> group predicates      (`GROUPS`, `selectGroup`)
+ *    · WHERE a traveller lands                 -> relative slot address (`placeOf`, `resolvePlace`)
+ *
+ *  Both are pure functions of the formation, never of pixels.
+ * ------------------------------------------------------------------ */
+
+/* The lane each role rests in, per circle position — the single source of truth, read by the slot
+ * vocabulary and by the tests instead of each carrying its own copy. (The Línea positions are not here:
+ * their lanes depend on which ring a couple is on, and their generators set `lane` explicitly.) */
+const REST_LANES = {
+  casino:          { L: 'ccw',   F: 'cw'    },
+  exhibela:        { L: 'cw',    F: 'ccw'   },
+  afuera:          { L: 'cw',    F: 'ccw'   },   // Afuera Casino looks like Exhibela
+  afuera_exhibela: { L: 'ccw',   F: 'cw'    },   // Afuera Exhibela looks like Casino
+  dile:            { L: 'outer', F: 'inner' },
+};
+/* `lane` must be AUTHORITATIVE after a movement, not a souvenir of where the dancer started. Most circle
+ * generators carry `lane` through untouched — harmless while `pos()` prefers the live `xy`, but wrong the
+ * moment anything addresses a slot by (spoke, lane), which is exactly what the declarative vocabulary
+ * does. Every movement lands in a RESTING position whose lanes are defined, so snap them from it. */
+function snapRestLanes(frame){
+  const t = REST_LANES[posState]; if (!t) return;                  // Línea positions set `lane` themselves
+  (frame || dancers).forEach(d => { d.lane = t[d.role]; });
+}
+
+/* A dancer's PLACE, in the coordinates the engine actually reasons in.
+ *   h    — the couple's midpoint spoke, in HALF-couple spacings: h = 2·station + phase, modulo 2N.
+ *          Half-spacings rather than couples because the figures genuinely use them: a Dame moves its
+ *          leader an ODD number of half-spacings (that is *why* it always flips the phase), and the
+ *          follower one the other way. Counting in couples cannot express either.
+ *   lane — which slot of the couple ('cw' | 'ccw' | 'inner' | 'outer').
+ *   ring — which ring of a multi-ring formation ('inner' | 'outer'); the circle has a single ring. */
+function placeOf(d, n, ph){
+  const N_ = n === undefined ? N : n, P = ph === undefined ? phase : ph;
+  const F = FORMATIONS[layoutName], m = N_ / 2;
+  if (layoutName === 'linea'){
+    const inner = d.station < m, spoke = inner ? d.station : d.station - m;
+    return { h: (2 * spoke + P) % (2 * m), lane: d.lane, ring: inner ? 'inner' : 'outer', span: 2 * m };
+  }
+  return { h: (2 * d.station + P) % (2 * N_), lane: d.lane, ring: 'only', span: 2 * N_ };
+}
+
+/* A relative move between places — the canonical way a movement says where a traveller lands.
+ *   { dh, lane, ring }
+ *     dh   signed half-couple spacings, POSITIVE = clockwise (the direction station index increases).
+ *     lane the lane landed in; 'same' keeps it, 'swap' takes the couple's other on-ring lane.
+ *     ring 'same' | 'inner' | 'outer' | 'swap'.
+ * Couple-count independent and phase independent by construction: `dh` is a count of spacings, and the
+ * phase is carried in `h`, so the same reference resolves correctly from either config. */
+const LANE_SWAP = { cw: 'ccw', ccw: 'cw', inner: 'outer', outer: 'inner' };
+function resolvePlace(p, ref, n, phAfter){
+  const span = p.span, dh = ref.dh || 0;
+  const h = (((p.h + dh) % span) + span) % span;
+  const lane = !ref.lane || ref.lane === 'same' ? p.lane : ref.lane === 'swap' ? LANE_SWAP[p.lane] : ref.lane;
+  const ring = !ref.ring || ref.ring === 'same' ? p.ring : ref.ring === 'swap' ? LANE_SWAP[p.ring] : ref.ring;
+  // Read the station back off h at the phase the wheel will REST in, so a movement that flips the phase
+  // and one that doesn't both land on the grid. (h is odd iff the resting phase is 1, by construction.)
+  const P = phAfter === undefined ? phase : phAfter;
+  const spokes = span / 2, spoke = (((h - P) / 2) % spokes + spokes) % spokes;
+  const station = (layoutName === 'linea' && ring === 'outer') ? spoke + spokes : spoke;
+  return { h, lane, ring, span, station };
+}
+
+/* Structural group predicates — the vocabulary a movement uses to say WHICH dancers do what.
+ * Structural, never positional-by-index: `primeros` means "the cantante's couple and every other one
+ * clockwise", so it still means the right thing at a different couple count, which an explicit list of
+ * couple numbers would not. Compose with `and` / `not`. */
+const GROUPS = {
+  all:       () => true,
+  leaders:   d => d.role === 'L',
+  followers: d => d.role === 'F',
+  primeros:  (d, c) => c.parity(d) === 0,
+  segundos:  (d, c) => c.parity(d) === 1,
+  inner:     (d, c) => c.place(d).ring === 'inner',
+  outer:     (d, c) => c.place(d).ring === 'outer',
+};
+function groupContext(ds, n, ph){
+  const N_ = n === undefined ? N : n;
+  const cant = ds.find(d => d.id === cantanteId) || ds.find(d => d.role === 'L');
+  const c0 = cant ? cant.station : 0;
+  const placeCache = {};
+  return {
+    // Parity is counted CLOCKWISE FROM THE CANTANTE's couple, which is what anchors primeros/segundos.
+    parity: d => ((((d.station - c0) % N_) + N_) % N_) % 2,
+    place: d => placeCache[d.id] || (placeCache[d.id] = placeOf(d, N_, ph)),
+  };
+}
+function selectGroup(ds, pred, n, ph){
+  const c = groupContext(ds, n, ph);
+  const test = typeof pred === 'function' ? pred
+    : Array.isArray(pred) ? (d => pred.every(k => GROUPS[k](d, c)))     // an array is an AND
+    : GROUPS[pred];
+  return ds.filter(d => test(d, c));
+}
+
 function faceTowardPartner(d, state){
   const pr = state.find(o => o.station === d.station && o.role !== d.role);
   if (!pr) return 0;
@@ -2225,9 +2326,10 @@ function pequenaFrames(circleKey, from){
 
 // Resolve a movement's frames + beat timing and animate it (leadBeats = a lead-in hold on the spot).
 function playMovement(mv, from, onDone, leadBeats = 0){
-  if (mv.relabel || mv.beats === 0){ render(); renderTable(); updateUI(); if (onDone) onDone(); return; }   // 0-beat, no animation
+  if (mv.relabel || mv.beats === 0){ snapRestLanes(); render(); renderTable(); updateUI(); if (onDone) onDone(); return; }
   const out = (isAfuera(from) && !mv.progresses && !mv.relabel) ? afueraFrames(mv, dancers, N, from) : mv.frames(dancers, N, from);
   const fr = Array.isArray(out) ? out : out.frames;
+  snapRestLanes(fr[fr.length - 1]);
   const segBeats = Array.isArray(out) ? null : out.segBeats;
   const beats = typeof mv.beats === 'function' ? mv.beats(from) : (mv.beats || 4);
   playFrames(fr, mv.anim, onDone, { beats, segBeats, leadBeats });

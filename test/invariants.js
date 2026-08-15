@@ -843,6 +843,72 @@ function run() {
     }
   }
 
+  // 28: the declarative vocabulary is SUFFICIENT and COUPLE-COUNT INDEPENDENT. Phase 5 rests on being
+  //     able to say where a traveller lands without mentioning pixels or a couple count, so this asserts
+  //     the claim rather than assuming it: derive each movement's slot address from its measured
+  //     start→end and require the SAME address at 4, 6 and 8 couples and in both phases.
+  //
+  //     The address is (dh, lane, ring): dh in HALF-couple spacings, positive = clockwise. Half-spacings
+  //     because the figures use them — a Dame moves its leader an odd number of them, which is *why* it
+  //     flips the phase; counting in couples cannot express that. dh is compared modulo the span: the
+  //     address says WHERE, and which way round the wheel a traveller gets there is separate information
+  //     (at 4 couples a two-couple progression is the antipode, where the direction is a genuine free
+  //     choice and `directedSweep`'s base is what picks it).
+  //
+  //     A movement that could NOT be given one stable address would be telling us the vocabulary is
+  //     short of something real — which is a finding, not a test failure to paper over.
+  {
+    for (const key of T.keys().movements) {
+      for (const from of POSITIONS) {
+        if (!T.validFrom(key, from)) continue;
+        const sigs = {};
+        for (const n of NS) for (const ph of PHASES) {
+          T.setupRest(from, n, ph); const start = T._snap();
+          const cap = T.captureMovement(key, from, n, ph);
+          if (!POSITIONS.includes(cap.endPos)) continue;         // formation change: a new slot set (§19/§21)
+          const end = {}; T._snap().forEach(d => end[d.id] = d);
+          const per = {};
+          start.forEach(d => {
+            const p = T.placeOf(d, n, ph), q = T.placeOf(end[d.id], n, cap.endPhase);
+            let dh = (((q.h - p.h) % p.span) + p.span) % p.span;
+            if (dh > p.span / 2) dh -= p.span;                   // signed shortest
+            // At the antipode +span/2 and −span/2 are the SAME slot, so both readings are valid there.
+            const alts = (Math.abs(dh) === p.span / 2) ? [dh, -dh] : [dh];
+            (per[d.role] = per[d.role] || new Set()).add(alts.map(v => `${v}|${q.lane}|${q.ring}`).join('~'));
+          });
+          // one address per role — every leader does the same thing as every other leader
+          const many = Object.keys(per).filter(r => per[r].size > 1);
+          nChecks++; check(many.length === 0, `slot address: ${key}|${from}|n${n}|p${ph} — ${many.join('/')} do not share one address`);
+          const roles = Object.keys(per).sort();
+          let combos = [''];                                     // cartesian product over each role's alternatives
+          roles.forEach(r => { const opts = [...per[r]][0].split('~');
+            combos = combos.flatMap(c => opts.map(o => c + (c ? ' ' : '') + r + ':' + o)); });
+          sigs[`n${n}p${ph}`] = new Set(combos);
+        }
+        const cases = Object.keys(sigs);
+        if (!cases.length) continue;
+        let common = sigs[cases[0]];
+        cases.forEach(c => { common = new Set([...common].filter(x => sigs[c].has(x))); });
+        nChecks++; check(common.size > 0,
+          `slot address: ${key}|${from} is not couple-count/phase independent — ` +
+          cases.map(c => `[${[...sigs[c]].join(' | ')}] at ${c}`).join(' vs '));
+      }
+    }
+    // …and the address round-trips: resolving it from the start place reproduces the end place exactly.
+    for (const n of NS) for (const ph of PHASES) {
+      T.setupRest('casino', n, ph);
+      const d = T._snap()[0], p = T.placeOf(d, n, ph);
+      for (const dh of [-3, -2, -1, 0, 1, 2, 3]) {
+        const q = T.resolvePlace(p, { dh, lane: 'swap' }, n, ph ^ (Math.abs(dh) % 2));
+        const back = T.resolvePlace(q, { dh: -dh, lane: 'swap' }, n, ph);
+        nChecks++; check(back.h === p.h && back.lane === p.lane,
+          `slot address: dh ${dh} does not round-trip at n${n} p${ph} (${p.h}/${p.lane} -> ${q.h}/${q.lane} -> ${back.h}/${back.lane})`);
+        nChecks++; check(q.station >= 0 && q.station < n && Number.isInteger(q.station),
+          `slot address: dh ${dh} resolved to a non-station (${q.station}) at n${n} p${ph}`);
+      }
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

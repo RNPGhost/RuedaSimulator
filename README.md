@@ -112,6 +112,10 @@ Every dancer in a movement is either **scripted** (dancing a figure in their own
 moves. Scripted dancers are immutable obstacles; travellers are the free variables, and a single
 shared planner — `planCrossings` — resolves every crossing in the app. Nothing routes around it.
 
+Movements are being moved onto a **declarative vocabulary** ([DECLARATIVE.md](DECLARATIVE.md)) —
+structural group predicates and couple-count-independent slot addresses — so they can eventually be
+composed rather than written.
+
 **Adding a movement: read [MOVEMENT_SPEC.md](MOVEMENT_SPEC.md) first.** It has the model, the
 questions to settle before writing code, the conformance checklist, and what to do when a figure
 doesn't fit the model.

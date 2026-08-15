@@ -3,6 +3,29 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v114 — Phase 5 stage 1: the declarative vocabulary
+- **The two things a movement definition has to be able to say, defined precisely** (DECLARATIVE.md):
+  which dancers an intent applies to (`GROUPS` / `selectGroup` — structural predicates, never an index
+  list, so a movement survives a change of couple count), and where a traveller lands (`placeOf` /
+  `resolvePlace` — a relative address in **half-couple spacings**, positive = clockwise).
+- **Half-spacings, not couples,** because the figures use them: a Dame moves its leader an odd number of
+  them and its follower one the other way, which is *why* it flips the phase. Phase is folded into the
+  coordinate (`h = 2·station + phase`), so one address resolves correctly from either config.
+- **New invariants §28 assert the vocabulary is sufficient** rather than assuming it: each movement's
+  address is re-derived from its measured start→end at 4, 6 and 8 couples in both phases, and must come
+  out the same every time. It does, for every movement. The one subtlety is real and now recorded — at
+  the antipode `+span/2` and `−span/2` are the same slot (`dile_dame_dos` at 4 couples), so the address
+  says *where* and the direction round the wheel stays with the path layer.
+- **Found and fixed: `lane` was not authoritative after a movement.** Most circle generators carried it
+  through untouched, so it recorded where a dancer *started* — invisible while `pos()` prefers the live
+  `xy`, and wrong the moment anything addresses a slot by (spoke, lane). `REST_LANES` is now the single
+  source of truth and `snapRestLanes()` applies it. `mujeres` had been reporting its travelling followers
+  as landing on the `inner` lane they left the Dile Que No position on.
+- Three things fall out of the measured address table that were previously prose: the **phase flip is
+  arithmetic** (odd total `dh` flips, even doesn't — nothing needs to declare it), every in-couple figure
+  has the **same address** and differs only in the figure danced, and Afuera/Adentro are pure relabels.
+- 2253 invariants; golden and visual untouched.
+
 ## v113 — Phase 4: rigid-pair travel, and every traveller on the planner
 - **`planCrossings` gained `o.unit(id)`.** Collisions stay dancer-vs-dancer; the *free variables* are
   units. A solo traveller is its own unit, so every existing caller is untouched — the golden is
