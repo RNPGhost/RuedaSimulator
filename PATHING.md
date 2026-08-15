@@ -96,19 +96,23 @@ obstacle** (`yields: false`) and he is the only free variable. Consequences, all
   couple's midpoint spoke. Facings: follower ~clockwise / perpendicular to the spoke, leader facing the
   centre. A resting position; `pos()`/grid-exactness go through `slot()`.
 - **Mujeres Arriba** *(built — movement `mujeres`)* — from the Dile Que No position, the women each
-  progress one couple **clockwise** to the next Exhibela spot (riding an inner arc, rising to the ring
-  only near the end so they pass under the returning leaders), while each leader retraces his 4-beat in
+  progress one couple **clockwise** to the next Exhibela spot, while each leader retraces his 4-beat in
   reverse back to his own Exhibela spot (facing centre, then a 90° right turn onto his new partner).
-  Ends in Exhibela; leaders don't progress; no phase change.
+  Ends in Exhibela; leaders don't progress; no phase change. Dame Pequeña with the roles inverted: the
+  leaders are the scripted ones here and the women are the travellers. They ride the ordinary base arc —
+  the old "stay deep and rise late to pass under the leaders" turned out to be unnecessary (they clear
+  by 41.4px against a 35px corridor with no evasion at all) as well as the jerkiest part of the figure.
 - **Dile Que No y Dame = 4-beat Dile Que No → Dame-from-Dile-Que-No-position** (and likewise the Dos)
   — *still the pre-existing single `dileQueNoYDame` generator; routing the compounds through the new
   first-class position is deferred (Phase 4 part 3, not yet done).*
 
 ## Scope
 
-- **On the shared planner (`planCrossings`):** Dame, Dame Dos and their Grande forms; Dame Pequeña.
-- **Still on their own avoidance schemes** (Phase 3 of ENGINE_MODEL §5): Dile Que No y Dame / y Dame Dos
-  (solved bow), Mujeres Arriba (`RISE`), `dameLinea` (prescribed).
+- **On the shared planner (`planCrossings`) — every figure that avoids anything:** Dame, Dame Dos and
+  their Grande forms; Dame Pequeña; Mujeres Arriba; Dile Que No y Dame and y Dame Dos. As of v111 the
+  planner is the only code in the app that knows about collisions.
+- **Prescribed travellers, no avoidance needed:** `dameLinea` (clears by 61–64px) and the Línea
+  entries/exits via `coupleWalkFrames`. They become planner clients when rigid-pair travel lands.
 - **Kept exactly as-is (prescribed):** Enchufla, Vacilala, Adios, Reverse Adios, Reverse Enchufla,
   Leader's Enchufla, Exhibela, Leader's Right Turn, the 8-beat Dile Que No orbit, and the 4-beat Dile
   Que No — these are scripted figures, and by the rule above they must clear each other unaided

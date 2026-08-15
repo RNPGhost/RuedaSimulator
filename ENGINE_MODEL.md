@@ -135,13 +135,38 @@ Beat clock, frames, facing conventions (travel-facing + settle) stay as they are
    else; the classification is now enforced by invariants **§25** rather than living only in this doc.
    The remaining generators aren't migrated yet — that's phase 3 — so §25a passes vacuously for them
    (they don't read the no-evade flag at all).
-3. **Migrate** Mujeres Arriba, Dame Pequeña's leader and `dameLinea` onto the planner; retire `RISE`,
-   the reactive Gaussian and the solved bow. Keep `DILE_PINCH`/`AL`/`AF` as *shape* parameters of
-   scripted figures.
+3. ~~**Migrate** Mujeres Arriba, Dame Pequeña's leader and `dameLinea` onto the planner; retire `RISE`,
+   the reactive Gaussian and the solved bow.~~ **DONE (v111).** Every rival avoidance scheme is gone —
+   `planCrossings` is now the only code in the app that knows about collisions.
+   - **Mujeres Arriba** — leaders scripted, followers planned. `RISE` deleted; measured, the plain polar
+     arc needs **no evasion at all** (41.4px clearance against a 35px corridor), confirming §1's note
+     that `RISE` shaped the look rather than the safety. The follower's peak acceleration drops
+     1.55 → 1.25px/frame² because the deep-hold-then-late-rise profile was the jerky part.
+   - **Dile Que No y Dame** — follower scripted (her ¾ circle), leader planned. Both the solved-bow
+     amplitude search **and** its shared-outer-arc fallback are deleted: with polar arcs every leader
+     sweeps the same angle at the same radius, so leaders hold constant spacing by construction and the
+     diametric swap a single straight-line bow could never separate cannot arise. Pass side (outward or
+     inward) is now chosen by trying both and keeping the smaller solved amplitude — the same control
+     the roadmap exposes to users, instead of an amplitude search over a hand-built bow.
+   - This turned up **a real bug nothing had caught**: the old straight-line-plus-bow sent
+     `dile_dame_dos` leaders through the middle of the wheel — within **25px of the centre** at 4 couples
+     from Afuera Exhibela, 2.3 corridors inside a 104px ring. Nothing collides in an empty wheel centre,
+     so every collision check passed while the figure looked completely wrong. Now bounded by
+     invariants **§26**, and the worst case is 81px (on the ring). Peak leader acceleration on
+     `dile_dame_dos` falls 8.9 → 5.4px/frame² as a side effect.
+   - **`dameLinea` deliberately not migrated.** It has no rival avoidance scheme to retire — it is
+     purely prescribed — and it clears by **61–64px**, nearly two corridors, at every wheel size, so
+     wiring it in today would add a code path that never fires. Its four dancers travel as two bonded
+     couples, which makes it a phase-4 shape (rigid-pair travel) rather than a phase-3 one. §1 already
+     guards its clearance.
+   - `DILE_PINCH`, `AL`/`AF` kept, as planned: they are *shape* parameters of scripted figures, not
+     avoidance.
 4. **Rigid-pair travel** as a first-class planner unit (folds `coupleWalkFrames` in).
 5. **Declarative layer** + validation UI for custom movements.
 
-Phases 1–2 are the load-bearing ones; 3 onwards is repayment.
+Phases 1–3 are done. **`planCrossings` is now the single source of collision avoidance in the app** —
+the state §1 describes (four rival mechanisms, the good one unreachable) no longer exists. 4 and 5 are
+the roadmap work: rigid-pair travel as a planner unit, then the declarative layer.
 
 ## 6. Decisions (settled with Sam)
 

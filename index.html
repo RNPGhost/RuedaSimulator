@@ -1620,42 +1620,45 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
     return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off }; };
   // follower beats 5-8: ~3/4 circle through her spoke point, its outside-the-ring mirror, and her own spot
   const folTravel = (g, t) => { const a = g.aA + g.dir * g.sweep * t; return { x: g.O.x + g.rho * Math.cos(a), y: g.O.y + g.rho * Math.sin(a) }; };
-  // leader beats 5-8: head straight for the Exhibela spot beside his new follower, with a single
-  // gentle arc (one half-sine bow) only as large as needed to clear. He bows to his RIGHT, so every
-  // leader keeps to the right of the others (all bow together and never meet) and passes to the left
-  // of the followers he goes by.
-  const normv = v => { const L = Math.hypot(v.x, v.y) || 1; return { x: v.x / L, y: v.y / L }; };
-  const rightOf = u => ({ x: -u.y, y: u.x }), leftOf = u => ({ x: u.y, y: -u.x });   // 90° to the leader's right / left
-  const setNrm = dfn => leaderIds.forEach(id => { const g = info[id]; g.nrm = dfn(normv({ x: g.End.x - g.orbitStart.x, y: g.End.y - g.orbitStart.y })); });
-  const lStr = (id, t) => { const g = info[id]; return { x: g.orbitStart.x + (g.End.x - g.orbitStart.x) * t, y: g.orbitStart.y + (g.End.y - g.orbitStart.y) * t }; };
-  const leaderBow = (id, t, A) => { const g = info[id], p = lStr(id, t), b = A * Math.sin(Math.PI * t); return { x: p.x + g.nrm.x * b, y: p.y + g.nrm.y * b }; };
-  const GAPc = 2 * (DOT_R + 1) + 0.5;
-  const clearWith = travelFn => { let m = Infinity;
+  // Leader beats 5-8. His couple midpoint moves a whole couple, so he is the DYNAMIC dancer and the
+  // follower — who dances her ¾ circle back to the spot she started on, midpoint unmoved — is SCRIPTED.
+  // He therefore rides the same intended path as every other traveller (a polar arc along the ring, so
+  // he never cuts across the wheel) and `planCrossings` opens whatever corridor her orbit forces, which
+  // he takes alone. This retires the solved-bow amplitude search AND its shared-outer-arc fallback: with
+  // polar arcs every leader sweeps the same angle at the same radius, so leaders hold constant spacing
+  // and the diametric swap that a single straight-line bow could never separate simply cannot arise.
+  leaderIds.forEach(id => { const g = info[id];
+    g.aS = _ang(g.orbitStart); g.rS = _rad(g.orbitStart); g.rE = _rad(g.End);
+    g.sw = directedSweep(g.aS, _ang(g.End), -kk * TWO / N); });
+  const lArc = (id, t, off) => { const g = info[id], te = _smooth(t);
+    return _polar(g.aS + g.sw * te, g.rS + (g.rE - g.rS) * te + (off || 0)); };
+  const lPairs = [];
+  leaderIds.forEach(lid => followerIds.forEach(fid => {
+    if (fid === info[lid].nfId) return;                       // his new partner — they gather, not cross
+    lPairs.push([lid, fid]); }));
+  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
+  // Pass side: the leaders all ease the same way (so they stay ordered), outward or inward. Try both and
+  // keep the one that clears with the least deviation — the sign is exactly the pass-side control the
+  // roadmap exposes, rather than an amplitude search over a hand-built bow.
+  const planFor = side => planCrossings({
+    ids: [...leaderIds, ...followerIds], pairs: lPairs,
+    base: (id, t) => info[id].role === 'L' ? lArc(id, t) : folTravel(info[id], t),
+    apply: (id, t, off) => info[id].role === 'L' ? lArc(id, t, off * side) : folTravel(info[id], t),
+    yields: id => info[id].role === 'L',
+    group: id => info[id].role, groups: ['L', 'F'],
+    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
+  });
+  const scoreOf = pl => { let m = Infinity;
     for (let s = 1; s < 60; s++){ const t = s / 60;
-      // Every dancer ends a couple-width apart here, so no pair (target follower included) should
-      // ever come within a dot-clearance of another during the travel.
-      const all = [...followerIds.map(id => ({ id, p: folTravel(info[id], t) })), ...leaderIds.map(id => ({ id, p: travelFn(id, t) }))];
-      for (let a = 0; a < all.length; a++) for (let b = a + 1; b < all.length; b++){
-        const dd = Math.hypot(all[a].p.x - all[b].p.x, all[a].p.y - all[b].p.y); if (dd < m) m = dd;
-      }
-    } return m; };
-  const solveBow = () => { for (let A = 0; A <= 260; A += 1){ if (clearWith((id, t) => leaderBow(id, t, A)) >= GAPc) return { A, ok: true }; } return { A: 260, ok: false }; };
-  // Prefer bowing to the leaders' right (all bow together, keeping right of each other); if that
-  // can't clear (e.g. the afuera 4-couple diametric swap), bow left instead.
-  setNrm(rightOf); let best = solveBow();
-  if (!best.ok){ setNrm(leftOf); const alt = solveBow(); if (alt.ok) best = alt; else setNrm(rightOf); }
-  let leaderAt;
-  if (best.ok){ const bowA = best.A; leaderAt = (id, t) => leaderBow(id, t, bowA); }
-  else {
-    // A single bow can't separate a diametric swap (e.g. the 4-couple Dame Dos): fall back to a
-    // shared outer arc — all leaders sweep the same way around the wheel, keeping constant spacing.
-    leaderIds.forEach(id => { const g = info[id], oS = g.orbitStart;
-      g.aOut = Math.atan2(oS.y - CY, oS.x - CX); g.rOut = Math.hypot(oS.x - CX, oS.y - CY);
-      let dA = Math.atan2(g.End.y - CY, g.End.x - CX) - g.aOut; dA = ((dA % TWO) + TWO) % TWO; if (dA > 0) dA -= TWO; g.dAng = dA; });
-    const arcAt = (id, OUT, t) => { const g = info[id], ang = g.aOut + g.dAng * t, r = g.rOut + (R_RING - g.rOut) * t + OUT * Math.sin(Math.PI * t); return { x: CX + r * Math.cos(ang), y: CY + r * Math.sin(ang) }; };
-    let OUT = 0; for (let o = 0; o <= 260; o += 2){ if (clearWith((id, t) => arcAt(id, OUT, t)) >= GAPc){ OUT = o; break; } OUT = o; }
-    leaderAt = (id, t) => arcAt(id, OUT, t);
-  }
+      const all = ds.map(d => ({ id: d.id, p: pl.at(d.id, t) }));
+      for (let a = 0; a < all.length; a++) for (let b = a + 1; b < all.length; b++)
+        m = Math.min(m, Math.hypot(all[a].p.x - all[b].p.x, all[a].p.y - all[b].p.y)); }
+    return m; };
+  const outPlan = planFor(+1), inPlan = planFor(-1);
+  const GAP_FLOOR = 2 * (DOT_R + 1) + 0.5;                    // the collision floor the suite holds everything to
+  const outOk = scoreOf(outPlan) >= GAP_FLOOR, inOk = scoreOf(inPlan) >= GAP_FLOOR;
+  const plan = (outOk && (!inOk || outPlan.scale <= inPlan.scale)) ? outPlan : inPlan;
+  const leaderAt = (id, t) => plan.at(id, t);
 
   // assemble frames
   const SS = 8, PH = 4, NT = 32, frames = [], segBeats = [];
@@ -1825,16 +1828,31 @@ function mujeresArriba(ds, N){
   });
   const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
   const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
-  const RISE = 0.55;                                         // followers stay deep, then rise to the ring over the last part
+  // Mujeres Arriba is Dame Pequeña with the roles inverted (ENGINE_MODEL §2): the LEADERS are scripted —
+  // each simply retraces his 4-beat back to his own Exhibela spot, his couple midpoint barely moving —
+  // and the FOLLOWERS are the travellers, each crossing a whole couple clockwise. So the leaders go in as
+  // immutable obstacles and the women take the corridor, easing toward the centre to pass under them.
   const lAt = (id, t) => { const g = lInfo[id], te = _smooth(t); return { x: g.S.x + (g.E.x - g.S.x) * te, y: g.S.y + (g.E.y - g.S.y) * te }; };
-  const fAt = (id, t) => { const g = fInfo[id], te = _smooth(t), a = g.aS + g.sweep * te;
-    const rise = _smooth(Math.max(0, Math.min(1, (t - RISE) / (1 - RISE))));
-    return _polar(a, g.rS + (g.rE - g.rS) * rise); };
+  const fBase = (id, t, off) => { const g = fInfo[id], te = _smooth(t);
+    return _polar(g.aS + g.sweep * te, g.rS + (g.rE - g.rS) * te - (off || 0)); };
+  const isF = id => !!fInfo[id];
+  const pairs = [];
+  followerIds.forEach(fid => leaderIds.forEach(lid => {
+    if (lInfo[lid].E === undefined) return;
+    if (fInfo[fid].newStation === ds.find(d => d.id === lid).station) return;   // her new leader — they gather, not cross
+    pairs.push([fid, lid]); }));
+  const plan = planCrossings({
+    ids: [...followerIds, ...leaderIds], pairs,
+    base: (id, t) => isF(id) ? fBase(id, t) : lAt(id, t),
+    apply: (id, t, off) => isF(id) ? fBase(id, t, off) : lAt(id, t),
+    yields: isF,
+    group: id => isF(id) ? 'F' : 'L', groups: ['F', 'L'],
+    clearance: 2 * (DOT_R + PATH_CLEAR), engage: 2 * (DOT_R + PATH_CLEAR) + 1.4 * DOT_R,
+  });
   const STEPS = 24, frames = [], segBeats = [];
   for (let s = 1; s <= STEPS; s++){
     const t = s / STEPS, P = {};
-    leaderIds.forEach(id => P[id] = lAt(id, t));
-    followerIds.forEach(id => P[id] = fAt(id, t));
+    ds.forEach(d => P[d.id] = plan.at(d.id, t));
     frames.push(ds.map(d => {
       if (d.role === 'L'){ const g = lInfo[d.id];
         const toC = Math.atan2(CY - P[d.id].y, CX - P[d.id].x) * 180 / Math.PI;

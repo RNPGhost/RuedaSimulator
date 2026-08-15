@@ -759,6 +759,35 @@ function run() {
     }
   }
 
+  // 26: nobody walks through the middle of the wheel. A rueda is danced ON the ring: a traveller crossing
+  //     to another couple rides round it, and the deepest anyone ever cuts inside is the one passing
+  //     corridor an evasion needs. This is a rule the collision checks cannot see — the centre of the
+  //     wheel is empty, so a leader strolling straight across it collides with nothing and still looks
+  //     completely wrong. It caught a real one: before the Phase-3 migration `dile_dame_dos` from Afuera
+  //     Exhibela at 4 couples sent its leaders within 25px of the wheel centre (2.3 corridors inside the
+  //     ring) on a straight-line chord. Bound at 1.5 corridors, so a correct evasion has 50% headroom and
+  //     that chord is still caught. Formation changes are exempt: the Línea entries genuinely build an
+  //     inner ring, and that is where their dancers are supposed to go.
+  {
+    const CORRIDOR = 2 * (T.DOT_R + T.PATH_CLEAR);
+    for (const key of T.keys().movements) {
+      for (const from of POSITIONS) {
+        if (!T.validFrom(key, from)) continue;
+        for (const n of NS) {
+          const cap = T.captureMovement(key, from, n, 0);
+          if (!cap.frames) continue;
+          if (cap.endPos !== from && !POSITIONS.includes(cap.endPos)) continue;   // leaves the circle formation
+          const R = T.wheelContext().R_RING, floor = R - 1.5 * CORRIDOR;
+          let minR = Infinity, who = '';
+          cap.frames.forEach(fr => fr.forEach(d => { const r = Math.hypot(d.xy.x - T.CX, d.xy.y - T.CY);
+            if (r < minR) { minR = r; who = d.id; } }));
+          nChecks++; check(minR >= floor, `cuts the wheel: ${key}|${from}|n${n} ${who} reaches ${minR.toFixed(0)}px ` +
+            `from the centre — ${((R - minR) / CORRIDOR).toFixed(1)} corridors inside the ${R.toFixed(0)}px ring (max 1.5)`);
+        }
+      }
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

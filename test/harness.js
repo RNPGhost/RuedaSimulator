@@ -125,7 +125,7 @@ function load(htmlPath) {
 
     globalThis.__test = {
       MOVEMENTS, CALLS, FORMATIONS,
-      DOT_R, CX, CY,
+      DOT_R, CX, CY, PATH_CLEAR,
       get GAP(){ return 2 * (DOT_R + 1); },
       get W_DIST(){ return W_DIST; },
       keys(){ return { movements: Object.keys(MOVEMENTS), calls: Object.keys(CALLS) }; },

@@ -3,6 +3,31 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v111 — Phase 3: `planCrossings` is now the only avoidance in the app
+- **Mujeres Arriba migrated.** Leaders scripted (they retrace their 4-beat, couple midpoint barely
+  moving), women planned. `RISE` deleted — measured, the plain polar arc needs **no evasion at all**
+  (41.4px clearance against a 35px corridor), which confirms the earlier finding that `RISE` shaped the
+  look and not the safety. The follower's peak acceleration falls **1.55 → 1.25px/frame²**: the
+  deep-hold-then-late-rise profile was the jerky part.
+- **Dile Que No y Dame migrated.** Follower scripted (her ¾ circle back to her own spot), leader planned.
+  The solved-bow amplitude search **and** its shared-outer-arc fallback both deleted — with polar arcs
+  every leader sweeps the same angle at the same radius, so leaders keep constant spacing by
+  construction and the diametric swap a straight-line bow could never separate cannot arise. Pass side
+  is picked by planning both and keeping the smaller solved amplitude.
+- **A real bug nothing had caught: leaders were walking through the middle of the wheel.** The old
+  straight-line-plus-bow took `dile_dame_dos` leaders within **25px of the wheel centre** at 4 couples
+  from Afuera Exhibela — 2.3 passing corridors inside a 104px ring. The centre of a rueda is empty, so
+  every collision check passed while the figure looked plainly wrong. Now 81px, on the ring. Peak leader
+  acceleration on `dile_dame_dos` drops **8.9 → 5.4px/frame²** as a side effect.
+- **New invariant §26 — nobody cuts the wheel.** A rueda is danced on the ring; the deepest anyone may
+  cut inside is 1.5 passing corridors, so a correct evasion (1.0) has 50% headroom and that chord (2.3)
+  is caught. Formation changes are exempt — the Línea entries genuinely build an inner ring. 150 checks,
+  1797 total.
+- **`dameLinea` deliberately left prescribed.** It has no rival scheme to retire and clears by 61–64px
+  at every size, so wiring it in today would add a code path that never fires; its four dancers travel as
+  two bonded couples, which is phase-4 shape. §1 already guards it.
+- Golden re-baselined on the 30 `mujeres` / `dile_dame` / `dile_dame_dos` cases; nothing else moved.
+
 ## v110 — Phase 2: scripted dancers become immutable obstacles
 - **`planCrossings` gained `yields(id)`.** A dancer for whom it returns false is a *scripted* dancer: an
   obstacle the planner routes around but never deviates. When a whole group is scripted, the movers'
