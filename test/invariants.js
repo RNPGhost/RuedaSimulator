@@ -1746,6 +1746,7 @@ function run() {
                      A: straight({ x: 100, y: -60 }, { x: 100, y: 60 }),
                      B: straight({ x: 300, y: 60 }, { x: 300, y: -60 }) };
       const role = { X: 'L', A: 'F', B: 'L' };
+      T.clearFaults();
       const plan = T.planCrossings({ ids: ['X', 'A', 'B'], base: (id, t) => path[id](t),
         roleOf: id => role[id], group: id => (id === 'X' ? 'X' : 'Y'), groups: ['X', 'Y'],
         clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
@@ -1755,6 +1756,15 @@ function run() {
       nChecks++; check(lo < -1 && hi > 1,
         `§36b one dancer's two passes did not go opposite ways (deviation ranged ${lo.toFixed(1)}…${hi.toFixed(1)}px) — ` +
         `a single per-movement offset cannot express "her on my left, him on my right"`);
+      // This case is deliberately over-tight, and shows the capability's LIMIT as well as the capability:
+      // the two engagements sit close enough together that the leftward and rightward swells overlap and
+      // partially cancel, so no amplitude satisfies both. That is a figure which cannot be danced as
+      // written, and the contract is that the engine says so rather than drawing something that looks
+      // plausible. Asserted here so the warning it prints is an expectation, not noise — an unexplained
+      // warning in a green run is how people learn to ignore warnings.
+      nChecks++; check(T.PLAN_FAULTS.length === 1,
+        `§36b two opposing passes crammed together should be reported as unclearable (got ${T.PLAN_FAULTS.length} fault(s))`);
+      T.clearFaults();
     }
 
     // 36c: A DECLARED SIDE THAT THE PATHS CONTRADICT IS REPORTED, not quietly drawn. Easing two dancers
