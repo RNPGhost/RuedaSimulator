@@ -191,11 +191,15 @@ Beat clock, frames, facing conventions (travel-facing + settle) stay as they are
      it was latent, and only a rigid unit (whose corridor is a couple width wider) made it bite.
    - The solver's amplitude cap went 3.0 → 6.0 for the same reason: two couples must separate by a couple
      width *plus* the clearance, which lands at 2.54 on its own and sat right under the old ceiling.
-5. **Declarative layer** + validation UI for custom movements.
+5. ~~**Declarative layer** + validation UI for custom movements.~~ **BACKEND DONE (v114–v127).** Built
+   backend-first by Sam's decision, with the UI deferred. **Every movement in the app is now a data
+   descriptor — no `frames` generators remain**, and invariants §30 asserts it. See DECLARATIVE.md. The
+   validation UI is the remaining piece, and it now has a representation to write to.
 
-Phases 1–4 are done. **`planCrossings` is now the single source of collision avoidance in the app, and
-every traveller goes through it** — the state §1 describes (four rival mechanisms, the good one
-unreachable) no longer exists. Phase 5, the declarative layer, is the remaining roadmap work.
+All five phases are done. **`planCrossings` is the single source of collision avoidance and every
+traveller goes through it; every movement is a data descriptor.** The state §1 describes — four rival
+avoidance mechanisms with the good one unreachable, and geometry hand-written per figure — no longer
+exists. What remains is the UI on top of the representation, not more engine work.
 
 ## 6. Decisions (settled with Sam)
 
