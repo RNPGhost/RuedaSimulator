@@ -992,6 +992,109 @@ function followerBowPath(S, E, sweepBase, dipR, tPass){
   return t => raw(_smooth(t));
 }
 
+/* ------------------------------------------------------------------ *
+ *  planCrossings — THE crossing planner, shared by every figure that moves dancers between couples.
+ *
+ *  Given each dancer's INTENDED path, it finds the smallest planned deviation that keeps every crossing
+ *  pair clear, and splits that effort so the dancers doing the yielding feel equally natural. This is the
+ *  one place that knows about avoidance: figures supply intent and geometry, never evasion.
+ *
+ *    o.ids          every dancer in play
+ *    o.base(id,t)   that dancer's intended path, t∈[0,1] → {x,y}. SCRIPTED dancers are included here —
+ *                   they are immutable obstacles: they are planned around, never deviated.
+ *    o.apply(id,t,off)  the dancer's position with a signed offset `off` applied along its pass side.
+ *                   The caller owns the geometry (radial on a ring; the path normal in general).
+ *    o.pairs        candidate [a,b] pairs that MAY cross (the figure knows who is whose partner);
+ *                   the planner keeps only those whose intended paths actually crowd.
+ *    o.group(id)    effort-sharing group key; o.groups names the two groups being balanced.
+ *    o.clearance    centre-distance to hold between a crossing pair
+ *    o.engage       how near two intended paths must come to count as one engagement
+ *    o.forceShare   pin the first group's share instead of balancing (A/B testing)
+ *
+ *  Returns { at(id,t), share, scale }.
+ * ------------------------------------------------------------------ */
+function planCrossings(o){
+  const NSMP = o.samples || 40, smpT = [];
+  for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
+  const CLEAR = o.clearance, ENGAGE = (o.engage != null) ? o.engage : CLEAR;
+  const R_MIN = 0.34, R_MAX = 0.35;                        // ramp spans as fractions of the move
+  const ss5 = x => { x = Math.max(0, Math.min(1, x)); return x * x * x * (x * (6 * x - 15) + 10); };
+  const endEnvAt = t => _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08));   // 0 at both ends: landings stay exact
+  const gap = (a, b, t) => { const p = o.base(a, t), q = o.base(b, t); return Math.hypot(p.x - q.x, p.y - q.y); };
+  // Keep only the pairs that really crowd, and plan each one's EPISODE — the interval its intended paths
+  // sit within the engagement distance. Smoothness lives in TIME: a reactive spatial trigger is crossed in
+  // ~1 frame and lands as a lane-hop, so each dancer of a pair instead follows one C2 SWELL, zero at the
+  // move's ends and full over the engagement, its ramps stretched over the slack before and after.
+  const mates = {}; o.ids.forEach(id => mates[id] = []);
+  const episode = {}, live = [];
+  (o.pairs || []).forEach(pr => {
+    const a = pr[0], b = pr[1];
+    let crowd = false;
+    for (let s = 0; s < NSMP && !crowd; s++) if (gap(a, b, smpT[s]) < CLEAR) crowd = true;
+    if (!crowd) return;
+    let t0 = null, t1 = null;
+    for (let s = 0; s < NSMP; s++){ const t = smpT[s];
+      if (gap(a, b, t) < ENGAGE){ if (t0 === null) t0 = t; t1 = t; } }
+    if (t0 === null){ t0 = 0.4; t1 = 0.6; }               // guard; detection guarantees engagement in practice
+    const upEnd = Math.max(t0, R_MIN), upStart = Math.max(0, upEnd - R_MAX);
+    const dnStart = Math.min(t1, 1 - R_MIN), dnEnd = Math.min(1, dnStart + R_MAX);
+    const ep = { upStart, upEnd, dnStart, dnEnd };
+    episode[a + '|' + b] = ep; episode[b + '|' + a] = ep;
+    mates[a].push(b); mates[b].push(a); live.push([a, b]);
+  });
+  const bumpOf = (ep, t) => {
+    const rise = ss5((t - ep.upStart) / Math.max(1e-6, ep.upEnd - ep.upStart));
+    const fall = 1 - ss5((t - ep.dnStart) / Math.max(1e-6, ep.dnEnd - ep.dnStart));
+    return Math.min(rise, fall);
+  };
+  // A dancer's profile is the smooth union of its per-mate swells: overlapping passes merge into one
+  // wider crest rather than needing a special case.
+  const proxOf = (id, t) => {
+    const ms = mates[id]; if (!ms.length) return 0;
+    let acc = 1;
+    ms.forEach(m => { acc *= (1 - bumpOf(episode[id + '|' + m], t)); });
+    return 1 - acc;
+  };
+  const gA = (o.groups || [])[0];
+  const shareOf = (id, w) => CLEAR * (o.group(id) === gA ? w : 1 - w);
+  // Clearance depends only on the TOTAL corridor, so the amplitude is solved once (at an even split) and
+  // the share only rebalances who yields.
+  const at = (id, t, w, scale) =>
+    o.apply(id, t, (NAT_NOEVADE ? 0 : scale) * shareOf(id, w) * proxOf(id, t) * endEnvAt(t));
+  const worst = (w, scale) => { let m = Infinity;
+    for (let s = 0; s < NSMP; s++){ const t = smpT[s], P = {};
+      live.forEach(pr => { const a = pr[0], b = pr[1];
+        if (P[a] === undefined) P[a] = at(a, t, w, scale);
+        if (P[b] === undefined) P[b] = at(b, t, w, scale);
+        const d = Math.hypot(P[a].x - P[b].x, P[a].y - P[b].y); if (d < m) m = d; }); }
+    return m; };
+  let scale = 0;
+  if (live.length){ const MAXS = 3.0, SCAN = 0.1;
+    let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worst(0.5, sc) >= CLEAR){ pass = sc; break; } }
+    if (pass === null) scale = MAXS;
+    else { let lo = Math.max(0, pass - SCAN), hi = pass;
+      for (let it = 0; it < 12; it++){ const m = (lo + hi) / 2; if (worst(0.5, m) >= CLEAR) hi = m; else lo = m; } scale = hi; }
+  }
+  // Balance the split so the two groups feel equally natural: a dancer's naturalness cost rises with its
+  // share, so bisect until the worst cost in each group meets.
+  const groupCost = w => { const c = {};
+    o.ids.forEach(id => { const g = o.group(id);
+      const bl = smpT.map(tt => o.base(id, tt));
+      const pts = smpT.map(tt => at(id, tt, w, scale));
+      const cost = pathNaturalness(pts, null, bl).cost;
+      if (!(g in c) || cost > c[g]) c[g] = cost; });
+    return c; };
+  let share = 0.5;
+  if (live.length && o.forceShare == null){
+    const gB = (o.groups || [])[1];
+    let lo = 0, hi = 1;
+    for (let it = 0; it < 16; it++){ const m = (lo + hi) / 2; const c = groupCost(m);
+      if ((c[gA] || 0) > (c[gB] || 0)) hi = m; else lo = m; }
+    share = (lo + hi) / 2;
+  } else if (o.forceShare != null) share = o.forceShare;
+  return { at: (id, t) => at(id, t, share, scale), share, scale };
+}
+
 /* Dame / Dame Dos — progresses the leader k couples and lands the whole wheel exactly on the spoke
  * grid (no drift). Endpoints (who pairs with whom, the two-config flip, the exact grid spots) are
  * computed here; the PATHS between them come from the pathing router above: leaders ride the inner
@@ -1032,20 +1135,10 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
   });
   const followerIds = ds.filter(d => d.role === 'F').map(d => d.id);
   const leaderIds = ds.filter(d => d.role === 'L').map(d => d.id);
-  // ---- Unified crossing model ------------------------------------------------------------------------
-  // Every dancer travels a base polar arc (angle + radius interpolated S→E, so it follows the ring and
-  // never crosses the wheel). When a leader and a passed follower would cross, BOTH ease radially apart —
-  // the leader one way, the follower the other — sharing one corridor of width CLEAR_TGT. The split is by
-  // path length: the dancer on the shorter (inside) line yields MORE, the one on the longer (outside) line
-  // keeps a calmer arc. One solved amplitude deepens both together if an early crossing needs it.
-  const lanes = passLanes(), mid = lanes.mid;
-  const leadDir = afuera ? +1 : -1;                      // radial sense the LEADER eases (toward centre normally)
-  const CLEAR_FLR = 2 * (DOT_R + 1);                      // hard collision floor (matches the test GAP)
-  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);             // corridor width to hold between a crossing pair
-  const REACT_FAR = CLEAR_TGT + 1.4 * DOT_R;             // begin easing apart this far (base-path distance) before the pass
-  const STEPS = 16, NSMP = 40, smpT = [];
-  for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
-  const endEnvAt = t => _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08));   // 0 at both ends so the landing stays exact
+  // ---- Endpoints and intended paths; the crossing planner does the rest ------------------------------
+  const leadDir = afuera ? +1 : -1;                        // radial sense the LEADER eases (toward centre normally)
+  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);              // corridor to hold between a crossing pair
+  const STEPS = 16;
   // Leader endpoints.
   const lInfo = {};
   ds.forEach(d => { if (d.role !== 'L') return;
@@ -1054,108 +1147,28 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
       aS: _ang(S), rS: _rad(S), rE: _rad(E), newStation: ns, newFollower: folByNewSt[ns] };
   });
   const newLeaderOf = {}; leaderIds.forEach(id => { newLeaderOf[lInfo[id].newStation] = id; });
-  // Base polar arc for every dancer.
+  // Intended path: a base polar arc (angle + radius interpolated S→E), so it follows the ring and never
+  // cuts across the wheel. On a clear move a dancer stays exactly on it.
   const kin = {};
   leaderIds.forEach(id => { const g = lInfo[id]; kin[id] = { role: 'L', aS: g.aS, sw: g.sweep, rS: g.rS, rE: g.rE }; });
   followerIds.forEach(id => { const g = fInfo[id];
     kin[id] = { role: 'F', aS: _ang(g.S), sw: directedSweep(_ang(g.S), _ang(g.E), fDelta * Math.PI / N), rS: _rad(g.S), rE: _rad(g.E) }; });
   const baseAt = (id, t) => { const k = kin[id], te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te); };
-  // Who crosses whom: a leader "passes" a follower (not his new partner, and she isn't heading to him) when
-  // their base arcs crowd within CLEAR_TGT at some sample — clearance-based, so it catches the leader's
-  // approach to a close old partner that an angle-only test misses. (A Dame from Casino passes nobody.)
-  const passOf = {}; leaderIds.forEach(id => passOf[id] = []);
-  const passBy = {}; followerIds.forEach(id => passBy[id] = []);
+  // Who MIGHT cross: every leader × every follower who isn't his new partner (nor he her new leader).
+  // The planner keeps only the pairs whose intended paths actually crowd.
+  const pairs = [];
   leaderIds.forEach(lid => { const gl = lInfo[lid];
     followerIds.forEach(fid => { if (fid === gl.newFollower) return; if (newLeaderOf[fInfo[fid].newStation] === lid) return;
-      let crowd = false;
-      for (let s = 0; s < NSMP && !crowd; s++){ const a = baseAt(lid, smpT[s]), b = baseAt(fid, smpT[s]);
-        if (Math.hypot(a.x - b.x, a.y - b.y) < CLEAR_TGT) crowd = true; }
-      if (crowd){ passOf[lid].push(fid); passBy[fid].push(lid); }
-    });
+      pairs.push([lid, fid]); }); });
+  const plan = planCrossings({
+    ids: [...leaderIds, ...followerIds], pairs,
+    base: baseAt,
+    apply: (id, t, off) => { const k = kin[id], te = _smooth(t);
+      return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te + off * (k.role === 'L' ? leadDir : -leadDir)); },
+    group: id => kin[id].role, groups: ['L', 'F'],
+    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
+    forceShare: DAME_WL_FORCE,
   });
-  const anyPass = leaderIds.some(id => passOf[id].length);
-  const dirOf = id => (kin[id].role === 'L' ? leadDir : -leadDir);
-  // ---- Planned crossing episodes (no reactive trigger — smoothness lives in TIME, not distance) -------
-  // A reactive spatial trigger can never be smooth against a fast passer: the ~22px reaction band is
-  // crossed in ~1 frame, so however the ramp is shaped it lands as a lane-hop. Instead, since the base
-  // arcs are known for the whole move, each crossing pair gets a planned EPISODE — the interval [t0,t1]
-  // its base paths sit within the engagement distance, around the closest approach — and each dancer of
-  // the pair follows one smooth SWELL: zero at the move's ends, full over the engagement, with C2 ramps
-  // (smootherstep) stretched over the slack before/after. Long ramps at minimum depth are also the
-  // TRAVEL-MINIMISING jolt-free profile (the climb spreads over more forward motion), per Sam's rule:
-  // jolt-free first, then least extra distance. R_MAX caps the ramp so a dancer doesn't leave her line
-  // absurdly early for a late pass; R_MIN keeps an engagement near the ends from steepening back into a
-  // hop (the amplitude solver deepens the whole profile if a partial-ramp moment needs more clearance).
-  const ENGAGE = REACT_FAR;                              // pair counts as engaged within this base-path distance
-  const R_MIN = 0.34, R_MAX = 0.35;                       // ramp spans as fractions of the move
-  const ss5 = x => { x = Math.max(0, Math.min(1, x)); return x * x * x * (x * (6 * x - 15) + 10); };
-  const episode = {};
-  leaderIds.forEach(lid => passOf[lid].forEach(fid => {
-    let t0 = null, t1 = null;
-    for (let s = 0; s < NSMP; s++){ const t = smpT[s], a = baseAt(lid, t), b = baseAt(fid, t);
-      if (Math.hypot(a.x - b.x, a.y - b.y) < ENGAGE){ if (t0 === null) t0 = t; t1 = t; } }
-    if (t0 === null){ t0 = 0.4; t1 = 0.6; }               // guard; detection guarantees engagement in practice
-    const upEnd = Math.max(t0, R_MIN), upStart = Math.max(0, upEnd - R_MAX);
-    const dnStart = Math.min(t1, 1 - R_MIN), dnEnd = Math.min(1, dnStart + R_MAX);
-    episode[lid + '|' + fid] = { upStart, upEnd, dnStart, dnEnd };
-  }));
-  const bumpOf = (ep, t) => {
-    const rise = ss5((t - ep.upStart) / Math.max(1e-6, ep.upEnd - ep.upStart));
-    const fall = 1 - ss5((t - ep.dnStart) / Math.max(1e-6, ep.dnEnd - ep.dnStart));
-    return Math.min(rise, fall);
-  };
-  // A dancer's profile is the smooth union of its per-mate swells (overlapping passes merge into one
-  // wider crest — which IS the stationary hold-out, so no special case is needed).
-  const proxOf = (id, t) => {
-    const mates = kin[id].role === 'L' ? passOf[id] : passBy[id];
-    if (!mates.length) return 0;
-    let acc = 1;
-    mates.forEach(o => { const key = kin[id].role === 'L' ? (id + '|' + o) : (o + '|' + id);
-      acc *= (1 - bumpOf(episode[key], t)); });
-    return 1 - acc;
-  };
-  // Position with a SPLIT radial ease: the corridor (scale·CLEAR_TGT wide) is divided between the leader
-  // (share wL, easing one way) and the follower (1−wL, the other). Clearance depends only on the TOTAL, so
-  // scale is solved once; wL only rebalances *who* yields.
-  const posAt = (id, t, wL, scale) => { const k = kin[id], te = _smooth(t);
-    const a = k.aS + k.sw * te, r = k.rS + (k.rE - k.rS) * te;
-    const share = CLEAR_TGT * (k.role === 'L' ? wL : 1 - wL);
-    const off = (NAT_NOEVADE ? 0 : scale) * share * proxOf(id, t) * endEnvAt(t) * dirOf(id);
-    return _polar(a, r + off);
-  };
-  // Solve the amplitude that holds every crossing pair ≥ CLEAR_TGT (clearance is split-independent, so
-  // evaluate at wL=0.5). An early crossing where the ease hasn't fully opened just deepens both sides.
-  const worstClear = (wL, scale) => { let m = Infinity;
-    for (let s = 0; s < NSMP; s++){ const t = smpT[s], lp = {};
-      leaderIds.forEach(id => lp[id] = posAt(id, t, wL, scale));
-      followerIds.forEach(fid => { if (!passBy[fid].length) return; const fp = posAt(fid, t, wL, scale);
-        passBy[fid].forEach(lid => { const d = Math.hypot(lp[lid].x - fp.x, lp[lid].y - fp.y); if (d < m) m = d; }); }); }
-    return m; };
-  let scale = 0;
-  if (anyPass){ const MAXS = 3.0, SCAN = 0.1;
-    let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worstClear(0.5, sc) >= CLEAR_TGT){ pass = sc; break; } }
-    if (pass === null) scale = MAXS;
-    else { let lo = Math.max(0, pass - SCAN), hi = pass;
-      for (let it = 0; it < 12; it++){ const m = (lo + hi) / 2; if (worstClear(0.5, m) >= CLEAR_TGT) hi = m; else lo = m; } scale = hi; }
-  }
-  // Balance the split so leader and follower feel EQUALLY natural: a dancer's naturalness cost rises with
-  // its share, so we bisect wL to the point where the worst leader cost meets the worst follower cost.
-  // This makes moving leaders share a stationary follower's evasion (Dame Dos) instead of her lurching
-  // alone, and holds 50/50 when both travel the same (a plain Dame). DAME_WL_FORCE overrides for A/B tests.
-  const roleCost = wL => { let cL = 0, cF = 0;
-    ds.forEach(d => { const k = kin[d.id];
-      const base = smpT.map(tt => { const te = _smooth(tt); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te); });
-      const pts  = smpT.map(tt => posAt(d.id, tt, wL, scale));
-      const c = pathNaturalness(pts, null, base).cost;
-      if (k.role === 'L'){ if (c > cL) cL = c; } else if (c > cF) cF = c; });
-    return { cL, cF }; };
-  let wL = 0.5;
-  if (anyPass && DAME_WL_FORCE == null){
-    let lo = 0, hi = 1;
-    for (let it = 0; it < 16; it++){ const m = (lo + hi) / 2; const { cL, cF } = roleCost(m);
-      if (cL > cF) hi = m; else lo = m; }        // leader too costly ⇒ give the leader a smaller share
-    wL = (lo + hi) / 2;
-  } else if (DAME_WL_FORCE != null) wL = DAME_WL_FORCE;
   // Render. Every dancer faces the way they travel (so they never look "through" another dancer while
   // crossing), then turns to face their new partner as they settle over the last third of the trip.
   const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
@@ -1164,7 +1177,7 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
   const lastFace = {};
   for (let s = 1; s <= STEPS; s++){
     const t = s / STEPS, P = {};
-    ds.forEach(d => P[d.id] = posAt(d.id, t, wL, scale));
+    ds.forEach(d => P[d.id] = plan.at(d.id, t));
     const settle = _smooth(Math.max(0, (t - 0.7) / 0.3));   // 0 until 70% of the trip, →1 at the landing
     frames.push(ds.map(d => {
       const a = prevP[d.id], b = P[d.id], moved = Math.hypot(b.x - a.x, b.y - a.y);

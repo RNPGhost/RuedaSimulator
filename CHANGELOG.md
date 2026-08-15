@@ -3,6 +3,23 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v109 — Phase 1: the crossing planner becomes shareable
+- **`planCrossings` extracted from `dameToEnchufla` as a top-level function.** It was ~90 lines of local
+  variables inside one generator, so no other figure could use it even in principle — which is why four
+  different avoidance mechanisms had grown up around it. It now takes `{ids, base, apply, pairs, group,
+  groups, clearance, engage}` and returns `at(id, t)`.
+- **The golden passed untouched** — 364 movement / 138 engine / 6 interaction cases byte-identical, which
+  is the proof the extraction changed no behaviour. 1360 invariants and 15 visual scenes green too.
+- Two findings while extracting:
+  - **The stationary hold-out branch was dead code.** v99 made the Dame follower always travel half a
+    couple, so its `|sweep| < 1e-6` test can never fire again (verified by making it throw and running
+    the suite green). Deleting it removed the planner's one ring-specific piece.
+  - **The offset is now a scalar the caller applies** (`apply(id, t, off)`), so the planner never touches
+    geometry — a ring supplies a radial offset, a future formation supplies its path normal.
+- Scripted-vs-generated is settled as **"does the dancer's couple midpoint change?"** (see ENGINE_MODEL.md
+  §2): role is the wrong axis — it flips between Dame Pequeña and Mujeres Arriba — and partner change is
+  wrong too, since Dame Pequeña's follower gains a partner with 0.0px displacement.
+
 ## v108 — The Dile Que No follower faces the way she travels round the arc
 - Through beats 2-3 the follower now **faces her direction of travel**, turning with the bend, instead of
   holding a fixed centre-facing and then swinging onto the ⟂-spoke facing at the end. She settles onto

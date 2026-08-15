@@ -114,7 +114,14 @@ Beat clock, frames, facing conventions (travel-facing + settle) stay as they are
 
 ## 5. Migration (each phase golden-guarded)
 
-1. **Extract** `planCrossings` from `dameToEnchufla`, unchanged. Proof: Dame frames byte-identical.
+1. ~~**Extract** `planCrossings` from `dameToEnchufla`, unchanged. Proof: Dame frames byte-identical.~~
+   **DONE (v109).** `planCrossings` is a top-level function taking `{ids, base, apply, pairs, group,
+   groups, clearance, engage}` and returning `at(id,t)`. The golden passed **untouched**, so the Dame is
+   provably unchanged. Two findings on the way out: the stationary **hold-out branch was dead code**
+   (v99 made the Dame follower always travel, so `|sweep| < 1e-6` can no longer happen) — deleting it
+   removed the planner's one ring-specific piece; and the offset is now a **scalar the caller applies**
+   (`apply(id,t,off)`), so the planner never touches geometry and a non-ring formation just supplies its
+   own normal.
 2. **Introduce intents** and classify the existing movements; scripted dancers become obstacles. This is
    where Dame Pequeña's follower stops dipping and her leader takes the whole corridor.
 3. **Migrate** Mujeres Arriba, Dame Pequeña's leader and `dameLinea` onto the planner; retire `RISE`,
@@ -138,7 +145,15 @@ Phases 1–2 are the load-bearing ones; 3 onwards is repayment.
    but never deforms a prescribed shape. The assumption is that by the time custom formations land, the
    scripted library will be defined generally enough not to need deforming; revisit if that proves false.
 
-## 7. Remaining open question
+## 7. Known fix to make
+
+- **`dile4` shifts its couple midpoint 3.4px.** The Dile Que No position places the partners at
+  `R_RING ± R_STEP`, so their midpoint sits on the ring, while a Casino couple's midpoint sits at
+  `R_RING·cos(δ)` — 3.4px further in. The Dile Que No position should share the midpoint of the Casino
+  position in the same slot, i.e. be built on `R_mid ± R_STEP`. Harmless today (it is the only reason the
+  midpoint test needs a tolerance at all), so scheduled rather than urgent.
+
+## 8. Remaining open question
 
 - **Tolerance vs slot identity.** Implement the midpoint test with a numeric threshold (~a dancer
   radius), or have each formation enumerate its couple slots and compare slot identity directly? The
