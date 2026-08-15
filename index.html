@@ -913,6 +913,9 @@ function landmarkAt(fr, prev, spec){
  *   'perpSpoke'                      — ⟂ to the spoke, clockwise round the wheel
  *   'travel'                         — the direction of travel
  *   'hold'                           — keep the facing the previous segment ended on
+ *   { blend: [a, b] }                — sweep from bearing a to bearing b across the segment
+ *   { settleTo, over }               — face the way you travel, then settle onto a bearing over the
+ *                                      last `over` of the segment
  *   { from, at, turn, endAt }        — start from a base facing (plus a constant `at`) and rotate `turn`
  *                                      degrees across the
  *                                      segment; `endAt` pins the exact value at u = 1 (a 360° spin ends
@@ -929,6 +932,14 @@ function faceAt(rule, fr, u, ctx){
     : r === 'start'     ? ctx.face0
     : ctx.prevFace;
   if (typeof rule === 'string') return base(rule);
+  const shortD = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
+  // Blend across the segment from one bearing to another (e.g. from facing your partner to facing the
+  // centre), taking the short way round.
+  if (rule.blend){ const a = base(rule.blend[0]), b2 = base(rule.blend[1]);
+    return a + shortD(b2, a) * u; }
+  // Face the way you travel, then SETTLE onto a target bearing over the last `over` of the segment.
+  if (rule.settleTo !== undefined){ const tv = base(rule.from || 'travel'), t2 = base(rule.settleTo);
+    return tv + shortD(t2, tv) * _smooth(Math.max(0, (u - (1 - rule.over)) / rule.over)); }
   const b = base(rule.from || 'start') + (rule.at || 0);   // `at` is a constant offset from the base bearing
   if (u >= 1 && rule.endAt !== undefined) return rule.endAt === 'base' ? b : base(rule.endAt);
   return b + (rule.turn || 0) * u;
@@ -939,46 +950,93 @@ function faceAt(rule, fr, u, ctx){
  * `ease` is 'linear' (default) or 'smooth'; `turn` is the render hint ('cw'/'ccw') for the spin
  * direction. Returns { frames: [[{id, xy, face, turn}]], segBeats }. */
 function playScript(ds, plan){
-  const fr = {}, prev = {}, prevFace = {}, face0 = {};
-  ds.forEach(d => { fr[d.id] = dancerFrame(d, ds); prev[d.id] = fr[d.id].S;
-    prevFace[d.id] = face0[d.id] = facingAngle(d); });
-  const nSeg = Math.max(...ds.map(d => plan(d).length));
+  const fr = {}, prevFace = {}, face0 = {};
+  ds.forEach(d => { fr[d.id] = dancerFrame(d, ds); prevFace[d.id] = face0[d.id] = facingAngle(d); });
+  const segs = {}; ds.forEach(d => segs[d.id] = plan(d));
+  const nSeg = Math.max(...ds.map(d => segs[d.id].length));
+  // Resolve the whole endpoint chain up front: landmarks depend only on the frame and the previous
+  // endpoint, never on live positions, so a figure's shape is fully known before a frame is drawn.
+  const ends = {};
+  ds.forEach(d => { let p = fr[d.id].S; ends[d.id] = segs[d.id].map(sg =>
+    p = landmarkAt(fr[d.id], p, sg.to === undefined ? 'hold' : sg.to)); });
+  // Group segments into PHASES. A segment marked `round: true` is merged with its predecessor into one
+  // rounded curve (see roundedPath) instead of the two meeting at a corner.
+  const phases = [];
+  for (let i = 0; i < nSeg; i++){
+    const merged = ds.some(d => (segs[d.id][i] || {}).round);
+    if (merged && phases.length) phases[phases.length - 1].push(i); else phases.push([i]);
+  }
   const frames = [], segBeats = [];
-  for (let si = 0; si < nSeg; si++){
-    const steps = Math.max(...ds.map(d => (plan(d)[si] || {}).steps || 1));
-    const beats = Math.max(...ds.map(d => (plan(d)[si] || {}).beats || 0));
-    const from = {}; ds.forEach(d => from[d.id] = prev[d.id]);
-    const to = {}; ds.forEach(d => { const s = plan(d)[si];
-      to[d.id] = s ? landmarkAt(fr[d.id], from[d.id], s.to === undefined ? 'hold' : s.to) : from[d.id]; });
+  const start = {}; ds.forEach(d => start[d.id] = fr[d.id].S);
+  phases.forEach(ph => {
+    const of = (d, i) => segs[d.id][i] || {};
+    const steps = Math.max(...ds.map(d => ph.reduce((a, i) => a + (of(d, i).steps || 1), 0)));
+    const beats = Math.max(...ds.map(d => ph.reduce((a, i) => a + (of(d, i).beats || 0), 0)));
+    const A = {}, curve = {};
+    ds.forEach(d => { A[d.id] = start[d.id];
+      if (ph.length > 1){
+        // Rounded join: one quadratic Bézier from where the first segment began, with the JOINT as its
+        // control point, to where the last one ends — resampled by arc length so the speed stays even
+        // round the bend. Two straight legs meeting at the joint turn a hard corner there (61° in the
+        // Dile Que No opening before this was applied by hand; 8° after).
+        const P0 = A[d.id], C = ends[d.id][ph[0]], P2 = ends[d.id][ph[ph.length - 1]], pts = [];
+        for (let i = 0; i <= 24; i++){ const u = i / 24, v = 1 - u;
+          pts.push({ x: v * v * P0.x + 2 * v * u * C.x + u * u * P2.x,
+                     y: v * v * P0.y + 2 * v * u * C.y + u * u * P2.y }); }
+        curve[d.id] = arcLenPath(pts);
+      }
+    });
+    const last = ph[ph.length - 1];
     for (let k = 1; k <= steps; k++){
       const raw = k / steps;
-      const P = {}; ds.forEach(d => { const s = plan(d)[si] || {};
-        const u = s.ease === 'smooth' ? _smooth(raw) : raw;
-        const A = from[d.id], B = to[d.id];
-        let x = A.x + (B.x - A.x) * u, y = A.y + (B.y - A.y) * u;
-        if (s.bow){                                       // one half-sine sideways: zero at both ends
-          const vx = B.x - A.x, vy = B.y - A.y, L = Math.hypot(vx, vy) || 1;
-          const sgn = s.bow.side === 'right' ? 1 : -1;    // 90° to the dancer's right / left (screen y-down)
-          const k = s.bow.amp * Math.sin(Math.PI * u);
-          x += sgn * (-vy / L) * k; y += sgn * (vx / L) * k;
+      const P = {}; ds.forEach(d => {
+        if (curve[d.id]){ P[d.id] = curve[d.id](raw); return; }
+        const sg = of(d, last), B = ends[d.id][last] || A[d.id];
+        const u = sg.ease === 'smooth' ? _smooth(raw) : raw;
+        if (sg.orbit){
+          // A HALF-TURN about the midpoint of the segment's own start and end — which is why it lands on
+          // `to` exactly. `pinch` flattens the bulge toward the start→end chord, keeping a turning couple
+          // tight instead of swinging wide (what lets the Línea Dile Que No's two rings clear).
+          const C = { x: (A[d.id].x + B.x) / 2, y: (A[d.id].y + B.y) / 2 };
+          const v = { x: A[d.id].x - C.x, y: A[d.id].y - C.y };
+          const ang = Math.PI * u * (sg.orbit.dir === 'cw' ? -1 : 1);
+          let r = { x: v.x * Math.cos(ang) + v.y * Math.sin(ang), y: -v.x * Math.sin(ang) + v.y * Math.cos(ang) };
+          if (sg.orbit.pinch){ const L = Math.hypot(v.x, v.y) || 1, ux = v.x / L, uy = v.y / L, px = -uy, py = ux;
+            const al = r.x * ux + r.y * uy, pe = (r.x * px + r.y * py) * (1 - sg.orbit.pinch);
+            r = { x: al * ux + pe * px, y: al * uy + pe * py }; }
+          P[d.id] = { x: C.x + r.x, y: C.y + r.y }; return;
         }
-        P[d.id] = { x, y }; });
+        let x = A[d.id].x + (B.x - A[d.id].x) * u, y = A[d.id].y + (B.y - A[d.id].y) * u;
+        if (sg.bow){                                      // one half-sine sideways: zero at both ends
+          const vx = B.x - A[d.id].x, vy = B.y - A[d.id].y, L = Math.hypot(vx, vy) || 1;
+          const sgn = sg.bow.side === 'right' ? 1 : -1;   // 90° to the dancer's right / left (screen y-down)
+          const c = sg.bow.amp * Math.sin(Math.PI * u);
+          x += sgn * (-vy / L) * c; y += sgn * (vx / L) * c;
+        }
+        P[d.id] = { x, y };
+      });
       frames.push(ds.map(d => {
-        const s = plan(d)[si] || {}, pr = ds.find(o => o.station === d.station && o.role !== d.role);
-        const a = k === 1 ? from[d.id] : frames[frames.length - 1].find(x => x.id === d.id).xy;
+        // Rounding merges the PATH, not the choreography: each segment keeps its own facing rule over
+        // its own share of the steps. A rule can opt into `phaseU` to run across the whole merged phase
+        // instead — which is what a settle spanning two beats of one curve needs.
+        let si = ph[ph.length - 1], uSeg = raw, acc = 0;
+        for (const i of ph){ const st = of(d, i).steps || 1;
+          if (k <= acc + st){ si = i; uSeg = (k - acc) / st; break; } acc += st; }
+        const sg = of(d, si), pr = ds.find(o => o.station === d.station && o.role !== d.role);
+        const a = k === 1 ? A[d.id] : frames[frames.length - 1].find(x => x.id === d.id).xy;
         const ctx = { here: P[d.id], partnerXY: pr ? P[pr.id] : null, prevFace: prevFace[d.id],
           face0: face0[d.id], travel: Math.hypot(P[d.id].x - a.x, P[d.id].y - a.y) > 1e-9
             ? Math.atan2(P[d.id].y - a.y, P[d.id].x - a.x) * 180 / Math.PI : null };
-        const f = faceAt(s.face, fr[d.id], raw, ctx);
-        const out = { ...d, xy: P[d.id], face: f };
-        if (s.turn) out.turn = s.turn;
+        const u = (sg.face && sg.face.phaseU) ? raw : uSeg;
+        const out = { ...d, xy: P[d.id], face: faceAt(sg.face, fr[d.id], u, ctx) };
+        if (sg.turn) out.turn = sg.turn;
         return out;
       }));
       segBeats.push(beats / steps);
     }
-    ds.forEach(d => { prev[d.id] = to[d.id];
+    ds.forEach(d => { start[d.id] = ends[d.id][last] || start[d.id];
       prevFace[d.id] = frames[frames.length - 1].find(x => x.id === d.id).face; });
-  }
+  });
   return { frames, segBeats };
 }
 
@@ -1735,75 +1793,25 @@ function dameLinea(ds, N){
 // (two radially-adjacent groups) clear instead of bulging into each other.
 const DILE_PINCH = 0.6;
 function dileQueNoFull(ds, N){
-  const DEL = DELTA_DEG * Math.PI / 180, AL = 16, AF = 18;   // Exhibela-line travel in the opening (kept small)
-  const rotCCW = (v, a) => ({ x: v.x * Math.cos(a) + v.y * Math.sin(a), y: -v.x * Math.sin(a) + v.y * Math.cos(a) });
-  const info = {};
-  ds.forEach(d => {
-    const pr = ds.find(o => o.station === d.station && o.role !== d.role);
-    const S = pos(d), PP = pos(pr);
-    const L0 = d.role === 'L' ? S : PP, F0 = d.role === 'L' ? PP : S;
-    const mx = (L0.x + F0.x) / 2, my = (L0.y + F0.y) / 2;
-    const inA = Math.atan2(CY - my, CX - mx);
-    const inward = { x: Math.cos(inA), y: Math.sin(inA) };               // Exhibela line direction (toward centre)
-    const aL0 = Math.atan2(L0.y - CY, L0.x - CX), aF0 = Math.atan2(F0.y - CY, F0.x - CX);
-    const thetaC = Math.atan2(Math.sin(aL0) + Math.sin(aF0), Math.cos(aL0) + Math.cos(aF0));
-    const endAng = thetaC + (d.role === 'L' ? -DEL : DEL);               // leader -> ccw lane, follower -> cw lane (Casino)
-    const casEnd = { x: CX + R_RING * Math.cos(endAng), y: CY + R_RING * Math.sin(endAng) };
-    const amp = d.role === 'L' ? AL : AF;
-    const orbitStart = d.role === 'L'
-      ? { x: S.x - amp * inward.x, y: S.y - amp * inward.y }             // leader ends stage 3 slightly outside
-      : { x: S.x + amp * inward.x, y: S.y + amp * inward.y };            // follower ends stage 3 slightly inside
-    const oc = { x: (orbitStart.x + casEnd.x) / 2, y: (orbitStart.y + casEnd.y) / 2 };
-    const ov = { x: orbitStart.x - oc.x, y: orbitStart.y - oc.y };
-    info[d.id] = { role: d.role, S, inward, amp, oc, ov, face0: facingAngle(d) };
-  });
-
-  const SS = 8, SO = 16, PH = 4, frames = [];
-  const stagePos = (g, stage, s) => {
-    const dir = g.role === 'L' ? 1 : -1;                                 // leader dips inward first, follower outward
-    const off = stage === 1 ? dir * g.amp * s : stage === 2 ? dir * g.amp * (1 - s) : -dir * g.amp * s;
-    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off };
-  };
-  [1, 2, 3].forEach(stage => {
-    for (let k = 1; k <= SS; k++){
-      const s = k / SS;
-      frames.push(ds.map(d => {
-        const g = info[d.id], p = stagePos(g, stage, s);
-        if (g.role === 'F'){
-          const face = stage === 1 ? g.face0 + 90 * s : stage === 2 ? g.face0 + 90 : g.face0 + 90 - 90 * s;
-          return { ...d, xy: p, face, turn: stage === 1 ? 'cw' : (stage === 3 ? 'ccw' : undefined) };
-        }
-        return { ...d, xy: p, _L: true };
-      }));
-    }
-  });
-  const held = frames[frames.length - 1].map(d => ({ ...d }));           // 1-beat pause at the end of the Exhibela-line moves
-  for (let i = 0; i < PH; i++) frames.push(held.map(d => ({ ...d })));
-  for (let k = 1; k <= SO; k++){
-    const s = k / SO, ang = Math.PI * s;                                 // 180° anti-clockwise
-    frames.push(ds.map(d => {
-      const g = info[d.id]; let dir = rotCCW(g.ov, ang);
-      {                                                                  // flatten the bulge toward the start→end chord
-        const L = Math.hypot(g.ov.x, g.ov.y) || 1, ux = g.ov.x / L, uy = g.ov.y / L, px = -uy, py = ux;
-        const along = dir.x * ux + dir.y * uy, perp = (dir.x * px + dir.y * py) * (1 - DILE_PINCH);
-        dir = { x: along * ux + perp * px, y: along * uy + perp * py };
-      }
-      const p = { x: g.oc.x + dir.x, y: g.oc.y + dir.y };
-      if (g.role === 'F') return { ...d, xy: p, face: g.face0 - 180 * s, turn: 'ccw' };   // 180° left -> faces leader
-      return { ...d, xy: p, _L: true };
-    }));
-  }
-  // leader faces the follower's live position in every frame
-  frames.forEach(fr => {
-    const fpos = {}; fr.forEach(d => { if (d.role === 'F') fpos[d.station] = d.xy; });
-    fr.forEach(d => { if (d._L){ const f = fpos[d.station]; d.face = Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI; delete d._L; } });
-  });
-  // Beats: stages 1-3 take 1 each, then a 1-beat pause, then the 4-beat orbit (8 total).
-  const segBeats = [];
-  for (let i = 0; i < 3 * SS; i++) segBeats.push(1 / SS);
-  for (let i = 0; i < PH; i++) segBeats.push(1 / PH);
-  for (let i = 0; i < SO; i++) segBeats.push(4 / SO);
-  return { frames, segBeats };
+  // Declarative (DECLARATIVE.md §6). Three 1-beat legs along the couple's own Exhibela line, a 1-beat
+  // pause, then a 4-beat half-turn onto the partner's spot. The orbit is the swap: a Dile Que No lands
+  // each partner exactly where the other stood, which is why `to: 'partner'` is the whole of its target.
+  const AL = 16, AF = 18;                                    // Exhibela-line travel in the opening (kept small)
+  const SS = 8, PH = 4, SO = 16;
+  const leg = (o, face, turn) => ({ to: { off: [o, 0] }, beats: 1, steps: SS, face, turn });
+  const F = (at, turn) => ({ from: 'start', at, turn });
+  const orbit = face => ({ to: 'partner', beats: 4, steps: SO, face, turn: 'ccw',
+                           orbit: { dir: 'ccw', pinch: DILE_PINCH } });
+  const lead = [                                             // dips inward, back, outward — facing her throughout
+    leg(-AL, 'partner'), leg(0, 'partner'), leg(AL, 'partner'),
+    { to: 'hold', beats: 1, steps: PH, face: 'partner' }, orbit('partner'),
+  ];
+  const foll = [                                             // steps out turning 90° right, back, in turning back
+    leg( AF, F(0, 90), 'cw'), leg(0, F(90, 0)), leg(-AF, F(90, -90), 'ccw'),
+    { to: 'hold', beats: 1, steps: PH, face: F(0, 0), turn: 'ccw' },
+    orbit(F(0, -180)),                                       // …then a half-turn left onto her leader
+  ];
+  return playScript(ds, d => d.role === 'L' ? lead : foll);
 }
 
 /* Dile Que No y Dame — both dancers dance beats 1-2 of a Dile Que No (out along the Exhibela
@@ -1977,70 +1985,25 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
  * to perpendicular-to-the-spoke (clockwise) on beat 3 and holds. Ends in the Dile Que No position —
  * no progression, no phase change. */
 function dileQueNo4(ds, N){
+  // Declarative (DECLARATIVE.md §6). Four beats: dip out along your own Exhibela line, back, onto the
+  // couple's midpoint spoke, pause. Beats 2 and 3 are marked `round`, so the interpreter joins them into
+  // ONE curve through the start point instead of two straight legs meeting at a hard corner there.
   const AL = 16, AF = 18;                                    // Exhibela-line dip amplitudes
-  const short = a => ((a + 180) % 360 + 360) % 360 - 180;
-  const info = {};
-  ds.forEach(d => {
-    const st = d.station, S = pos(d);
-    const pr = ds.find(o => o.station === st && o.role !== d.role);
-    const L0 = d.role === 'L' ? S : pos(pr), F0 = d.role === 'L' ? pos(pr) : S;
-    const M0 = { x: (L0.x + F0.x) / 2, y: (L0.y + F0.y) / 2 };
-    const inA = Math.atan2(CY - M0.y, CX - M0.x);
-    const inward = { x: Math.cos(inA), y: Math.sin(inA) };   // toward centre (Exhibela-line direction)
-    const out = { x: -inward.x, y: -inward.y };
-    const spoke = FORMATIONS.circle.slot(st, d.role === 'L' ? 'outer' : 'inner', N);   // Dile-position target
-    const perpFace = Math.atan2(out.x, -out.y) * 180 / Math.PI;   // ⟂ spoke, clockwise round the wheel
-    info[d.id] = { role: d.role, S, inward, amp: d.role === 'L' ? AL : AF, spoke, face0: facingAngle(d), perpFace };
-  });
-  const dipAt = (g, s) => { const off = (g.role === 'L' ? 1 : -1) * g.amp * s;   // leader dips in, follower out
-    return { x: g.S.x + g.inward.x * off, y: g.S.y + g.inward.y * off }; };
-  // Beats 2-3 are ONE rounded arc, not two straight legs meeting at the start point. Coming back down the
-  // Exhibela line and then striking out for the spoke used to meet at a hard corner there (~60° for the
-  // follower, and sharper since the Dile Que No position moved in). A quadratic Bézier from the beat-1
-  // dip, with the start point as its CONTROL and the spoke as its end, leaves along the line it came out
-  // on and arrives along the run-in to the spoke — same two endpoints, same beats, corner rounded away.
-  // Resampled by arc length so the speed stays even round the bend.
-  ds.forEach(d => { const g = info[d.id], P0 = dipAt(g, 1), pts = [];
-    for (let i = 0; i <= 24; i++){ const u = i / 24, v = 1 - u;
-      pts.push({ x: v * v * P0.x + 2 * v * u * g.S.x + u * u * g.spoke.x,
-                 y: v * v * P0.y + 2 * v * u * g.S.y + u * u * g.spoke.y }); }
-    g.arc = arcLenPath(pts);
-  });
-  const SS = 8, PH = 4, frames = [], segBeats = [];
-  const push = (mapper, bps) => { frames.push(ds.map(mapper)); segBeats.push(bps); };
-  for (let j = 1; j <= SS; j++){ const s = j / SS;                      // beat 1: out along the Exhibela line
-    push(d => ({ ...d, xy: dipAt(info[d.id], s) }), 1 / SS); }
-  for (let j = 1; j <= 2 * SS; j++){ const u = j / (2 * SS);            // beats 2-3: back and on, as one arc
-    push(d => ({ ...d, xy: info[d.id].arc(u) }), 1 / SS); }
-  for (let j = 0; j < PH; j++) push(d => ({ ...d, xy: info[d.id].spoke }), 1 / PH);   // beat-4 pause
-  // leaders: face their follower (beats 1-2), turn to the centre by beat 3, hold on 4.
-  frames.forEach((fr, fi) => {
-    const fpos = {}; fr.forEach(d => { if (d.role === 'F') fpos[d.station] = d.xy; });
-    fr.forEach(d => { if (d.role !== 'L') return;
-      const toC = Math.atan2(CY - d.xy.y, CX - d.xy.x) * 180 / Math.PI;
-      if (fi < 2 * SS){ const f = fpos[d.station]; d.face = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; }
-      else if (fi < 3 * SS){ const f = fpos[d.station], ff = f ? Math.atan2(f.y - d.xy.y, f.x - d.xy.x) * 180 / Math.PI : toC; d.face = ff + short(toC - ff) * ((fi - 2 * SS + 1) / SS); }
-      else d.face = toC;
-    });
-  });
-  // Followers: turn 90° right to the centre on beat 1 — which is where the arc sets off, so through
-  // beats 2-3 she simply faces the way she is travelling, turning with the bend, and settles onto the
-  // ⟂-spoke facing over the last of the arc to hold it through beat 4.
-  frames.forEach((fr, fi) => {
-    fr.forEach(d => { if (d.role !== 'F') return; const g = info[d.id];
-      let face;
-      if (fi < SS) face = g.face0 + 90 * ((fi + 1) / SS);
-      else if (fi < 3 * SS){                       // beats 2-3: face the way she travels round the arc…
-        const j = fi - SS + 1, u = j / (2 * SS);
-        const a = g.arc((j - 1) / (2 * SS)), b = g.arc(u);
-        const tv = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-        face = tv + short(g.perpFace - tv) * _smooth(Math.max(0, (u - 0.7) / 0.3));   // …settling onto ⟂-spoke by beat 4
-      }
-      else face = g.perpFace;
-      d.face = face;
-    });
-  });
-  return { frames, segBeats };
+  const SS = 8, PH = 4;
+  const lead = [
+    { to: { off: [-AL, 0] }, beats: 1, steps: SS, face: 'partner' },          // leader dips IN
+    { to: 'start',           beats: 1, steps: SS, face: 'partner' },
+    { to: { spoke:  1 },     beats: 1, steps: SS, round: true, face: { blend: ['partner', 'centre'] } },
+    { to: 'hold',            beats: 1, steps: PH, face: 'centre' },
+  ];
+  const foll = [
+    { to: { off: [ AF, 0] }, beats: 1, steps: SS, face: { from: 'start', turn: 90 } },   // follower steps OUT
+    { to: 'start',           beats: 1, steps: SS, face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
+    { to: { spoke: -1 },     beats: 1, steps: SS, round: true,
+      face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
+    { to: 'hold',            beats: 1, steps: PH, face: 'perpSpoke' },
+  ];
+  return playScript(ds, d => d.role === 'L' ? lead : foll);
 }
 
 /* Mujeres Arriba (Dile Que No position -> Exhibela). The women advance: every follower progresses one

@@ -132,20 +132,40 @@ clockwise round the wheel).
 | `to` | `'start'` \| `'partner'` \| `'midpoint'` \| `'hold'` \| `{spoke: ±1}` \| `{off: [alongOut, alongCw], from}` |
 | `ease` | `'linear'` (default) \| `'smooth'` |
 | `bow` | `{side: 'left'\|'right', amp}` — one half-sine sideways, zero at both ends so the landing stays exact |
-| `face` | `'partner'` (live) \| `'partner0'` (fixed bearing) \| `'centre'` \| `'outward'` \| `'perpSpoke'` \| `'travel'` \| `'hold'` \| `{from, at, turn, endAt}` |
+| `orbit` | `{dir, pinch}` — a half-turn about the midpoint of the segment's own start and end (which is why it lands on `to` exactly); `pinch` flattens the bulge toward the chord |
+| `round` | merge this segment with its predecessor into one rounded curve (see below) |
+| `face` | `'partner'` (live) \| `'partner0'` (fixed bearing) \| `'centre'` \| `'outward'` \| `'perpSpoke'` \| `'travel'` \| `'hold'` \| `{from, at, turn, endAt}` \| `{blend: [a, b]}` \| `{settleTo, over}` |
 | `turn` | render hint for spin direction (`'cw'`/`'ccw'`) |
 
 `face: {from, at, turn, endAt}` reads as "start from this bearing, plus a constant `at`, and rotate
 `turn` degrees across the segment". `endAt` pins the exact value at the end, which is how a 360° spin
 lands on the bearing it started from rather than on start + 360.
 
-**Migrated so far — 8 movements, all byte-identical against the golden:**
+**The join rule.** A segment marked `round: true` is merged with its predecessor into a single quadratic
+Bézier — from where the first began, with the **joint as its control point**, to where the last ends —
+resampled by arc length so the speed stays even round the bend. Two straight legs meeting at the joint
+turn a hard corner there (61° in the Dile Que No opening before this was applied by hand; 8° after).
+
+Rounding merges the **path, not the choreography**: each segment keeps its own facing rule over its own
+share of the steps, so a leader can face his partner through one beat and turn to the centre through the
+next while both ride one curve. A facing rule can opt into `phaseU` to run across the whole merged phase
+instead — which is what a settle spanning two beats of a single curve needs.
+
+**Migrated so far — 10 movements, all byte-identical against the golden:**
 
 | generator | movements | primitives it needed |
 |---|---|---|
 | `exhibela` | Exhibela | four `off` legs along `out`; `partner` (live) and `partner0` facings |
 | `leadersRightTurn` | Leader's Right Turn | `to: 'hold'`; `{turn: 360, endAt: 'base'}` |
 | `swapMove` | Enchufla, Vacilala, Adios, Reverse Adios, Reverse Enchufla, Leader's Enchufla | `to: 'partner'` + `bow` |
+| `dileQueNo4` | 4-beat Dile Que No | `{spoke: ±1}`; the **join rule**; `{blend}` and `{settleTo, over}` facings |
+| `dileQueNoFull` | 8-beat Dile Que No | `orbit` with `pinch` |
+
+Two things these last two settled. **A Dile Que No is a swap**: the orbit's target is simply
+`to: 'partner'` — each partner lands exactly where the other stood — which is the same address the
+Enchufla family uses, so one landmark covers both. And **the Dile Que No position is `{spoke: ±1}` in
+the dancer's own frame**, needing no reference to the formation at all, which is what makes the figure
+reusable on a Línea mini-wheel without knowing it is on one.
 
 Each migration is a real test of the vocabulary: the golden is a per-frame contract, so *byte-identical*
 means the primitives reproduce the hand-written geometry exactly, not merely closely. Invariants **§29**
@@ -159,10 +179,15 @@ primitive a number. That is the right split — primitives are shapes, not solve
 
 ## 7. Still to build
 
-- **The join rule.** Consecutive segments meeting at an angle need the corner rounded: an arc-length-
-  resampled quadratic Bézier with the joint as its control point. This already exists, hand-written, in
-  the Dile Que No opening (it took a 61° corner down to 8°); generalising it is what `dile4`,
-  `dileQueNoFull` and the Dile Que No y Dame compounds need before they can migrate.
-- **Travel intents** — the dynamic half, wiring a slot address (§2) and pass sides to `planCrossings`.
-- **Open:** whether pass sides attach per dancer-gone-by or per group, and whether a movement declares
-  its beat budget per segment or per phrase.
+- **Travel intents** — the dynamic half: wiring a slot address (§2) and pass sides to `planCrossings`,
+  which is what the Dames, Mujeres Arriba and Dame Pequeña need. Settled: pass sides attach **per
+  group** (facing-relative, per Sam's "which other dancers they pass to the left or right of"; while
+  every couple dances in sync, the no-overtaking rule makes per-dancer overrides redundant, and the
+  field is shaped so they can be added later). Beat budgets are **per segment** and compose to the
+  movement total — answered by construction in stage 2.
+- **Compound movements** — `dileQueNoYDame` is two phrases in one movement (a scripted 4-beat opening,
+  then a travel). The IR needs a movement to be a sequence of phrases with different intents per phrase.
+  MOVEMENT_SPEC §4 flagged this as the model assumption most likely to bite; it does, and the fix is
+  additive rather than a rethink.
+- **Then:** the Línea entries/exits (`coupleWalkFrames`) and `dameLinea`, which are rigid-couple travel —
+  the same travel intent with `unit` set.

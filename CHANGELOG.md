@@ -3,6 +3,25 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v116 — Phase 5 stage 3a: the join rule, and two more figures as data
+- **The join rule, generalised.** A segment marked `round: true` merges with its predecessor into one
+  quadratic Bézier — from where the first began, the **joint as control point**, to where the last ends,
+  resampled by arc length. This existed hand-written in the Dile Que No opening (61° corner → 8°); it is
+  now a primitive any figure can use.
+- **Rounding merges the path, not the choreography.** Each segment keeps its own facing rule over its own
+  share of the steps, so a leader faces his partner through one beat and turns to the centre through the
+  next while both ride one curve. `phaseU` lets a rule span the whole merged phase, which is what a
+  settle across two beats of a single curve needs. (Caught by the golden: the geometry matched on the
+  first attempt and only the facings differed.)
+- **New primitives:** `{spoke: ±1}` (the Dile Que No lane on the couple's own spoke), `orbit` with
+  `pinch`, and the `{blend: [a,b]}` / `{settleTo, over}` facing rules.
+- **`dile4` and the 8-beat `dile` migrated, byte-identical** — 10 movements now declarative.
+- Two things these settled. **A Dile Que No is a swap**: the orbit's target is just `to: 'partner'`, the
+  same address the Enchufla family uses, so one landmark covers both. And **the Dile Que No position is
+  `{spoke: ±1}` in the dancer's own frame** — no reference to the formation at all, which is exactly what
+  lets the figure be danced on a Línea mini-wheel without knowing it is on one.
+- 2445 invariants; golden and visual untouched.
+
 ## v115 — Phase 5 stage 2: the scripted-figure primitives
 - **Beat-level primitives, and an interpreter for them.** A scripted figure is now a chain of segments
   danced in the dancer's own frame (`dancerFrame`: own start, partner's start, couple midpoint, the
