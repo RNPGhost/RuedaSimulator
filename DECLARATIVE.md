@@ -325,11 +325,30 @@ dame:     { …, play: { travel: 'dame', mirror: true } }
 through** — it will have a `play` descriptor and nothing else, so anything expressible here is
 expressible by a user.
 
-On descriptors today: Dame, Dame Dos, and all six swap figures (Enchufla, Vacilala, Adios, Reverse
-Adios, Reverse Enchufla, Leader's Enchufla), plus Exhibela and Leader's Right Turn. The rest still carry
-generators: Dame Pequeña and Mujeres Arriba need engine-side wiring a definition cannot state (their
-scripted role's path and its facing rule), the compounds are phrase sequences, and the Línea entries and
-exits are formation changes, which redefine the slot set and so need their own descriptor kind.
+A descriptor may also state what the **scripted** role does, which is what let Dame Pequeña and Mujeres
+Arriba drop their generators entirely:
+
+```js
+dame_pequena: play: {
+  travel: 'dame_pequena', mirror: true,
+  script: { F: { kind: 'to_lane', bow: { side: 'right', amp: 'justMiss' } } },
+  face:   { F: { byVirtualPos: { exhibela: null,
+            casino: { from: 'start', to: 'partnerEnd', dir: 'ccw', after: 0, ease: 'linear' } } } },
+}
+```
+
+**`SCRIPT_KINDS`** are named the way solvers are: *walk to your own couple's slot in the lane your role
+lands in, optionally bowing so two partners trading places just miss*. One kind — `to_lane` — covers
+every case we dance, including standing still, because from Exhibela that slot is where the follower
+already is. The two movements differ only in their facing, and `byVirtualPos` states that branch.
+
+**`partnerEnd`** is the facing base both needed: *the bearing onto where your new partner lands*. Dame
+Pequeña's follower spins anti-clockwise onto it; Mujeres Arriba's leader holds the centre and then turns
+clockwise onto it. Both had been computing that bearing by hand from a resolved landing.
+
+On descriptors today: Dame, Dame Dos, Dame Pequeña, Mujeres Arriba, all six swap figures, Exhibela and
+Leader's Right Turn — twelve. Still carrying generators: the compounds (phrase sequences) and the Línea
+entries and exits (formation changes, which redefine the slot set and so need their own descriptor kind).
 
 **A gap this uncovered in the golden.** `segBeats` — a movement's beat timing, how its beats are spread
 across its frames — was being *recorded* in the baseline and **never compared**. A figure could have been

@@ -992,6 +992,13 @@ function run() {
     // Self-test the walker, so it cannot rot into something that passes everything.
     nChecks++; check(impure({ L: [{ face: () => 1 }] }, 'x') !== null, 'purity check does not detect a function');
     nChecks++; check(impure({ L: [{ to: 'start', off: [1, 2] }] }, 'x') === null, 'purity check rejects plain data');
+    // A movement's `play` descriptor is the form a user-authored movement arrives in, so it is held to
+    // the same standard as the registries: pure data, no closures.
+    for (const key of T.keys().movements) {
+      const play = T.MOVEMENTS[key].play; if (!play) continue;
+      const bad = impure(play, `${key}.play`);
+      nChecks++; check(bad === null, `movement "${key}" has a non-data play descriptor — ${bad}`);
+    }
     for (const [kind, reg] of [['figure', T.FIGURES], ['travel', T.TRAVELS]]) {
       for (const name of Object.keys(reg)) {
         const def = reg[name], bad = impure(def, name);

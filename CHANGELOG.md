@@ -3,6 +3,22 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v126 — Dame Pequeña and Mujeres Arriba lose their generators
+- **Both are now pure `play` descriptors** — the functions are deleted. Twelve movements are on
+  descriptors.
+- **`partnerEnd`** — a new facing base meaning *the bearing onto where your new partner lands*. Both
+  movements had been computing that bearing by hand from a resolved landing: Dame Pequeña's follower
+  spins anti-clockwise onto it, Mujeres Arriba's leader holds the centre and then turns clockwise onto
+  it. One rule now says both.
+- **`SCRIPT_KINDS`** — what the scripted role does, named the way solvers are. One kind, `to_lane`
+  (*walk to your own couple's slot in the lane your role lands in, optionally bowing so two partners
+  trading places just miss*), covers every case we dance — **including standing still**, because from
+  Exhibela that slot is where the follower already is. The two movements differ only in their facing,
+  and `byVirtualPos` states that branch.
+- **§30 now holds `play` descriptors to the same purity standard as the registries** — they are the form
+  a user-authored movement arrives in, so a closure creeping into one would be caught.
+- 2712 invariants; golden and visual untouched.
+
 ## v125 — a second mutation round: two more blind spots, and a real planner bug
 - **A movement's declared `beats` was not in the golden at all.** Changing how long a figure takes —
   Dame from 2 beats to 4 — passed the entire suite. `segBeats` (v123) covers how beats are *spread*;
