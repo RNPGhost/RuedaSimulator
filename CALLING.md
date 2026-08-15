@@ -458,14 +458,15 @@ next movement now), `runMovement()` (animate one movement then reach the next de
 
 ## How to add a new **movement**
 
-1. Write the geometry as a pure function `(ds, N, from) => frames`, where each frame is the
-   dancer list with `xy` / `face` (and optional `turn`, `snapTurn`). Reuse the existing helpers
-   and follow the established conventions (dots never overlap — keep centre-to-centre ≥ one dot
-   diameter; end exactly on the ring / at standard lanes where appropriate; verify endpoints and
-   clearances numerically before wiring it in).
-2. Add an entry to `MOVEMENTS` with `label`, `desc`, `requires`, `sets`, `frames`, and (if
-   needed) `anim`.
-3. It appears in the Movements panel automatically and can be fired on its own for testing.
+**See [MOVEMENT_SPEC.md](MOVEMENT_SPEC.md).** It carries the model a movement has to fit (scripted vs
+dynamic, units, the planner contract), the questions to ask Sam *before* writing code, the conformance
+checklist, and the protocol for when a movement genuinely doesn't fit the model. Do not start from the
+mechanics below without reading it — the geometry is the easy part.
+
+Mechanically: write the generator as a pure function `(ds, N, from) => frames` (each frame is the dancer
+list with `xy` / `face`, and optional `turn` / `snapTurn`), using `planCrossings` for every traveller;
+add a `MOVEMENTS` entry with `label`, `desc`, `requires`, `sets`, `frames`, `beats` and (if needed)
+`anim`. It appears in the Movements panel automatically and can be fired on its own for testing.
 
 ## How to add a new **call**
 

@@ -102,11 +102,19 @@ Also supports a schematic **Línea Moderna** layout.
 
 ## How it's built
 
-Plain HTML/CSS/JS with inline SVG. Each call is a function that produces a list of
-keyframes; a `requestAnimationFrame` player interpolates them at a capped, constant
-speed. Movement geometry (positions, arcs, facings) and collision-avoidance
-amplitudes are solved from the dancer/wheel dimensions so everything scales with the
+Plain HTML/CSS/JS with inline SVG, single file. Each movement is a function that produces a
+list of keyframes; a `requestAnimationFrame` player interpolates them at a capped, constant
+speed. All geometry scales from the dancer and wheel dimensions, so everything works at any
 couple count.
+
+Every dancer in a movement is either **scripted** (dancing a figure in their own frame) or
+**dynamic** (travelling to another couple's slot), decided by whether their couple's midpoint
+moves. Scripted dancers are immutable obstacles; travellers are the free variables, and a single
+shared planner — `planCrossings` — resolves every crossing in the app. Nothing routes around it.
+
+**Adding a movement: read [MOVEMENT_SPEC.md](MOVEMENT_SPEC.md) first.** It has the model, the
+questions to settle before writing code, the conformance checklist, and what to do when a figure
+doesn't fit the model.
 
 ## Status
 
