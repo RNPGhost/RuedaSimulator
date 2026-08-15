@@ -6,6 +6,9 @@ occur inside one "movement".*
 
 ## 1. Where we actually are
 
+*(The audit as taken, at v108. Rows struck through in §5 have since been migrated: `dameToEnchufla`'s
+planner is now the top-level `planCrossings`, and `damePequena` calls it. The rest still stand.)*
+
 Four different collision-avoidance mechanisms have grown up, and **the good one is not reusable**:
 
 | Generator | lines | How it avoids collisions |
@@ -122,8 +125,16 @@ Beat clock, frames, facing conventions (travel-facing + settle) stay as they are
    removed the planner's one ring-specific piece; and the offset is now a **scalar the caller applies**
    (`apply(id,t,off)`), so the planner never touches geometry and a non-ring formation just supplies its
    own normal.
-2. **Introduce intents** and classify the existing movements; scripted dancers become obstacles. This is
-   where Dame Pequeña's follower stops dipping and her leader takes the whole corridor.
+2. ~~**Introduce intents** and classify the existing movements; scripted dancers become obstacles.~~
+   **DONE (v110).** `planCrossings` gained `yields(id)`: a dancer for whom it returns false contributes
+   **zero** share, so the movers' share is pinned at 1 instead of being balanced against a group that
+   never deviates, and the amplitude is solved at the share actually used. Dame Pequeña is the first
+   caller — her follower is scripted, her leader is planned — and `leaderTrackPath` / `followerBowPath`
+   were deleted with it. Measured after: the standing follower moves **0.00px** (was up to ~17px) and
+   the leader holds **35.0px = CLEAR_TGT** alone. Golden moved on 24 `dame_pequena` cases and nothing
+   else; the classification is now enforced by invariants **§25** rather than living only in this doc.
+   The remaining generators aren't migrated yet — that's phase 3 — so §25a passes vacuously for them
+   (they don't read the no-evade flag at all).
 3. **Migrate** Mujeres Arriba, Dame Pequeña's leader and `dameLinea` onto the planner; retire `RISE`,
    the reactive Gaussian and the solved bow. Keep `DILE_PINCH`/`AL`/`AF` as *shape* parameters of
    scripted figures.
@@ -145,7 +156,49 @@ Phases 1–2 are the load-bearing ones; 3 onwards is repayment.
    but never deforms a prescribed shape. The assumption is that by the time custom formations land, the
    scripted library will be defined generally enough not to need deforming; revisit if that proves false.
 
-## 7. Known fix to make
+## 7. Test audit — genuine rules vs. artifacts of past implementations
+
+Done alongside phase 2, on the premise that requirements added sequentially let *perceived* requirements
+harden into golden tests. Reading all 24 invariant sections and the golden generator, one real artifact
+turned up — and it was load-bearing enough to have blocked phase 2:
+
+**Artifact — §18e's jolt guardrail (`jolt ≤ 7px/frame`), now fixed.** It read as a smoothness rule
+("the evasion must not be a lane-hop") but measured *offset amplitude × shape*, and the amplitude is set
+by the clearance requirement, which §1 already checks. It was silently calibrated on the assumption that
+every evasion is split two ways — the assumption phase 2 exists to break. The measurement is
+unambiguous: across every movement the planned swell's shape is amplitude-invariant.
+
+| case | peak offset | px/frame | ratio |
+|---|---|---|---|
+| Dame, Dame Dos (corridor shared) | 17.5px | 5.8 | **0.331** |
+| Dame Pequeña (corridor taken alone) | 35.0px | 11.7 | **0.334** |
+| the old reactive lane-hop this guards against | ~17px | ~15 | ~0.9 |
+
+Same curve, scaled. So the guardrail is now the **ratio** — the biggest one-frame step as a fraction of
+that dancer's own peak offset, bounded at 0.45, which still separates the lane-hop by 2.7×. Absolute
+violence has never been this test's job: that is exactly what `NAT_MAX`'s quickness and abruptness terms
+measure, and Dame Pequeña passes them.
+
+**Everything else audited as genuine.** Collision floors and occupancy (§1–2), grid-exactness and
+partners-facing at rest (§3–4, 13, 15, 19, 21, 23, 24), algebraic round-trips (§5, 6, 23), beat
+accounting (§7), determinism (§8), no-overtaking (§9, 11), the phase-flip and orientation-inheritance
+rules (§14, 22), and the turn-direction rules that distinguish each Línea entry/exit from its
+Adios-flavoured twin (§20, 23) are all statements about rueda, dance or physics, not about how we
+happen to compute them. Two notes worth keeping in view rather than acting on:
+
+- §9/§11 assert "no overtaking" via a 0.35 rad bound on leader progress spread. The exact rule is
+  *cyclic order never changes*; the bound is a proxy that happens to be much stricter. Fine while every
+  couple dances in sync — revisit when different couples do different things.
+- §13 keys the inner/outer rings off couple-id parity. That is a labelling convention, but the rest
+  state it checks is *constructed* from the same convention, so it is close to tautological there. It
+  earns its keep in §16, where the parity is used as a tracer to prove personnel actually rotate
+  between the rings.
+
+**Gap closed:** decision (2) below was untested. Invariants **§25** now asserts both halves of it — a
+scripted dancer's path is identical with and without evasion (she never yields), and scripted dancers
+clear each other unaided (she never needs to). 287 new checks; both hold everywhere today.
+
+## 8. Known fix to make
 
 - **`dile4` shifts its couple midpoint 3.4px.** The Dile Que No position places the partners at
   `R_RING ± R_STEP`, so their midpoint sits on the ring, while a Casino couple's midpoint sits at
@@ -153,7 +206,7 @@ Phases 1–2 are the load-bearing ones; 3 onwards is repayment.
   position in the same slot, i.e. be built on `R_mid ± R_STEP`. Harmless today (it is the only reason the
   midpoint test needs a tolerance at all), so scheduled rather than urgent.
 
-## 8. Remaining open question
+## 9. Remaining open question
 
 - **Tolerance vs slot identity.** Implement the midpoint test with a numeric threshold (~a dancer
   radius), or have each formation enumerate its couple slots and compare slot identity directly? The

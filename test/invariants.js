@@ -344,9 +344,17 @@ function run() {
   }
   // (e) Guardrail: no dancer's evasion should be violent. Every movement, from every valid position,
   //     is scored evaded-vs-intended; the worst dip must stay under NAT_MAX (a runaway dodge = a bug),
-  //     and the evasion offset may never change faster than JOLT_MAX px/frame — the planned-swell bound
-  //     that keeps the old reactive lane-hop (a ~15px offset step in one frame) from ever coming back.
-  const NAT_MAX = 1.8, JOLT_MAX = 7;
+  //     and the offset must open as a SMOOTH SWELL rather than a lane-hop.
+  //
+  //     Smoothness is checked SHAPE-NORMALISED — the biggest one-frame offset step as a fraction of that
+  //     dancer's peak offset — not as an absolute px/frame bound. Measured, the planned swell's shape is
+  //     amplitude-invariant: a dancer sharing a corridor (peak 17.5px) steps 5.8px/frame and one taking a
+  //     whole corridor alone (peak 35px) steps 11.7px/frame — ratio 0.331 vs 0.334, the same curve scaled.
+  //     An absolute bound therefore tests *how wide the corridor is*, which clearance already fixes, and
+  //     would fail a correct solo yielder. The reactive lane-hop this guards against (a ~15px step out of
+  //     a ~17px offset) scores ~0.9, so the ratio separates the two by 2.7×. Absolute violence is still
+  //     bounded — that is exactly what NAT_MAX's quickness/abruptness terms measure.
+  const NAT_MAX = 1.8, JOLT_FRAC = 0.45, JOLT_FLOOR = 2;
   for (const key of T.keys().movements) {
     for (const from of POSITIONS) {
       if (!T.validFrom(key, from)) continue;
@@ -355,16 +363,20 @@ function run() {
         if (!ev || ev.length < 3) continue;
         const w = diffNat(ev, iv);
         nChecks++; check(w.cost <= NAT_MAX, `naturalness guardrail: ${key}|${from}|n${n} evasion too violent (cost ${w.cost.toFixed(2)} > ${NAT_MAX}, ${w.id})`);
-        let jolt = 0;
+        let jolt = 0, joltAmp = 0, joltId = '';
         for (let i = 0; i < ev[0].length; i++) {
-          let px = null, py = null;
+          let px = null, py = null, step = 0, amp = 0;
           for (let f = 0; f < ev.length; f++) {
             const ox = ev[f][i].xy.x - iv[f][i].xy.x, oy = ev[f][i].xy.y - iv[f][i].xy.y;
-            if (px !== null) { const v = Math.hypot(ox - px, oy - py); if (v > jolt) jolt = v; }
+            amp = Math.max(amp, Math.hypot(ox, oy));
+            if (px !== null) { const v = Math.hypot(ox - px, oy - py); if (v > step) step = v; }
             px = ox; py = oy;
           }
+          if (amp < JOLT_FLOOR) continue;                       // an offset this small has no shape to judge
+          if (step / amp > jolt) { jolt = step / amp; joltAmp = amp; joltId = ev[0][i].id; }
         }
-        nChecks++; check(jolt <= JOLT_MAX, `jolt guardrail: ${key}|${from}|n${n} evasion offset jumps ${jolt.toFixed(1)}px/frame (> ${JOLT_MAX})`);
+        nChecks++; check(jolt <= JOLT_FRAC, `jolt guardrail: ${key}|${from}|n${n} ${joltId} evasion opens in one hop ` +
+          `(${(jolt * 100).toFixed(0)}% of its ${joltAmp.toFixed(1)}px offset in a frame > ${JOLT_FRAC * 100}%)`);
       }
     }
   }
@@ -695,6 +707,56 @@ function run() {
     T.captureLineaMovement('dame_peq', n, 0);
     const res = T.issueOn('mujeres_arriba_pequena');
     nChecks++; check(res && res.endPos === 'linea', `${tag}: the call ended ${res && res.endPos}, expected linea rest`);
+  }
+
+  // 25: the scripted / dynamic split (ENGINE_MODEL §2 and its decision 2). A dancer whose COUPLE
+  //     MIDPOINT does not move is dancing a scripted figure — choreography in her own frame, not traffic.
+  //     Two contracts follow, and both are asserted here:
+  //       (a) she NEVER yields. Her path must be identical with and without evasion, so the planner
+  //           treats her as an immutable obstacle and the traveller absorbs the whole corridor. (Only
+  //           bites on planner-driven figures — the remaining hand-tuned generators don't read the
+  //           no-evade flag at all, so it passes vacuously for them until Phase 3 migrates them.)
+  //       (b) she never NEEDS to yield: scripted dancers must clear one another unaided. If two scripted
+  //           figures collide, the figure is wrong — this catches it at its source rather than letting an
+  //           evasion paper over it.
+  //     The midpoint test needs a tolerance (a dancer radius): a couple may legitimately close up inside
+  //     its own slot — dile4 gathers its partners onto the spoke, shifting the midpoint 3.4px — while the
+  //     smallest real transition moves it 78px, so the two never come close to being confused.
+  {
+    const SLOT_TOL = T.DOT_R;
+    const midOf = (ds, id) => { const d = ds.find(x => x.id === id);
+      const p = ds.find(x => x.station === d.station && x.role !== d.role);
+      return { x: (d.xy.x + p.xy.x) / 2, y: (d.xy.y + p.xy.y) / 2 }; };
+    for (const key of T.keys().movements) {
+      for (const from of POSITIONS) {
+        if (!T.validFrom(key, from)) continue;
+        for (const n of NS) {
+          T.setupRest(from, n, 0); const start = T.state().dancers;
+          const ev = T.captureMovement(key, from, n, 0).frames; if (!ev) continue;
+          const end = T.state().dancers;
+          T.setNoEvade(true); const iv = T.captureMovement(key, from, n, 0).frames; T.setNoEvade(false);
+          const tag = `${key}|${from}|n${n}`;
+          const scripted = start.filter(d => {
+            const a = midOf(start, d.id), b = midOf(end, d.id);
+            return Math.hypot(a.x - b.x, a.y - b.y) <= SLOT_TOL; }).map(d => d.id);
+          // (a) no scripted dancer deviates from her intended figure
+          let yielded = 0, who = '';
+          scripted.forEach(id => { for (let f = 0; f < ev.length; f++) {
+            const a = ev[f].find(x => x.id === id), b = iv[f].find(x => x.id === id);
+            const v = Math.hypot(a.xy.x - b.xy.x, a.xy.y - b.xy.y);
+            if (v > yielded) { yielded = v; who = id; } } });
+          nChecks++; check(yielded <= 0.01, `scripted yields: ${tag} ${who} moved ${yielded.toFixed(1)}px to get out of the way`);
+          // (b) scripted figures clear each other with no help from the planner
+          if (scripted.length < 2) continue;
+          let worst = Infinity, at = -1;
+          ev.forEach((fr, i) => { const s = fr.filter(d => scripted.includes(d.id));
+            for (let a = 0; a < s.length; a++) for (let b = a + 1; b < s.length; b++) {
+              const v = Math.hypot(s[a].xy.x - s[b].xy.x, s[a].xy.y - s[b].xy.y);
+              if (v < worst) { worst = v; at = i; } } });
+          nChecks++; check(worst >= GAP, `scripted collide: ${tag} two scripted dancers reach ${worst.toFixed(1)}px at frame ${at} (< ${GAP}) — the figure is wrong`);
+        }
+      }
+    }
   }
 
   // 8: determinism — the golden generator produces identical output twice.

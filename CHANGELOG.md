@@ -3,6 +3,36 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v110 — Phase 2: scripted dancers become immutable obstacles
+- **`planCrossings` gained `yields(id)`.** A dancer for whom it returns false is a *scripted* dancer: an
+  obstacle the planner routes around but never deviates. When a whole group is scripted, the movers'
+  share is pinned to the full corridor instead of being balanced against a group that never yields, and
+  the amplitude is solved at the share actually used.
+- **Dame Pequeña is the first caller.** By the couple-midpoint rule her follower is scripted (Δmid 0.0px)
+  and her leader is dynamic (150.6px), so she is now fed in as an obstacle and he is the only free
+  variable. Measured: the standing follower moves **exactly 0.00px** (she used to dip up to ~17px out of
+  his way) and the leader holds **35.0px = `CLEAR_TGT`** on his own, at every wheel size.
+- **`leaderTrackPath` and `followerBowPath` deleted** — the last hand-shaped paths in the circle
+  formation. The leader's intended path is now a plain polar arc like every other traveller's; the
+  corridor comes from the planner.
+- Golden moved on the **24 `dame_pequena` cases and nothing else** (deliberate re-baseline); the
+  compounds don't route through this generator.
+- **Test audit** (ENGINE_MODEL §7), on the premise that sequential development lets *perceived*
+  requirements harden into tests. One real artifact found, and it had been blocking this change:
+  - **§18e's jolt guardrail (`≤7px/frame`) measured amplitude, not smoothness.** Across every movement
+    the planned swell's shape is amplitude-invariant — a shared corridor is 17.5px peak / 5.8px per frame
+    (ratio 0.331), a corridor taken alone is 35.0px / 11.7px per frame (ratio **0.334**): the same curve
+    scaled. The absolute bound was silently calibrated on "every evasion is split two ways", which is the
+    assumption this phase exists to break, and it duplicates §1's clearance check. Now expressed as a
+    **ratio** (biggest one-frame step ÷ that dancer's own peak offset, bounded at 0.45) — the reactive
+    lane-hop it guards against scores ~0.9, so the separation is 2.7×. Absolute violence stays the job of
+    `NAT_MAX`'s quickness/abruptness terms, which Dame Pequeña passes.
+  - Everything else audited as a genuine rule of rueda, dance or physics; two proxies noted but left
+    alone (§9/§11's progress-spread bound, §13's ring/id parity).
+- **New invariants §25** — the previously untested half of decision (2): a scripted dancer's path must be
+  identical with and without evasion (she never yields), and scripted dancers must clear each other
+  unaided (she never *needs* to). 287 new checks, 1647 total, all green.
+
 ## v109 — Phase 1: the crossing planner becomes shareable
 - **`planCrossings` extracted from `dameToEnchufla` as a top-level function.** It was ~90 lines of local
   variables inside one generator, so no other figure could use it even in principle — which is why four

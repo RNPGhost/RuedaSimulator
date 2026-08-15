@@ -4,17 +4,16 @@ How dancers *travel* between positions in the progressing figures. Agreed spec f
 rework. Only **paths** are governed here — every **endpoint** (pairings, the two-config flip,
 meet-at-midway, progress-k, grid-exact rests) is unchanged from before the rework.
 
-## Lanes (scale with the wheel)
+## The corridor (scales with the wheel)
 
-- `R_mid = R_RING · cos(δ)` — the couple-midpoint radius (δ = half the within-couple angle,
-  `DELTA_DEG`). Slightly inside the ring line.
-- `inner_R = R_mid − (DOT_R + Δ)`, `outer_R = R_mid + (DOT_R + Δ)` — the two passing lanes, symmetric
-  about `R_mid` (so their average is exactly `R_mid`), with `Δ` a small anti-collision margin.
-  Leader-on-lane vs dipped-follower clears by `outer_R − inner_R = 2(DOT_R + Δ)`, kept **only just
-  larger than one dancer diameter** (`2·DOT_R`) so passers don't leave an unnecessary gap; both scale
-  with the wheel. A leader commits to his lane quickly (within ~0.28 rad of his start) so he's fully on
-  it before the first follower he passes — required for the tight gap to still clear.
-- **Non-afuera:** "inner" = toward the centre. **Afuera:** inner↔outer swap everywhere below.
+- `CLEAR_TGT = 2·(DOT_R + Δ)` — the centre-to-centre distance any two crossing dancers must hold, with
+  `Δ = PATH_CLEAR` a small anti-collision margin. Kept **only just larger than one dancer diameter**
+  (`2·DOT_R`) so passers don't leave an unnecessary gap; it scales with the wheel.
+- There are no longer any hand-built "lanes". A traveller's intended path is a plain arc along the ring
+  and the corridor is opened by `planCrossings` **only where a crossing forces it**, split between the
+  dancers who are free to yield. Two dancers sharing the corridor each ease ~half of it; a dancer
+  passing a *scripted* one (who never yields) opens the whole of it alone.
+- **Non-afuera:** a traveller eases toward the centre. **Afuera:** the sense flips.
 
 ## Passing conventions (facing-relative, mutual)
 
@@ -61,13 +60,23 @@ width `CLEAR_TGT` (the lane clearance) — the leader eases one way, the followe
 
 Everyone faces the way they travel, settling to face the new partner over the last third (see below).
 
-## Dame Pequeña (`damePequena`) — deliberately asymmetric
+## Dame Pequeña (`damePequena`) — the asymmetric case, now on the shared planner
 
 Pequeña is *defined* as "the leader does all the travel": from Exhibela the follower stays put and the
 leader rides the whole way to the next spoke; from Casino she dances a Reverse Adios across her own
-spoke. This asymmetry is choreography, not a pathing artifact, so Pequeña keeps its own generator — the
-leader glides his lane, the otherwise-stationary follower makes at most a small dip out of his way. (Not
-folded into the shared-corridor model above, which is for the symmetric Dames.)
+spoke. Measured by the couple-midpoint rule (ENGINE_MODEL §2) that makes her **scripted** (Δmid 0.0px)
+and him **dynamic** (Δmid 150.6px), so since v110 she is fed to `planCrossings` as an **immutable
+obstacle** (`yields: false`) and he is the only free variable. Consequences, all measured:
+
+- The standing follower now moves **exactly 0.00px** — she used to dip up to ~17px out of his way, which
+  was the reactive Gaussian doing the traveller's job for him.
+- The leader holds the corridor **on his own** — 35.0px = `CLEAR_TGT` at every wheel size, so he weaves
+  around her rather than the two of them splitting the difference.
+- Because he absorbs the *whole* corridor instead of half, his offset builds at 11.7px/frame rather than
+  5.8. The **shape is unchanged** — the same C2 swell, 0.33 of its own peak per frame either way — which
+  is why the jolt guardrail is now shape-normalised (see invariants §18e).
+- `leaderTrackPath` (dip onto a lane, ride it, cut in) and `followerBowPath` are gone with it: they were
+  the last hand-shaped paths in the circle formation.
 
 ## New citizens
 
@@ -97,10 +106,13 @@ folded into the shared-corridor model above, which is for the symmetric Dames.)
 
 ## Scope
 
-- **Rewritten with these rules:** Dame, Dame Dos, Dame Pequeña, Dile Que No y Dame, Dile Que No y
-  Dame Dos, and the new 4-beat Dile Que No.
+- **On the shared planner (`planCrossings`):** Dame, Dame Dos and their Grande forms; Dame Pequeña.
+- **Still on their own avoidance schemes** (Phase 3 of ENGINE_MODEL §5): Dile Que No y Dame / y Dame Dos
+  (solved bow), Mujeres Arriba (`RISE`), `dameLinea` (prescribed).
 - **Kept exactly as-is (prescribed):** Enchufla, Vacilala, Adios, Reverse Adios, Reverse Enchufla,
-  Leader's Enchufla, Exhibela, Leader's Right Turn, and the 8-beat Dile Que No orbit.
+  Leader's Enchufla, Exhibela, Leader's Right Turn, the 8-beat Dile Que No orbit, and the 4-beat Dile
+  Que No — these are scripted figures, and by the rule above they must clear each other unaided
+  (asserted by invariants §25b).
 
 ## Path-naturalness metric
 

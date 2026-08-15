@@ -883,11 +883,11 @@ function exhibela(ds, N){
 }
 
 /* ------------------------------------------------------------------ *
- *  PATHING ROUTER  (see PATHING.md)
- *  Shared rules for how progressing dancers travel between their (already-decided) start and end
- *  spots. A leader rides a concentric passing lane, then cuts straight to his partner once the line
- *  is clear; a passed follower bows to the opposite lane and back. `leaderOuter` swaps the lanes for
- *  afuera / Dile-Que-No-position. Endpoints are supplied by the caller and never changed here.
+ *  PATHING GEOMETRY  (see PATHING.md)
+ *  Shared primitives for how progressing dancers travel between their (already-decided) start and end
+ *  spots. A traveller's INTENDED path is a plain arc along the ring; the corridor he needs to pass
+ *  anyone else is worked out by `planCrossings` below, never baked into a hand-shaped lane.
+ *  Endpoints are supplied by the caller and never changed here.
  * ------------------------------------------------------------------ */
 const PATH_CLEAR = 1.5;                                  // Δ anti-collision margin (px): lane gap = 2·(DOT_R+Δ),
                                                          // kept just over one dancer diameter (2·DOT_R)
@@ -940,16 +940,11 @@ function pathNaturalness(pts, dts, baseline){
   const cost = NAT_W.dev * D + NAT_W.spd * S + NAT_W.acc * A;
   return { deviation, speed, accel, D, S, A, cost };
 }
-function passLanes(){
-  const mid = R_RING * Math.cos(DELTA_DEG * Math.PI / 180);   // couple-midpoint radius (just inside the ring)
-  const d = DOT_R + PATH_CLEAR;
-  return { mid, inner: mid - d, outer: mid + d };
-}
-// Snap the raw start->end angle onto the branch nearest the intended (directed) travel `base` radians.
+// The signed angular sweep from aS to aE that stays nearest `base` — so a progression winds the way it
+// is meant to rather than always taking the short way round.
 function directedSweep(aS, aE, base){
   let s = aE - aS; while (s - base > Math.PI) s -= 2 * Math.PI; while (s - base < -Math.PI) s += 2 * Math.PI; return s;
 }
-// Resample a polyline into a u∈[0,1] -> point function, parameterised by arc length.
 function arcLenPath(pts){
   const cum = [0];
   for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
@@ -960,38 +955,6 @@ function arcLenPath(pts){
     const seg = cum[i] - cum[i - 1] || 1, f = (target - cum[i - 1]) / seg;
     return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f }; };
 }
-// Leader path: dip onto the lane, ride the concentric arc until within `cutAngle` of the destination
-// angle, then cut straight in to E. Staying on the track until near E keeps the straight cut-in short
-// so it never crosses the wheel (which is what made leaders collide on near-diametric progressions).
-// Returns t∈[0,1] -> point (eased).
-function leaderTrackPath(S, E, laneR, sweep, cutAngle){
-  const aS = _ang(S), rS = _rad(S), aE = aS + sweep, sgn = sweep >= 0 ? 1 : -1;
-  // Cut in for the last part of the trip — a fraction of the sweep, capped at a half-couple — so even
-  // a short single-Dame still commits to the lane through the middle (where it crosses its old partner).
-  const aRel = aE - sgn * Math.min(Math.abs(sweep) * 0.35, cutAngle);
-  const pts = [S];
-  const arcSpan = Math.abs(aRel - aS) || 1e-6;
-  const rampF = Math.min(0.4, 0.28 / arcSpan);            // commit to the lane within ~0.28 rad — before the
-                                                          // first follower he passes, so tight lanes still clear
-  const nArc = Math.max(1, Math.round((arcSpan / (Math.abs(sweep) || 1)) * 24));
-  for (let i = 1; i <= nArc; i++){ const f = i / nArc, a = aS + (aRel - aS) * f;
-    const r = f < rampF ? rS + (laneR - rS) * _smooth(f / rampF) : laneR; pts.push(_polar(a, r)); }
-  pts.push(E);
-  const at = arcLenPath(pts);
-  return t => at(_smooth(t));
-}
-// Passed-follower path: base arc S->E with a Gaussian bow toward `dipR` peaking at `tPass` (0 at the
-// ends so S/E are exact); if dipR is null she just travels the base arc. Returns eased t -> point.
-function followerBowPath(S, E, sweepBase, dipR, tPass){
-  const aS = _ang(S), rS = _rad(S), rE = _rad(E);
-  const w = 0.5, bell = x => Math.exp(-(((x - tPass) / w) ** 2));
-  const g0 = bell(0), g1 = bell(1);
-  const raw = t => { const a = aS + sweepBase * t, r = rS + (rE - rS) * t;
-    let bump = 0; if (dipR != null){ const g = bell(t); bump = (dipR - r) * (g - ((1 - t) * g0 + t * g1)); }
-    return _polar(a, r + bump); };
-  return t => raw(_smooth(t));
-}
-
 /* ------------------------------------------------------------------ *
  *  planCrossings — THE crossing planner, shared by every figure that moves dancers between couples.
  *
@@ -1006,6 +969,9 @@ function followerBowPath(S, E, sweepBase, dipR, tPass){
  *                   The caller owns the geometry (radial on a ring; the path normal in general).
  *    o.pairs        candidate [a,b] pairs that MAY cross (the figure knows who is whose partner);
  *                   the planner keeps only those whose intended paths actually crowd.
+ *    o.yields(id)   may this dancer be deviated? false ⇒ a SCRIPTED dancer: an immutable obstacle that is
+ *                   planned around but never moved. If a whole group is scripted, the other group takes
+ *                   the full corridor (and the solved amplitude widens to cover it).
  *    o.group(id)    effort-sharing group key; o.groups names the two groups being balanced.
  *    o.clearance    centre-distance to hold between a crossing pair
  *    o.engage       how near two intended paths must come to count as one engagement
@@ -1055,8 +1021,14 @@ function planCrossings(o){
     ms.forEach(m => { acc *= (1 - bumpOf(episode[id + '|' + m], t)); });
     return 1 - acc;
   };
-  const gA = (o.groups || [])[0];
-  const shareOf = (id, w) => CLEAR * (o.group(id) === gA ? w : 1 - w);
+  const gA = (o.groups || [])[0], gB = (o.groups || [])[1];
+  const yields = o.yields || (() => true);
+  const shareOf = (id, w) => yields(id) ? CLEAR * (o.group(id) === gA ? w : 1 - w) : 0;
+  // If one whole group is scripted it can't take any of the corridor, so the other takes all of it —
+  // balancing against a group that never deviates would otherwise drive the movers' share to zero.
+  const moves = g => o.ids.some(id => o.group(id) === g && yields(id) && mates[id].length);
+  const movesA = moves(gA), movesB = moves(gB);
+  const fixedShare = (movesA && movesB) ? null : (movesA ? 1 : (movesB ? 0 : 0.5));
   // Clearance depends only on the TOTAL corridor, so the amplitude is solved once (at an even split) and
   // the share only rebalances who yields.
   const at = (id, t, w, scale) =>
@@ -1068,12 +1040,13 @@ function planCrossings(o){
         if (P[b] === undefined) P[b] = at(b, t, w, scale);
         const d = Math.hypot(P[a].x - P[b].x, P[a].y - P[b].y); if (d < m) m = d; }); }
     return m; };
+  const wSolve = (fixedShare != null) ? fixedShare : 0.5;   // clearance is split-independent when both yield
   let scale = 0;
   if (live.length){ const MAXS = 3.0, SCAN = 0.1;
-    let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worst(0.5, sc) >= CLEAR){ pass = sc; break; } }
+    let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worst(wSolve, sc) >= CLEAR){ pass = sc; break; } }
     if (pass === null) scale = MAXS;
     else { let lo = Math.max(0, pass - SCAN), hi = pass;
-      for (let it = 0; it < 12; it++){ const m = (lo + hi) / 2; if (worst(0.5, m) >= CLEAR) hi = m; else lo = m; } scale = hi; }
+      for (let it = 0; it < 12; it++){ const m = (lo + hi) / 2; if (worst(wSolve, m) >= CLEAR) hi = m; else lo = m; } scale = hi; }
   }
   // Balance the split so the two groups feel equally natural: a dancer's naturalness cost rises with its
   // share, so bisect until the worst cost in each group meets.
@@ -1085,8 +1058,8 @@ function planCrossings(o){
       if (!(g in c) || cost > c[g]) c[g] = cost; });
     return c; };
   let share = 0.5;
-  if (live.length && o.forceShare == null){
-    const gB = (o.groups || [])[1];
+  if (fixedShare != null) share = fixedShare;
+  else if (live.length && o.forceShare == null){
     let lo = 0, hi = 1;
     for (let it = 0; it < 16; it++){ const m = (lo + hi) / 2; const c = groupCost(m);
       if ((c[gA] || 0) > (c[gB] || 0)) hi = m; else lo = m; }
@@ -1250,42 +1223,48 @@ function damePequena(ds, N, fromEnch, afuera){
     const k = famp * Math.sin(Math.PI * t);
     return { x: g.S.x + (g.T.x - g.S.x) * t + g.perp.x * k, y: g.S.y + (g.T.y - g.S.y) * t + g.perp.y * k }; };
 
-  // Leader endpoints + track path (rides the inner lane, outer when afuera; config unchanged).
+  // Leader endpoints. The leader is the DYNAMIC dancer here — his couple midpoint moves a full couple —
+  // while the follower is SCRIPTED (she stands still, or dances her Reverse Adios) and never yields.
   const lInfo = {};
   ds.forEach(d => { if (d.role !== 'L') return;
     const ns = nextFolSt(d.station), S = cur[d.id], E = FORMATIONS.circle.slot(ns, leaderEndLane, N);
-    lInfo[d.id] = { S, E, sweep: directedSweep(_ang(S), _ang(E), step * 2 * Math.PI / N),   // one full couple along
+    lInfo[d.id] = { S, E, aS: _ang(S), rS: _rad(S), rE: _rad(E),
+      sweep: directedSweep(_ang(S), _ang(E), step * 2 * Math.PI / N),   // one full couple along
       newStation: ns, newFollower: folByStation[ns] };
   });
   const newLeaderOf = {}; leaderIds.forEach(id => { newLeaderOf[lInfo[id].newStation] = id; });
-  const lanes = passLanes(), leaderOuter = !!afuera;
-  const leaderLaneR = leaderOuter ? lanes.outer : lanes.inner, folDipR = leaderOuter ? lanes.inner : lanes.outer;
-  const lAtId = {};
-  leaderIds.forEach(id => { const g = lInfo[id]; lAtId[id] = leaderTrackPath(g.S, g.E, leaderLaneR, g.sweep, Math.PI / N); });
   // Reverse-Adios followers (from Casino) spin anti-clockwise onto their new leader.
   ds.forEach(d => { if (d.role !== 'F') return; const g = fInfo[d.id]; if (g.kind !== 'radios') return;
     const nl = newLeaderOf[d.station], El = nl ? lInfo[nl].E : g.T;
     g.sweep = norm360(g.face0 - Math.atan2(El.y - g.T.y, El.x - g.T.x) * 180 / Math.PI);
   });
-  const shortA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  // Intended paths. The leader's is a base polar arc S→E (it follows the ring, so it never cuts across
+  // the wheel); the followers' are their scripted figures, fed in as immutable obstacles. The shared
+  // crossing planner deviates the leaders only — so the traveller absorbs the whole corridor instead of
+  // a standing follower lurching out of his way.
+  const leadDir = afuera ? +1 : -1;                      // radial sense the leader eases (toward the centre normally)
+  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
+  const isL = id => !!lInfo[id];
+  const lBase = (id, t, off) => { const g = lInfo[id], te = _smooth(t);
+    return _polar(g.aS + g.sweep * te, g.rS + (g.rE - g.rS) * te + (off || 0) * leadDir); };
+  const pairs = [];
+  leaderIds.forEach(lid => followerIds.forEach(fid => {
+    if (fid === lInfo[lid].newFollower) return; pairs.push([lid, fid]); }));
+  const plan = planCrossings({
+    ids: [...leaderIds, ...followerIds], pairs,
+    base: (id, t) => isL(id) ? lBase(id, t) : fAt(id, t),
+    apply: (id, t, off) => isL(id) ? lBase(id, t, off) : fAt(id, t),
+    yields: id => isL(id),
+    group: id => isL(id) ? 'L' : 'F', groups: ['L', 'F'],
+    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
+  });
   const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
-  const WIN = 0.5;
   const STEPS = 16, frames = [];
   let prevP = {}; leaderIds.forEach(id => prevP[id] = cur[id]);   // leaders face the way they travel (see dameToEnchufla)
   for (let s = 1; s <= STEPS; s++){
-    const t = s / STEPS, endEnv = _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08)), P = {};
+    const t = s / STEPS, P = {};
     const settle = _smooth(Math.max(0, (t - 0.7) / 0.3));   // turn to face the new partner over the last third
-    leaderIds.forEach(id => P[id] = lAtId[id](t));
-    followerIds.forEach(id => { const g = fInfo[id];
-      if (g.kind === 'radios'){ const kk = famp * Math.sin(Math.PI * t);
-        P[id] = { x: g.S.x + (g.T.x - g.S.x) * t + g.perp.x * kk, y: g.S.y + (g.T.y - g.S.y) * t + g.perp.y * kk }; }
-      else {                                             // stay put, but dip out of a passing leader's way
-        const aB = _ang(g.S), rB = _rad(g.S), arriving = newLeaderOf[g.station];
-        let prox = 0; leaderIds.forEach(lid => { if (lid === arriving) return;
-          const p = Math.exp(-((shortA(_ang(P[lid]) - aB) / WIN) ** 2)); if (p > prox) prox = p; });
-        P[id] = _polar(aB, rB + prox * endEnv * (folDipR - rB));
-      }
-    });
+    ds.forEach(d => P[d.id] = plan.at(d.id, t));
     frames.push(ds.map(d => {
       if (d.role === 'F'){ const g = fInfo[d.id];
         if (g.kind === 'stay'){ const nl = newLeaderOf[g.station], nlp = nl ? P[nl] : null;
