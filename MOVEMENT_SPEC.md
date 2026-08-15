@@ -179,6 +179,15 @@ where it lives in `test/invariants.js`.
 Then: `node test/run.js` (golden + invariants) and `node test/visual.js` (render path). Re-baseline the
 golden **only** when the change was deliberate, and say in the commit which cases moved and why.
 
+**When you suspect the tests, mutate the code.** Break something deliberately and see whether the suite
+notices — it is the only way to find a test that passes for the wrong reason. A round of this found four
+rules with nothing behind them: `lane` authority (disabling `snapRestLanes` entirely passed everything),
+the `REST_LANES` table (swapping its Dile Que No entry passed), the group predicates (`primeros`
+returning true for everyone passed), and the cantante anchoring — where every test entered Línea from a
+fresh rest, in which the cantante happens to stand on station 0, so anchoring the split at station 0
+instead of at *him* was invisible. All four are now §31. When you add a test for a subtle rule, check it
+fails against the bug it is meant to catch.
+
 **Watch the invariant COUNT, not just the pass/fail.** A re-baseline is the suite's blind spot, and it
 is widest exactly when you have legitimately approved a change to the same movement — the diff you meant
 to accept hides the one you didn't. Treat an unexplained drop in the check count as a hard stop. This is

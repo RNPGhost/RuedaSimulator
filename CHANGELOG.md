@@ -3,6 +3,23 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v124 — mutation testing, and four rules that had no test behind them
+- **Deliberately broke 27 things and checked whether the suite noticed.** The golden caught almost
+  everything that moves a dancer. Four mutations passed the entire suite, each a real rule the code
+  happened to get right:
+  - **`snapRestLanes` disabled** — lane authority (the v114 fix) was asserted nowhere.
+  - **`REST_LANES` Dile Que No entry swapped** — the lane table could be wrong silently.
+  - **`GROUPS.primeros` returning true for everyone** — the group predicates are exposed precisely so a
+    user-authored movement can select with them, and nothing exercised them.
+  - **Parity anchored at station 0 instead of at the cantante** — invisible because *every* test entered
+    Línea from a fresh rest, where the cantante happens to stand on station 0. The anchoring is the whole
+    point of the cantante concept, and no test had ever moved him first.
+- **New invariants §31** covers all four, and each was verified to fail against the mutation that
+  motivated it. Lane authority is checked against **measured position** rather than against `REST_LANES`,
+  so the table is verified rather than merely self-consistent; the cantante test dances a Dame first and
+  **asserts he actually moved**, so it cannot quietly stop testing what it is for.
+- 2697 invariants (up from 2514); golden and visual untouched.
+
 ## v123 — movements carry `play` descriptors, and the golden learns to check beat timing
 - **`play` descriptors.** A movement may name a figure or a travel from the registries instead of
   carrying a generator: `play: { figure: 'swap', params: {…} }` or `play: { travel: 'dame', mirror: true }`.

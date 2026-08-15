@@ -1056,6 +1056,78 @@ function run() {
     }
   }
 
+  // 31: three things mutation testing found nothing was checking. Each was a real rule with no test
+  //     behind it — the code happened to be right, so everything was green.
+  {
+    // (a) LANE AUTHORITY. `lane` must name the slot a dancer is actually standing on, not the one they
+    //     set off from. Checked against MEASURED position rather than against the REST_LANES table, so
+    //     the table itself is verified rather than merely self-consistent. (Disabling `snapRestLanes`
+    //     outright, or swapping the Dile Que No entry, passed the whole suite before this.)
+    const LANES = ['cw', 'ccw', 'inner', 'outer'];
+    for (const key of T.keys().movements) {
+      for (const from of POSITIONS) {
+        if (!T.validFrom(key, from)) continue;
+        for (const n of NS) {
+          const cap = T.captureMovement(key, from, n, 0);
+          if (!POSITIONS.includes(cap.endPos)) continue;      // Línea slots are checked in §15/§19
+          let wrong = '';
+          T._snap().forEach(d => {
+            let best = null, bd = Infinity;
+            LANES.forEach(l => { const p = T.circleAt(d.station, l, n, cap.endPhase);
+              const v = Math.hypot(d.xy.x - p.x, d.xy.y - p.y); if (v < bd) { bd = v; best = l; } });
+            if (best !== d.lane && !wrong) wrong = `${d.id} says '${d.lane}' but stands on '${best}'`;
+          });
+          nChecks++; check(!wrong, `lane authority: ${key}|${from}|n${n} — ${wrong}`);
+        }
+      }
+    }
+    // (b) The GROUP PREDICATES themselves — the vocabulary a user-authored movement selects with. They
+    //     are exposed for exactly that, and nothing was exercising them: making `primeros` return true
+    //     for everyone passed the whole suite.
+    for (const n of NS) {
+      T.setupRest('casino', n, 0);
+      const ds = T._snap();
+      const L = T.selectGroup(ds, 'leaders', n, 0), F = T.selectGroup(ds, 'followers', n, 0);
+      nChecks++; check(L.length === n && F.length === n && L.every(d => d.role === 'L') && F.every(d => d.role === 'F'),
+        `groups n${n}: leaders/followers do not partition the wheel`);
+      const P = T.selectGroup(ds, 'primeros', n, 0), S = T.selectGroup(ds, 'segundos', n, 0);
+      nChecks++; check(P.length === n && S.length === n && !P.some(d => S.includes(d)),
+        `groups n${n}: primeros/segundos do not partition the wheel (${P.length}/${S.length})`);
+      const cant = ds.find(d => d.id === 'L0');
+      nChecks++; check(P.some(d => d.id === cant.id), `groups n${n}: the cantante must be a primero`);
+      // …and they must ALTERNATE around the wheel, counted clockwise from the cantante.
+      let alt = true;
+      ds.forEach(d => { const off = (((d.station - cant.station) % n) + n) % n;
+        const isP = P.some(x => x.id === d.id);
+        if (isP !== (off % 2 === 0)) alt = false; });
+      nChecks++; check(alt, `groups n${n}: primeros/segundos do not alternate clockwise from the cantante`);
+      const AND = T.selectGroup(ds, ['leaders', 'primeros'], n, 0);
+      nChecks++; check(AND.length === n / 2 && AND.every(d => d.role === 'L'),
+        `groups n${n}: an AND of predicates selected ${AND.length}, want ${n / 2}`);
+    }
+    // (c) The cantante ANCHORS the split — and every test until now entered Línea from a fresh rest,
+    //     where he happens to stand on station 0. Anchoring parity at station 0 instead of at him was
+    //     therefore invisible. Dance a Dame first so he moves, THEN change formation.
+    for (const n of NS) {
+      const r = T.runCallLive('dame', 'casino', n, 0);
+      if (!r || r.endPos !== 'casino') continue;
+      const before = T._snap(), cant = before.find(d => d.id === 'L0');
+      // the test must actually be testing the thing: if he is still on station 0, it proves nothing
+      nChecks++; check(cant.station !== 0, `cantante anchor n${n}: setup failed — he is still on station 0`);
+      const st0 = {}; before.forEach(d => st0[d.id] = d.station);
+      const res = T.fireHere('linea_moderna');
+      if (!res) continue;
+      const m = n / 2;
+      let ok = true, why = '';
+      T._snap().forEach(d => {
+        const off = (((st0[d.id] - cant.station) % n) + n) % n;
+        const wantInner = off % 2 === 0;                       // primeros go to the inner ring
+        if ((d.station < m) !== wantInner && ok) { ok = false; why = `${d.id} (offset ${off}) went ${d.station < m ? 'inner' : 'outer'}`; }
+      });
+      nChecks++; check(ok, `cantante anchor n${n}: the primero/segundo split did not follow the cantante — ${why}`);
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());
