@@ -967,6 +967,69 @@ function run() {
     }
   }
 
+  // 30: MOVEMENTS ARE DATA — the claim Phase 5 exists to make, asserted rather than assumed.
+  //     (a) Every shipped figure definition survives a JSON round-trip unchanged. A function or a
+  //         closure creeping into one would break this immediately, which is the failure mode that
+  //         would otherwise go unnoticed until someone tried to save a user's movement to a file.
+  //     (b) A figure the app has never seen, built from raw JSON text, dances: it produces frames, lands
+  //         where it says it will, and is collision-free. This is the real test — a user-authored
+  //         movement has to be the same kind of thing as one we ship, or the two paths drift and the
+  //         built-ins stop testing the model.
+  {
+    // A JSON round-trip is NOT enough on its own: JSON.stringify silently DROPS a function rather than
+    // failing on it, so `stringify(parse(stringify(x))) === stringify(x)` holds for a definition with a
+    // closure in it. Walk the structure instead and name the offending path.
+    const impure = (v, path) => {
+      if (v === null) return null;
+      const t = typeof v;
+      if (t === 'string' || t === 'number' || t === 'boolean') return null;
+      if (Array.isArray(v)) { for (let i = 0; i < v.length; i++) { const r = impure(v[i], `${path}[${i}]`); if (r) return r; } return null; }
+      if (t === 'object' && (v.constructor === Object || v.constructor === undefined)) {
+        for (const k of Object.keys(v)) { const r = impure(v[k], `${path}.${k}`); if (r) return r; } return null;
+      }
+      return `${path} is a ${t}`;
+    };
+    // Self-test the walker, so it cannot rot into something that passes everything.
+    nChecks++; check(impure({ L: [{ face: () => 1 }] }, 'x') !== null, 'purity check does not detect a function');
+    nChecks++; check(impure({ L: [{ to: 'start', off: [1, 2] }] }, 'x') === null, 'purity check rejects plain data');
+    for (const name of Object.keys(T.FIGURES)) {
+      const def = T.FIGURES[name];
+      const bad = impure(def, name);
+      nChecks++; check(bad === null, `figure "${name}" is not pure data — ${bad}`);
+      nChecks++; check(JSON.stringify(JSON.parse(JSON.stringify(def))) === JSON.stringify(def),
+        `figure "${name}" does not survive a JSON round-trip`);
+    }
+    // A figure that exists nowhere in the source: step out along your own spoke, hold, come back,
+    // turning to face the wheel centre and back to your partner. Written as TEXT and parsed.
+    const NEW_FIGURE = `{
+      "L": [{ "to": {"off": [-20, 0]}, "beats": 1, "steps": 6, "face": "partner" },
+            { "to": "hold",            "beats": 1, "steps": 6, "face": "centre"  },
+            { "to": "start",           "beats": 2, "steps": 8, "face": "partner" }],
+      "F": [{ "to": {"off": [20, 0]},  "beats": 1, "steps": 6, "face": "partner" },
+            { "to": "hold",            "beats": 1, "steps": 6, "face": "outward" },
+            { "to": "start",           "beats": 2, "steps": 8, "face": "partner" }]
+    }`;
+    const def = JSON.parse(NEW_FIGURE);
+    for (const n of NS) {
+      const out = T.playFigureFrom(def, 'casino', n, 0);
+      const fr = out && out.frames;
+      nChecks++; check(!!fr && fr.length === 20, `data-defined figure: expected 20 frames, got ${fr && fr.length}`);
+      if (!fr) continue;
+      const start = fr[0], last = fr[fr.length - 1];
+      let worst = Infinity, back = 0, out1 = 0;
+      fr.forEach(f => { worst = Math.min(worst, minPairDist(f)); });
+      // it says it returns to `start`, so it must, exactly — and it must have gone somewhere first
+      const s0 = {}; T.setupRest('casino', n, 0); T._snap().forEach(d => s0[d.id] = d.xy);
+      last.forEach(d => { back = Math.max(back, Math.hypot(d.xy.x - s0[d.id].x, d.xy.y - s0[d.id].y)); });
+      fr.forEach(f => f.forEach(d => { out1 = Math.max(out1, Math.hypot(d.xy.x - s0[d.id].x, d.xy.y - s0[d.id].y)); }));
+      nChecks++; check(back <= 0.01, `data-defined figure n${n}: 'to: start' did not land exactly (${back.toFixed(2)}px)`);
+      nChecks++; check(Math.abs(out1 - 20) < 0.5, `data-defined figure n${n}: the 20px step measured ${out1.toFixed(1)}px`);
+      nChecks++; check(worst >= GAP, `data-defined figure n${n}: collides (minClear ${worst.toFixed(1)})`);
+      const bad = fr.some(f => f.some(d => !isFinite(d.xy.x) || !isFinite(d.xy.y) || !isFinite(d.face)));
+      nChecks++; check(!bad, `data-defined figure n${n}: produced NaN`);
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

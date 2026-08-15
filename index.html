@@ -1091,19 +1091,7 @@ const norm360 = a => ((a % 360) + 360) % 360;
 //   Reverse Enchufla: leader -180 (left),  follower +180 (right), bow right — the
 //                     exact time-reverse of an Enchufla (mirror path, mirror turns).
 function swapMove(ds, N, followerRotDeg, leaderRotDeg = 180, side = 'left'){
-  // Declarative: one 4-beat segment — head for your partner's spot, bowing to one side so the two of you
-  // just miss as you cross. The amplitude is the one thing that cannot be a constant: it depends on the
-  // couple width, so it is solved from the geometry and handed to the primitive.
-  const anyL = ds.find(d => d.role === 'L');
-  const anyF = ds.find(o => o.station === anyL.station && o.role === 'F');
-  const D = Math.hypot(pos(anyL).x - pos(anyF).x, pos(anyL).y - pos(anyF).y);
-  const GAP = 2 * (DOT_R + 1) + 0.5;
-  const minGap = A => { let m = Infinity; for (let s = 1; s < 40; s++){ const t = s / 40; m = Math.min(m, Math.hypot(D * (2 * t - 1), 2 * A * Math.sin(Math.PI * t))); } return m; };
-  let amp = 0; for (let a = 0; a <= 80; a += 0.5){ if (minGap(a) >= GAP){ amp = a; break; } }
-  const seg = rot => [{ to: 'partner', beats: 4, steps: 14, bow: { side, amp },
-                        face: { from: 'start', turn: rot } }];
-  const lead = seg(leaderRotDeg), foll = seg(followerRotDeg);
-  return playScript(ds, d => d.role === 'L' ? lead : foll).frames;
+  return playFigure('swap', ds, { leaderRot: leaderRotDeg, followerRot: followerRotDeg, side }).frames;
 }
 
 /* Exhibela — a showy figure danced in place from Exhibela position. The couple never
@@ -1116,24 +1104,7 @@ function swapMove(ds, N, followerRotDeg, leaderRotDeg = 180, side = 'left'){
  *            stage 2 returns (still facing along the line), stage 3 continues the same way
  *            inward, stage 4 spins 270° right while returning to the start.
  * Every dancer ends exactly where and how it began. */
-function exhibela(ds, N){
-  // Declarative (DECLARATIVE.md §6): four beat-level segments along the couple's own spoke line. The
-  // leader's "left" in Exhibela IS the inward spoke direction, so every offset is a pure `out` component
-  // and nothing here needs to know where the wheel centre is beyond the frame it was handed.
-  const AL = 26, AF = 30;                        // leader / follower "slight" travel (px)
-  const S = 12;
-  const leg = (o, face, turn) => ({ to: { off: [o, 0] }, beats: 2, steps: S, face, turn });
-  const F = (at, turn) => ({ from: 'partner0', at, turn });
-  const lead = [                                 // dips inward, back, outward, back — facing her throughout
-    leg(-AL, 'partner'), leg(0, 'partner'), leg(AL, 'partner'), leg(0, 'partner'),
-  ];
-  const foll = [                                 // steps out turning 90° right, back, in, then spins 270°
-    leg( AF, F(0,  90), 'cw'), leg(0, F(90, 0), 'cw'),
-    leg(-AF, F(90,  0), 'cw'), leg(0, F(90, 270), 'cw'),
-  ];
-  // 8 beats total: each of the 4 stages takes 2 beats (uniform across its frames).
-  return playScript(ds, d => d.role === 'L' ? lead : foll);
-}
+function exhibela(ds, N){ return playFigure('exhibela', ds); }
 
 /* ------------------------------------------------------------------ *
  *  PATHING GEOMETRY  (see PATHING.md)
@@ -1894,7 +1865,7 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
   // her ¾ circle back to her own spot (scripted, midpoint unmoved) while the leader crosses to his new
   // partner. This is the compound shape MOVEMENT_SPEC §4 predicted the model would need.
   const NT = 32;
-  const openPhrase = cur => playScript(cur, dileOpeningPlan(io));
+  const openPhrase = cur => playFigure('dile_opening', cur, dileOpeningParams(io));
   const closePhrase = cur => {
     const frames = [], segBeats = [], turnStart = Math.round(NT * 0.72);
     const prevXY = {}; ds.forEach(d => prevXY[d.id] = info[d.id].spoke);
@@ -1925,6 +1896,96 @@ function dileQueNoYDame(ds, N, k = 1, afuera = false){
   return playPhrases(ds, N, [openPhrase, closePhrase]);
 }
 
+/* ------------------------------------------------------------------ *
+ *  FIGURE REGISTRY — scripted figures as pure DATA (DECLARATIVE.md §9)
+ *
+ *  Every entry below is plain JSON: no functions, no closures, nothing that could not have come out of a
+ *  file a user wrote. That is the point — a movement a user composes must be the same kind of thing as
+ *  one we ship, or the two paths drift and the built-ins stop testing the model.
+ *
+ *  The one thing a figure cannot state as a constant is an amplitude that depends on the geometry (how
+ *  far apart the partners stand, and so how wide a bow has to be to miss). Those are named SOLVERS the
+ *  engine evaluates — `{ solve: 'justMiss' }` — which keeps the data declarative and the arithmetic in
+ *  one place. Primitives are shapes; solvers are the engine's job.
+ * ------------------------------------------------------------------ */
+const SOLVERS = {
+  // The smallest sideways bow that lets two partners swap places without brushing. Depends on how far
+  // apart they stand, so it scales with the wheel.
+  justMiss(ds){
+    const L = ds.find(d => d.role === 'L');
+    const F = ds.find(o => o.station === L.station && o.role === 'F');
+    const D = Math.hypot(pos(L).x - pos(F).x, pos(L).y - pos(F).y), G = 2 * (DOT_R + 1) + 0.5;
+    const minGap = A => { let m = Infinity;
+      for (let s = 1; s < 40; s++){ const t = s / 40; m = Math.min(m, Math.hypot(D * (2 * t - 1), 2 * A * Math.sin(Math.PI * t))); }
+      return m; };
+    for (let a = 0; a <= 80; a += 0.5) if (minGap(a) >= G) return a;
+    return 0;
+  },
+};
+/* Substitute any `{ solve: name }` in a definition for its value, and turn a role-keyed definition into
+ * the plan function `playScript` takes. Pure: the definition itself is never mutated. */
+function resolveFigure(def, ds, params){
+  const sub = v => {
+    if (Array.isArray(v)) return v.map(sub);
+    if (v && typeof v === 'object'){
+      if (typeof v.solve === 'string') return SOLVERS[v.solve](ds, params);
+      if (typeof v.param === 'string') return (params || {})[v.param];
+      const o = {}; for (const k in v) o[k] = sub(v[k]); return o;
+    }
+    return v;
+  };
+  const plan = sub(def);
+  return d => plan[d.role] || plan.all || [];
+}
+function playFigure(figure, ds, params){
+  return playScript(ds, resolveFigure(typeof figure === 'string' ? FIGURES[figure] : figure, ds, params));
+}
+
+const FIGURES = {
+  // The 4-beat Dile Que No opening: dip out along your own Exhibela line, back, onto the couple's
+  // midpoint spoke, pause. Beats 2 and 3 are `round`, so they join into ONE curve through the start
+  // point rather than meeting at a hard corner there. `io` mirrors the whole figure inside out for
+  // afuera. Shared by the standalone 4-beat Dile Que No and by the Dile Que No y Dame compounds.
+  dile_opening: {
+    L: [{ to: { off: [{ param: 'dipL' }, 0] }, beats: 1, steps: 8, face: 'partner' },
+        { to: 'start',                          beats: 1, steps: 8, face: 'partner' },
+        { to: { spoke: { param: 'io' } },       beats: 1, steps: 8, round: true,
+          face: { blend: ['partner', { param: 'centre' }] } },
+        { to: 'hold',                           beats: 1, steps: 4, face: { param: 'centre' } }],
+    F: [{ to: { off: [{ param: 'dipF' }, 0] }, beats: 1, steps: 8, face: { from: 'start', turn: 90 } },
+        { to: 'start',                          beats: 1, steps: 8,
+          face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
+        { to: { spoke: { param: 'ioNeg' } },    beats: 1, steps: 8, round: true,
+          face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
+        { to: 'hold',                           beats: 1, steps: 4, face: 'perpSpoke' }],
+  },
+  // Exhibela — four legs along the couple's own spoke line, ending exactly where it began.
+  exhibela: {
+    L: [{ to: { off: [-26, 0] }, beats: 2, steps: 12, face: 'partner' },
+        { to: { off: [0, 0] },   beats: 2, steps: 12, face: 'partner' },
+        { to: { off: [26, 0] },  beats: 2, steps: 12, face: 'partner' },
+        { to: { off: [0, 0] },   beats: 2, steps: 12, face: 'partner' }],
+    F: [{ to: { off: [30, 0] },  beats: 2, steps: 12, turn: 'cw', face: { from: 'partner0', at: 0,  turn: 90 } },
+        { to: { off: [0, 0] },   beats: 2, steps: 12, turn: 'cw', face: { from: 'partner0', at: 90, turn: 0 } },
+        { to: { off: [-30, 0] }, beats: 2, steps: 12, turn: 'cw', face: { from: 'partner0', at: 90, turn: 0 } },
+        { to: { off: [0, 0] },   beats: 2, steps: 12, turn: 'cw', face: { from: 'partner0', at: 90, turn: 270 } }],
+  },
+  // Leader's Right Turn — danced in place; his full spin lands on the bearing he started from.
+  leaders_right_turn: {
+    L: [{ to: 'hold', beats: 4, steps: 12, turn: 'cw', face: { from: 'start', turn: 360, endAt: 'base' } }],
+    F: [{ to: 'hold', beats: 4, steps: 12, face: 'hold' }],
+  },
+  // The swap family — head for your partner's spot, bowing to one side so you just miss as you cross.
+  // `leaderRot` / `followerRot` / `side` are the parameters that separate Enchufla from Vacilala from
+  // Reverse Enchufla; the bow amplitude is solved, never written down.
+  swap: {
+    L: [{ to: 'partner', beats: 4, steps: 14, bow: { side: { param: 'side' }, amp: { solve: 'justMiss' } },
+          face: { from: 'start', turn: { param: 'leaderRot' } } }],
+    F: [{ to: 'partner', beats: 4, steps: 14, bow: { side: { param: 'side' }, amp: { solve: 'justMiss' } },
+          face: { from: 'start', turn: { param: 'followerRot' } } }],
+  },
+};
+
 /* A movement may be a SEQUENCE OF PHRASES with different intents in each — a scripted opening, then a
  * travel, say. Each phrase starts from where the last one left the dancers. (MOVEMENT_SPEC §4 listed
  * "a dancer whose couple midpoint moves and then returns within one movement" as the model assumption
@@ -1948,23 +2009,8 @@ function playPhrases(ds, N, phrases){
  * `io` is +1 normally and −1 afuera, which mirrors the figure inside out.
  * ONE definition, shared by the standalone 4-beat Dile Que No and by the Dile Que No y Dame compounds
  * that open with exactly these four beats — so the two can no longer drift apart. */
-function dileOpeningPlan(io){
-  const AL = 16, AF = 18, SS = 8, PH = 4;                    // Exhibela-line dip amplitudes
-  const centre = io > 0 ? 'centre' : 'outward';              // afuera faces away from the wheel centre
-  const lead = [
-    { to: { off: [-io * AL, 0] }, beats: 1, steps: SS, face: 'partner' },        // leader dips IN
-    { to: 'start',                beats: 1, steps: SS, face: 'partner' },
-    { to: { spoke:  io },         beats: 1, steps: SS, round: true, face: { blend: ['partner', centre] } },
-    { to: 'hold',                 beats: 1, steps: PH, face: centre },
-  ];
-  const foll = [
-    { to: { off: [ io * AF, 0] }, beats: 1, steps: SS, face: { from: 'start', turn: 90 } },   // steps OUT
-    { to: 'start',                beats: 1, steps: SS, face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
-    { to: { spoke: -io },         beats: 1, steps: SS, round: true,
-      face: { settleTo: 'perpSpoke', over: 0.3, phaseU: true } },
-    { to: 'hold',                 beats: 1, steps: PH, face: 'perpSpoke' },
-  ];
-  return d => d.role === 'L' ? lead : foll;
+function dileOpeningParams(io){
+  return { io, ioNeg: -io, dipL: -io * 16, dipF: io * 18, centre: io > 0 ? 'centre' : 'outward' };
 }
 
 /* 4-beat Dile Que No (Exhibela -> Dile Que No position). The opening of a Dile Que No y Dame, danced
@@ -1974,9 +2020,7 @@ function dileOpeningPlan(io){
  * centre by beat 3 and holds; the follower turns 90° right to the centre on beat 1, holds, then turns
  * to perpendicular-to-the-spoke (clockwise) on beat 3 and holds. Ends in the Dile Que No position —
  * no progression, no phase change. */
-function dileQueNo4(ds, N){
-  return playScript(ds, dileOpeningPlan(1));
-}
+function dileQueNo4(ds, N){ return playFigure('dile_opening', ds, dileOpeningParams(1)); }
 
 /* Mujeres Arriba (Dile Que No position -> Exhibela). The women advance: every follower progresses one
  * partnership CLOCKWISE to the next couple's Exhibela spot, doing ALL the travelling so the spokes and
@@ -2018,14 +2062,7 @@ function mujeresArriba(ds, N){
  * not rotate; the leader holds his spot and turns a full 360° to his right (clockwise), ending
  * facing exactly the way he began. Nothing moves position. Danced after an Enchufla it leaves the
  * couple looking like Exhibela, but in the new Afuera Casino position (an inside-out Casino). */
-function leadersRightTurn(ds, N){
-  // Declarative: one 4-beat segment each. Nobody moves; the leader spins a full turn to his right,
-  // `endAt: 'base'` landing him back on the exact bearing he started from rather than on start + 360.
-  const spin = [{ to: 'hold', beats: 4, steps: 12, turn: 'cw',
-                  face: { from: 'start', turn: 360, endAt: 'base' } }];
-  const still = [{ to: 'hold', beats: 4, steps: 12, face: 'hold' }];   // fixed spot, keeps facing her partner
-  return playScript(ds, d => d.role === 'L' ? spin : still);
-}
+function leadersRightTurn(ds, N){ return playFigure('leaders_right_turn', ds); }
 
 /* ------------------------------ render ------------------------------ */
 const svg = document.getElementById('stage');

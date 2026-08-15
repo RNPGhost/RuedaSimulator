@@ -244,3 +244,33 @@ Its opening is now **literally the same definition** the standalone 4-beat Dile 
 duplicated geometry.
 - **Then:** the Línea entries/exits (`coupleWalkFrames`) and `dameLinea`, which are rigid-couple travel —
   the same travel intent with `unit` set.
+
+
+## 9. Figures as pure data — the registry (built)
+
+`FIGURES` holds scripted figures as **plain JSON**: no functions, no closures, nothing that could not
+have come out of a file a user wrote. That is the point — a movement a user composes must be the same
+kind of thing as one we ship, or the two paths drift and the built-ins stop testing the model.
+
+In the registry today: `exhibela`, `leaders_right_turn`, `swap` (which backs six movements) and
+`dile_opening` (which backs the standalone 4-beat Dile Que No and both compounds).
+
+**Two indirections keep the data declarative.**
+
+- `{ param: 'name' }` — a value supplied at instantiation. It is what separates Enchufla from Vacilala
+  from Reverse Enchufla: one `swap` figure, three sets of rotations and a bow side.
+- `{ solve: 'name' }` — a named engine SOLVER. The one thing a figure cannot state as a constant is an
+  amplitude that depends on the geometry: how far apart the partners stand decides how wide a bow has to
+  be to miss. `justMiss` computes it. **Primitives are shapes; solvers are the engine's job** — which is
+  also what Sam settled for custom movements ("the engine auto-resolves what it can").
+
+**Invariants §30 asserts the claim rather than assuming it.** Every shipped definition is walked and
+must be pure data, and a figure that **exists nowhere in the source** — written as JSON *text* in the
+test and parsed — is run through the engine and must produce frames, land exactly where it says it will,
+and be collision-free.
+
+A note on how that test was nearly useless. The first version compared `JSON.stringify(JSON.parse(...))`
+against the original — but `JSON.stringify` **silently drops** a function rather than failing on it, so
+`{face: () => 1}` round-trips "successfully" to `{}`. The check now walks the structure and names the
+offending path, and it **self-tests against a known-bad sample** so it cannot rot into something that
+passes everything.

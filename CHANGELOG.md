@@ -3,6 +3,26 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v121 — figures as pure data, and a test that proves it
+- **`FIGURES` — a registry of scripted figures as plain JSON.** No functions, no closures, nothing that
+  could not have come out of a file a user wrote. `exhibela`, `leaders_right_turn`, `swap` (six
+  movements) and `dile_opening` (three) now live there; the generators are one line each.
+- **Two indirections keep the data declarative.** `{param: 'name'}` is a value supplied at instantiation
+  — one `swap` figure with three sets of rotations is what separates Enchufla from Vacilala from Reverse
+  Enchufla. `{solve: 'name'}` is a named engine solver, for the one thing a figure cannot state as a
+  constant: an amplitude that depends on how far apart the partners stand. Primitives are shapes;
+  solvers are the engine's job.
+- **New invariants §30 asserts "movements are data" rather than assuming it.** Every shipped definition
+  is walked and must be pure data, and a figure that **exists nowhere in the source** — written as JSON
+  text in the test and parsed — is run through the engine and must produce frames, land exactly where it
+  says it will, and be collision-free.
+- **The first version of that test was nearly useless, and the fix is the interesting part.**
+  `JSON.stringify` *silently drops* a function rather than failing on it, so comparing
+  `stringify(parse(stringify(def)))` against the original passes for a definition with a closure in it.
+  The check now walks the structure and names the offending path — and **self-tests against a known-bad
+  sample**, so it cannot rot into something that passes everything.
+- 2470 invariants; golden and visual untouched.
+
 ## v120 — the Línea entries and exits read their placement structurally
 - **`lineaModerna` and `lineaToRueda` now use the group vocabulary** instead of index arithmetic.
   Who is a primero and who is a segundo is a structural fact — the cantante's couple and every other one
