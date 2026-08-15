@@ -979,6 +979,9 @@ function arcLenPath(pts){
  *                   The caller owns the geometry (radial on a ring; the path normal in general).
  *    o.pairs        candidate [a,b] pairs that MAY cross (the figure knows who is whose partner);
  *                   the planner keeps only those whose intended paths actually crowd.
+ *    o.unit(id)     which free variable this dancer belongs to (default: itself). Dancers sharing a unit
+ *                   share ONE offset, so a bonded couple deviates as a rigid body; partners inside a
+ *                   unit are never treated as a crossing pair. Collisions stay dancer-vs-dancer.
  *    o.yields(id)   may this dancer be deviated? false ⇒ a SCRIPTED dancer: an immutable obstacle that is
  *                   planned around but never moved. If a whole group is scripted, the other group takes
  *                   the full corridor (and the solved amplitude widens to cover it).
@@ -1001,9 +1004,21 @@ function planCrossings(o){
   // sit within the engagement distance. Smoothness lives in TIME: a reactive spatial trigger is crossed in
   // ~1 frame and lands as a lane-hop, so each dancer of a pair instead follows one C2 SWELL, zero at the
   // move's ends and full over the engagement, its ramps stretched over the slack before and after.
-  const mates = {}; o.ids.forEach(id => mates[id] = []);
-  const episode = {}, live = [];
-  (o.pairs || []).forEach(pr => {
+  //
+  // Collisions are always DANCER-vs-DANCER, but the free variables are UNITS: `o.unit(id)` names the
+  // thing that yields. A solo traveller is its own unit; a bonded couple is one unit whose two dancers
+  // share a single offset, so it deviates as a rigid body instead of being pulled apart. Partners inside
+  // a unit are skipped as a candidate pair — they are held together by the figure, not by the planner.
+  const unit = o.unit || (id => id);
+  const mates = {}; o.ids.forEach(id => mates[unit(id)] = mates[unit(id)] || []);
+  const live = [];
+  // Every pair the solve must hold apart: all candidates except partners inside one rigid unit, whose
+  // spacing the figure fixes. `live` (below) is the subset that crowds on the INTENDED paths and so earns
+  // a swell — but the amplitude is solved against ALL of these, because an evasion can push a pair
+  // together that was never in trouble to begin with. Two couples passing head-on are the clean example:
+  // each sidesteps away from the partner it was going to hit and straight toward the other one.
+  const checkPairs = (o.pairs || []).filter(pr => unit(pr[0]) !== unit(pr[1]));
+  checkPairs.forEach(pr => {
     const a = pr[0], b = pr[1];
     let crowd = false;
     for (let s = 0; s < NSMP && !crowd; s++) if (gap(a, b, smpT[s]) < CLEAR) crowd = true;
@@ -1015,20 +1030,20 @@ function planCrossings(o){
     const upEnd = Math.max(t0, R_MIN), upStart = Math.max(0, upEnd - R_MAX);
     const dnStart = Math.min(t1, 1 - R_MIN), dnEnd = Math.min(1, dnStart + R_MAX);
     const ep = { upStart, upEnd, dnStart, dnEnd };
-    episode[a + '|' + b] = ep; episode[b + '|' + a] = ep;
-    mates[a].push(b); mates[b].push(a); live.push([a, b]);
+    mates[unit(a)].push(ep); mates[unit(b)].push(ep); live.push([a, b]);
   });
   const bumpOf = (ep, t) => {
     const rise = ss5((t - ep.upStart) / Math.max(1e-6, ep.upEnd - ep.upStart));
     const fall = 1 - ss5((t - ep.dnStart) / Math.max(1e-6, ep.dnEnd - ep.dnStart));
     return Math.min(rise, fall);
   };
-  // A dancer's profile is the smooth union of its per-mate swells: overlapping passes merge into one
-  // wider crest rather than needing a special case.
-  const proxOf = (id, t) => {
-    const ms = mates[id]; if (!ms.length) return 0;
+  // A unit's profile is the smooth union of its swells: overlapping passes merge into one wider crest
+  // rather than needing a special case. A couple takes the union of BOTH partners' engagements, which is
+  // what makes it ease as one body — if either of them would be brushed, the couple moves.
+  const proxOf = (u, t) => {
+    const ms = mates[u]; if (!ms.length) return 0;
     let acc = 1;
-    ms.forEach(m => { acc *= (1 - bumpOf(episode[id + '|' + m], t)); });
+    ms.forEach(ep => { acc *= (1 - bumpOf(ep, t)); });
     return 1 - acc;
   };
   const gA = (o.groups || [])[0], gB = (o.groups || [])[1];
@@ -1036,23 +1051,26 @@ function planCrossings(o){
   const shareOf = (id, w) => yields(id) ? CLEAR * (o.group(id) === gA ? w : 1 - w) : 0;
   // If one whole group is scripted it can't take any of the corridor, so the other takes all of it —
   // balancing against a group that never deviates would otherwise drive the movers' share to zero.
-  const moves = g => o.ids.some(id => o.group(id) === g && yields(id) && mates[id].length);
+  const moves = g => o.ids.some(id => o.group(id) === g && yields(id) && mates[unit(id)].length);
   const movesA = moves(gA), movesB = moves(gB);
   const fixedShare = (movesA && movesB) ? null : (movesA ? 1 : (movesB ? 0 : 0.5));
   // Clearance depends only on the TOTAL corridor, so the amplitude is solved once (at an even split) and
   // the share only rebalances who yields.
   const at = (id, t, w, scale) =>
-    o.apply(id, t, (NAT_NOEVADE ? 0 : scale) * shareOf(id, w) * proxOf(id, t) * endEnvAt(t));
+    o.apply(id, t, (NAT_NOEVADE ? 0 : scale) * shareOf(id, w) * proxOf(unit(id), t) * endEnvAt(t));
   const worst = (w, scale) => { let m = Infinity;
     for (let s = 0; s < NSMP; s++){ const t = smpT[s], P = {};
-      live.forEach(pr => { const a = pr[0], b = pr[1];
+      checkPairs.forEach(pr => { const a = pr[0], b = pr[1];
         if (P[a] === undefined) P[a] = at(a, t, w, scale);
         if (P[b] === undefined) P[b] = at(b, t, w, scale);
         const d = Math.hypot(P[a].x - P[b].x, P[a].y - P[b].y); if (d < m) m = d; }); }
     return m; };
   const wSolve = (fixedShare != null) ? fixedShare : 0.5;   // clearance is split-independent when both yield
   let scale = 0;
-  if (live.length){ const MAXS = 3.0, SCAN = 0.1;
+  // The cap is a solver bound, not a style choice: a rigid unit needs a far wider corridor than a solo
+  // dancer (two couples passing must separate by a couple width PLUS the clearance, ~2.5× on its own),
+  // so 3.0 sat right on top of the rigid-pair case. Nothing today comes near this.
+  if (live.length){ const MAXS = 6.0, SCAN = 0.1;
     let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worst(wSolve, sc) >= CLEAR){ pass = sc; break; } }
     if (pass === null) scale = MAXS;
     else { let lo = Math.max(0, pass - SCAN), hi = pass;
@@ -1331,24 +1349,48 @@ function coupleWalkFrames(ds, start, target, endSt, endLane, turnDir){
     // the same rule mirrored, which is why the entries front-load their turn and the exits back-load it.
     const inward = Math.hypot(Me.x - CX, Me.y - CY) < Math.hypot(Ms.x - CX, Ms.y - CY);
     const w0 = inward ? 0 : 1 - LM_ROT_SPAN, w1 = inward ? LM_ROT_SPAN : 1;
-    cp[k] = { L, F, Ms, Me, a0, da, w0, w1, r0: Math.hypot(vs.x, vs.y), r1: Math.hypot(ve.x, ve.y) };
+    cp[k] = { L, F, Ms, Me, a0, da, w0, w1, inward, r0: Math.hypot(vs.x, vs.y), r1: Math.hypot(ve.x, ve.y) };
   });
   const turnOf = k => { let d = cp[k].da;                             // …resolved to the requested direction
     if (Math.abs(d) < 1e-6) return 0;
     if (turnDir === 'cw'  && d < 0) d += 2 * Math.PI;
     if (turnDir === 'ccw' && d > 0) d -= 2 * Math.PI;
     return d; };
+  // The couple is the planner's UNIT: one offset for the pair, applied to the midpoint along the normal
+  // to its walk, so the couple sidesteps as one body and never stretches or shears. (Today every Línea
+  // entry and exit clears by 45px or more against a 35px corridor, so nothing actually deviates — but
+  // this is the seam that lets a couple in flight be planned around, which is what custom formations and
+  // overlapping movements need.) Groups: couples walking IN versus couples walking OUT — the two that can
+  // meet — so a crossing is shared between them rather than dumped on one.
+  couples.forEach(k => { const g = cp[k];
+    const vx = g.Me.x - g.Ms.x, vy = g.Me.y - g.Ms.y, L = Math.hypot(vx, vy) || 1;
+    g.nrm = { x: vy / L, y: -vx / L };                                // left of the walk
+  });
+  const posOf = (k, t0, off) => { const g = cp[k], te = _smooth(t0);
+    const tr = _smooth(Math.max(0, Math.min(1, (t0 - g.w0) / (g.w1 - g.w0))));
+    const mx = g.Ms.x + (g.Me.x - g.Ms.x) * te + g.nrm.x * (off || 0);
+    const my = g.Ms.y + (g.Me.y - g.Ms.y) * te + g.nrm.y * (off || 0);
+    const a = g.a0 + turnOf(k) * tr, r = g.r0 + (g.r1 - g.r0) * te;
+    const dx = r * Math.cos(a), dy = r * Math.sin(a);
+    return { L: { x: mx + dx, y: my + dy }, F: { x: mx - dx, y: my - dy } };
+  };
+  const sideOf = {}; ds.forEach(d => sideOf[d.id] = d.role === 'L' ? 'L' : 'F');
+  const at1 = (id, t, off) => posOf(partnerKey[id], t, off)[sideOf[id]];
+  const wPairs = [];
+  for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++)
+    if (partnerKey[ds[i].id] !== partnerKey[ds[j].id]) wPairs.push([ds[i].id, ds[j].id]);
+  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
+  const plan = planCrossings({
+    ids: ds.map(d => d.id), pairs: wPairs,
+    base: (id, t) => at1(id, t), apply: at1,
+    unit: id => partnerKey[id],
+    group: id => cp[partnerKey[id]].inward ? 'in' : 'out', groups: ['in', 'out'],
+    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
+  });
   const STEPS = 16, frames = [];
   for (let s = 1; s <= STEPS; s++){
-    const t0 = s / STEPS, te = _smooth(t0), P = {};
-    couples.forEach(k => { const g = cp[k];
-      const tr = _smooth(Math.max(0, Math.min(1, (t0 - g.w0) / (g.w1 - g.w0))));
-      const mx = g.Ms.x + (g.Me.x - g.Ms.x) * te, my = g.Ms.y + (g.Me.y - g.Ms.y) * te;
-      const a = g.a0 + turnOf(k) * tr, r = g.r0 + (g.r1 - g.r0) * te;
-      const dx = r * Math.cos(a), dy = r * Math.sin(a);
-      P[g.L] = { x: mx + dx, y: my + dy };
-      P[g.F] = { x: mx - dx, y: my - dy };
-    });
+    const t0 = s / STEPS, P = {};
+    ds.forEach(d => P[d.id] = plan.at(d.id, t0));
     frames.push(ds.map(d => { const g = cp[partnerKey[d.id]];
       const p = P[d.id], q = P[d.role === 'L' ? g.F : g.L];
       return { ...d, station: endSt[d.id], lane: endLane[d.id], xy: p,
@@ -1451,7 +1493,7 @@ function dameLinea(ds, N){
     const sw = directedSweep(aS, _ang(E), sweepBase);
     return t => { const te = _smooth(t); return _polar(aS + sw * te, rS + (rE - rS) * te); }; };
   const walkTo = (S, E) => t => { const te = _smooth(t); return { x: S.x + (E.x - S.x) * te, y: S.y + (E.y - S.y) * te }; };
-  const path = {}, endSt = {}, endLane = {}, partner = {};
+  const path = {}, endSt = {}, endLane = {}, partner = {}, kind = {};
   for (let j = 0; j < m; j++){
     const priL = at(st(2 * j), 'L'),     priF = at(st(2 * j), 'F');
     const segL = at(st(2 * j + 1), 'L'), segF = at(st(2 * j + 1), 'F');
@@ -1463,16 +1505,40 @@ function dameLinea(ds, N){
     path[priF.id] = arcTo(start[priF.id], eOutF,  HALF);    // …meeting his new follower coming the other half
     path[priL.id] = walkTo(start[priL.id], ePriL);          // the inner couple walks straight to its spoke
     path[segF.id] = walkTo(start[segF.id], eInF);
+    kind[segL.id] = kind[priF.id] = 'arc'; kind[priL.id] = kind[segF.id] = 'walk';
     partner[segL.id] = priF.id; partner[priF.id] = segL.id;
     partner[priL.id] = segF.id; partner[segF.id] = priL.id;
   }
+  // Everyone here is a traveller — they all land in a new couple — so they all go through the planner.
+  // Nobody is bonded during the walk (each dancer crosses alone to meet a new partner), so each is its own
+  // unit; the two groups are the half of the exchange that arcs round the ring and the half that walks
+  // straight in. The offset is applied along each path's own LEFT NORMAL rather than radially, because
+  // the two halves cross at right angles — the arcs run tangentially and the walks run radially — and
+  // mutual-left separates a perpendicular crossing just as it does a head-on one. Today the intended
+  // paths clear by 61–64px against a 35px corridor, so nothing deviates; this is the safety net for
+  // couple counts and formations that aren't as roomy.
+  const offsetPath = fn => (t, off) => { const p = fn(t); if (!off) return p;
+    const h = 1e-3, a = fn(Math.max(0, t - h)), b = fn(Math.min(1, t + h));
+    const vx = b.x - a.x, vy = b.y - a.y, L = Math.hypot(vx, vy) || 1;
+    return { x: p.x + (vy / L) * off, y: p.y - (vx / L) * off }; };
+  const off = {}; ds.forEach(d => off[d.id] = offsetPath(path[d.id]));
+  const dlPairs = [];
+  for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++)
+    if (partner[ds[i].id] !== ds[j].id) dlPairs.push([ds[i].id, ds[j].id]);
+  const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
+  const plan = planCrossings({
+    ids: ds.map(d => d.id), pairs: dlPairs,
+    base: (id, t) => off[id](t), apply: (id, t, o2) => off[id](t, o2),
+    group: id => kind[id], groups: ['arc', 'walk'],
+    clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
+  });
   // Everyone faces the way they travel, settling onto their new partner over the last third (as the Dames do).
   const shortDiff = (to, from) => ((to - from + 540) % 360 + 360) % 360 - 180;
   const STEPS = 16, frames = [];
   let prev = {}; ds.forEach(d => prev[d.id] = start[d.id]);
   for (let s = 1; s <= STEPS; s++){
     const t = s / STEPS, P = {};
-    ds.forEach(d => P[d.id] = path[d.id](t));
+    ds.forEach(d => P[d.id] = plan.at(d.id, t));
     const settle = _smooth(Math.max(0, (t - 0.7) / 0.3));
     frames.push(ds.map(d => { const a = prev[d.id], b = P[d.id], q = P[partner[d.id]];
       const pf = Math.atan2(q.y - b.y, q.x - b.x) * 180 / Math.PI;

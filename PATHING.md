@@ -111,11 +111,16 @@ obstacle** (`yields: false`) and he is the only free variable. Consequences, all
 
 ## Scope
 
-- **On the shared planner (`planCrossings`) — every figure that avoids anything:** Dame, Dame Dos and
-  their Grande forms; Dame Pequeña; Mujeres Arriba; Dile Que No y Dame and y Dame Dos. As of v111 the
-  planner is the only code in the app that knows about collisions.
-- **Prescribed travellers, no avoidance needed:** `dameLinea` (clears by 61–64px) and the Línea
-  entries/exits via `coupleWalkFrames`. They become planner clients when rigid-pair travel lands.
+- **On the shared planner (`planCrossings`) — every traveller in the app:** Dame, Dame Dos and their
+  Grande forms; Dame Pequeña; Mujeres Arriba; Dile Que No y Dame and y Dame Dos; Dame Línea; and the
+  Línea entries and exits via `coupleWalkFrames`, which travel as **rigid couples** (one offset for the
+  pair, applied to its midpoint). As of v113 the planner is the only code in the app that knows about
+  collisions, and nothing routes around it. The last four are *dormant* — their intended paths clear by
+  45–64px against a 35px corridor, so no evasion is called for — but they are wired, which is what a
+  roomier-formation-today / tighter-formation-tomorrow engine needs.
+- **The offset direction is the path's own left normal** in the general case (`dameLinea`, whose two
+  halves cross at right angles). The radial offset the ring figures use is that same rule specialised to
+  a circle.
 - **Kept exactly as-is (prescribed):** Enchufla, Vacilala, Adios, Reverse Adios, Reverse Enchufla,
   Leader's Enchufla, Exhibela, Leader's Right Turn, the 8-beat Dile Que No orbit, and the 4-beat Dile
   Que No — these are scripted figures, and by the rule above they must clear each other unaided

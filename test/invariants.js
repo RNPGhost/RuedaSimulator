@@ -793,6 +793,56 @@ function run() {
     }
   }
 
+  // 27: rigid-pair travel — `planCrossings`' UNIT support, driven directly. Every current Línea entry and
+  //     exit clears by 45px or more against a 35px corridor, so the planner is dormant in all of them and
+  //     no movement test can reach this code. It is the seam custom formations and overlapping movements
+  //     will run through, so it is exercised here on forced crossings instead of shipped untested.
+  {
+    const CLEAR = 2 * (T.DOT_R + T.PATH_CLEAR), W = T.W_DIST, SMP = 40;
+    // Two bonded couples walking head-on through each other, 10px apart laterally: they MUST deviate.
+    // Each couple is one unit — one offset for both partners, applied to the midpoint along the normal
+    // to its walk, so the pair sidesteps as a body.
+    const legs = { A: [{ x: 0, y: 0 }, { x: 200, y: 0 }], B: [{ x: 200, y: 10 }, { x: 0, y: 10 }] };
+    const IDS = ['AL', 'AF', 'BL', 'BF'];
+    const uOf = id => id[0], sgn = id => id[1] === 'L' ? 1 : -1;
+    const at = (id, t, off) => { const [S, E] = legs[uOf(id)];
+      const vx = E.x - S.x, vy = E.y - S.y, L = Math.hypot(vx, vy);
+      const nx = vy / L, ny = -vx / L;                     // left of the walk
+      return { x: S.x + vx * t + nx * (off || 0), y: S.y + vy * t + ny * (off || 0) + sgn(id) * W / 2 };
+    };
+    const pairs = [];
+    for (let i = 0; i < IDS.length; i++) for (let j = i + 1; j < IDS.length; j++) pairs.push([IDS[i], IDS[j]]);
+    const plan = T.planCrossings({ ids: IDS, pairs, base: (id, t) => at(id, t), apply: at,
+      unit: uOf, group: uOf, groups: ['A', 'B'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+    let worst = Infinity, stretch = 0, split = 0;
+    for (let s = 0; s <= SMP; s++) {
+      const t = s / SMP, P = {}; IDS.forEach(id => P[id] = plan.at(id, t));
+      for (let i = 0; i < IDS.length; i++) for (let j = i + 1; j < IDS.length; j++) {
+        if (uOf(IDS[i]) === uOf(IDS[j])) continue;
+        worst = Math.min(worst, Math.hypot(P[IDS[i]].x - P[IDS[j]].x, P[IDS[i]].y - P[IDS[j]].y));
+      }
+      ['A', 'B'].forEach(u => {
+        stretch = Math.max(stretch, Math.abs(Math.hypot(P[u + 'L'].x - P[u + 'F'].x, P[u + 'L'].y - P[u + 'F'].y) - W));
+        // both partners must have taken the SAME offset — that is what "one unit" means
+        const dL = { x: P[u + 'L'].x - at(u + 'L', t).x, y: P[u + 'L'].y - at(u + 'L', t).y };
+        const dF = { x: P[u + 'F'].x - at(u + 'F', t).x, y: P[u + 'F'].y - at(u + 'F', t).y };
+        split = Math.max(split, Math.hypot(dL.x - dF.x, dL.y - dF.y));
+      });
+    }
+    nChecks++; check(plan.scale > 0, 'rigid pair: two couples walking head-on should have forced a deviation');
+    nChecks++; check(worst >= CLEAR - 0.5, `rigid pair: couples still collide (minClear ${worst.toFixed(1)} < ${CLEAR})`);
+    nChecks++; check(stretch <= 0.01, `rigid pair: the couple was stretched by ${stretch.toFixed(2)}px — a unit must move as a body`);
+    nChecks++; check(split <= 0.01, `rigid pair: partners took different offsets (${split.toFixed(2)}px apart) — they are one free variable`);
+    // Partners inside a unit are held together by the figure, so they are never a crossing pair to
+    // resolve: offer the planner a bonded pair standing closer than the clearance and it must do nothing.
+    {
+      const near = (id, t, off) => ({ x: (id === 'AL' ? 0 : 20) + 100 * t + (off || 0), y: 0 });
+      const p2 = T.planCrossings({ ids: ['AL', 'AF'], pairs: [['AL', 'AF']], base: (id, t) => near(id, t),
+        apply: near, unit: () => 'A', group: () => 'A', groups: ['A', 'B'], clearance: CLEAR });
+      nChecks++; check(p2.scale === 0, `rigid pair: the planner tried to separate two partners (scale ${p2.scale})`);
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

@@ -3,6 +3,32 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v113 — Phase 4: rigid-pair travel, and every traveller on the planner
+- **`planCrossings` gained `o.unit(id)`.** Collisions stay dancer-vs-dancer; the *free variables* are
+  units. A solo traveller is its own unit, so every existing caller is untouched — the golden is
+  byte-identical across the whole phase, which is the proof. A **bonded couple is one unit**: its two
+  dancers share a single offset, so it sidesteps as a rigid body rather than being pulled apart, and
+  partners inside a unit are never a crossing pair to resolve.
+- **`coupleWalkFrames` (both Línea entries, both exits) and `dameLinea` are now planner clients**, so
+  every traveller in the app goes through the planner and nothing routes around it. All four are dormant
+  on today's content — they clear by 45–64px against a 35px corridor — which is why the phase is
+  golden-neutral.
+- **A general offset direction.** `dameLinea`'s two halves cross at right angles (arcs run tangentially,
+  walks radially), so a radial offset is meaningless for half of them. It uses each path's own **left
+  normal**, which separates a perpendicular crossing as well as a head-on one — the general form of the
+  radial rule the ring figures use.
+- **The forced-crossing test found a latent solver bug.** New invariants **§27** drive `planCrossings`
+  directly — two bonded couples walking head-on through each other — so the dormant code ships tested
+  rather than merely written. It immediately failed at 29px: the amplitude was solved against only the
+  pairs that crowd on the **intended** paths, never against pairs its own deviation pushes together, and
+  two couples passing each sidestep away from the partner they were about to hit and straight into the
+  other one. The solve now runs over every candidate pair. **Golden unchanged** — nothing shipped relied
+  on the narrower check, so this was latent, and only a rigid unit (corridor a couple width wider) made
+  it bite.
+- Solver amplitude cap 3.0 → 6.0: two couples must separate by a couple width *plus* the clearance, which
+  needs 2.54 on its own and sat right under the old ceiling. Nothing today comes near it.
+- 1791 invariants, golden and all 15 visual scenes untouched.
+
 ## v112 — the Dile Que No position keeps its couple's midpoint
 - **The scheduled `dile4` fix.** The position placed the partners at `R_RING ± R_STEP`, so their midpoint
   sat on the ring, while the Casino couple they came from has its midpoint at `R_RING·cos δ` — 3.4px

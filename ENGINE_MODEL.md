@@ -100,7 +100,8 @@ The key move, and the thing that makes scripted and generated co-exist inside on
 - **Travellers are the free variables.** Baseline path → crossing detection against *everyone* →
   planned swells → one solved amplitude → the equal-naturalness split **among travellers only**.
 - **A bonded pair travels as one rigid unit** (the Línea entries: midpoint path + orientation DOF,
-  turning where there's room). The planner's unit is a dancer *or* a bonded couple.
+  turning where there's room). The planner's unit is a dancer *or* a bonded couple. *(Built in v113 as
+  `o.unit(id)`: collisions stay dancer-vs-dancer, the free variables are units.)*
 
 This immediately corrects a real defect: today `dameToEnchufla` splits evasion 50/50 between leader and
 follower even when one of them ought to be scripted. Under this model a scripted dancer contributes
@@ -168,12 +169,33 @@ Beat clock, frames, facing conventions (travel-facing + settle) stay as they are
      guards its clearance.
    - `DILE_PINCH`, `AL`/`AF` kept, as planned: they are *shape* parameters of scripted figures, not
      avoidance.
-4. **Rigid-pair travel** as a first-class planner unit (folds `coupleWalkFrames` in).
+4. ~~**Rigid-pair travel** as a first-class planner unit (folds `coupleWalkFrames` in).~~
+   **DONE (v113).** `planCrossings` gained `o.unit(id)`. Collisions stay dancer-vs-dancer; the *free
+   variables* are units. A solo traveller is its own unit (so every existing caller is unchanged, and the
+   golden proved it — byte-identical); a bonded couple is one unit whose two dancers share a single
+   offset, so it sidesteps as a rigid body instead of being pulled apart, and partners inside a unit are
+   never a crossing pair to resolve. `coupleWalkFrames` (both Línea entries and both exits) and
+   `dameLinea` are now planner clients, so **every traveller in the app goes through the planner.** Both
+   are dormant on today's content — the entries and exits clear by ≥45px and Dame Línea by 61–64px
+   against a 35px corridor — which is why the whole phase is golden-neutral.
+   - **`dameLinea` needed a general offset direction.** Its two halves cross at right angles (the arcs
+     run tangentially, the walks radially), so a radial offset is meaningless for half of them. It uses
+     each path's own **left normal**, which separates a perpendicular crossing just as it does a head-on
+     one — the general form of the radial rule the ring figures use.
+   - **The forced-crossing test found a latent solver bug.** Written to give the dormant code real
+     coverage, `§27` walks two bonded couples head-on through each other and the planner left them 29px
+     apart. Cause: the amplitude was solved against only the pairs that crowd on the *intended* paths,
+     never against pairs its own deviation pushes together — and two couples passing each sidestep away
+     from the partner they were going to hit and straight toward the other one. The solve now runs over
+     every candidate pair. **Golden unchanged**, so nothing shipped was relying on the narrower check;
+     it was latent, and only a rigid unit (whose corridor is a couple width wider) made it bite.
+   - The solver's amplitude cap went 3.0 → 6.0 for the same reason: two couples must separate by a couple
+     width *plus* the clearance, which lands at 2.54 on its own and sat right under the old ceiling.
 5. **Declarative layer** + validation UI for custom movements.
 
-Phases 1–3 are done. **`planCrossings` is now the single source of collision avoidance in the app** —
-the state §1 describes (four rival mechanisms, the good one unreachable) no longer exists. 4 and 5 are
-the roadmap work: rigid-pair travel as a planner unit, then the declarative layer.
+Phases 1–4 are done. **`planCrossings` is now the single source of collision avoidance in the app, and
+every traveller goes through it** — the state §1 describes (four rival mechanisms, the good one
+unreachable) no longer exists. Phase 5, the declarative layer, is the remaining roadmap work.
 
 ## 6. Decisions (settled with Sam)
 

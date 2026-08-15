@@ -130,7 +130,7 @@ function load(htmlPath) {
       get W_DIST(){ return W_DIST; },
       keys(){ return { movements: Object.keys(MOVEMENTS), calls: Object.keys(CALLS) }; },
       validFrom, isAfuera, virtualPos,
-      runOnWheel, wheelContext, pathNaturalness,
+      runOnWheel, wheelContext, pathNaturalness, planCrossings,
       setNoEvade(v){ NAT_NOEVADE = !!v; },
       setDameWL(v){ DAME_WL_FORCE = v; },
       circleAt(station, lane, n, ph){ return FORMATIONS.circle.slot(station, lane, n, ph); },
