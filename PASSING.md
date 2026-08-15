@@ -1,30 +1,44 @@
 # Passing — who you pass, and on which side
 
-**Status: design.** The vocabulary below is agreed; the solver that honours it is step 3. What is built
-today is the *measurement* and the *verification* — the engine can now say which side every pass actually
-happened on, which is the thing that makes the rest testable.
+**Status: built.** The engine resolves a side per encounter, eases each dancer accordingly, and verifies
+the outcome. What remains is widening the addressing from roles to arbitrary group predicates, and
+bringing rigid-unit formation changes under the same rules.
 
 ## The requirement
 
 > By specifying the start and end positions, as well as which dancers are passed on the left or right,
 > the system should find a smooth, natural, efficient, graceful path for all dancers in the formation.
 
-## What the engine can express today, and what it can't
+## What changed
 
-A movement declares its pass side **per role, once, for the whole figure**:
+A movement used to declare its pass side **per role, once, for the whole figure** — `pass:'in'` for the
+leader, `pass:'out'` for the follower — and the planner applied it as a single signed scalar. One dancer,
+one direction, one movement. That could express neither of the two things the requirement asks for: a
+dancer passing one person on the left and another on the right, and two dancers *in the same role*
+separating at all (they shared a sign, so they slid sideways together).
 
-```js
-dame: { groups:['L','F'], L:{ dh:-1, lane:'cw', pass:'in' },
-                          F:{ dh: 1, lane:'ccw', pass:'out' } },
+The offset is now a **sum of per-encounter contributions**, each with its own side:
+
+```
+deviation(d, t) = Σ over encounters e of d:  side(e, d) · amp · swell_e(t)     [along d's own left normal]
 ```
 
-and the planner applies it as a single signed scalar, `position + off * pass(id)`. One dancer, one
-direction, one movement. Three things follow:
+Within one direction the swells still merge — overlapping passes become one wider crest rather than
+stacking into a double-width lurch — and across directions they sum, which is what lets a dancer ease
+left for one passer and right for another.
 
-- A dancer **cannot pass A on the left and B on the right** in the same figure — there is one offset to spend.
-- Two dancers **in the same role can never separate**: they share a sign, so they offset together. The
-  planner can now *detect* a same-role head-on crossing (since v130 it checks every pair) but not resolve one.
-- The side is **not verified**. `pass:'in'` is an instruction to the offset, not a constraint on the outcome.
+`pass:'in'|'out'` is gone from the registry, and so is the planner's `apply` hook. A unit eases along the
+**left normal of its own centroid's travel**: the general rule the ring figures' radial offset was a
+special case of, and the one `dameLinea` already used. A caller supplying its own could — and did —
+disagree with the planner about which way "aside" is.
+
+One thing worth recording, because the obvious design is wrong: **the convention decides the side, not
+the instantaneous geometry.** "Move away from where he actually is" reads well for a single encounter and
+falls apart for several — a dancer with passers on both sides nets out to no evasion at all and walks
+straight through them (measured: a Dame from Exhibela closing to 2.86px). A convention gives every dancer
+of a role the same answer, so simultaneous passes reinforce instead of cancelling. Where no roles apply —
+a unit that is a whole couple has none — everyone yields to their own left, which is exactly what the
+engine always did.
 
 ## The three kinds of encounter, measured
 
@@ -90,8 +104,19 @@ with `heading` the central difference of `a`'s own path. In screen coordinates (
 cross means `b` is on `a`'s **right**.
 
 This is what turns a declaration into a constraint: `pass:'in'` could only ever be checked by reading the
-code, whereas a declared side can be measured against what the dancers actually did. Invariant §35 asserts
-it for every encounter in every movement.
+code, whereas a declared side can be measured against what the dancers actually did.
+
+Two details the first implementation got wrong, both worth keeping written down:
+
+- **Judge the outcome, not the intent.** Checking the *intended* paths condemns figures that are right:
+  two dancers starting 6px apart on the wrong shoulder are correctly carried across by the evasion and
+  end up on the declared side. The check runs on the final paths.
+- **Judge every pass, not just the tight ones.** A pair that goes by comfortably still goes by on a side,
+  and a figure that sends them past the wrong shoulder is wrong however much room it leaves. Any pair
+  coming within the engagement distance is judged, not only those that crowd within the corridor.
+
+A conflict — a side the paths cannot be brought onto — is recorded in `SIDE_FAULTS` rather than drawn.
+Invariants §35 and §36 assert both, and §36 builds the cases the shipped movements do not yet reach.
 
 ## Terminology — settled, and easy to get backwards
 

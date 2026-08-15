@@ -1247,8 +1247,13 @@ function arcLenPath(pts){
  *    o.ids          every dancer in play
  *    o.base(id,t)   that dancer's intended path, t∈[0,1] → {x,y}. SCRIPTED dancers are included here —
  *                   they are immutable obstacles: they are planned around, never deviated.
- *    o.apply(id,t,off)  the dancer's position with a signed offset `off` applied along its pass side.
- *                   The caller owns the geometry (radial on a ring; the path normal in general).
+ *    (there is no `apply`: the planner owns the offset frame. A unit eases along the LEFT NORMAL of
+ *     its own centroid's travel, which is the general rule the ring figures' radial offset was a
+ *     special case of — see PASSING.md. A caller that supplied its own could, and did, disagree
+ *     with the planner about which way 'aside' is.)
+ *    o.bonded(a,b)  are these two a couple before or after? Their interaction is the figure's own
+ *                   handedness, so it is checked for collisions but never judged against a passing
+ *                   convention (see PASSING.md).
  *    o.exclude      [a,b] pairs the FIGURE holds together and the planner must not try to separate —
  *                   partners gathering into one couple. Everything else is a candidate: the planner
  *                   builds the pair set itself from o.ids rather than accepting one, because a caller
@@ -1300,7 +1305,14 @@ function passSide(roleA, roleB, passes){
 }
 
 // Every solve that could not hold its corridor, in order. Empty is the contract.
+/* A plain unit vector. Deliberately NOT `dirFrom`: these are central differences over a fortieth of a
+ * move, so they are legitimately sub-pixel, and recording them would swamp the direction-derivation
+ * probe (§33e) with exactly the small-but-real steps it exists to distinguish from noise. */
+function _unit(vx, vy){ const L = Math.hypot(vx, vy); return L < 1e-9 ? null : { x: vx / L, y: vy / L }; }
 const PLAN_FAULTS = [];
+// Encounters whose intended paths already sit on the opposite shoulder to the one the movement declared.
+// Easing them apart cannot fix that — it drives them further onto the wrong side — so it is reported.
+const SIDE_FAULTS = [];
 /* Every solve's COVERAGE: how many dancers were in play and how many pairs were actually held apart.
  * A collision test can only ever find what it looked at, so the size of the candidate set is itself
  * part of the contract — and it is not observable from the frames, because a pair nobody checked
@@ -1354,8 +1366,81 @@ function planCrossings(o){
     const upEnd = Math.max(t0, R_MIN), upStart = Math.max(0, upEnd - R_MAX);
     const dnStart = Math.min(t1, 1 - R_MIN), dnEnd = Math.min(1, dnStart + R_MAX);
     const ep = { upStart, upEnd, dnStart, dnEnd };
-    mates[unit(a)].push(ep); mates[unit(b)].push(ep); live.push([a, b]);
+    // WHICH WAY each of them eases, per encounter rather than per movement. A dancer moves AWAY from the
+    // dancer she is passing — the side he is actually on at their closest approach — so two dancers in the
+    // same role separate instead of sliding sideways together, and one dancer can pass one person on her
+    // left and another on her right in the same figure. It used to be a single `pass:'in'|'out'` declared
+    // once per role for a whole movement, which could express neither.
+    let tc = t0, gc = Infinity;
+    for (let s = 0; s < NSMP; s++){ const t = smpT[s], g = gap(a, b, t); if (g < gc){ gc = g; tc = t; } }
+    const sideAB = sideOfBase(a, b, tc);
+    // The CONVENTION decides the side, not the instantaneous geometry. It has to: "move away from where
+    // he actually is" reads well for one encounter and falls apart for several, because a dancer with
+    // passers on both sides nets out to no evasion at all and walks straight through them (measured: a
+    // Dame from Exhibela closing to 2.86px). A convention gives every dancer of a role the same answer,
+    // so simultaneous passes reinforce instead of cancelling — which is what the old per-role
+    // `pass:'in'|'out'` was really encoding, minus the ability to vary it per encounter.
+    // Geometry is the fallback where roles are meaningless — a unit that is a whole couple has no role —
+    // and elsewhere it is the check, below.
+    const sideFor = (x, y) => {
+      const c = o.roleOf && PASS_SIGN[passSide(o.roleOf(x), o.roleOf(y), o.passes)];
+      // No roles to resolve a convention with — a unit that is a whole couple has no role, and the
+      // synthetic planner cases have none either. Then everyone yields to their own LEFT, which is what
+      // the engine has always done (the offset was a magnitude and the direction was each dancer's own
+      // left normal) and keeps simultaneous passes reinforcing rather than cancelling.
+      return (c === undefined || c === null) ? +1 : c;
+    };
+    mates[unit(a)].push({ ep, sign: sideFor(a, b) });
+    mates[unit(b)].push({ ep, sign: sideFor(b, a) });
+    live.push({ a, b, tc, headOn: headOnAt(a, b, tc) });
   });
+  // A pass is judged on its SIDE whenever the two come near enough to be passing each other at all —
+  // which is a wider net than the pairs that crowd. Two dancers who go by comfortably still go by on a
+  // side, and a figure that sends them past the wrong shoulder is wrong however much room it leaves.
+  const judged = [];
+  checkPairs.forEach(pr => {
+    const a = pr[0], b = pr[1];
+    let tc = 0.5, gc = Infinity;
+    for (let s = 0; s < NSMP; s++){ const t = smpT[s], g = gap(a, b, t); if (g < gc){ gc = g; tc = t; } }
+    // A couple's own interaction is not traffic. Whichever way a leader and his partner go round each
+    // other is the FIGURE's handedness — measured, the sign there splits exactly along the forward/reverse
+    // axis (adios vs reverse adios, enchufla vs reverse enchufla) — so a passing convention has nothing to
+    // say about it. Still fully checked for collisions; just not judged on a side.
+    if (o.bonded && o.bonded(a, b)) return;
+    if (gc <= ENGAGE && headOnAt(a, b, tc)) judged.push({ a, b, tc });
+  });
+  // A unit eases along the LEFT NORMAL of its own travel — its centroid's travel, so a bonded couple
+  // sidesteps as one body instead of shearing. This is the general rule; the radial offset the ring
+  // figures used to declare is that same rule specialised to a circle, which is why it can be derived
+  // rather than stated. Screen coordinates have y down, so facing +x your left hand points to −y.
+  const memberIds = {};
+  o.ids.forEach(id => { (memberIds[unit(id)] = memberIds[unit(id)] || []).push(id); });
+  const centroid = (u, t) => { const ms = memberIds[u]; let x = 0, y = 0;
+    ms.forEach(id => { const p = o.base(id, t); x += p.x; y += p.y; });
+    return { x: x / ms.length, y: y / ms.length }; };
+  const normalOf = (u, t) => {
+    const h = 1 / (2 * NSMP);
+    const A = centroid(u, Math.max(0, t - h)), B = centroid(u, Math.min(1, t + h));
+    const d = _unit(B.x - A.x, B.y - A.y);
+    return d ? { x: d.y, y: -d.x } : { x: 0, y: 0 };        // left of travel; a standing unit has none
+  };
+  // Which side of `a` is `b` on at time t, along a's own travel? +1 = b is on a's right.
+  function sideOfBase(a, b, t){
+    const h = 1 / (2 * NSMP);
+    const A = o.base(a, Math.max(0, t - h)), B = o.base(a, Math.min(1, t + h));
+    const d = _unit(B.x - A.x, B.y - A.y);
+    if (!d) return 0;                                        // a is standing: no side to speak of
+    const p = o.base(a, t), q = o.base(b, t);
+    return Math.sign(d.x * (q.y - p.y) - d.y * (q.x - p.x));
+  }
+  function headOnAt(a, b, t){
+    const h = 1 / (2 * NSMP);
+    const da = _unit(o.base(a, Math.min(1, t + h)).x - o.base(a, Math.max(0, t - h)).x,
+                     o.base(a, Math.min(1, t + h)).y - o.base(a, Math.max(0, t - h)).y);
+    const db = _unit(o.base(b, Math.min(1, t + h)).x - o.base(b, Math.max(0, t - h)).x,
+                     o.base(b, Math.min(1, t + h)).y - o.base(b, Math.max(0, t - h)).y);
+    return !!(da && db && (da.x * db.x + da.y * db.y) < -0.3);
+  }
   const bumpOf = (ep, t) => {
     const rise = ss5((t - ep.upStart) / Math.max(1e-6, ep.upEnd - ep.upStart));
     const fall = 1 - ss5((t - ep.dnStart) / Math.max(1e-6, ep.dnEnd - ep.dnStart));
@@ -1364,11 +1449,16 @@ function planCrossings(o){
   // A unit's profile is the smooth union of its swells: overlapping passes merge into one wider crest
   // rather than needing a special case. A couple takes the union of BOTH partners' engagements, which is
   // what makes it ease as one body — if either of them would be brushed, the couple moves.
+  // Within one direction the swells still MERGE — overlapping passes become one wider crest rather than
+  // stacking into a double-width lurch. Across directions they SUM, which is the whole point: a dancer
+  // easing left for one passer and right for another nets out correctly wherever the two overlap, and if
+  // they overlap so much that neither can be satisfied the amplitude solve fails and says so.
   const proxOf = (u, t) => {
     const ms = mates[u]; if (!ms.length) return 0;
-    let acc = 1;
-    ms.forEach(ep => { acc *= (1 - bumpOf(ep, t)); });
-    return 1 - acc;
+    let accR = 1, accL = 1;
+    ms.forEach(m => { const b = bumpOf(m.ep, t);
+      if (m.sign >= 0) accR *= (1 - b); else accL *= (1 - b); });
+    return (1 - accR) - (1 - accL);
   };
   const gA = (o.groups || [])[0], gB = (o.groups || [])[1];
   const yields = o.yields || (() => true);
@@ -1380,8 +1470,13 @@ function planCrossings(o){
   const fixedShare = (movesA && movesB) ? null : (movesA ? 1 : (movesB ? 0 : 0.5));
   // Clearance depends only on the TOTAL corridor, so the amplitude is solved once (at an even split) and
   // the share only rebalances who yields.
-  const at = (id, t, w, scale) =>
-    o.apply(id, t, (NAT_NOEVADE ? 0 : scale) * shareOf(id, w) * proxOf(unit(id), t) * endEnvAt(t));
+  const at = (id, t, w, scale) => {
+    const off = (NAT_NOEVADE ? 0 : scale) * shareOf(id, w) * proxOf(unit(id), t) * endEnvAt(t);
+    const p = o.base(id, t);
+    if (!off) return p;
+    const n = normalOf(unit(id), t);
+    return { x: p.x + n.x * off, y: p.y + n.y * off };
+  };
   const worst = (w, scale) => { let m = Infinity;
     for (let s = 0; s < NSMP; s++){ const t = smpT[s], P = {};
       checkPairs.forEach(pr => { const a = pr[0], b = pr[1];
@@ -1431,6 +1526,21 @@ function planCrossings(o){
   // no-evade baseline the naturalness metric measures against, so a shortfall there is the point.
   PLAN_LOG.push({ n: o.ids.length, checked: checkPairs.length, excluded: (o.exclude || []).length,
     units: o.ids.map(id => unit(id)) });
+  // Did each pass happen on the side the movement asked for? Checked on the FINAL paths, not the intended
+  // ones: easing two dancers apart can legitimately carry a pass onto the other shoulder when they start
+  // close enough — measured, two dancers 6px apart end up correctly separated on the declared side — so
+  // judging the intent would condemn an outcome that is right. A parallel pass has no mutual side
+  // (PASSING.md), so only head-on ones are judged.
+  if (o.roleOf && !NAT_NOEVADE) judged.forEach(L => {
+    const want = PASS_SIGN[passSide(o.roleOf(L.a), o.roleOf(L.b), o.passes)];
+    if (want === undefined || want === null) return;
+    const h = 1 / (2 * NSMP), t = L.tc;
+    const A0 = at(L.a, Math.max(0, t - h), share, scale), A1 = at(L.a, Math.min(1, t + h), share, scale);
+    const d = _unit(A1.x - A0.x, A1.y - A0.y); if (!d) return;
+    const p = at(L.a, t, share, scale), q = at(L.b, t, share, scale);
+    const got = Math.sign(d.x * (q.y - p.y) - d.y * (q.x - p.x));
+    if (got !== 0 && got !== want) SIDE_FAULTS.push({ a: L.a, b: L.b, want, got });
+  });
   const clear = (checkPairs.length && !NAT_NOEVADE) ? worst(share, scale) : Infinity;
   if (live.length && clear < CLEAR - 0.05){
     PLAN_FAULTS.push({ clear, need: CLEAR, ids: o.ids.slice(), pairs: checkPairs.length });
@@ -1449,7 +1559,6 @@ function planCrossings(o){
  *
  *    o.target(d)    -> { dh, lane } | null      the slot it lands in; null ⇒ SCRIPTED
  *    o.scriptAt(d)  -> t => {x,y}               a scripted dancer's own path
- *    o.pass(d)      -> +1 | -1                  the radial sense this dancer eases (its pass side)
  *    o.group(d) / o.groups / o.unit(d)          effort sharing, as `planCrossings` takes them
  *    o.phaseBefore                              the config the wheel was resting in on entry
  *    o.steps, o.settle, o.beats, o.clearance, o.engage, o.forceShare
@@ -1476,15 +1585,17 @@ function playTravel(ds, N, o){
     newPartner[d.id] = (partnerAt[st] || []).find(x => x !== d.id); });
   const baseAt = (id, t) => { const k = kin[id]; if (!k) return o.scriptAt(id)(t);
     const te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te); };
-  const applyAt = (id, t, off) => { const k = kin[id]; if (!k) return o.scriptAt(id)(t);
-    const te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te + off * o.pass(id)); };
   // The only pairs the planner must NOT try to separate are the ones gathering into a couple; it works
   // out every other candidate itself. Group membership decides how a corridor is SHARED, never who is
   // looked at — deciding both in one place is what let an assumption about the choreography silently
   // narrow the safety check.
   const ids = ds.map(d => d.id);
   const gathering = ids.filter(a => newPartner[a]).map(a => [a, newPartner[a]]);
-  const plan = planCrossings({ ids, exclude: gathering, base: baseAt, apply: applyAt,
+  const roleById = {}, startStation = {};
+  ds.forEach(d => { roleById[d.id] = d.role; startStation[d.id] = d.station; });
+  const plan = planCrossings({ ids, exclude: gathering, base: baseAt,
+    roleOf: id => roleById[id], passes: o.passes,
+    bonded: (a, b) => startStation[a] === startStation[b] || newPartner[a] === b,
     group: o.group, groups: o.groups, unit: o.unit, yields: o.yields,
     clearance: o.clearance, engage: o.engage, forceShare: o.forceShare });
   // Render: everyone faces the way they travel — so they never look *through* another dancer while
@@ -1622,7 +1733,7 @@ function coupleWalkFrames(ds, start, target, endSt, endLane, turnDir){
   const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
   const plan = planCrossings({
     ids: ds.map(d => d.id),                            // same-unit pairs are excluded by `unit` below
-    base: (id, t) => at1(id, t), apply: at1,
+    base: (id, t) => at1(id, t),
     unit: id => partnerKey[id],
     group: id => cp[partnerKey[id]].inward ? 'in' : 'out', groups: ['in', 'out'],
     clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
@@ -1789,7 +1900,7 @@ function dameLinea(ds, N){
   const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
   const plan = planCrossings({
     ids: ds.map(d => d.id), exclude: ds.map(d => [d.id, partner[d.id]]).filter(pr => pr[1]),
-    base: (id, t) => off[id](t), apply: (id, t, o2) => off[id](t, o2),
+    base: (id, t) => off[id](t),
     group: id => kind[id], groups: ['arc', 'walk'],
     clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R,
   });
@@ -1908,25 +2019,24 @@ function playFigure(figure, ds, params, mirror){
  *
  * `mirror` at instantiation turns a figure inside out for the afuera positions — dh signs flip, lanes
  * swap, pass sides swap. One definition covers both, which is why there is no `dame_afuera` here. */
-const PASS_DIR = { in: -1, out: 1 };
 const TRAVELS = {
   // A Dame: the leader crosses an ODD number of half-spacings and the follower one the other way, which
   // together advance the pairing a whole couple — and, being odd, always flip the phase.
-  dame:         { groups: ['L', 'F'], L: { dh: -1, lane: 'cw', pass: 'in' },
-                                      F: { dh:  1, lane: 'ccw', pass: 'out' } },
-  dame_dos:     { groups: ['L', 'F'], L: { dh: -3, lane: 'cw', pass: 'in' },
-                                      F: { dh:  1, lane: 'ccw', pass: 'out' } },
+  dame:         { groups: ['L', 'F'], L: { dh: -1, lane: 'cw' },
+                                      F: { dh:  1, lane: 'ccw' } },
+  dame_dos:     { groups: ['L', 'F'], L: { dh: -3, lane: 'cw' },
+                                      F: { dh:  1, lane: 'ccw' } },
   // Dame Pequeña: the leader does all the travelling (an EVEN dh, so no phase flip) and the follower is
   // scripted. Mujeres Arriba is the same shape with the roles inverted.
-  dame_pequena: { groups: ['L', 'F'], L: { dh: -2, lane: 'cw', pass: 'in' },
+  dame_pequena: { groups: ['L', 'F'], L: { dh: -2, lane: 'cw' },
                                       F: { scripted: true, lane: 'ccw' } },
   // The close of a Dile Que No y Dame: the leader crosses to his new partner while the follower dances
   // her ¾ circle back to the spot she began the whole movement on.
-  dile_dame:     { groups: ['L', 'F'], L: { dh: -2, lane: 'cw', pass: 'out' },
+  dile_dame:     { groups: ['L', 'F'], L: { dh: -2, lane: 'cw' },
                                        F: { scripted: true, lane: 'ccw' } },
-  dile_dame_dos: { groups: ['L', 'F'], L: { dh: -4, lane: 'cw', pass: 'in' },
+  dile_dame_dos: { groups: ['L', 'F'], L: { dh: -4, lane: 'cw' },
                                        F: { scripted: true, lane: 'ccw' } },
-  mujeres:      { groups: ['F', 'L'], F: { dh:  2, lane: 'ccw', pass: 'in' },
+  mujeres:      { groups: ['F', 'L'], F: { dh:  2, lane: 'ccw' },
                                       L: { scripted: true, lane: 'cw' } },
 };
 /* Turn a travel definition into the options `playTravel` takes. `o` supplies the engine-side wiring a
@@ -1939,7 +2049,6 @@ function resolveTravel(name, ds, o){
   const CLEAR = 2 * (DOT_R + PATH_CLEAR);
   return Object.assign({
     target: d => def[d.role].scripted ? null : { dh: mir * def[d.role].dh, lane: laneOf(d.role) },
-    pass: id => mir * PASS_DIR[def[role[id]].pass || 'in'],
     yields: id => !def[role[id]].scripted,
     group: id => role[id], groups: def.groups,
     clearance: CLEAR, engage: CLEAR + 1.4 * DOT_R,

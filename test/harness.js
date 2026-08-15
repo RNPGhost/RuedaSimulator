@@ -149,8 +149,9 @@ function load(htmlPath) {
       // The renderer's own sub-keyframe interpolation, so test/render.js samples what the
       // screen actually draws rather than a re-implementation of it.
       samplePath, get CORNER_DEG(){ return CORNER_DEG; },
-      get PLAN_FAULTS(){ return PLAN_FAULTS; }, clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; },
+      get PLAN_FAULTS(){ return PLAN_FAULTS; }, clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; SIDE_FAULTS.length = 0; },
       get PLAN_LOG(){ return PLAN_LOG; },
+      get SIDE_FAULTS(){ return SIDE_FAULTS; }, clearSideFaults(){ SIDE_FAULTS.length = 0; },
       PASS_CONVENTION, PASS_SIGN, passSide,
       get STILL_PX(){ return STILL_PX; },
       get DIR_DERIVATIONS(){ return DIR_DERIVATIONS; }, clearDirs(){ DIR_DERIVATIONS.length = 0; },

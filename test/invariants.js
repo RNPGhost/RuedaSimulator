@@ -1705,6 +1705,92 @@ function run() {
                   `${sameRole.length} same-role (sign ${sameRole[0] && sameRole[0].sa}), ${parallel.length} parallel`);
   }
 
+  // 36: PER-ENCOUNTER SIDES — the capability the engine gained, exercised directly. Nothing we dance
+  //     needs it yet, so leaving it to the movement tests would ship it untested; these are built the way
+  //     §27 and §32 are. What changed: a dancer used to hold ONE offset and ONE pass side for a whole
+  //     movement, so two dancers in the same role shared a sign and could never separate, and nobody
+  //     could pass one person on the left and another on the right. Both are now expressible.
+  {
+    const CLEAR = 2 * (T.DOT_R + T.PATH_CLEAR), SMP = 40;
+    const straight = (S, E) => t => ({ x: S.x + (E.x - S.x) * t, y: S.y + (E.y - S.y) * t });
+
+    // 36a: TWO LEADERS HEAD-ON. Sam's case in its raw form — a Dame from Exhibela on a 2-couple mini
+    //      rueda brings two leaders together in the middle of the wheel. They are one role, so under the
+    //      old model they took the same sign and slid sideways together; the convention says they pass on
+    //      each other's right, and now they can.
+    {
+      const path = { P: straight({ x: 0, y: 0 }, { x: 200, y: 0 }), Q: straight({ x: 200, y: 6 }, { x: 0, y: 6 }) };
+      const plan = T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
+        roleOf: () => 'L', group: id => id, groups: ['P', 'Q'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+      let worst = Infinity;
+      for (let s = 0; s <= SMP; s++){ const t = s / SMP, a = plan.at('P', t), b = plan.at('Q', t);
+        worst = Math.min(worst, Math.hypot(a.x - b.x, a.y - b.y)); }
+      nChecks++; check(plan.scale > 0, '§36a two leaders passing 6px apart did not trigger any evasion');
+      nChecks++; check(worst >= CLEAR - 0.5,
+        `§36a two same-role dancers still collide (${worst.toFixed(1)}px < ${CLEAR}) — they cannot separate`);
+      // …and on the side the convention names: each goes by the OTHER's left shoulder.
+      const k = SMP / 2, h = 1 / SMP;
+      const pa = plan.at('P', k / SMP), pb = plan.at('Q', k / SMP);
+      const ha = { x: plan.at('P', k / SMP + h).x - plan.at('P', k / SMP - h).x,
+                   y: plan.at('P', k / SMP + h).y - plan.at('P', k / SMP - h).y };
+      const side = Math.sign(ha.x * (pb.y - pa.y) - ha.y * (pb.x - pa.x));
+      nChecks++; check(side === T.PASS_SIGN[T.PASS_CONVENTION['L,L']],
+        `§36a the leaders passed on the wrong side (${side}, wanted ${T.PASS_SIGN[T.PASS_CONVENTION['L,L']]})`);
+    }
+
+    // 36b: ONE DANCER, TWO PASSES, OPPOSITE SIDES. A leader crossing a follower and then another leader
+    //      owes them different shoulders — left for her, right for him. One signed offset cannot express
+    //      that; a sum of per-encounter contributions can. Assert the deviation actually REVERSES.
+    {
+      const path = { X: straight({ x: 0, y: 0 }, { x: 400, y: 0 }),
+                     A: straight({ x: 100, y: -60 }, { x: 100, y: 60 }),
+                     B: straight({ x: 300, y: 60 }, { x: 300, y: -60 }) };
+      const role = { X: 'L', A: 'F', B: 'L' };
+      const plan = T.planCrossings({ ids: ['X', 'A', 'B'], base: (id, t) => path[id](t),
+        roleOf: id => role[id], group: id => (id === 'X' ? 'X' : 'Y'), groups: ['X', 'Y'],
+        clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+      let lo = 0, hi = 0;
+      for (let s = 0; s <= SMP; s++){ const t = s / SMP;
+        const d = plan.at('X', t).y - path.X(t).y; lo = Math.min(lo, d); hi = Math.max(hi, d); }
+      nChecks++; check(lo < -1 && hi > 1,
+        `§36b one dancer's two passes did not go opposite ways (deviation ranged ${lo.toFixed(1)}…${hi.toFixed(1)}px) — ` +
+        `a single per-movement offset cannot express "her on my left, him on my right"`);
+    }
+
+    // 36c: A DECLARED SIDE THAT THE PATHS CONTRADICT IS REPORTED, not quietly drawn. Easing two dancers
+    //      apart cannot move a pass onto the other shoulder — it drives them further onto the wrong one —
+    //      so the engine says so instead of producing something that looks fine and isn't.
+    {
+      T.clearSideFaults();
+      // Far enough apart that no evasion is called for (45px against a 35px corridor), so nothing can
+      // carry them across — but close enough to be passing. They go by on each other's left; the
+      // movement asks for the right. That is a figure the engine cannot dance as written.
+      const path = { P: straight({ x: 0, y: 0 }, { x: 200, y: 0 }), Q: straight({ x: 200, y: 45 }, { x: 0, y: 45 }) };
+      T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
+        roleOf: () => 'L', group: id => id, groups: ['P', 'Q'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+      nChecks++; check(T.SIDE_FAULTS.length > 0,
+        '§36c a pass declared on the shoulder opposite to the intended paths was accepted in silence');
+      T.clearSideFaults();
+      T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
+        roleOf: () => 'L', passes: { 'L,L': 'left' },                // …and declared to match, no fault
+        group: id => id, groups: ['P', 'Q'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+      nChecks++; check(T.SIDE_FAULTS.length === 0,
+        `§36c self-test: a side the paths DO obey was reported as a fault (${T.SIDE_FAULTS.length})`);
+    }
+    // …and nothing we ship declares a side its paths contradict.
+    {
+      T.clearSideFaults();
+      for (const key of T.keys().movements) for (const from of POSITIONS){
+        if (!T.validFrom(key, from)) continue;
+        for (const n of NS) { try { T.captureMovement(key, from, n, 0); } catch (e) {} }
+      }
+      nChecks++; check(T.SIDE_FAULTS.length === 0,
+        `§36 ${T.SIDE_FAULTS.length} shipped pass(es) happen on the opposite shoulder to the convention, ` +
+        `e.g. ${T.SIDE_FAULTS[0] && T.SIDE_FAULTS[0].a + '/' + T.SIDE_FAULTS[0].b}`);
+      T.clearSideFaults();
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());
