@@ -153,11 +153,25 @@ and self-tests by checking that the inverted convention matches nothing.
 **Partner interactions.** The measured sign there splits exactly along the forward/reverse axis, which is
 the figure being itself, not a traffic rule.
 
-**Rigid-unit formation changes.** In the Línea entries and exits each couple travels as one body to a
-spoke the formation has already fixed. `linea_moderna` takes two primero leaders past each other at
-43.2px and the resulting shoulder is a consequence of where their couples had to go, not a choice anyone
-made. Excluded from §35 for now, and noted as an open item rather than a permanent exemption: when
-couples-as-units gain pass constraints of their own, this comes back in.
+**Rigid-unit formation changes — pinned, not exempt, and one open question.** In the Línea entries and
+exits each couple travels as one body to a spoke the formation has already fixed, so the shoulder is a
+consequence of where the couples had to go rather than a side anyone chose. Measured across 4–12 couples
+and both phases, they produce exactly four head-on cross-couple encounters:
+
+| movement | pair | shoulder | closest |
+|---|---|---|---|
+| `linea_moderna` | leader ↔ leader | each other's **left** | 43.2px |
+| `rueda` | follower ↔ follower | each other's **left** | 43.2px |
+
+Both are the **opposite** of the same-role convention, which says two leaders (or two followers) pass on
+each other's right. They clear comfortably, and the engine has no freedom to place the shoulder — the
+couples' destinations are the formation's, not the planner's — so this is not something evasion can fix.
+§35 pins all three facts (four encounters, above 40px, on that shoulder) so a reroute that changes any of
+them is caught rather than absorbed.
+
+**Open for Sam:** is a leader passing another leader on the wrong shoulder during a Línea entry something
+worth rerouting the couples for, or is it below the threshold of caring? It is cosmetic at 43.2px, but
+it is a real deviation from a convention we have otherwise stated as universal.
 
 ## Still to build (step 3)
 

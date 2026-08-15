@@ -1604,12 +1604,10 @@ function run() {
     const headOn = [], parallel = [], sameRole = [];
     for (const key of T.keys().movements) for (const from of POSITIONS){
       if (!T.validFrom(key, from)) continue;
-      // A convention is about two DANCERS choosing a side. In the Línea entries and exits each couple
-      // travels as one rigid body to a spoke the formation has already fixed, so there is no side to
-      // choose — `linea_moderna` puts two primero leaders 43.2px apart on their way past each other, and
-      // which shoulder that lands on is a consequence of where their couples had to go. Excluded here
-      // and recorded as an open item: when couples-as-units get pass constraints of their own (step 3),
-      // this comes back in rather than staying exempt.
+      // The Línea entries and exits are judged separately, below: each couple travels as one rigid body
+      // to a spoke the formation has already fixed, so the shoulder is a consequence of where the couples
+      // had to go rather than a side anyone chose. Not exempt — PINNED, so a reroute that flips one is
+      // caught rather than absorbed.
       const pl = T.MOVEMENTS[key].play;
       if (pl && (pl.formation === 'linea' || pl.formation === 'circle')) continue;
       for (const n of NS){
@@ -1677,6 +1675,52 @@ function run() {
         sameRole.push({ tag: `dame_peq(mini)|n${n} ${x}/${y}`, sa: Math.sign(cross(hx, r)),
           sb: Math.sign(cross(hy, { x: -r.x, y: -r.y })), gap: best, roleA: x[0], roleB: y[0] });
       }
+    }
+
+    // The formation changes, pinned. Measured across 4–12 couples and both phases, the Línea entries and
+    // exits produce exactly FOUR head-on cross-couple encounters — two classes, twice each — all at 43.2px and
+    // all on the OPPOSITE
+    // shoulder to the same-role convention: `linea_moderna` takes two leaders past each other on each
+    // other's left, `rueda` two followers the same way. They clear comfortably, and the couples' paths are
+    // fixed by where the formation sends them, so the engine has no freedom to place the shoulder — but a
+    // known deviation that is written down is a different thing from one nobody has noticed. Recorded as
+    // an open question for Sam rather than quietly blessed.
+    {
+      const FC = [['linea_moderna', 'c'], ['adios_linea', 'c'], ['rueda', 'l'], ['adios_rueda', 'l']];
+      const found = [];
+      for (const [key, how] of FC) for (const n of [4, 6, 8, 10, 12]) for (const ph of [0, 1]){
+        let cap;
+        try { cap = how === 'c' ? T.captureMovement(key, 'casino', n, ph) : T.captureLineaMovement(key, n, ph); }
+        catch (e) { continue; }
+        if (!cap || !cap.frames) continue;
+        const s0 = {}, s1 = {};
+        cap.frames[0].forEach(d => s0[d.id] = d.station);
+        cap.frames[cap.frames.length - 1].forEach(d => s1[d.id] = d.station);
+        const { ids, P } = timeline(cap), F = P[ids[0]].length;
+        for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++){
+          const a = ids[i], b = ids[j];
+          if (s0[a] === s0[b] || s1[a] === s1[b]) continue;
+          let best = Infinity, k = -1;
+          for (let t = 0; t < F; t++){ const d = Math.hypot(P[a][t].x - P[b][t].x, P[a][t].y - P[b][t].y);
+            if (d < best){ best = d; k = t; } }
+          if (best > ENGAGE || k < 1 || k >= F - 1) continue;
+          const ha = { x: P[a][k + 1].x - P[a][k - 1].x, y: P[a][k + 1].y - P[a][k - 1].y };
+          const hb = { x: P[b][k + 1].x - P[b][k - 1].x, y: P[b][k + 1].y - P[b][k - 1].y };
+          const la = Math.hypot(ha.x, ha.y), lb = Math.hypot(hb.x, hb.y);
+          if (la < 1 || lb < 1) continue;
+          if ((ha.x * hb.x + ha.y * hb.y) / (la * lb) >= -0.3) continue;    // head-on only
+          const r = { x: P[b][k].x - P[a][k].x, y: P[b][k].y - P[a][k].y };
+          found.push({ key, pair: a[0] === b[0] ? a[0] + b[0] : 'LF', sa: Math.sign(cross(ha, r)), gap: best });
+        }
+      }
+      nChecks++; check(found.length === 4,
+        `§35 the formation changes produced ${found.length} head-on cross-couple encounter(s), pinned at 4 — ` +
+        `a reroute has changed who passes whom`);
+      nChecks++; check(found.every(f => f.gap > 40),
+        `§35 a formation-change pass has tightened to ${Math.min(...found.map(f => f.gap)).toFixed(1)}px ` +
+        `(pinned above 40) — the shoulder now matters`);
+      nChecks++; check(found.every(f => f.sa === 1),
+        '§35 a formation-change pass changed shoulder — pinned, see PASSING.md');
     }
 
     // …and every head-on pass obeys the CONVENTION, by name. A leader and an oncoming follower each pass
