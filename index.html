@@ -1615,26 +1615,27 @@ function lineaModerna(ds, N, turnDir){
   // for any dancer without a live xy and start the walk from the wrong place.
   ds.forEach(d => { if (!d.xy) d.xy = pos(d); });
   const start = {}; ds.forEach(d => start[d.id] = d.xy);
-  const byStation = {}; ds.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
+  // Who is a primero and who is a segundo is a STRUCTURAL fact — the cantante's couple and every other
+  // one clockwise — so it is read from the group vocabulary rather than from index arithmetic, which is
+  // what lets the same rule mean the same thing at any couple count.
+  const ctx = groupContext(ds, N, phase);
   const cant = ds.find(d => d.id === cantanteId) || ds.find(d => d.role === 'L');
-  const c = cant.station;                                    // couples are counted clockwise from here
-  const st = i => (((c + i) % N) + N) % N;
+  const c = cant.station;
+  const spokeOf = d => Math.floor((((d.station - c) % N) + N) % N / 2);   // which mini wheel this couple joins
   // Spoke j is segundo j's own midpoint spoke, so bake the wheel's current orientation (including its
   // phase offset) into the Línea base angle and rest the new formation at phase 0.
-  const base = BASE_ANG + st(1) * 360 / N + phase * 180 / N;
+  const base = BASE_ANG + ((c + 1) % N) * 360 / N + phase * 180 / N;
   layoutName = 'linea'; LM_BASE = norm360(base); phase = 0; computeWheel(N);
   const target = {}, endSt = {}, endLane = {};
-  for (let j = 0; j < m; j++){
-    byStation[st(1 + 2 * j)].forEach(d => {                  // segundo j -> outer ring, same spoke, same lane
-      endSt[d.id] = m + j; endLane[d.id] = d.lane;
-      target[d.id] = FORMATIONS.linea.slot(m + j, d.lane, N, 0);
-    });
-    byStation[st(2 * j)].forEach(d => {                      // primero j -> inner ring of the next spoke clockwise
-      const lane = d.lane === 'cw' ? 'ccw' : 'cw';           // the inner ring is afuera, so the couple's lanes swap
-      endSt[d.id] = j; endLane[d.id] = lane;
-      target[d.id] = FORMATIONS.linea.slot(j, lane, N, 0);
-    });
-  }
+  ds.forEach(d => {
+    const j = spokeOf(d), primero = ctx.parity(d) === 0;
+    // Segundos walk straight out to the OUTER ring of their own spoke; primeros walk in to the INNER
+    // ring of the spoke one couple clockwise. The inner ring reads as afuera, so its lanes swap.
+    const station = primero ? j : m + j;
+    const lane = primero ? LANE_SWAP[d.lane] : d.lane;
+    endSt[d.id] = station; endLane[d.id] = lane;
+    target[d.id] = FORMATIONS.linea.slot(station, lane, N, 0);
+  });
   return coupleWalkFrames(ds, start, target, endSt, endLane, turnDir);
 }
 
@@ -1651,19 +1652,24 @@ function lineaToRueda(ds, N, turnDir){
   const m = N / 2;
   ds.forEach(d => { if (!d.xy) d.xy = pos(d); });         // freeze rest positions before the layout switches
   const start = {}; ds.forEach(d => start[d.id] = d.xy);
-  const byStation = {}; ds.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
+  // Which ring a couple is on is structural, so read it from the group vocabulary. On the way back the
+  // formation itself says who does what — no primeros/segundos labelling is needed.
+  const ctx = groupContext(ds, N, phase);
+  const ring = {}, spoke = {};
+  ds.forEach(d => { ring[d.id] = ctx.place(d).ring; spoke[d.id] = d.station % m; });
   // The outer couples keep their spokes, so aim the new rueda at Línea spoke 0 (with its phase baked in)
   // and rest it at phase 0 — the wheel's orientation carries across the formation change.
   const newBase = norm360(LM_BASE + phase * 360 / N);
   layoutName = 'circle'; BASE_ANG = newBase; phase = 0; computeWheel(N);
   const target = {}, endSt = {}, endLane = {};
-  const place = (d, station) => { const lane = d.role === 'L' ? 'ccw' : 'cw';   // Casino
+  ds.forEach(d => {
+    // Outer couple k lands on its own spoke; the inner couple of the same mini wheel lands ONE place
+    // clockwise of it, so the two end up adjacent in the new rueda rather than on top of each other.
+    const station = 2 * spoke[d.id] + (ring[d.id] === 'outer' ? 0 : 1);
+    const lane = d.role === 'L' ? 'ccw' : 'cw';           // Casino
     endSt[d.id] = station; endLane[d.id] = lane;
-    target[d.id] = FORMATIONS.circle.slot(station, lane, N, 0); };
-  for (let k = 0; k < m; k++){
-    byStation[m + k].forEach(d => place(d, 2 * k));       // outer couple k -> its own spoke
-    byStation[k].forEach(d => place(d, 2 * k + 1));       // inner couple k -> one place clockwise of it
-  }
+    target[d.id] = FORMATIONS.circle.slot(station, lane, N, 0);
+  });
   return coupleWalkFrames(ds, start, target, endSt, endLane, turnDir);
 }
 

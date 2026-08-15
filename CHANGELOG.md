@@ -3,6 +3,16 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v120 — the Línea entries and exits read their placement structurally
+- **`lineaModerna` and `lineaToRueda` now use the group vocabulary** instead of index arithmetic.
+  Who is a primero and who is a segundo is a structural fact — the cantante's couple and every other one
+  clockwise — and which ring a couple is on is read from `placeOf`. Byte-identical.
+- This is what makes the placement rule mean the same thing at any couple count, and it is the form a
+  user-defined formation change would have to take: *"segundos walk out to the outer ring of their own
+  spoke; primeros walk in to the inner ring of the spoke one couple clockwise"* is now what the code says,
+  rather than `byStation[st(1 + 2 * j)]`.
+- Both were already rigid-couple planner clients (v113), so no pathing changed.
+
 ## v119 — Phrases, and the Dile Que No y Dame compounds
 - **A movement may be a sequence of PHRASES** (`playPhrases`), each starting from where the last left the
   dancers. MOVEMENT_SPEC §4 named "a dancer whose couple midpoint moves and then returns within one
