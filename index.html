@@ -271,6 +271,19 @@ const MOVEMENTS = {
       face: { F: { byVirtualPos: { exhibela: null,
         casino: { from: 'start', to: 'partnerEnd', dir: 'ccw', after: 0, ease: 'linear' } } } } }
   },
+  dame_dos_pequena: {
+    label: 'Dame Dos Pequena',
+    desc: 'Dame Pequeña progressing TWO couples instead of one: the leader does all the travelling and the follower dances the identical figure, so the spoke config is unchanged. On a mini 2-couple wheel two couples is the whole wheel — the leader crosses it twice, going by the other leader on each other’s right (left shoulder) both times, and lands back with his own partner in the slot he started in. Still 4 beats, so he covers twice the ground in the same time. Ends in Exhibela at the same spokes.',
+    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: 2, afueraReady: true,
+    anim: { duration: 820 },
+    beats: 4,
+    // Identical to Dame Pequeña but for the travel it names — which is the whole claim: the follower's
+    // figure and facing are the same instruction in both, so she is the dancer who dances the same thing.
+    play: { travel: 'dame_dos_pequena', mirror: true,
+      script: { F: { kind: 'to_lane', bow: { side: 'right', amp: 'justMiss' } } },
+      face: { F: { byVirtualPos: { exhibela: null,
+        casino: { from: 'start', to: 'partnerEnd', dir: 'ccw', after: 0, ease: 'linear' } } } } }
+  },
   linea_moderna: {
     label: 'Línea Moderna',
     desc: 'From Casino on the rueda: the wheel opens into the two-ring Rueda Línea Moderna. The cantante’s couple and every other couple clockwise (the primeros) walk in to the inner ring, each landing on the spoke one couple clockwise of where it started, turning ANTI-CLOCKWISE as a couple (a tight turn, always less than a full circle) into their new orientation; the couples between them (the segundos) walk straight out along their own spokes to the outer ring without turning, so the segundos’ spokes become the formation’s spokes and each primero ends in a mini 2-couple wheel with the segundo that was next clockwise. Everyone stays in Casino, partners facing each other throughout. Requires an even number of couples.',
@@ -475,8 +488,11 @@ const MOVEMENTS = {
       beats: mapBeats(m.beats, gUn), anim: m.anim,
       play: { compose: 'grande', of: key },
     };
-    // pequeña: a Dame becomes a Dame Pequeña (progress one couple within the mini-wheel, no phase flip)
-    const pKey = (key === 'dame' || key === 'dame_dos') ? 'dame_pequena' : key;
+    // Pequeña: a Dame becomes a Dame Pequeña — the leader does all the travelling, so no phase flip.
+    // The COUNT is preserved: a Dame Dos is a two-couple progression on whatever wheel it is danced on,
+    // and mapping it to the one-couple figure is what used to throw that away (both keys produced
+    // byte-identical frames, a two-couple label over a one-couple figure — §39 asserts against it now).
+    const pKey = key === 'dame' ? 'dame_pequena' : key === 'dame_dos' ? 'dame_dos_pequena' : key;
     const pm = MOVEMENTS[pKey];
     MOVEMENTS[key + '_peq'] = {
       label: m.label + ' Pequeña', linea: true,
@@ -1594,9 +1610,17 @@ function playTravel(ds, N, o){
   // looked at — deciding both in one place is what let an assumption about the choreography silently
   // narrow the safety check.
   const ids = ds.map(d => d.id);
-  const gathering = ids.filter(a => newPartner[a]).map(a => [a, newPartner[a]]);
   const roleById = {}, startStation = {};
   ds.forEach(d => { roleById[d.id] = d.role; startStation[d.id] = d.station; });
+  // A pair is excluded only while the figure is genuinely GATHERING them — partners who are not already
+  // together and are being brought into one couple. Partners who start together AND end together are not
+  // exempt: in Dame Dos Pequeña the leader leaves his own follower, travels the whole mini-wheel and
+  // returns to her, and his intended arc runs straight through where she is standing. Excluding the pair
+  // for the whole movement is the v130 mistake one level in — nothing failed because nothing was asked.
+  // Including them is safe by construction: a swell is zero at both ends, so a pair that really is
+  // gathering cannot be pushed apart at the moment it matters.
+  const gathering = ids.filter(a => newPartner[a] && startStation[a] !== startStation[newPartner[a]])
+    .map(a => [a, newPartner[a]]);
   const plan = planCrossings({ ids, exclude: gathering, base: baseAt,
     roleOf: id => roleById[id], passes: o.passes,
     bonded: (a, b) => startStation[a] === startStation[b] || newPartner[a] === b,
@@ -2034,6 +2058,14 @@ const TRAVELS = {
   // scripted. Mujeres Arriba is the same shape with the roles inverted.
   dame_pequena: { groups: ['L', 'F'], L: { dh: -2, lane: 'cw' },
                                       F: { scripted: true, lane: 'ccw' } },
+  // Dame Dos Pequena: the same figure progressing TWO couples instead of one — the leader still does all
+  // the travelling and the follower dances the identical scripted figure, which is why neither flips the
+  // phase (both totals are even). `dh: -4` is deliberately NOT reduced. On a full rueda it is two
+  // couples; on a mini 2-couple wheel it is the whole wheel, so he crosses twice, passes the other
+  // leader both times and lands back with his own partner. Reducing it would turn the figure into
+  // standing still, which is exactly the information a slot address alone cannot carry.
+  dame_dos_pequena: { groups: ['L', 'F'], L: { dh: -4, lane: 'cw' },
+                                          F: { scripted: true, lane: 'ccw' } },
   // The close of a Dile Que No y Dame: the leader crosses to his new partner while the follower dances
   // her ¾ circle back to the spot she began the whole movement on.
   dile_dame:     { groups: ['L', 'F'], L: { dh: -2, lane: 'cw' },
