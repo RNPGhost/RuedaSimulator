@@ -2649,8 +2649,16 @@ function grandeFrames(circleKey, from){
     () => { const useAfuera = isAfuera(fromPos) && !mv.progresses && !mv.relabel;
       const out = useAfuera ? afueraFrames(mv, subDs, m, fromPos) : movementFrames(mv, subDs, m, fromPos);
       return Array.isArray(out) ? { frames: out, segBeats: null } : out; });
+  /* Both rings are generated as INTENT ONLY — evasion suppressed — because the formation is one
+   * collision problem and a problem cannot be solved twice in halves. Solving each ring first and
+   * patching afterwards was the whole difficulty: by the time anything could see both rings, both sets
+   * of paths were fixed and only lateral offsets remained, which at 4 couples (two rings of two) is not
+   * enough room. Generate the intents, merge, solve once. */
+  const wasNoEvade = NAT_NOEVADE;
+  NAT_NOEVADE = true;
   const inO = runRing(innerSub, LM.Ri, LM.di * 180 / Math.PI, sub.inner);
   const outO = runRing(outerSub, LM.Ro, LM.doO * 180 / Math.PI, sub.outer);
+  NAT_NOEVADE = wasNoEvade;
   const F = Math.max(inO.frames.length, outO.frames.length), frames = [];
   for (let i = 0; i < F; i++){
     const inf = inO.frames[Math.min(i, inO.frames.length - 1)];
@@ -2683,15 +2691,18 @@ function grandeFrames(circleKey, from){
       const A = track[id][i], B = track[id][i + 1];
       return { x: A.x + (B.x - A.x) * f, y: A.y + (B.y - A.y) * f }; };
     const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
+    // The movement's own declarations still apply within a ring; the ring relation is what a pair from
+    // DIFFERENT rings is judged on, since they are going round two different wheels and neither the
+    // head-on nor the same-direction rule settles it. `refWheels('grande')` numbers inner 0, outer 1.
+    const own = declaredPasses(mv, sub.outer) || {};
+    const st0 = {}; dancers.forEach(d => st0[d.id] = d.station);
     const plan = planCrossings({ ids: xIds, base: sample,
-      roleOf: id => roleOf[id], bonded: (a, b) => ringOf[a] === ringOf[b],
-      group: id => roleOf[id], groups: ['L', 'F'],
-      // Which ring each is on is the only thing that matters between two dancers of different rings —
-      // they are going round two different wheels, so neither the head-on nor the same-direction rule
-      // settles it. `refWheels('grande')` numbers the inner ring 0 and the outer 1.
-      relation: (a, b) => ringOf[a] === ringOf[b] ? null : (ringOf[a] > ringOf[b] ? 'outer,inner' : 'inner,outer'),
-      passes: { 'outer,inner': 'out', 'inner,outer': 'in' },
+      roleOf: id => roleOf[id],
+      relation: (a, b) => ringOf[a] !== ringOf[b] ? (ringOf[a] > ringOf[b] ? 'outer,inner' : 'inner,outer')
+                        : (st0[a] === st0[b] ? 'partner0' : null),
+      passes: Object.assign({}, own, { 'outer,inner': 'out', 'inner,outer': 'in' }),
       orbit: { x: CX, y: CY },
+      group: id => roleOf[id], groups: ['L', 'F'],
       clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
     if (plan.scale > 0) frames.forEach((fr, i) => fr.forEach(d => { d.xy = plan.at(d.id, i / (F1 - 1)); }));
   }
