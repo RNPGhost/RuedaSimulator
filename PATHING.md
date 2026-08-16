@@ -209,6 +209,41 @@ arc a late, sharp dodge (0.60) ranks above a gentle one (0.36), which ranks abov
 invariants §18. Role: **solver objective** (pick the calmest dip that still clears) **+ guardrail** (flag
 an evasion whose cost runs away).
 
+## The next model: lines and arcs, not offsets (agreed with Sam, attempted, not built)
+
+Sam's construction: a path is a sequence of **straight lines** and **circular arcs**. Where two dancers
+would collide they rotate around each other, shoulder to shoulder, about the **intersection point of the
+two paths that collide**, until the way on is clear — then straight again, to the destination or to the
+next arc. No dancer yields more than another because of how far they travel; each simply steps to the
+edge of the corridor and goes round.
+
+**This cannot be expressed as an offset, and that is the whole finding.** Today a deviation is a signed
+displacement along the dancer's *own* path normal. Two dancers each stepping `d` aside separate by `2d`
+**only when their paths are anti-parallel** — a head-on pass. Where the paths cross at an angle the two
+normals do not oppose, the offsets partly cancel along the line between the dancers, and the corridor
+does not open. Sam's construction has no such dependence: both dancers are placed at a fixed distance
+from a **shared** point, so the separation is that distance doubled at any crossing angle.
+
+Measured, trying to reach the model from inside the offset representation:
+
+| attempt | result |
+|---|---|
+| each dancer steps exactly `CLEAR/2` (a literal reading of shoulder-to-shoulder) | **237** checks red — correct for head-on passes only |
+| step size derived per encounter from the crossing angle | **145** red — better, and still first-order; one estimate does not converge |
+| per-encounter amplitudes, iterated (what is committed) | **22** red |
+
+So the remaining work is a **change of representation**, not a tuning of this one: dancer paths become
+waypoint polylines, and resolving a collision *inserts a via point* at the corridor's edge from the
+intersection, rather than adding a swell to a base path. The pieces that already exist and carry over:
+the per-encounter side vocabulary (which becomes *which way round the intersection*), the on-demand
+encounter machinery (a resolution creating new collisions), and the innermost-first ordering.
+
+**Settled with Sam and carried into it:** dancers hold a roughly constant speed — the beat count is the
+master definition, so an arc-and-lines path is covered faster rather than later, and avoiding a collision
+by slowing down is not on the table for now. A traveller meeting a **scripted** dancer arcs about *her*
+rather than about a shared point, since she cannot yield. Pairs whose paths never intersect inside their
+segments use the closest-approach midpoint as the centre, to be revisited against real examples.
+
 ## Open / to-revisit
 
 - "Inside dancer dips a little further than the outside dancer" (shorter path ⇒ can afford more) is a
