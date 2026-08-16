@@ -1890,7 +1890,10 @@ function run() {
     {
       const path = { X: straight({ x: 0, y: 0 }, { x: 400, y: 0 }),
                      A: straight({ x: 100, y: -60 }, { x: 100, y: 60 }),
-                     B: straight({ x: 300, y: 60 }, { x: 300, y: -60 }) };
+                     // B is timed so it reaches X's line exactly when X gets there. Its old geometry
+                     // put B at y=-30 when X arrived, so dodging A already cleared B by 39.1px and the
+                     // case could not exercise what it exists for — one dancer owing two shoulders.
+                     B: straight({ x: 300, y: 90 }, { x: 300, y: -30 }) };
       const role = { X: 'L', A: 'F', B: 'L' };
       T.clearFaults();
       const plan = T.planCrossings({ ids: ['X', 'A', 'B'], base: (id, t) => path[id](t),
@@ -1905,14 +1908,21 @@ function run() {
       nChecks++; check(lo < -1 && hi > 1,
         `§36b one dancer's two passes did not go opposite ways (deviation ranged ${lo.toFixed(1)}…${hi.toFixed(1)}px) — ` +
         `a single per-movement offset cannot express "her on my left, him on my right"`);
-      // This case is deliberately over-tight, and shows the capability's LIMIT as well as the capability:
-      // the two engagements sit close enough together that the leftward and rightward swells overlap and
-      // partially cancel, so no amplitude satisfies both. That is a figure which cannot be danced as
-      // written, and the contract is that the engine says so rather than drawing something that looks
-      // plausible. Asserted here so the warning it prints is an expectation, not noise — an unexplained
-      // warning in a green run is how people learn to ignore warnings.
-      nChecks++; check(T.PLAN_FAULTS.length === 1,
-        `§36b two opposing passes crammed together should be reported as unclearable (got ${T.PLAN_FAULTS.length} fault(s))`);
+      /* This case used to be the capability's LIMIT as well as its demonstration: with a single swell per
+       * dancer the leftward and rightward crests overlapped and partially cancelled, so no amplitude
+       * satisfied both and the engine correctly reported a figure it could not dance. The via model has
+       * no such limit — each collision pins a position rather than adding an offset, so two opposite
+       * passes do not fight each other — and the honest assertion is now that it succeeds. */
+      {
+        let w = Infinity;
+        for (let s2 = 0; s2 <= SMP; s2++){ const t = s2 / SMP;
+          ['A', 'B'].forEach(o2 => { const p1 = plan.at('X', t), p2 = plan.at(o2, t);
+            w = Math.min(w, Math.hypot(p1.x - p2.x, p1.y - p2.y)); }); }
+        nChecks++; check(w >= CLEAR - 0.5,
+          `§36b two opposing passes crammed together were not both cleared (${w.toFixed(1)} < ${CLEAR})`);
+        nChecks++; check(T.PLAN_FAULTS.length === 0,
+          `§36b the engine reported a fault on a figure it did dance (${T.PLAN_FAULTS.length})`);
+      }
       T.clearFaults();
     }
 
@@ -1921,15 +1931,33 @@ function run() {
     //      so the engine says so instead of producing something that looks fine and isn't.
     {
       T.clearSideFaults();
-      // Far enough apart that no evasion is called for (45px against a 35px corridor), so nothing can
-      // carry them across — but close enough to be passing. They go by on each other's left; the
-      // movement asks for the right. That is a figure the engine cannot dance as written.
-      const path = { P: straight({ x: 0, y: 0 }, { x: 200, y: 0 }), Q: straight({ x: 200, y: 45 }, { x: 0, y: 45 }) };
-      T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
+      /* A DECLARED SIDE IS ACHIEVED EVEN WHERE THE INTENDED PATHS TAKE THE OTHER SHOULDER. This used to
+       * be the opposite assertion — that the engine REPORTS a side it cannot reach — because easing two
+       * dancers apart cannot carry a pass onto the other shoulder, it only drives them further onto the
+       * wrong one. The via model does not ease: it places each dancer on the side the movement names, so
+       * the declaration decides the shoulder rather than merely hoping for it. The stronger property is
+       * asserted, and the pair must still clear. */
+      const path = { P: straight({ x: 0, y: 0 }, { x: 200, y: 0 }), Q: straight({ x: 200, y: 8 }, { x: 0, y: 8 }) };
+      const pl3 = T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
         roleOf: () => 'L', passes: { 'L,L': 'right' },
         group: id => id, groups: ['P', 'Q'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
-      nChecks++; check(T.SIDE_FAULTS.length > 0,
-        '§36c a pass declared on the shoulder opposite to the intended paths was accepted in silence');
+      {
+        const h = 1 / 80, t = 0.5;
+        const a0 = pl3.at('P', t - h), a1 = pl3.at('P', t + h);
+        const d = { x: a1.x - a0.x, y: a1.y - a0.y };
+        const p = pl3.at('P', t), q = pl3.at('Q', t);
+        const side = Math.sign(d.x * (q.y - p.y) - d.y * (q.x - p.x));
+        let w = Infinity;
+        for (let s2 = 0; s2 <= SMP; s2++){ const tt = s2 / SMP;
+          const A = pl3.at('P', tt), B = pl3.at('Q', tt);
+          w = Math.min(w, Math.hypot(A.x - B.x, A.y - B.y)); }
+        nChecks++; check(side === T.PASS_SIGN['right'],
+          `§36c the declared side was not achieved (got ${side}, wanted ${T.PASS_SIGN['right']})`);
+        nChecks++; check(w >= CLEAR - 0.5,
+          `§36c the pair did not clear while taking the declared side (${w.toFixed(1)} < ${CLEAR})`);
+        nChecks++; check(T.SIDE_FAULTS.length === 0,
+          `§36c a fault was recorded for a pass that went where it was told (${T.SIDE_FAULTS.length})`);
+      }
       T.clearSideFaults();
       T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
         roleOf: () => 'L', passes: { 'L,L': 'left' },                // …and declared to match, no fault
