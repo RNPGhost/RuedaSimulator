@@ -1476,7 +1476,12 @@ function planCrossings(o){
     // only the code knew into something stated and therefore checkable, which is the whole point.
     const named = o.relation && o.passes && o.passes[o.relation(a, b)];
     if (!named && o.bonded && o.bonded(a, b)) return;
-    if (gc <= ENGAGE && (named || headOnAt(a, b, tc))) judged.push({ a, b, tc });
+    /* Judge a side only where there was a COLLISION to resolve. A declared side exists to settle which
+     * way two dancers get out of each other's way; where their intended paths already hold the corridor
+     * there is nothing to settle, and holding the figure to a side it never needed is how a vocabulary
+     * meant to help ends up fighting the shortest path. Sam: "if a pass side is not helping to resolve a
+     * possible collision, it is not useful, and should be discarded." */
+    if (gc <= CLEAR && (named || headOnAt(a, b, tc))) judged.push({ a, b, tc });
   });
   // A unit eases along the LEFT NORMAL of its own travel — its centroid's travel, so a bonded couple
   // sidesteps as one body instead of shearing. This is the general rule; the radial offset the ring
@@ -2205,7 +2210,7 @@ const TRAVELS = {
   // couples; on a mini 2-couple wheel it is the whole wheel, so he crosses twice, passes the other
   // leader both times and lands back with his own partner. Reducing it would turn the figure into
   // standing still, which is exactly the information a slot address alone cannot carry.
-  dame_dos_pequena: { groups: ['L', 'F'], passes: PASSES_RUEDA, L: { dh: -4, lane: 'cw' },
+  dame_dos_pequena: { groups: ['L', 'F'], passes: Object.assign({}, PASSES_RUEDA, { partner0: 'left' }), L: { dh: -4, lane: 'cw' },
                                           F: { scripted: true, lane: 'ccw' } },
   // The close of a Dile Que No y Dame: the leader crosses to his new partner while the follower dances
   // her ¾ circle back to the spot she began the whole movement on.
@@ -2234,7 +2239,16 @@ function resolveTravel(name, ds, o){
      * their own left however the wheel is turned inside out. Same reason turns are not mirrored. Measured:
      * the conventions hold unchanged across the afuera positions, which is where the 144/144 in
      * PASSING.md comes from. Mirroring them put 120 shipped passes on the wrong side. */
-    passes: def.passes,
+    /* Role-keyed sides do NOT mirror — a dancer's own left is their own left however the wheel is turned
+     * inside out, the same reason turns are not mirrored. RELATION-keyed ones DO. "Behind the partner I
+     * came in with" is a statement about a particular dancer's position rather than about my own facing,
+     * and which side of her is behind depends on which way round the wheel I am travelling — which is
+     * exactly what afuera reverses. Measured: `partner0: 'right'` clears Dame Dos Pequeña afuera at 10
+     * couples and breaks the non-afuera case; mirrored, both hold. */
+    passes: def.passes && (o.mirror
+      ? Object.fromEntries(Object.entries(def.passes).map(([k, v]) =>
+          [k, k.includes(',') ? v : (v === 'left' ? 'right' : 'left')]))
+      : def.passes),
   }, o);
 }
 

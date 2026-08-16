@@ -1671,6 +1671,13 @@ function run() {
           const r = { x: P[b][k].x - P[a][k].x, y: P[b][k].y - P[a][k].y };
           const sa = Math.sign(cross(ha, r)), sb = Math.sign(cross(hb, { x: -r.x, y: -r.y }));
           const dot = (ha.x * hb.x + ha.y * hb.y) / (la * lb);
+          /* A DECLARED SIDE IS ONLY EVER A WAY TO RESOLVE A COLLISION (Sam). If two dancers' straight-line
+           * paths never breach the corridor, there is no collision to resolve, so whatever side they
+           * happen to go by on is not a claim anyone made and not something to hold a figure to. Judging
+           * every near-miss is what produced dozens of "violations" of sides nobody needed: the pass was
+           * fine, it simply happened on the shoulder the shortest path preferred. Only pairs that would
+           * actually collide are judged. */
+          if (best > CLEAR) continue;
           const rec = { tag: `${key}|${from}|n${n} ${a}/${b}`, sa, sb, gap: best, roleA: a[0], roleB: b[0],
             passes: T.declaredPasses(T.MOVEMENTS[key], from),
             rel: (sPre[a] !== undefined && sPre[a] === sPre[b]) ? 'partner0' : null };
@@ -1683,7 +1690,11 @@ function run() {
     // A head-on pass has a side both dancers agree on; a parallel one CANNOT — if b is on a's left while
     // they travel the same way, a is necessarily on b's right. So a side is only ever stated from one
     // dancer's point of view, which is why "pass on each other's left" is not a usable specification.
-    nChecks++; check(headOn.length > 50, `§35 only ${headOn.length} head-on traffic passes found — the probe is not finding encounters`);
+    // Coverage floor, lowered deliberately: the population is now pairs that actually COLLIDE on their
+    // intended paths, not every pair that comes within engagement distance, so it is legitimately smaller.
+    // Kept as a floor rather than deleted, because a probe that silently stops finding encounters is
+    // indistinguishable from a suite that passes.
+    nChecks++; check(headOn.length > 30, `§35 only ${headOn.length} head-on traffic passes found — the probe is not finding encounters`);
     const notMutual = headOn.filter(r => r.sa !== r.sb);
     nChecks++; check(notMutual.length === 0,
       `§35 ${notMutual.length} head-on pass(es) where the two dancers disagree on the side, e.g. ${notMutual[0] && notMutual[0].tag}`);
