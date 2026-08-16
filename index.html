@@ -244,7 +244,7 @@ const MOVEMENTS = {
   dame: {
     label: 'Dame',
     desc: 'Progresses the leader one couple, ending in Exhibela facing the new partner. Leader and follower now travel toward each other and meet at the spoke midway between their two old couples — so the wheel flips to the other of its two spoke configs and lands exactly on the grid (no drift). The follower progresses clockwise (anti-clockwise afuera) to the meeting spoke.',
-    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true, flipsPhase: true,
+    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: 1, afueraReady: true, flipsPhase: true,
     anim: { duration: 700 },
     beats: (from) => virtualPos(from) === 'casino' ? 2 : 4,
     play: { travel: 'dame', mirror: true }
@@ -252,7 +252,7 @@ const MOVEMENTS = {
   dame_dos: {
     label: 'Dame Dos',
     desc: 'Like Dame but the leader progresses two couples — he passes one follower and joins the next while the follower steps half a couple to the between-spoke. Flips the phase (lands on the other config) and ends in Exhibela facing the new partner.',
-    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true, flipsPhase: true,
+    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: 2, afueraReady: true, flipsPhase: true,
     anim: { duration: 820 },
     beats: 4,
     play: { travel: 'dame_dos', mirror: true }
@@ -260,7 +260,7 @@ const MOVEMENTS = {
   dame_pequena: {
     label: 'Dame Pequena',
     desc: 'Progresses the leader one couple WITHOUT changing the spoke config — the couples stay on the same midpoint spokes, only the pairing shifts. From Exhibela the follower stays put and the leader travels the whole way to the next follower (a Dame where the leader does all the work). From Casino the follower does a Reverse Adios across her own spoke (turning 180° anti-clockwise) while the leader travels the larger distance to the next follower’s spoke. Ends in Exhibela at the same spokes. Afuera it inverts inside-out (progression clockwise, lanes swapped), ending in Afuera Exhibela. (Meant for Rueda / Línea Moderna work; not yet used as a call.)',
-    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
+    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: 1, afueraReady: true,
     anim: { duration: 820 },
     beats: 4,
     play: { travel: 'dame_pequena', mirror: true,
@@ -282,7 +282,7 @@ const MOVEMENTS = {
     label: 'Dame Línea',
     desc: 'From Casino on the rueda: a Dame that lands the wheel in Rueda Línea Moderna. Each primero couple and the segundo couple one place clockwise of it exchange followers, and the two new couples take the two rings of the mini wheel they now share. The new spokes sit midway between each primero’s spoke and the segundo’s one couple clockwise — exactly where a Dame’s partners meet — so the segundo leaders dance an ordinary Dame onto them, easing out to the outer ring and gathering the primero followers there in Exhibela; those outer couples set the formation’s spokes. Meanwhile each primero leader and the segundo follower one couple clockwise walk straight in to the inner ring of that same spoke, meeting as its inner couple. Ends in the Línea exhibela state, ready for a Dile Que No Grande. Even couple counts only.',
     requires: ['casino'], sets: 'linea_ex', needsEven: true, noAfuera: true, changesLayout: 'linea',
-    progresses: true,
+    progresses: 1,
     // Two beats, like the Dame it is. It is a progressing Dame-type figure that closes into a Dile Que
     // No, so `startBeatOf` snaps it to beat 9 − 2 = 7: it ends on 8 and the Dile Que No Grande lands on
     // beat 1, giving the call the same 2 + 8 = 10 beats a plain Dame takes. It used to declare 4, which
@@ -322,7 +322,7 @@ const MOVEMENTS = {
   dile_dame: {
     label: 'Dile Que No y Dame',
     desc: 'Both dance beats 1–2 of a Dile Que No (out along the Exhibela line and back), then on beat 3 move onto the midpoint spoke (the radial from the wheel centre through the couple’s start midpoint) and pause on 4 — landing equidistant either side of where the spoke meets the ring (follower just inside, leader just outside, far enough apart not to collide): the follower facing perpendicular to the spoke (≈ clockwise), the leader facing the centre. On 5–8 the leader does a straight Dame to his new follower one couple anti-clockwise (facing her); meanwhile the follower walks about three-quarters of a circle through her spoke point, its mirror just outside the ring, and back to her own spot, facing her direction of travel then turning to her new leader. Ends in Exhibela position, leaders progressed one couple.',
-    requires: ['exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
+    requires: ['exhibela'], sets: 'exhibela', progresses: 1, afueraReady: true,
     beats: 8,
     play: { phrases: [
       { figure: 'dile_opening', mirror: true },
@@ -337,7 +337,7 @@ const MOVEMENTS = {
   dile_dame_dos: {
     label: 'Dile Que No y Dame Dos',
     desc: 'Exactly like Dile Que No y Dame, but on 5–8 the leader travels to the follower two couples anti-clockwise instead of one. Same opening (both move onto the midpoint spoke and pause), same follower three-quarter circle back to her own spot; the leader heads straight for his new Exhibela spot with a single gentle arc (bowing to his right, keeping right of the other leaders) just large enough to stay clear. Ends in Exhibela position.',
-    requires: ['exhibela'], sets: 'exhibela', progresses: true, afueraReady: true,
+    requires: ['exhibela'], sets: 'exhibela', progresses: 2, afueraReady: true,
     beats: 8,
     play: { phrases: [
       { figure: 'dile_opening', mirror: true },
@@ -360,7 +360,7 @@ const MOVEMENTS = {
   mujeres: {
     label: 'Mujeres Arriba',
     desc: 'From the Dile Que No position: the women advance. Each follower progresses one partnership clockwise to the next couple’s Exhibela spot (doing all the travelling, staying inside the ring), while each leader retraces his 4-beat Dile Que No in reverse back to his own Exhibela spot, facing the centre then turning right to meet his new follower. Ends in Exhibela — leaders not progressed, the pairing shifted by one, no phase change.',
-    requires: ['dile'], sets: 'exhibela', progresses: true, entryOnly: true,
+    requires: ['dile'], sets: 'exhibela', progresses: 1, entryOnly: true,
     beats: 4,
     play: { travel: 'mujeres', opts: { steps: 24, settle: 0.3, beats: 4 },
       script: { L: { kind: 'to_lane', ease: 'smooth' } },
@@ -2439,6 +2439,26 @@ const LINEA_SUB = {
   linea:    { outer: 'casino',   inner: 'afuera' },           // rest
   linea_ex: { outer: 'exhibela', inner: 'afuera_exhibela' },  // both rings exhibela-like
 };
+
+/* WHICH WHEEL A FIGURE IS DANCED ON — the reference for counting a progression.
+ * A movement's `progresses` is a number of COUPLES, and the wheel those couples belong to is not always
+ * the whole rueda: a grande figure runs on each RING (m couples), a pequeña one on each mini 2-couple
+ * wheel. That is why "a Dame Dos progresses two couples" lands the leader back where he started in a
+ * pequeña — two couples IS the whole wheel there. Both partitions already existed, written inline in
+ * terms of station and in different places; they are named once here so the engine and the suite cannot
+ * hold different opinions about which couples a figure was danced among.
+ *   kind: 'grande' | 'pequena' | null (the plain circle)
+ *   size — couples per reference wheel;  of(station) — which wheel;  local(station) — index within it */
+function refWheels(kind, N){
+  const m = LM.m;
+  if (kind === 'grande')  return { size: m, of: st => (st < m ? 0 : 1), local: st => (st < m ? st : st - m) };
+  // A mini-wheel pairs the inner ring's station j with the outer ring's station m+j — outer is its
+  // station 0 and inner its station 1, exactly as pequenaFrames builds it.
+  if (kind === 'pequena') return { size: 2, of: st => st % m,          local: st => (st < m ? 1 : 0) };
+  return { size: N, of: () => 0, local: st => st };
+}
+// A movement's composition kind, which is what decides its reference wheel.
+const composeKind = mv => (mv && mv.play && mv.play.compose) || null;
 function grandeFrames(circleKey, from){
   const m = LM.m, mv = MOVEMENTS[circleKey], sub = LINEA_SUB[from];
   const all = dancers;
@@ -2512,7 +2532,8 @@ function pequenaFrames(circleKey, from){
   if (F1 > 1){
     const track = {}; frames[0].forEach(d => track[d.id] = []);
     frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
-    const wheelOf = {}; frames[0].forEach(d => wheelOf[d.id] = d.station % m);
+    const RW = refWheels('pequena', N);
+    const wheelOf = {}; frames[0].forEach(d => wheelOf[d.id] = RW.of(d.station));
     const roleOf = {}; frames[0].forEach(d => roleOf[d.id] = d.role);
     const sameWheel = [];
     for (let i = 0; i < xIds.length; i++) for (let j = i + 1; j < xIds.length; j++)

@@ -1929,6 +1929,134 @@ function run() {
     nChecks++; check(JSON.stringify(GOOD) !== JSON.stringify(BAD), '§38 self-test: the two seeds are identical');
   }
 
+  // 39: A PROGRE§ION IS COUNTED IN COUPLES, AND THE COUNT MUST BE TRUE.
+  //     `progresses` used to be a boolean, which cannot hold the one fact that matters here: a Dame Dos
+  //     is a TWO-couple progression on a wheel of any size, and on a mini-wheel of two that happens to
+  //     land the leader back with his own partner. A boolean says "yes, it progresses" to both that and
+  //     a one-couple swap, so `dame_dos_peq` wore a two-couple label over a one-couple figure and
+  //     nothing could see it. The count is now checked two independent ways.
+  {
+    // (a) DELIVERED — who ended up with whom. The pairing must advance by `k` couples of the wheel the
+    //     figure was danced on. Modulo that wheel, necessarily: on a 2-couple wheel k=2 and k=0 deliver
+    //     the same pairing, and telling THOSE apart is (b)'s job, not something an end state can do.
+    //     The SIDE is not asserted here. A figure danced afuera progresses the other way round, and in
+    //     Linea the inner ring is afuera while the outer is not — so the two rings of one grande figure
+    //     genuinely advance in opposite directions. Direction lives in the addresses (§28 re-derives
+    //     them per position); this check owns the COUNT, per reference wheel.
+    const partnersOf = snap => { const by = {}, out = {};
+      snap.forEach(d => { (by[d.station] = by[d.station] || {})[d.role] = d; });
+      Object.values(by).forEach(p => { if (p.L && p.F) out[p.L.id] = p.F.id; });
+      return out; };
+    // Where each couple sits on its own reference wheel BEFORE the movement — the ruler the advance is
+    // measured with. Structural (station -> wheel -> local index), never an assumption that couple i is
+    // at station i: in Linea the primeros take the inner ring, so they are not.
+    const rulerOf = (snap, RW) => { const at = {};
+      snap.forEach(d => { if (d.role === 'F') at[d.id] = { wheel: RW.of(d.station), local: RW.local(d.station) }; });
+      return at; };
+    const delivered = (before, after, RW) => {
+      const perWheel = {};
+      for (const L of Object.keys(before.pairs)){
+        const b = before.ruler[before.pairs[L]], a = before.ruler[after[L]];
+        if (!b || !a) return { bad: 'a partner vanished' };
+        if (b.wheel !== a.wheel) return { bad: `pairing crossed reference wheels (${b.wheel}->${a.wheel})` };
+        (perWheel[b.wheel] = perWheel[b.wheel] || new Set())
+          .add(((b.local - a.local) % RW.size + RW.size) % RW.size);
+      }
+      const ks = [];
+      for (const w of Object.keys(perWheel)){
+        const s = perWheel[w];
+        if (s.size !== 1) return { bad: `wheel ${w} is not a uniform progression: ${[...s].join(',')}` };
+        ks.push([...s][0]);
+      }
+      return { ks };
+    };
+    // k couples, counted either way round: |k| is the figure's, the sign is the position's.
+    const matches = (got, k, size) => got === ((k % size) + size) % size || got === ((-k % size) + size) % size;
+    const cases = [];
+    for (const key of T.keys().movements){
+      const mv = T.MOVEMENTS[key];
+      // A formation change replaces the slot set, so there is no common wheel to count couples on —
+      // the same reason §25 skips them for the scripted/dynamic contract.
+      if (mv.changesLayout || (mv.play && mv.play.formation)) continue;
+      const kind = T.composeKind(mv), k = mv.progresses || 0;
+      for (const n of NS){
+        if (mv.minCouples && n < mv.minCouples) continue;
+        try {
+          if (kind){
+            const rest = T.setupLinea(n).dancers, RW = T.refWheels(kind, n);
+            const before = { pairs: partnersOf(rest), ruler: rulerOf(rest, RW) };
+            const cap = T.captureLineaMovement(key, n, 0);
+            if (!cap || !cap.frames) continue;
+            cases.push({ tag: `${key}|linea|n${n}`, k, size: RW.size, r: delivered(before, partnersOf(cap.dancers), RW) });
+          } else {
+            for (const from of POSITIONS){
+              if (!T.validFrom(key, from)) continue;
+              const rest = T.restDancers(from, n, 0), RW = T.refWheels(null, n);
+              const before = { pairs: partnersOf(rest), ruler: rulerOf(rest, RW) };
+              const cap = T.captureMovement(key, from, n, 0);
+              if (!cap || !cap.frames) continue;
+              cases.push({ tag: `${key}|${from}|n${n}`, k, size: RW.size, r: delivered(before, partnersOf(T.state().dancers), RW) });
+            }
+          }
+        } catch (e) { /* not reachable at this couple count */ }
+      }
+    }
+    nChecks++; check(cases.length > 100, `§39 only ${cases.length} progression cases probed — the sweep is not finding movements`);
+    const broken = cases.filter(c => c.r.bad);
+    nChecks++; check(broken.length === 0,
+      `§39 ${broken.length} movement(s) did not deliver a uniform progression, e.g. ${broken[0] && broken[0].tag}: ${broken[0] && broken[0].r.bad}`);
+    const ok = cases.filter(c => !c.r.bad);
+    const wrong = ok.filter(c => !c.r.ks.every(g => matches(g, c.k, c.size)));
+    nChecks++; check(wrong.length === 0,
+      `§39 ${wrong.length} movement(s) progress a different number of couples than they declare, e.g. ` +
+      (wrong[0] ? `${wrong[0].tag} declares ${wrong[0].k} on a ${wrong[0].size}-couple wheel but delivered ` +
+        `${wrong[0].r.ks.join('/')}` : ''));
+    // Self-test: the ruler must be able to see a wrong answer. Claim one more couple than each figure
+    // progresses and the check has to light up — on a 2-couple wheel that is the exact shape of the
+    // dame_dos_peq bug, a count off by one hiding behind a pairing that looks settled.
+    const wouldFail = ok.filter(c => !c.r.ks.every(g => matches(g, c.k + 1, c.size)));
+    nChecks++; check(wouldFail.length > ok.length * 0.5,
+      `§39 self-test: shifting every declared count by one still left ${ok.length - wouldFail.length} of ` +
+      `${ok.length} cases passing — the check is not discriminating`);
+
+    // (b) DERIVED — the count against the addresses, which is what tells k=2 from k=0 on a 2-couple
+    //     wheel. A traveller's `dh` is in half-spacings and is NOT reduced, so the pair of them carries
+    //     the whole journey: k = (F.dh - L.dh) / 2, a scripted role counting as dh 0.
+    const kOf = def => { const dh = r => (def[r] && typeof def[r].dh === 'number') ? def[r].dh : 0;
+      return (dh('F') - dh('L')) / 2; };
+    let nTravels = 0;
+    for (const name of Object.keys(T.TRAVELS)){
+      nChecks++; nTravels++;
+      check(Number.isInteger(kOf(T.TRAVELS[name])),
+        `§39b travel '${name}' implies a fractional progression of ${kOf(T.TRAVELS[name])} couples`);
+    }
+    nChecks++; check(nTravels >= 6, `§39b only ${nTravels} travel definitions found`);
+    // Every movement that reaches a travel definition — directly, through a compose, or inside a
+    // phrase — must declare the count those addresses imply. Following `of` is the point: a composed
+    // movement that swaps in a DIFFERENT figure than its name claims is exactly how the count got lost.
+    const travelOf = (mv, depth) => {
+      const pl = mv && mv.play; if (!pl || depth > 3) return null;
+      if (typeof pl.travel === 'string') return pl.travel;
+      if (pl.compose && T.MOVEMENTS[pl.of]) return travelOf(T.MOVEMENTS[pl.of], depth + 1);
+      if (Array.isArray(pl.phrases)){
+        const t = pl.phrases.map(f => f && f.travel).filter(x => typeof x === 'string');
+        if (t.length === 1) return t[0];
+      }
+      return null;
+    };
+    const named = [];
+    for (const key of T.keys().movements){
+      const mv = T.MOVEMENTS[key], tName = travelOf(mv, 0);
+      if (!tName || !T.TRAVELS[tName]) continue;
+      named.push({ key, want: Math.abs(kOf(T.TRAVELS[tName])), got: mv.progresses || 0, via: tName });
+    }
+    const mismatch = named.filter(x => x.want !== x.got);
+    nChecks++; check(mismatch.length === 0,
+      `§39b ${mismatch.length} movement(s) declare a progression their travel definition contradicts, e.g. ` +
+      (mismatch[0] ? `${mismatch[0].key} declares ${mismatch[0].got} but '${mismatch[0].via}' implies ${mismatch[0].want}` : ''));
+    nChecks++; check(named.length >= 11, `§39b only ${named.length} movements resolved to a travel definition`);
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

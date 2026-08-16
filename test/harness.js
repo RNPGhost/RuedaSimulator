@@ -185,6 +185,9 @@ function load(htmlPath) {
       get DIR_DERIVATIONS(){ return DIR_DERIVATIONS; }, clearDirs(){ DIR_DERIVATIONS.length = 0; },
       placeOf, resolvePlace, selectGroup, groupContext, GROUPS,
       FIGURES, SOLVERS, TRAVELS,
+      // Which wheel a figure is danced on — the reference a progression is counted against. Asked of the
+      // engine rather than re-derived here: a re-derivation is a second opinion waiting to disagree.
+      refWheels, composeKind,
       // Run a TRAVEL definition straight from data, as if it had come out of a file.
       playTravelFrom(def, from, n, ph, opts){ setupRest(from, n, ph);
         return playTravel(dancers, n, resolveTravel(def, dancers, Object.assign({ phaseBefore: ph }, opts || {}))); },
