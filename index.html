@@ -1713,8 +1713,16 @@ function planCrossings(o){
      * uncapped it sent a leader 210px off his line to clear a woman standing still. */
     const half = (CLEAR / 2) * g, full = CLEAR * Math.min(g, 1.25);
     if (ya && yb){
+      /* Each dancer goes to the side THEIR OWN declaration names. Deriving b's side by negating a's
+       * forces the two to be opposite, which is right for a mutual head-on pass and wrong wherever the
+       * movement names the two halves separately — b ends up on the far side of the axis from the one it
+       * was told to take, and the pass is measured on the wrong shoulder even though nobody collides.
+       * Where the two declarations do oppose, this is the same placement as before. */
+      const bx = sideVec(b, a, t);
+      const opposed = (ax.x * bx.x + ax.y * bx.y) < 0;
+      const bDir = opposed ? bx : { x: -ax.x, y: -ax.y };
       addVia(a, t, { x: C.x + ax.x * half, y: C.y + ax.y * half });
-      addVia(b, t, { x: C.x - ax.x * half, y: C.y - ax.y * half });
+      addVia(b, t, { x: C.x + bDir.x * half, y: C.y + bDir.y * half });
     } else if (ya){
       addVia(a, t, { x: B.x + ax.x * full, y: B.y + ax.y * full });
     } else if (yb){
@@ -1786,7 +1794,10 @@ function planCrossings(o){
   // judging the intent would condemn an outcome that is right. A parallel pass has no mutual side
   // (PASSING.md), so only head-on ones are judged.
   if (o.roleOf && !NAT_NOEVADE) judged.forEach(L => {
-    const want = PASS_SIGN[passSide(o.roleOf(L.a), o.roleOf(L.b), o.passes)];
+    // WITH the relation. Without it this resolved the role key and judged every pass against a rule the
+    // movement had explicitly overridden — 58 shipped passes reported on the wrong shoulder for going
+    // exactly where they were told. The verification has to ask the same question the placement asked.
+    const want = PASS_SIGN[passSide(o.roleOf(L.a), o.roleOf(L.b), o.passes, o.relation && o.relation(L.a, L.b))];
     if (want === undefined || want === null) return;
     const h = 1 / (2 * NSMP), t = L.tc;
     const A0 = at(L.a, Math.max(0, t - h)), A1 = at(L.a, Math.min(1, t + h));

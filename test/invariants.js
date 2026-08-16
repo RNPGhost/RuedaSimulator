@@ -858,7 +858,16 @@ function run() {
         split = Math.max(split, Math.hypot(dL.x - dF.x, dL.y - dF.y));
       });
     }
-    nChecks++; check(plan.scale > 0, 'rigid pair: two couples walking head-on should have forced a deviation');
+    /* Assert what the dancers did, not what the solver called it. `scale` was a single global amplitude
+     * and there is no such number any more — each collision opens its own corridor — so the question is
+     * whether anyone actually moved off their intended line. */
+    {
+      let moved = 0;
+      for (let k = 0; k <= SMP; k++){ const t = k / SMP;
+        IDS.forEach(id => { const q = plan.at(id, t), b = at(id, t);
+          moved = Math.max(moved, Math.hypot(q.x - b.x, q.y - b.y)); }); }
+      nChecks++; check(moved > 1, 'rigid pair: two couples walking head-on should have forced a deviation');
+    }
     nChecks++; check(worst >= CLEAR - 0.5, `rigid pair: couples still collide (minClear ${worst.toFixed(1)} < ${CLEAR})`);
     nChecks++; check(stretch <= 0.01, `rigid pair: the couple was stretched by ${stretch.toFixed(2)}px — a unit must move as a body`);
     nChecks++; check(split <= 0.01, `rigid pair: partners took different offsets (${split.toFixed(2)}px apart) — they are one free variable`);
@@ -868,7 +877,12 @@ function run() {
       const near = (id, t, off) => ({ x: (id === 'AL' ? 0 : 20) + 100 * t + (off || 0), y: 0 });
       const p2 = T.planCrossings({ ids: ['AL', 'AF'], base: (id, t) => near(id, t),
         apply: near, unit: () => 'A', group: () => 'A', groups: ['A', 'B'], clearance: CLEAR });
-      nChecks++; check(p2.scale === 0, `rigid pair: the planner tried to separate two partners (scale ${p2.scale})`);
+      let budged = 0;
+      for (let k = 0; k <= SMP; k++){ const t = k / SMP;
+        ['AL', 'AF'].forEach(id => { const q = p2.at(id, t), b = near(id, t);
+          budged = Math.max(budged, Math.hypot(q.x - b.x, q.y - b.y)); }); }
+      nChecks++; check(budged <= 0.01,
+        `rigid pair: the planner tried to separate two partners (moved ${budged.toFixed(2)}px)`);
     }
   }
 
@@ -1169,43 +1183,57 @@ function run() {
     }
   }
 
-  // 32: the EQUAL-NATURALNESS SPLIT actually splits. Given the solved amplitude, the leader's share of
-  //     the corridor is bisected to where the two groups' path-naturalness costs meet, so neither ends up
-  //     more frantic than the other. Mutation testing found that **hardcoding it to 0.5 passes the whole
-  //     suite**: in every shipped movement the two groups are mirror images, so an even split IS the
-  //     equal-naturalness split and the bisection has nothing to correct. It is not dead — it moves when
-  //     a dancer's engagements OVERLAP, merging into one wider crest that costs more than a single pass —
-  //     so the case is built here rather than left untested until a future figure depends on it.
+  // 32: BOTH DANCERS OF A COLLISION STEP THE SAME DISTANCE.
+  //     This replaces the equal-naturalness split, which is gone with the mechanism it balanced. There
+  //     used to be one corridor and a question of who gave up more of it; the share was bisected until
+  //     neither group felt more frantic than the other. Sam retired the question: "remove the idea of
+  //     each dancer giving different amounts depending on the distance they're travelling. Instead the
+  //     partners should rotate around each other, shoulder to shoulder." So the property to assert is no
+  //     longer that a bisection found a fair split, but that there is nothing to split — two dancers who
+  //     must get out of each other's way move equally, whatever their paths cost them.
+  //     The exception is a dancer who CANNOT move: against a scripted, immutable obstacle the traveller
+  //     takes the whole corridor, because half of it from one side clears nothing.
   {
     const CLEAR = 2 * (T.DOT_R + T.PATH_CLEAR);
-    const paths = { B:  [{ x: 0, y: 0 }, { x: 400, y: 0 }],
-                    A1: [{ x: 120, y: -90 }, { x: 120, y: 90 }],
-                    A2: [{ x: 150, y: 90 }, { x: 150, y: -90 }] };
-    const at = (id, t, off) => { const [S, E] = paths[id];
-      const vx = E.x - S.x, vy = E.y - S.y, L = Math.hypot(vx, vy) || 1;
-      return { x: S.x + vx * t + (vy / L) * (off || 0), y: S.y + vy * t - (vx / L) * (off || 0) }; };
-    const ids = Object.keys(paths), pairs = [['B', 'A1'], ['B', 'A2']];
-    // A1 and A2 run past each other by construction; this case is about how B shares with the A's, so
-    // that one pair is declared out rather than left to be silently absent.
-    const mk = forceShare => T.planCrossings({ ids, exclude: [['A1', 'A2']], base: (i, t) => at(i, t), apply: at,
-      group: i => i[0] === 'B' ? 'B' : 'A', groups: ['B', 'A'],
-      clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R, forceShare });
-    const costOf = (plan, id) => { const bl = [], pts = [];
-      for (let s = 1; s <= 40; s++){ const t = s / 40; bl.push(at(id, t)); pts.push(plan.at(id, t)); }
-      return T.pathNaturalness(pts, null, bl).cost; };
-    const spread = plan => Math.abs(costOf(plan, 'B') - Math.max(costOf(plan, 'A1'), costOf(plan, 'A2')));
-    const auto = mk(null), even = mk(0.5);
-    nChecks++; check(Math.abs(auto.share - 0.5) > 0.005,
-      `naturalness split: overlapping engagements should shift the share off even (got ${auto.share.toFixed(4)})`);
-    nChecks++; check(spread(auto) < spread(even),
-      `naturalness split: the bisected share (${spread(auto).toFixed(4)}) should equalise the two groups' ` +
-      `costs better than an even one (${spread(even).toFixed(4)})`);
-    // …and it must still clear: balancing who yields never changes the total corridor.
-    let worst = Infinity;
-    for (let s = 0; s <= 40; s++){ const t = s / 40;
-      pairs.forEach(([a, b]) => { const p = auto.at(a, t), q = auto.at(b, t);
-        worst = Math.min(worst, Math.hypot(p.x - q.x, p.y - q.y)); }); }
-    nChecks++; check(worst >= CLEAR - 0.5, `naturalness split: rebalancing broke the clearance (${worst.toFixed(1)})`);
+    // Two dancers crossing at right angles — deliberately NOT a mirror-image pair, so "equal" cannot be
+    // an accident of symmetry the way it is in every shipped ring figure.
+    const paths = { P: [{ x: 0, y: 0 }, { x: 400, y: 0 }],
+                    Q: [{ x: 180, y: -140 }, { x: 220, y: 140 }] };
+    const at = (id, t) => { const [S, E] = paths[id];
+      return { x: S.x + (E.x - S.x) * t, y: S.y + (E.y - S.y) * t }; };
+    const plan = T.planCrossings({ ids: ['P', 'Q'], base: at,
+      roleOf: id => (id === 'P' ? 'L' : 'F'), passes: { 'L,F': 'left', 'F,L': 'left' },
+      group: id => id, groups: ['P', 'Q'],
+      clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+    let worst = Infinity, movedP = 0, movedQ = 0;
+    for (let s = 0; s <= 60; s++){ const t = s / 60;
+      const p = plan.at('P', t), q = plan.at('Q', t);
+      worst = Math.min(worst, Math.hypot(p.x - q.x, p.y - q.y));
+      movedP = Math.max(movedP, Math.hypot(p.x - at('P', t).x, p.y - at('P', t).y));
+      movedQ = Math.max(movedQ, Math.hypot(q.x - at('Q', t).x, q.y - at('Q', t).y));
+    }
+    nChecks++; check(worst >= CLEAR - 0.5,
+      `§32 two dancers crossing at right angles still collide (${worst.toFixed(1)} < ${CLEAR})`);
+    nChecks++; check(movedP > 1 && movedQ > 1,
+      `§32 only one of the pair moved (P ${movedP.toFixed(1)}px, Q ${movedQ.toFixed(1)}px) — both go round each other`);
+    nChecks++; check(Math.abs(movedP - movedQ) <= 1.5,
+      `§32 the two took different amounts (P ${movedP.toFixed(1)}px vs Q ${movedQ.toFixed(1)}px) — ` +
+      `there is no sharing by path length any more`);
+    // …and where one of them cannot move, the other covers the whole corridor on its own.
+    {
+      const p2 = T.planCrossings({ ids: ['P', 'Q'], base: at,
+        roleOf: id => (id === 'P' ? 'L' : 'F'), passes: { 'L,F': 'left', 'F,L': 'left' },
+        yields: id => id === 'P', group: id => id, groups: ['P', 'Q'],
+        clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+      let w2 = Infinity, mQ = 0;
+      for (let s = 0; s <= 60; s++){ const t = s / 60;
+        const p = p2.at('P', t), q = p2.at('Q', t);
+        w2 = Math.min(w2, Math.hypot(p.x - q.x, p.y - q.y));
+        mQ = Math.max(mQ, Math.hypot(q.x - at('Q', t).x, q.y - at('Q', t).y)); }
+      nChecks++; check(mQ <= 0.01, `§32 a dancer who cannot yield was moved anyway (${mQ.toFixed(2)}px)`);
+      nChecks++; check(w2 >= CLEAR - 0.5,
+        `§32 the traveller did not clear an immutable obstacle on its own (${w2.toFixed(1)} < ${CLEAR})`);
+    }
   }
 
   // 33: SYSTEMIC PROPERTIES — the rules that hold for every movement, in every formation, at every
