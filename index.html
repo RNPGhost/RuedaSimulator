@@ -1410,7 +1410,26 @@ function planCrossings(o){
     // Geometry is the fallback where roles are meaningless — a unit that is a whole couple has no role —
     // and elsewhere it is the check, below.
     const sideFor = (x, y) => {
-      const c = o.roleOf && PASS_SIGN[passSide(o.roleOf(x), o.roleOf(y), o.passes, o.relation && o.relation(x, y))];
+      const nm = passSide(o.roleOf && o.roleOf(x), o.roleOf && o.roleOf(y), o.passes, o.relation && o.relation(x, y));
+      /* A RADIAL side, for dancers whose relationship to each other is which ring they are on rather than
+       * which way they are heading. 'out' means you go round the OUTSIDE of them, 'in' the inside. It is
+       * still a rule and not instantaneous geometry-chasing — the formation fixes which way is outward,
+       * not where the other dancer happens to be — so simultaneous passes reinforce exactly as the
+       * left/right conventions do. Sam: an outer-ring dancer "passes on the inner dancer's outward side",
+       * so the two rings never interleave. */
+      if ((nm === 'out' || nm === 'in') && o.orbit){
+        // x's own left normal at the moment of closest approach. Taken from `o.base` directly rather
+        // than from `normalOf`, which is defined further down and which averages over a unit — there are
+        // no units in a formation-wide pass, and this has to be answerable here.
+        const h = 1 / (2 * NSMP);
+        const A = o.base(x, Math.max(0, tc - h)), B = o.base(x, Math.min(1, tc + h));
+        const d = _unit(B.x - A.x, B.y - A.y), P = o.base(x, tc);
+        const away = _unit(P.x - o.orbit.x, P.y - o.orbit.y);
+        if (!d || !away) return +1;
+        const alongLeft = (d.y * away.x + -d.x * away.y) >= 0 ? +1 : -1;
+        return alongLeft * (nm === 'out' ? +1 : -1);
+      }
+      const c = o.roleOf && PASS_SIGN[nm];
       // No roles to resolve a convention with — a unit that is a whole couple has no role, and the
       // synthetic planner cases have none either. Then everyone yields to their own LEFT, which is what
       // the engine has always done (the offset was a magnitude and the direction was each dancer's own
@@ -2667,6 +2686,12 @@ function grandeFrames(circleKey, from){
     const plan = planCrossings({ ids: xIds, base: sample,
       roleOf: id => roleOf[id], bonded: (a, b) => ringOf[a] === ringOf[b],
       group: id => roleOf[id], groups: ['L', 'F'],
+      // Which ring each is on is the only thing that matters between two dancers of different rings —
+      // they are going round two different wheels, so neither the head-on nor the same-direction rule
+      // settles it. `refWheels('grande')` numbers the inner ring 0 and the outer 1.
+      relation: (a, b) => ringOf[a] === ringOf[b] ? null : (ringOf[a] > ringOf[b] ? 'outer,inner' : 'inner,outer'),
+      passes: { 'outer,inner': 'out', 'inner,outer': 'in' },
+      orbit: { x: CX, y: CY },
       clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
     if (plan.scale > 0) frames.forEach((fr, i) => fr.forEach(d => { d.xy = plan.at(d.id, i / (F1 - 1)); }));
   }
