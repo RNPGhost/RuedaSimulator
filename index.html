@@ -458,7 +458,7 @@ const MOVEMENTS = {
  *  figure. A PEQUEÑA variant runs it in the mini 2-couple wheels via
  *  pequenaFrames, with every Dame → Dame Pequeña and no phase change.
  *  Circle position ↔ Línea state: casino↔linea, exhibela↔linea_ex (grande)
- *  / linea_pex (pequeña). grandeFrames/pequenaFrames are hoisted below.
+ *  (both rings exhibela). grandeFrames/pequenaFrames are hoisted below.
  * ------------------------------------------------------------------ */
 (function buildLineaMovements(){
   // A composition can only carry over the positions it knows how to translate. A position the map leaves
@@ -467,15 +467,49 @@ const MOVEMENTS = {
   // rather than silently handed a position it cannot resolve.
   const gMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_ex' : v;
   const gUn  = l => l === 'linea' ? 'casino' : 'exhibela';
-  const pMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_pex' : v === 'dile' ? 'linea_dile' : v;
+  const pMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_ex' : v === 'dile' ? 'linea_dile' : v;
   const pUn  = l => l === 'linea' ? 'casino' : l === 'linea_dile' ? 'dile' : 'exhibela';
   const mapSets = (sets, map, un) => (typeof sets === 'function') ? (from) => map(sets(un(from))) : map(sets);
   const mapBeats = (beats, un) => (typeof beats === 'function') ? (from) => beats(un(from)) : beats;
   // circle keys that get Línea versions (the figures used by the ported calls)
-  // Dame Dos has no Línea form. On a ring it either does not fit (two couples of progression on a ring of
-  // two or three) or it forces the leaders round an arc nobody would dance. Banned outright rather than
-  // gated, and easy to restore if a ring ever wants it.
-  const KEYS = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'dame', 'dile'];
+  /* A MOVEMENT KEEPS ITS NAME ACROSS FORMATIONS. Sam: "different formations like Afuera already reuse
+   * just 'Enchufla' for the movement, and some movements like 'Dame' have completely different pathing
+   * depending on if they are called from Casino position or Exhibela position, so it seems perfectly
+   * natural to allow this movement within Línea Moderna to be shared with the movement in Rueda
+   * formation, especially as they should be absolutely identical."
+   *
+   * So a figure in which NOBODY CHANGES SLOT gains the Línea positions on the movement it already is,
+   * rather than being minted twice more under decorated names. Measured across 4/6/8 couples, the grande
+   * and pequeña forms of every one of these was byte-identical to the other — 0.000px — because a figure
+   * danced inside a couple does not care which wheel the couple is standing on. Grande and Pequeña are
+   * markers for WHICH SLOT TO PROGRESS TO, and these progress nobody.
+   *
+   * The Dame family keeps its two forms, because there the marker is the whole point: from LM Casino a
+   * Dame Grande and a Dame Pequeña are both callable and land the dancers somewhere different. */
+  const IN_PLACE = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'dile'];
+  const PROGRESSING = ['dame'];
+  for (const key of IN_PLACE){
+    const m = MOVEMENTS[key];
+    const circlePlay = m.play, circleSets = m.sets, circleBeats = m.beats;
+    const lineaFrom = m.requires.filter(v => pMap(v) !== v).map(pMap);
+    m.requires = m.requires.concat(lineaFrom);
+    m.linea = true;
+    // From a Línea position, resolve the underlying circle answer and map it back into Línea's names.
+    m.sets = (from) => {
+      if (!LINEA_SUB_PEQ[from]) return (typeof circleSets === 'function') ? circleSets(from) : circleSets;
+      const c = pUn(from);
+      return pMap((typeof circleSets === 'function') ? circleSets(c) : circleSets);
+    };
+    m.beats = (from) => {
+      const c = LINEA_SUB_PEQ[from] ? pUn(from) : from;
+      return (typeof circleBeats === 'function') ? circleBeats(c) : (circleBeats === undefined ? 4 : circleBeats);
+    };
+    const byFrom = { default: circlePlay };
+    // Derived from the map itself rather than read off LINEA_SUB_PEQ, which is declared further down.
+    ['casino', 'exhibela', 'dile'].forEach(c => { byFrom[pMap(c)] = { compose: 'pequena', of: key }; });
+    m.play = { byFrom };
+  }
+  const KEYS = PROGRESSING;
   for (const key of KEYS){
     const m = MOVEMENTS[key];
     /* A Dame Dos progresses TWO couples, and each Linea ring holds only half the wheel. On a ring of two
@@ -551,22 +585,22 @@ const CALLS = {
   // wheels, Dame → Dame Pequeña, no phase change). Each closes with a default Dile Que No (grande/peq).
   linea_moderna: { label: 'Línea Moderna', desc: 'Call from Casino: the rueda opens into the Rueda Línea Moderna formation — primeros (the cantante’s couple and every other one clockwise) to the inner ring, turning anti-clockwise into place; segundos out to the outer ring on their own spokes. Even couple counts only.', from: ['casino'], seq: ['linea_moderna'] },
   dame_linea:    { label: 'Dame Línea',    desc: 'Call from Casino: a Dame that lands the wheel in Rueda Línea Moderna — segundo leaders Dame out to the outer ring with the primero followers, primero leaders and segundo followers walk in to the inner ring, all in Exhibela. Closes with a Dile Que No Grande. Even couple counts only.', from: ['casino'], seq: ['dame_linea'] },
-  mujeres_arriba_pequena: { label: 'Mujeres Arriba Pequeña', lm: true, minCouples: 6, desc: 'Call from Línea Moderna Exhibela: a 4-beat Dile Que No Pequeña into the Línea Moderna Dile Que No position, then Mujeres Arriba — inside every mini 2-couple wheel the women progress to the other couple while the men return to their own spots. Ends in Línea Moderna Exhibela (a Dile Que No Pequeña then closes back to LM Casino).', from: ['linea_pex'], seq: ['dile4_peq', 'mujeres_peq'] },
+  mujeres_arriba_pequena: { label: 'Mujeres Arriba Pequeña', lm: true, minCouples: 6, desc: 'Call from Línea Moderna Exhibela: a 4-beat Dile Que No Pequeña into the Línea Moderna Dile Que No position, then Mujeres Arriba — inside every mini 2-couple wheel the women progress to the other couple while the men return to their own spots. Ends in Línea Moderna Exhibela (a Dile Que No Pequeña then closes back to LM Casino).', from: ['linea_ex'], seq: ['dile4_peq', 'mujeres_peq'] },
   rueda:         { label: 'Rueda',         lm: true, desc: 'Call from Línea Moderna: fold the two rings back into a single rueda — outer couples walk straight in on their own spokes, inner couples come out one place clockwise of them, turning anti-clockwise into place.', from: ['linea'], seq: ['rueda'] },
   adios_rueda:   { label: 'Adios Rueda',   lm: true, desc: 'Call from Línea Moderna: the same fold back to the rueda, but the inner couples sweep clockwise the long way round into their new orientation.', from: ['linea'], seq: ['adios_rueda'] },
   adios_linea:   { label: 'Adios Línea',   desc: 'Call from Casino: the same opening into Rueda Línea Moderna, but the primeros sweep clockwise the long way round into the inner ring — the Adios-flavoured entry. Even couple counts only.', from: ['casino'], seq: ['adios_linea'] },
   dame_grande:    { label: 'Dame Grande',    lm: true, desc: 'Línea: Dame on both rings at once (each progresses one couple, shared phase flips), then a Dile Que No Grande.', from: ['linea'], seq: ['dame_grande'] },
   dame_pequena:   { label: 'Dame Pequeña',   lm: true, desc: 'Línea: Dame Pequeña in every mini 2-couple wheel (no phase change), then a Dile Que No Pequeña. The outer leader becomes the new inner leader.', from: ['linea'], seq: ['dame_peq'] },
-  enchufla_grande:  { label: 'Enchufla Grande',  lm: true, desc: 'Línea: Enchufla then Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['enchufla_grande', 'dame_grande'] },
-  enchufla_pequena: { label: 'Enchufla Pequeña', lm: true, desc: 'Línea: Enchufla then Dame Pequeña in every mini 2-couple wheel, then a Dile Que No Pequeña. The outer leader ends as the new inner leader.', from: ['linea'], seq: ['enchufla_peq', 'dame_peq'] },
-  adios_grande:   { label: 'Adios Grande',   lm: true, desc: 'Línea: Adios then Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios_grande', 'dame_grande'] },
-  adios_pequena:  { label: 'Adios Pequeña',  lm: true, desc: 'Línea: Adios then Dame Pequeña in every mini 2-couple wheel, then a Dile Que No Pequeña.', from: ['linea'], seq: ['adios_peq', 'dame_peq'] },
-  adios_hermana_grande:  { label: 'Adios con la Hermana Grande',  lm: true, desc: 'Línea (grande): Adios, Leader’s Enchufla, Enchufla, Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios_grande', 'leaders_enchufla_grande', 'enchufla_grande', 'dame_grande'] },
-  adios_hermana_pequena: { label: 'Adios con la Hermana Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios_peq', 'leaders_enchufla_peq', 'enchufla_peq', 'dame_peq'] },
-  la_familia_grande:  { label: 'La Familia Grande',  lm: true, desc: 'Línea (grande): Adios, Leader’s Enchufla, Enchufla, Adios, Adios, Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios_grande', 'leaders_enchufla_grande', 'enchufla_grande', 'adios_grande', 'adios_grande', 'dame_grande'] },
-  la_familia_pequena: { label: 'La Familia Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios_peq', 'leaders_enchufla_peq', 'enchufla_peq', 'adios_peq', 'adios_peq', 'dame_peq'] },
+  enchufla_grande:  { label: 'Enchufla Grande',  lm: true, desc: 'Línea: Enchufla then Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['enchufla', 'dame_grande'] },
+  enchufla_pequena: { label: 'Enchufla Pequeña', lm: true, desc: 'Línea: Enchufla then Dame Pequeña in every mini 2-couple wheel, then a Dile Que No Pequeña. The outer leader ends as the new inner leader.', from: ['linea'], seq: ['enchufla', 'dame_peq'] },
+  adios_grande:   { label: 'Adios Grande',   lm: true, desc: 'Línea: Adios then Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios', 'dame_grande'] },
+  adios_pequena:  { label: 'Adios Pequeña',  lm: true, desc: 'Línea: Adios then Dame Pequeña in every mini 2-couple wheel, then a Dile Que No Pequeña.', from: ['linea'], seq: ['adios', 'dame_peq'] },
+  adios_hermana_grande:  { label: 'Adios con la Hermana Grande',  lm: true, desc: 'Línea (grande): Adios, Leader’s Enchufla, Enchufla, Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'dame_grande'] },
+  adios_hermana_pequena: { label: 'Adios con la Hermana Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'dame_peq'] },
+  la_familia_grande:  { label: 'La Familia Grande',  lm: true, desc: 'Línea (grande): Adios, Leader’s Enchufla, Enchufla, Adios, Adios, Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'adios', 'adios', 'dame_grande'] },
+  la_familia_pequena: { label: 'La Familia Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'adios', 'adios', 'dame_peq'] },
   // Non-progressing figure → a single Línea call (danced on the whole rings).
-  setenta_lm: { label: 'Setenta (Línea)', lm: true, desc: 'Línea: Vacilala, Adios, Enchufla, Leader’s Enchufla, Enchufla on both rings — no partner change — then a Dile Que No Grande.', from: ['linea'], seq: ['vacilala_grande', 'adios_grande', 'enchufla_grande', 'leaders_enchufla_grande', 'enchufla_grande'] }
+  setenta_lm: { label: 'Setenta (Línea)', lm: true, desc: 'Línea: Vacilala, Adios, Enchufla, Leader’s Enchufla, Enchufla on both rings — no partner change — then a Dile Que No Grande.', from: ['linea'], seq: ['vacilala', 'adios', 'enchufla', 'leaders_enchufla', 'enchufla'] }
 };
 
 /* ---- layouts: (station, lane, N) -> {x,y} in SVG space ----
@@ -755,14 +789,15 @@ const POSITIONS = {
   // Rueda Línea Moderna resting state (two rings). Its own variant so no circle default (Dile Que No)
   // fires and circle-only calls/movements gate off from it.
   linea:           { variant: 'linea',    inverted: false, virtual: 'linea',    name: 'Línea Moderna Casino position' },
-  // Transient exhibela-like Línea state (both rings exhibela) — between a grande figure and its close.
-  // `virtual` points at itself so a movement's function-based `sets` (e.g. Adios's toggle) can tell
-  // linea from linea_ex (resolveSets passes virtualPos(from)).
-  linea_ex:        { variant: 'linea',    inverted: false, virtual: 'linea_ex',  name: 'Línea Moderna Exhibela position (grande)' },
-  // Transient state mid-pequeña: each mini 2-couple wheel is in exhibela.
-  // Línea Moderna Exhibela: each mini 2-couple wheel is in Exhibela — the pequeña mirror of the rueda's
-  // Exhibela, and where a Dame Pequeña from LM Casino lands.
-  linea_pex:       { variant: 'linea',    inverted: false, virtual: 'linea_pex', name: 'Línea Moderna Exhibela position' },
+  /* THE Línea Moderna Exhibela position — one of them. There used to be two, `linea_ex` for where a
+   * grande figure landed and `linea_pex` for where a pequeña one did, and they described the same place:
+   * every couple in Exhibela on the two rings. Keeping them apart is what made the engine believe a
+   * Pequeña had to follow a Pequeña — availability was reading the previous MOVEMENT rather than the
+   * resulting POSITION. Sam: "movement possibility shouldn't be based on the previous movement, it should
+   * be based on the new position." Everything dancable from here is now available from here.
+   * `virtual` points at itself so a movement's function-based `sets` (e.g. Adios's toggle) can tell
+   * linea from linea_ex (resolveSets passes virtualPos(from)). */
+  linea_ex:        { variant: 'linea',    inverted: false, virtual: 'linea_ex',  name: 'Línea Moderna Exhibela position' },
   // Línea Moderna Dile Que No: both partners on their own mini wheel's midpoint spoke (which runs along
   // the main spoke), leader a step further out from the mini centre, follower a step in. A resting state,
   // reached by the 4-beat Dile Que No Pequeña from LM Exhibela.
@@ -2945,7 +2980,7 @@ function grandeFrames(circleKey, from){
  *  so its mini-lane is the swap of its ring lane. Dame → Dame Pequeña; no
  *  phase change. Each mini-wheel runs the ordinary circle move; frames merge.
  * ------------------------------------------------------------------ */
-const LINEA_SUB_PEQ = { linea: 'casino', linea_pex: 'exhibela', linea_dile: 'dile' };
+const LINEA_SUB_PEQ = { linea: 'casino', linea_ex: 'exhibela', linea_dile: 'dile' };
 function pequenaFrames(circleKey, from){
   const m = LM.m, mv = MOVEMENTS[circleKey], fromPos = LINEA_SUB_PEQ[from];
   const swap = l => l === 'cw' ? 'ccw' : l === 'ccw' ? 'cw' : l;
@@ -3088,8 +3123,7 @@ function nextMovement(){
   while (queue.length && !validFrom(queue[0], posState)){ queue.shift(); queueCalls.shift(); }
   if (queue.length) return queue[0];
   if (POSITIONS[posState].variant === 'exhibela') return 'dile';   // transient (Afuera) Exhibela -> default Dile Que No
-  if (posState === 'linea_ex') return 'dile_grande';   // Línea exhibela-like -> default grande Dile Que No back to rest
-  if (posState === 'linea_pex') return 'dile_peq';     // mid-pequeña -> default pequeña Dile Que No back to rest
+  if (posState === 'linea_ex') return 'dile';   // Línea exhibela-like -> default grande Dile Que No back to rest
   return null;                                         // Casino / Línea rest, nothing queued -> rest
 }
 // Decision point reached after a movement. Calls only take effect at interruption points
@@ -3125,7 +3159,7 @@ function proceed(){
   // snaps to beat 1; mid-chain explicit moves run contiguously (no lead-in hold).
   let snap = null;
   if (justIssued){ snap = startBeatOf(nk, posState); justIssued = false; }
-  else if (!fromQueue && (nk === 'dile' || nk === 'dile_grande' || nk === 'dile_peq')){ snap = 1; }   // a default Dile Que No always lands on beat 1
+  else if (!fromQueue && (nk === 'dile' || nk === 'dile' || nk === 'dile')){ snap = 1; }   // a default Dile Que No always lands on beat 1
   let leadBeats = 0;
   if (snap !== null){                                  // wait (hold on the spot) until the next matching grid beat
     let t = Math.ceil(beatCursor - 1e-6);
@@ -3554,8 +3588,7 @@ function projectedEndPos(){
     let k = null;
     if (q.length) k = q.shift();
     else if ((POSITIONS[p] || {}).variant === 'exhibela') k = 'dile';
-    else if (p === 'linea_ex') k = 'dile_grande';
-    else if (p === 'linea_pex') k = 'dile_peq';
+    else if (p === 'linea_ex') k = 'dile';
     else break;
     if (!MOVEMENTS[k]) break;
     p = resolveSets(MOVEMENTS[k], p) || p;
@@ -3570,8 +3603,7 @@ function interruptionPointAhead(){
     let k = null;
     if (q.length) k = q[0];
     else if ((POSITIONS[p] || {}).variant === 'exhibela') k = 'dile';
-    else if (p === 'linea_ex') k = 'dile_grande';
-    else if (p === 'linea_pex') k = 'dile_peq';
+    else if (p === 'linea_ex') k = 'dile';
     else break;
     if (INTERRUPTIBLE.has(k)) return true;
     if (q.length) q.shift(); else return false;

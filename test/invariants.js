@@ -224,7 +224,7 @@ function run() {
 
   // 14: Línea Moderna GRANDE movements — collision-free, finite, occupancy per station on both rings;
   //     and the shared phase flips iff the underlying figure flips it (Dame yes, Enchufla no).
-  for (const key of ['enchufla_grande', 'dame_grande', 'enchufla_peq', 'dame_peq']) {
+  for (const key of ['enchufla', 'dame_grande', 'enchufla', 'dame_peq']) {
     for (const n of NS) {
       const cap = T.captureLineaMovement(key, n, 0);
       nChecks++;
@@ -240,9 +240,9 @@ function run() {
   }
   for (const n of NS) {
     nChecks++; check(T.captureLineaMovement('dame_grande', n, 0).endPhase === 1, `dame_grande n${n} flips phase`);
-    nChecks++; check(T.captureLineaMovement('enchufla_grande', n, 0).endPhase === 0, `enchufla_grande n${n} keeps phase`);
+    nChecks++; check(T.captureLineaMovement('enchufla', n, 0).endPhase === 0, `enchufla (Línea) n${n} keeps phase`);
     nChecks++; check(T.captureLineaMovement('dame_peq', n, 0).endPhase === 0, `dame_peq n${n} keeps phase`);
-    nChecks++; check(T.captureLineaMovement('enchufla_peq', n, 0).endPhase === 0, `enchufla_peq n${n} keeps phase`);
+    nChecks++; check(T.captureLineaMovement('enchufla', n, 0).endPhase === 0, `enchufla (Línea, from the merged Exhibela) n${n} keeps phase`);
   }
 
   // 15: GRANDE + PEQUEÑA calls end on the Línea grid — two clean rings, partners facing, spokes aligned.
@@ -273,7 +273,7 @@ function run() {
 
   // 17: the Línea Dile Que No closes are collision-free through the whole orbit (the pinch must keep
   //     the two radially-adjacent groups — mini-wheel couples / the two rings — from bulging together).
-  for (const [setup, key] of [[['enchufla_peq'], 'dile_peq'], [['dame_peq'], 'dile_peq'], [['dame_grande'], 'dile_grande'], [['enchufla_grande'], 'dile_grande']]) {
+  for (const [setup, key] of [[['enchufla'], 'dile'], [['dame_peq'], 'dile'], [['dame_grande'], 'dile'], [['enchufla'], 'dile']]) {
     for (const n of NS) {
       const r = T.captureLineaMovementFrom(setup, key, n);
       nChecks++;
@@ -383,7 +383,7 @@ function run() {
   // (f) The grande Dame-from-Exhibela brush fix: the Dame that closes each grande compound (run from the
   //     Exhibela state, on the sparse outer ring) must clear the collision floor AND stay calm. This is
   //     the case that motivated the solver — a plain from-rest capture never reproduces it.
-  for (const opener of ['enchufla_grande', 'adios_grande']) {
+  for (const opener of ['enchufla', 'adios']) {
     for (const n of NS) {
       const run = () => T.captureLineaMovementFrom([opener], 'dame_grande', n);
       const ev = run().frames; if (!ev) continue;
@@ -580,7 +580,7 @@ function run() {
         const before = spokeGrid(), ph0 = T.state().phase;
         const r = T.fireHere(key);
         if (!r) continue;
-        if (!['linea', 'linea_ex', 'linea_pex'].includes(r.endPos)) continue;   // exits redefine the grid (§23)
+        if (!['linea', 'linea_ex'].includes(r.endPos)) continue;   // exits redefine the grid (§23)
         const after = spokeGrid(), flipped = ph0 !== r.endPhase;
         nChecks++;
         check(rotatedBy(before, after, flipped ? half : 0),
@@ -670,7 +670,7 @@ function run() {
   for (const n of NS) {
     const tag = `pequeña dile4/mujeres|n${n}`;
     T.captureLineaMovement('dame_peq', n, 0);              // -> Línea Moderna Exhibela
-    nChecks++; check(T.state().posState === 'linea_pex', `${tag}: Dame Pequeña should land in LM Exhibela`);
+    nChecks++; check(T.state().posState === 'linea_ex', `${tag}: Dame Pequeña should land in LM Exhibela`);
     const r1 = T.fireHere('dile4_peq');
     if (n < 6) {   // a true-to-life step toward the mini centre doesn't fit on a 4-couple wheel
       nChecks++; check(!r1, `${tag}: dile4_peq should be unavailable below 6 couples`);
@@ -691,7 +691,7 @@ function run() {
     const pairBefore = {}; T._snap().filter(d => d.role === 'L').forEach(L => {
       const F = T._snap().find(o => o.station === L.station && o.role === 'F'); pairBefore[L.id] = F.id; });
     const r2 = T.fireHere('mujeres_peq');
-    nChecks++; check(r2 && r2.endPos === 'linea_pex', `${tag}: mujeres_peq ended ${r2 && r2.endPos}, expected linea_pex`);
+    nChecks++; check(r2 && r2.endPos === 'linea_ex', `${tag}: mujeres_peq ended ${r2 && r2.endPos}, expected linea_ex`);
     if (!r2) continue;
     let worst2 = Infinity; r2.frames.forEach(f => { worst2 = Math.min(worst2, minPairDist(f)); });
     nChecks++; check(worst2 >= GAP - 1.0, `${tag}: mujeres_peq collision, minClear ${worst2.toFixed(1)}`);
@@ -1416,7 +1416,7 @@ function run() {
           return { x: dx * Math.cos(-th) - dy * Math.sin(-th), y: dx * Math.sin(-th) + dy * Math.cos(-th) }; }));
         return res;
       };
-      for (const seq of [['adios_peq', 'dame_peq'], ['enchufla_peq'], ['dame_peq'], ['adios_peq']]){
+      for (const seq of [['adios', 'dame_peq'], ['enchufla'], ['dame_peq'], ['adios']]){
         const base = localPaths(seq, 4);
         if (!base) continue;
         for (const n of [6, 8, 10, 12]){
@@ -1748,7 +1748,7 @@ function run() {
     // The mini-wheel Dame is where two leaders actually meet head-on — Sam's case, and the one the
     // circle sweep above cannot reach because it only starts from circle resting positions.
     for (const n of NS){
-      let a; try { T.captureLineaMovement('adios_peq', n, 0); a = T.fireHere('dame_peq'); } catch (e) { continue; }
+      let a; try { T.captureLineaMovement('adios', n, 0); a = T.fireHere('dame_peq'); } catch (e) { continue; }
       if (!a || !a.frames) continue;
       const { ids, P } = timeline(a); const F = P[ids[0]].length;
       for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++){
@@ -1992,7 +1992,7 @@ function run() {
       return { ids, P };
     };
     let worst = Infinity, wctx = '', seen = 0;
-    for (const seq of [['adios_peq', 'dame_peq'], ['enchufla_peq'], ['dame_peq'], ['adios_peq']])
+    for (const seq of [['adios', 'dame_peq'], ['enchufla'], ['dame_peq'], ['adios']])
       for (const n of [4, 6, 8, 10, 12]) for (const ph of [0, 1]){
         let first = true, cap = null;
         for (const mv of seq){
