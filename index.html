@@ -486,7 +486,7 @@ const MOVEMENTS = {
    *
    * The Dame family keeps its two forms, because there the marker is the whole point: from LM Casino a
    * Dame Grande and a Dame Pequeña are both callable and land the dancers somewhere different. */
-  const IN_PLACE = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'dile'];
+  const IN_PLACE = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'dile', 'dile4'];
   const PROGRESSING = ['dame'];
   for (const key of IN_PLACE){
     const m = MOVEMENTS[key];
@@ -494,6 +494,11 @@ const MOVEMENTS = {
     const lineaFrom = m.requires.filter(v => pMap(v) !== v).map(pMap);
     m.requires = m.requires.concat(lineaFrom);
     m.linea = true;
+    /* The 4-beat Dile Que No keeps its Línea floor and gains none in the circle: on a mini wheel its step
+     * runs along a spoke that points at the MAIN centre, and at four couples the inner couples sit only
+     * ~38px out, so a true-to-life step lands their leaders on top of each other (29.6px apart). A real
+     * physical limit — people do not shrink with the wheel — and one that only exists on the small wheel. */
+    if (key === 'dile4') m.minCouples = (from) => (LINEA_SUB_PEQ[from] ? 6 : 0);
     // From a Línea position, resolve the underlying circle answer and map it back into Línea's names.
     m.sets = (from) => {
       if (!LINEA_SUB_PEQ[from]) return (typeof circleSets === 'function') ? circleSets(from) : circleSets;
@@ -543,7 +548,7 @@ const MOVEMENTS = {
   // Pequeña-only figures. The 4-beat Dile Que No and Mujeres Arriba are defined against the couple's own
   // little wheel, so they only read in the pequeña sense — each mini 2-couple wheel dances them as its own
   // rueda. (A grande Mujeres Arriba would just be a Dile Que No y Dame, so it has no grande form.)
-  for (const key of ['dile4', 'mujeres']){
+  for (const key of ['mujeres']){
     const m = MOVEMENTS[key];
     MOVEMENTS[key + '_peq'] = {
       label: m.label + ' Pequeña', linea: true,
@@ -585,7 +590,7 @@ const CALLS = {
   // wheels, Dame → Dame Pequeña, no phase change). Each closes with a default Dile Que No (grande/peq).
   linea_moderna: { label: 'Línea Moderna', desc: 'Call from Casino: the rueda opens into the Rueda Línea Moderna formation — primeros (the cantante’s couple and every other one clockwise) to the inner ring, turning anti-clockwise into place; segundos out to the outer ring on their own spokes. Even couple counts only.', from: ['casino'], seq: ['linea_moderna'] },
   dame_linea:    { label: 'Dame Línea',    desc: 'Call from Casino: a Dame that lands the wheel in Rueda Línea Moderna — segundo leaders Dame out to the outer ring with the primero followers, primero leaders and segundo followers walk in to the inner ring, all in Exhibela. Closes with a Dile Que No Grande. Even couple counts only.', from: ['casino'], seq: ['dame_linea'] },
-  mujeres_arriba_pequena: { label: 'Mujeres Arriba Pequeña', lm: true, minCouples: 6, desc: 'Call from Línea Moderna Exhibela: a 4-beat Dile Que No Pequeña into the Línea Moderna Dile Que No position, then Mujeres Arriba — inside every mini 2-couple wheel the women progress to the other couple while the men return to their own spots. Ends in Línea Moderna Exhibela (a Dile Que No Pequeña then closes back to LM Casino).', from: ['linea_ex'], seq: ['dile4_peq', 'mujeres_peq'] },
+  mujeres_arriba_pequena: { label: 'Mujeres Arriba Pequeña', lm: true, minCouples: 6, desc: 'Call from Línea Moderna Exhibela: a 4-beat Dile Que No Pequeña into the Línea Moderna Dile Que No position, then Mujeres Arriba — inside every mini 2-couple wheel the women progress to the other couple while the men return to their own spots. Ends in Línea Moderna Exhibela (a Dile Que No Pequeña then closes back to LM Casino).', from: ['linea_ex'], seq: ['dile4', 'mujeres_peq'] },
   rueda:         { label: 'Rueda',         lm: true, desc: 'Call from Línea Moderna: fold the two rings back into a single rueda — outer couples walk straight in on their own spokes, inner couples come out one place clockwise of them, turning anti-clockwise into place.', from: ['linea'], seq: ['rueda'] },
   adios_rueda:   { label: 'Adios Rueda',   lm: true, desc: 'Call from Línea Moderna: the same fold back to the rueda, but the inner couples sweep clockwise the long way round into their new orientation.', from: ['linea'], seq: ['adios_rueda'] },
   adios_linea:   { label: 'Adios Línea',   desc: 'Call from Casino: the same opening into Rueda Línea Moderna, but the primeros sweep clockwise the long way round into the inner ring — the Adios-flavoured entry. Even couple counts only.', from: ['casino'], seq: ['adios_linea'] },
@@ -2764,7 +2769,13 @@ const validFrom = (key, p) => {
   const m = MOVEMENTS[key]; if (!m) return false;
   if (m.needsEven && N % 2) return false;          // Línea Moderna only splits evenly into two rings
   if (m.noAfuera && isAfuera(p)) return false;     // deliberately not offered from Afuera Casino (yet)
-  if (m.minCouples && N < m.minCouples) return false;   // the figure physically doesn't fit on a smaller wheel
+  /* A couple-count floor can depend on WHERE the figure is danced. The 4-beat Dile Que No needs six
+   * couples in Línea — on a mini wheel its step runs along a spoke pointing at the main centre, and at
+   * four couples the inner couples sit close enough that their leaders land on top of each other — and
+   * needs no floor at all on the full rueda, where there is room. One movement, one name, two geometries.
+   * Resolved the way `sets`, `beats` and `flipsPhase` already are. */
+  const floor = (typeof m.minCouples === 'function') ? m.minCouples(p) : m.minCouples;
+  if (floor && N < floor) return false;                 // the figure physically doesn't fit on a smaller wheel
   if (m.relabel) return m.requires.includes(p);
   if (isAfuera(p)) return !m.entryOnly && (!m.progresses || m.afueraReady) && m.requires.includes(virtualPos(p));
   return m.requires.includes(p);

@@ -671,7 +671,7 @@ function run() {
     const tag = `pequeña dile4/mujeres|n${n}`;
     T.captureLineaMovement('dame_peq', n, 0);              // -> Línea Moderna Exhibela
     nChecks++; check(T.state().posState === 'linea_ex', `${tag}: Dame Pequeña should land in LM Exhibela`);
-    const r1 = T.fireHere('dile4_peq');
+    const r1 = T.fireHere('dile4');
     if (n < 6) {   // a true-to-life step toward the mini centre doesn't fit on a 4-couple wheel
       nChecks++; check(!r1, `${tag}: dile4_peq should be unavailable below 6 couples`);
       nChecks++; check(!T.validFrom('mujeres_peq', 'linea_dile'), `${tag}: mujeres_peq should be unavailable below 6 couples`);
