@@ -244,18 +244,35 @@ const MOVEMENTS = {
   dame: {
     label: 'Dame',
     desc: 'Progresses the leader one couple, ending in Exhibela facing the new partner. Leader and follower now travel toward each other and meet at the spoke midway between their two old couples — so the wheel flips to the other of its two spoke configs and lands exactly on the grid (no drift). The follower progresses clockwise (anti-clockwise afuera) to the meeting spoke.',
-    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: 1, afueraReady: true, flipsPhase: true,
+    requires: ['casino', 'exhibela', 'dile'], sets: 'exhibela', progresses: 1, afueraReady: true,
+    // Odd from Casino and Exhibela (dh −1/+1), even from the Dile Que No position (−2/0, the follower
+    // scripted): the flip is the arithmetic, not a flag that happens to travel with the name.
+    flipsPhase: (from) => virtualPos(from) !== 'dile',
     anim: { duration: 700 },
     beats: (from) => virtualPos(from) === 'casino' ? 2 : 4,
-    play: { travel: 'dame', mirror: true }
+    play: { byFrom: {
+      default: { travel: 'dame', mirror: true },
+      // From the Dile Que No position the leader walks straight to his new partner one couple
+      // anti-clockwise while she dances her ¾ circle back to her own spot. This was the second half of
+      // the `dile_dame` compound; it is a Dame, so it lives on the Dame.
+      dile: { travel: 'dile_dame', mirror: true, opts: { steps: 32, settle: 0.28, beats: 4 },
+        script: { F: { kind: 'three_quarter_circle' } },
+        face: { L: 'partner', F: { from: 'travel', to: 'partnerEnd', after: 0.75, freeze: true } } },
+    } }
   },
   dame_dos: {
     label: 'Dame Dos',
     desc: 'Like Dame but the leader progresses two couples — he passes one follower and joins the next while the follower steps half a couple to the between-spoke. Flips the phase (lands on the other config) and ends in Exhibela facing the new partner.',
-    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: 2, afueraReady: true, flipsPhase: true,
+    requires: ['casino', 'exhibela', 'dile'], sets: 'exhibela', progresses: 2, afueraReady: true,
+    flipsPhase: (from) => virtualPos(from) !== 'dile',
     anim: { duration: 820 },
     beats: 4,
-    play: { travel: 'dame_dos', mirror: true }
+    play: { byFrom: {
+      default: { travel: 'dame_dos', mirror: true },
+      dile: { travel: 'dile_dame_dos', mirror: true, opts: { steps: 32, settle: 0.28, beats: 4 },
+        script: { F: { kind: 'three_quarter_circle' } },
+        face: { L: 'partner', F: { from: 'travel', to: 'partnerEnd', after: 0.75, freeze: true } } },
+    } }
   },
   dame_pequena: {
     label: 'Dame Pequena',
@@ -331,36 +348,6 @@ const MOVEMENTS = {
     beats: 8,
     play: { figure: 'dile_full' },
     anim: { speed: 0.092, rotSpeed: 0.40 }
-  },
-  dile_dame: {
-    label: 'Dile Que No y Dame',
-    desc: 'Both dance beats 1–2 of a Dile Que No (out along the Exhibela line and back), then on beat 3 move onto the midpoint spoke (the radial from the wheel centre through the couple’s start midpoint) and pause on 4 — landing equidistant either side of where the spoke meets the ring (follower just inside, leader just outside, far enough apart not to collide): the follower facing perpendicular to the spoke (≈ clockwise), the leader facing the centre. On 5–8 the leader does a straight Dame to his new follower one couple anti-clockwise (facing her); meanwhile the follower walks about three-quarters of a circle through her spoke point, its mirror just outside the ring, and back to her own spot, facing her direction of travel then turning to her new leader. Ends in Exhibela position, leaders progressed one couple.',
-    requires: ['exhibela'], sets: 'exhibela', progresses: 1, afueraReady: true,
-    beats: 8,
-    play: { phrases: [
-      { figure: 'dile_opening', mirror: true },
-      { travel: 'dile_dame', mirror: true, opts: { steps: 32, settle: 0.28, beats: 4 },
-        script: { F: { kind: 'three_quarter_circle' } },
-        // He faces the woman he is crossing to, the whole way. She faces the way she travels round her
-        // circle, turning onto him over its last quarter.
-        face: { L: 'partner', F: { from: 'travel', to: 'partnerEnd', after: 0.75, freeze: true } } },
-    ] },
-    anim: { speed: 0.10, rotSpeed: 0.42 }
-  },
-  dile_dame_dos: {
-    label: 'Dile Que No y Dame Dos',
-    desc: 'Exactly like Dile Que No y Dame, but on 5–8 the leader travels to the follower two couples anti-clockwise instead of one. Same opening (both move onto the midpoint spoke and pause), same follower three-quarter circle back to her own spot; the leader heads straight for his new Exhibela spot with a single gentle arc (bowing to his right, keeping right of the other leaders) just large enough to stay clear. Ends in Exhibela position.',
-    requires: ['exhibela'], sets: 'exhibela', progresses: 2, afueraReady: true,
-    beats: 8,
-    play: { phrases: [
-      { figure: 'dile_opening', mirror: true },
-      { travel: 'dile_dame_dos', mirror: true, opts: { steps: 32, settle: 0.28, beats: 4 },
-        script: { F: { kind: 'three_quarter_circle' } },
-        // He faces the woman he is crossing to, the whole way. She faces the way she travels round her
-        // circle, turning onto him over its last quarter.
-        face: { L: 'partner', F: { from: 'travel', to: 'partnerEnd', after: 0.75, freeze: true } } },
-    ] },
-    anim: { speed: 0.10, rotSpeed: 0.42 }
   },
   dile4: {
     label: 'Dile Que No (4)',
@@ -471,6 +458,10 @@ const MOVEMENTS = {
  *  / linea_pex (pequeña). grandeFrames/pequenaFrames are hoisted below.
  * ------------------------------------------------------------------ */
 (function buildLineaMovements(){
+  // A composition can only carry over the positions it knows how to translate. A position the map leaves
+  // alone is one this composition has no Línea counterpart for — a Dame is now callable from the Dile Que
+  // No position, but there is no Línea Moderna Dile Que No entry for the GRANDE form, so it is dropped
+  // rather than silently handed a position it cannot resolve.
   const gMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_ex' : v;
   const gUn  = l => l === 'linea' ? 'casino' : 'exhibela';
   const pMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_pex' : v === 'dile' ? 'linea_dile' : v;
@@ -483,7 +474,7 @@ const MOVEMENTS = {
     const m = MOVEMENTS[key];
     MOVEMENTS[key + '_grande'] = {
       label: m.label + ' Grande', linea: true,
-      requires: m.requires.map(gMap), sets: mapSets(m.sets, gMap, gUn),
+      requires: m.requires.filter(v => gMap(v) !== v).map(gMap), sets: mapSets(m.sets, gMap, gUn),
       progresses: m.progresses, flipsPhase: m.flipsPhase,
       beats: mapBeats(m.beats, gUn), anim: m.anim,
       play: { compose: 'grande', of: key },
@@ -496,7 +487,7 @@ const MOVEMENTS = {
     const pm = MOVEMENTS[pKey];
     MOVEMENTS[key + '_peq'] = {
       label: m.label + ' Pequeña', linea: true,
-      requires: m.requires.map(pMap), sets: mapSets(m.sets, pMap, pUn),
+      requires: m.requires.filter(v => pMap(v) !== v).map(pMap), sets: mapSets(m.sets, pMap, pUn),
       progresses: m.progresses,                                   // never flips phase
       beats: mapBeats(pm.beats, pUn), anim: pm.anim,
       play: { compose: 'pequena', of: pKey },
@@ -1532,8 +1523,20 @@ function planCrossings(o){
    * it just had no way to be reached once a pair was on the register. */
   const solveScale = w => { const MAXS = 6.0, SCAN = 0.1;
     if (worst(w, 0) >= CLEAR) return 0;
-    let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worst(w, sc) >= CLEAR){ pass = sc; break; } }
-    if (pass === null) return MAXS;
+    let pass = null, bestSc = 0, bestW = worst(w, 0);
+    for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ const m = worst(w, sc);
+      if (m > bestW + 1e-9){ bestW = m; bestSc = sc; }
+      if (m >= CLEAR){ pass = sc; break; } }
+    /* NO AMPLITUDE CLEARS — so take the best one, not the largest one.
+     * Returning the cap was indefensible: the solver optimises the CLOSEST pair, so at the cap it buys
+     * nothing for the pair it could not fix and maximally shoves every dancer who was already fine.
+     * Measured on a Dame from the Dile Que No position at 4 couples, where each leader ends 33.5px from
+     * his own partner against a 35px corridor — a 1.5px shortfall the evasion cannot close. Chasing it
+     * to the cap stretched the leader's path from 134px to 478px (3.56×), sending him across the wheel
+     * and back, and opened TWELVE new conflicts down to 9.7px. Giving up gracefully leaves the one
+     * 1.5px shortfall and nothing else. The fault is still recorded either way — the engine says it
+     * could not hold the corridor, rather than pretending with a figure nobody would dance. */
+    if (pass === null) return bestSc;
     let lo = Math.max(0, pass - SCAN), hi = pass;
     for (let it = 0; it < 12; it++){ const m = (lo + hi) / 2; if (worst(w, m) >= CLEAR) hi = m; else lo = m; }
     return hi; };
@@ -2206,7 +2209,11 @@ const SCRIPT_KINDS = {
     };
     const at = {};
     ds.filter(d => d.role === role).forEach(d => {
-      const F0 = cfg.startOf[d.id], fr = dancerFrame(d, ds);
+      /* Where she is walking back TO. In the old compound this was remembered from before the 4-beat
+       * opening; as a movement in its own right there is nothing to remember, so it resolves from the
+       * slot system — which is what it always meant. "Her own spot" is an address, not a souvenir. */
+      const F0 = (cfg.startOf && cfg.startOf[d.id]) || FORMATIONS[layoutName].slot(d.station, cfg.lane, N);
+      const fr = dancerFrame(d, ds);
       const Xs = { x: CX + R_MID() * fr.out.x, y: CY + R_MID() * fr.out.y };
       const Pf   = { x: Xs.x - io * R_STEP * fr.out.x, y: Xs.y - io * R_STEP * fr.out.y };   // her spoke point
       const Pout = { x: Xs.x + io * R_STEP * fr.out.x, y: Xs.y + io * R_STEP * fr.out.y };   // its mirror
@@ -2557,6 +2564,11 @@ function refWheels(kind, N){
 }
 // A movement's composition kind, which is what decides its reference wheel.
 const composeKind = mv => (mv && mv.play && mv.play.compose) || null;
+/* Whether a movement flips the spoke config can depend on where it is called FROM, now that one movement
+ * can be danced from several positions with different addresses. A Dame from Casino or Exhibela moves its
+ * leader an ODD number of half-spacings and flips; the same Dame from the Dile Que No position moves him
+ * an even number and does not. Resolved the way `sets` and `beats` already are. */
+const flipsPhaseOf = (mv, from) => typeof mv.flipsPhase === 'function' ? !!mv.flipsPhase(from) : !!mv.flipsPhase;
 function grandeFrames(circleKey, from){
   const m = LM.m, mv = MOVEMENTS[circleKey], sub = LINEA_SUB[from];
   const all = dancers;
@@ -2658,8 +2670,13 @@ function pequenaFrames(circleKey, from){
  *   play := { figure, params } | { travel, mirror, opts }
  * `mirror: true` mirrors the definition inside out when danced from an afuera position. */
 function movementFrames(mv, ds, N, from){
-  const p = mv.play;
+  let p = mv.play;
   if (!p) return mv.frames(ds, N, from);
+  /* ONE MOVEMENT, DIFFERENT DANCING DEPENDING ON WHERE IT IS CALLED FROM. A Dame from Casino, from
+   * Exhibela and from the Dile Que No position are the same call and the same figure to a dancer; they
+   * are different geometry to the engine. `sets` and `beats` have always been allowed to depend on
+   * `from` — this lets `play` do the same, rather than minting a second movement per position. */
+  if (p.byFrom){ p = p.byFrom[virtualPos(from)] || p.byFrom.default; if (!p) return mv.frames(ds, N, from); }
   // A movement may be a SEQUENCE OF PHRASES with different intents in each — a scripted opening, then a
   // travel. Each phrase starts from where the last left the dancers.
   if (p.phrases){
@@ -2684,7 +2701,7 @@ function movementFrames(mv, ds, N, from){
     Object.assign(paths, SCRIPT_KINDS[cfg.kind](ds, N, cfg, mirror, r)); }
   const pick = spec => spec && spec.byVirtualPos ? spec.byVirtualPos[virtualPos(from)] : spec;
   return playTravel(ds, N, resolveTravel(p.travel, ds, Object.assign({
-    phaseBefore: mv.flipsPhase ? phase ^ 1 : phase, mirror,
+    phaseBefore: flipsPhaseOf(mv, from) ? phase ^ 1 : phase, mirror,
     scriptAt: id => paths[id],
     face: p.face ? (id => pick(p.face[roleOf[id]])) : undefined,
   }, p.opts || {})));
@@ -2718,7 +2735,7 @@ function runMovement(key, fromQueue, note, leadBeats){
   // Lock in resting positions BEFORE flipping the config: a phase flip changes what pos() returns for
   // any dancer without a live xy (e.g. the first move right after a reset), which would otherwise move
   // the animation's start point onto the new grid and cause a visible lurch.
-  if (mv.flipsPhase){ dancers.forEach(d => { if (!d.xy) d.xy = pos(d); }); phase ^= 1; }
+  if (flipsPhaseOf(mv, from)){ dancers.forEach(d => { if (!d.xy) d.xy = pos(d); }); phase ^= 1; }
   engineActive = true;
   playMovement(mv, from, step, leadBeats || 0);
 }
@@ -2746,9 +2763,12 @@ function step(){
   if ((pendingInterrupt === 'dame' || pendingInterrupt === 'dame_dos') && nk === 'dile'){
     // Dame over a pending Dile Que No -> the compound figure. Afuera compounds aren't built yet, so
     // there the Dame just runs (a plain Dame, then its own default Dile Que No follows).
-    const comp = pendingInterrupt === 'dame' ? 'dile_dame' : 'dile_dame_dos';
-    const dameLabel = CALLS[pendingInterrupt].label;
-    pendingInterrupt = null; queue = [comp]; queueCalls = [dameLabel]; justIssued = true; logLine(MOVEMENTS[comp].label, 'merged'); proceed(); return;
+    // The compound is not a movement, it is two: the 4-beat Dile Que No, then a Dame danced FROM the
+    // Dile Que No position. Expressing it as a sequence rather than a third movement is what stops the
+    // engine having a private definition of a figure it already knows.
+    const dameKey = pendingInterrupt, dameLabel = CALLS[dameKey].label;
+    pendingInterrupt = null; queue = ['dile4', dameKey]; queueCalls = [dameLabel, dameLabel];
+    justIssued = true; logLine('Dile Que No y ' + dameLabel, 'merged'); proceed(); return;
   }
   proceed();
 }
@@ -2780,11 +2800,10 @@ function issueCall(callKey){
   if (call.placeholder){ logLine(call.label, 'movements not yet defined'); return; }
 
   const isDame = callKey === 'dame' || callKey === 'dame_dos';
-  const compound = callKey === 'dame' ? 'dile_dame' : 'dile_dame_dos';
 
   if (mode === 'step' && awaiting){                       // choosing a call at a pause
     if (call.modifier){ queue = ['exhibela']; queueCalls = [call.label]; }              // diverts: the current call is forgotten
-    else if (isDame && pendingDefault === 'dile'){ queue = [compound]; queueCalls = [call.label]; }   // Dame over a pending Dile Que No -> compound
+    else if (isDame && pendingDefault === 'dile'){ queue = ['dile4', callKey]; queueCalls = [call.label, call.label]; }   // Dame over a pending Dile Que No -> 4-beat Dile Que No, then a Dame from it
     else { if (call.from && !call.from.includes(posState)) return; queue = call.seq.concat(queue); queueCalls = call.seq.map(() => call.label).concat(queueCalls); }
     justIssued = true; logLine(call.label, 'call'); awaiting = false; proceed(); return;
   }
@@ -2815,7 +2834,7 @@ function doMovement(key){
   currentCallLabel = null; currentMoveLabel = mv.label;   // a raw movement has no owning call
   logLine(mv.label);
   posState = resolveSets(mv, from);
-  if (mv.flipsPhase){ dancers.forEach(d => { if (!d.xy) d.xy = pos(d); }); phase ^= 1; }   // see runMovement
+  if (flipsPhaseOf(mv, from)){ dancers.forEach(d => { if (!d.xy) d.xy = pos(d); }); phase ^= 1; }   // see runMovement
   playMovement(mv, from, () => { currentMoveLabel = null; renderTable(); updateUI(); });
 }
 
