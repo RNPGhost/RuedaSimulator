@@ -50,9 +50,15 @@ re-slots and the whole ensemble is dynamic. (Enforced by invariants §25, which 
 all the way round and lands back in the slot he started in has an unmoved couple midpoint, and the rule
 calls him scripted — i.e. an immutable obstacle who never yields and never needs to. Dame Dos Pequeña
 (`CLEANUP_PLAN.md` §2) is exactly that dancer, and it is not a misreading of the figure: Sam specified
-the leader crossing the mini-wheel twice and passing the other leader in the middle. Whichever way this
-is resolved — per-phrase intents, or a discriminator that reads the unreduced `dh` — it must be resolved
-before that movement is built, not worked around inside it.
+the leader crossing the mini-wheel twice and passing the other leader in the middle.
+
+**The fix is to say how far the movement progresses, in couples.** A progression is `k` couples measured
+on the wheel the figure is danced on — a Dame Dos is a two-couple progression whether it is danced on a
+wheel of eight, where it moves the leader two places, or on a mini-wheel of two, where two couples is a
+full circuit and lands him back with his own partner. `k ≠ 0` makes the dancer dynamic regardless of
+where he ends up, so the discriminator no longer has to infer a journey from its endpoints. `k` is the
+dance-level fact; the `dh` addresses are its arithmetic consequence, and the two must agree —
+`k = (F.dh − L.dh) / 2`, which holds for all six travel definitions in the registry.
 
 ### Scripted dancers never yield — and never need to
 
@@ -244,8 +250,8 @@ assume it is a misunderstanding either. Name the assumption, give the observable
 
 | Assumption | The observable that would mean a real new requirement | What it would cost |
 |---|---|---|
-| A dancer is scripted **or** dynamic for the whole movement | a dancer whose couple midpoint moves and then returns *within* one movement | intents would need to be per-phrase, not per-movement. **This one has bitten twice.** Dile Que No y Dame was the first and was additive — `playPhrases`, DECLARATIVE §8. Dame Dos Pequeña is the second and is harder, because the returning dancer is a *traveller*, not a scripted one: see §1 above |
-| A slot address determines the whole journey | a dancer who travels a full circuit and lands where he began — `dh` reduced modulo the span cannot tell him from a dancer standing still | the winding number becomes part of the address rather than a path-layer choice (DECLARATIVE §2) |
+| A dancer is scripted **or** dynamic for the whole movement | a dancer whose couple midpoint moves and then returns *within* one movement | intents would need to be per-phrase, not per-movement. **This has bitten twice.** Dile Que No y Dame was the first and was additive — `playPhrases`, DECLARATIVE §8. Dame Dos Pequeña is the second, and is answered instead by declaring `k` (§1 above), which is cheaper than per-phrase intents and fixes the row below at the same time |
+| A slot address determines the whole journey | a dancer who travels a full circuit and lands where he began — `dh` reduced modulo the span cannot tell him from a dancer standing still | the progression count `k` carries what the reduction throws away (DECLARATIVE §2). Note the shape of the escape: the missing information was **not** a new kind of address, it was the movement's own meaning, which nobody had asked it to state |
 | Scripted figures never need to yield | two scripted figures that genuinely cannot both be danced without touching | ENGINE_MODEL decision (2) — "the figure is wrong" — would need revisiting, and validation would have to become deformation |
 | Exactly **two** effort-sharing groups | three sets of dancers that can all meet each other, with no sensible pairing | the naturalness bisection generalises to an n-way balance; not hard, but it is a real change |
 | A unit is a dancer or a bonded **couple** | three or more dancers moving as one rigid body (a line, a bridge) | `unit` already supports it; the corridor sizing and the rigid reconstruction in `apply` would need generalising |

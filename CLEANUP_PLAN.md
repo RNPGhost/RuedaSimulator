@@ -3,10 +3,12 @@
 **Status: measured and specified, not yet implemented.** Everything below is agreed with Sam and backed
 by measurement; it is written down because the session that measured it ran out of room to build it.
 
-Since the first draft, three things changed: a **sixth** duplicate pair turned up in the pair the plan
+Since the first draft, four things changed: a **sixth** duplicate pair turned up in the pair the plan
 told us to keep; **Dame Dos Pequeña** turned out to be a figure we have never built rather than a
-duplicate to collapse; and Sam settled that a movement **keeps its name across formations**, which
-removes the `_grande` / `_peq` key space rather than merely pruning it. §2 and §3 are new.
+duplicate to collapse; Sam settled that a movement **keeps its name across formations**, which removes
+the `_grande` / `_peq` key space rather than merely pruning it; and chasing the first two down produced
+the one model change here — **a progression states how many couples it progresses**, which is what the
+engine was missing and what makes the rest checkable. §2 and §3 are new.
 
 ---
 
@@ -87,43 +89,100 @@ encounters (2 at 4 couples, 3 at 6, 4 at 8), every one at 44.8px, `sa = sb = −
 PASSING.md — the same encounter that had two leaders passing within 10.5px before v130. Dame Dos
 Pequeña therefore declares **no** `passes` exception; it inherits the convention and crosses twice.
 
-### Two things to settle before building it
+**Beats: 4, unchanged** (Sam) — "with the leader having to move much more quickly than the follower to
+get around the other leader and back in time." Not 8: the follower dances the identical 4-beat figure in
+both, and stretching it to keep the leader comfortable would break the very thing that makes the two
+movements a pair.
 
-Neither is a detail, and both are the kind MOVEMENT_SPEC §4 says to raise rather than special-case.
+### What the engine is missing: a progression is measured in couples
 
-**(a) The scripted/dynamic discriminator does not survive this figure.** The rule is *does the dancer's
-couple midpoint move?*, compared **end against start**. Dame Dos Pequeña's leader ends partnered with
-the same follower in the same slot, so his ending couple midpoint equals his starting one — the
-discriminator calls him **scripted**. He is plainly not: he crosses the wheel twice and must be planned
-against another leader doing the same. And a scripted dancer is an immutable obstacle who "never yields
-and never needs to", so two scripted leaders crossing in the middle would, by the model, mean *the
-figure is wrong*. It isn't.
+The reason this figure did not look like a Dame to the engine is not a coincidence to work around. It is
+the model gap, and Sam named it:
 
-MOVEMENT_SPEC §4 predicted exactly this as the assumption most likely to break — *"a dancer whose couple
-midpoint moves and then returns within one movement"* — and the two candidate resolutions are:
+> "The system doesn't have a good way to pick up on the fact that this is a progression which progresses
+> k couples where k is also the number of couples in the Rueda reference for the progression. The way a
+> human would think about this is that Dame Dos is a 2-couple progression. It just so happens that a
+> 2-couple progression in a 2-couple wheel lands back where they started. Maybe, along with the end
+> position, each progressive move could identify how many couples they progress."
 
-- **Per-phrase intents.** Two phrases, the leader dynamic (`dh −2`) in each, the follower scripted across
-  both. `playPhrases` already exists and `dile_dame` already uses it. Cheapest, and it is what the model
-  said the fix would be. Costs: the follower's figure has to span both phrases rather than repeat.
-- **Compare the path, not the endpoints.** Make the discriminator read the *unreduced* `dh` — a dancer
-  with a non-zero winding is dynamic however he ends up. Truer to what the rule means, and it also fixes
-  (b) below, but it touches §25's contract and every place the discriminator is measured.
+**Agreed, and it subsumes both deviations this figure exposed.** `progresses` is a **boolean** today
+(`true` on all six movements in the Dame family, and on `mujeres`). Promote it to a **count of couples**,
+stated against the wheel the figure is danced on, and:
 
-**(b) A slot address cannot currently express "all the way round".** `resolvePlace` reduces `dh` modulo
-`span`, so on a 2-couple mini-wheel `dh −4` and `dh 0` resolve to the **same place**. DECLARATIVE §2
-already notes that the address says *where*, not *which way round*, and names the antipode as the one
-spot where direction is a genuine free choice; this is a second and sharper case — the **winding number
-is load-bearing** here and must survive to the path layer rather than being modded away. Standing still
-and travelling a full circuit must not be the same sentence in the vocabulary.
+- **The winding stops being lost.** `resolvePlace` reduces `dh` modulo the span, so on a 2-couple
+  mini-wheel `dh −4` and `dh 0` are the same address — the vocabulary cannot tell a full circuit from
+  standing still (DECLARATIVE §2). `k` is exactly the information the reduction throws away.
+- **The scripted/dynamic discriminator stops mis-firing.** The rule compares a dancer's couple midpoint
+  **end against start**, so Dame Dos Pequeña's leader — same partner, same slot — reads as *scripted*,
+  i.e. an immutable obstacle who "never yields and never needs to". Two of those crossing in the middle
+  would mean, by the model, that the figure is wrong. It isn't. `k ≠ 0` says the movement is a
+  progression whatever the endpoints look like, and no per-phrase machinery is needed.
+- **Nothing has to declare a phase flip, still.** The flip stays arithmetic — it falls out of the total
+  `dh` being odd — and `k` is a second, independent statement of the same journey. Which is the point:
+  two statements that must agree can be checked against each other.
 
-**(c) Beats — Sam's call, from the floor.** The leader covers twice the ground of a Dame Pequeña while
-the follower dances the same 4-beat figure. Either the movement grows to 8 beats (and the follower's
-figure stretches or waits) or it stays at 4 and he moves at double speed. v131 settled the comparable
-question for Dame Línea by Sam watching the running sim, which is probably how this one gets settled too.
+**`k` is derivable from the unreduced addresses, which is what makes it checkable rather than magic.**
+Across every definition in `TRAVELS`, `k = (F.dh − L.dh) / 2` with a scripted role counting as `dh 0`:
 
-**Consequence for the call:** with the leader back where he began, **Dame Dos Pequeña progresses nobody
-and changes no partner** — it is a Setenta-shaped call, not a Dame-shaped one. Its `progresses` flag and
-its description both currently say otherwise.
+| travel | L `dh` | F `dh` | `k` |
+|---|---|---|---|
+| `dame` | −1 | +1 | **1** |
+| `dame_dos` | −3 | +1 | **2** |
+| `dame_pequena` | −2 | scripted | **1** |
+| `dile_dame` | −2 | scripted | **1** |
+| `dile_dame_dos` | −4 | scripted | **2** |
+| `mujeres` | scripted | +2 | **1** |
+
+Six for six. So `k` is not a new free parameter to keep in sync by hand — it is the **dance-level fact**
+(*"a Dame Dos is a two-couple progression"*), and the `dh` pair is its arithmetic consequence on whatever
+wheel the figure is composed onto. Declare `k`, derive the addresses, and assert both against what the
+dancers actually did. That is the same three-way pattern §35 already uses for pass sides: declared,
+derived, and measured on the outcome.
+
+### What this makes the implementation
+
+The Dame family stops needing a hand-written substitution. `buildLineaMovements` currently maps **both**
+`dame` and `dame_dos` to `pKey = 'dame_pequena'` — it swaps in a *different figure* rather than composing
+the same one onto a smaller wheel, which is why `k` is lost. With `k` declared, `TRAVELS.dame_pequena`
+takes it as a parameter (`L: { dh: −2k }`, follower scripted at `dh 0`), and:
+
+- **Dame Pequeña** is `k = 1` → `dh −2` → the other slot in the mini-wheel.
+- **Dame Dos Pequeña** is `k = 2` → `dh −4` → all the way round, back to his own partner.
+
+One definition, one parameter, and Sam's constraint falls straight out of it: the follower is scripted at
+`dh 0` in both, so **she is the dancer whose movement is identical** — and both `dh` totals are even, so
+neither flips the phase. Nothing about that has to be said twice.
+
+### The invariant this earns — and why it beats the one in §8
+
+**Declared `k` must equal delivered `k`**: after the movement, each leader is partnered with the follower
+`k` couples round from his original partner, counted on the reference wheel.
+
+Measured today, at 4 and 6 couples, from Línea Moderna Casino:
+
+```
+dame_peq      L0:F0→F1  L1:F1→F0  L2:F2→F3  L3:F3→F2      4/4 partners changed   k delivered = 1  ✓
+dame_dos_peq  L0:F0→F1  L1:F1→F0  L2:F2→F3  L3:F3→F2      4/4 partners changed   k delivered = 1  ✗ (declared 2)
+```
+
+Every leader's partner *swaps*. That is a one-couple progression wearing a two-couple label, and it is
+visible without comparing a single keyframe — no reference to duplicate frames, no measurement of
+positions, just "who ended up with whom". **This check would have caught the bug the day it was
+written**, and it tests meaning rather than coincidence, which is why it is the better of the two. Keep
+§8's *no two movements produce identical frames* as well — it catches a different class, where two
+figures collide by accident rather than by mislabelling — but this is the one that names what is wrong.
+
+Correctly built, Dame Dos Pequeña ends `L0:F0→F0` for every leader: **no partner change and no
+progression around the mini-wheel**, but `k = 2` all the same, because the dancers genuinely travelled
+two couples' worth. That is precisely the distinction the boolean cannot hold.
+
+### Cost of promoting `progresses` to a count
+
+Truthiness-compatible — `k = 0` and "not a progression" are the same statement — so the three places that
+read it keep working unchanged: `validFrom`'s afuera gate (`!m.progresses || m.afueraReady`),
+`grandeFrames`'s `useAfuera` test, and v129's derived UI grouping. What needs care is that they are
+currently reading it as *"is this progressive?"*, and at least the UI grouping may want to read the
+number once it has one.
 
 ## 3. A movement keeps its name across formations
 
@@ -276,10 +335,15 @@ every keyframe's position and facing across 4/6/8 couples and require **0.0px / 
 differs is a real figure and must not be collapsed.
 
 Worth an invariant of its own — **no two movements produce identical frames** — which would have caught
-this class the day it appeared, and would have caught `dame_dos_peq` years earlier than a doc review did.
-Note the ordering that makes it clean: once §2 is built, the invariant needs **no exemptions**, because
-Dame Dos Pequeña stops being a copy of Dame Pequeña. Writing the invariant *first* and exempting the
-pair would have hidden the bug behind the test meant to find it.
+this class the day it appeared. Note the ordering that makes it clean: once §2 is built, the invariant
+needs **no exemptions**, because Dame Dos Pequeña stops being a copy of Dame Pequeña. Writing the
+invariant *first* and exempting the pair would have hidden the bug behind the test meant to find it.
+
+It is the **second** of the two checks, though. §2's *declared `k` equals delivered `k`* is the primary
+one: it names what is actually wrong with `dame_dos_peq` (a two-couple label on a one-couple
+progression) rather than observing that two movements happen to coincide, it needs no keyframes at all,
+and it would have failed on the day the movement was written rather than waiting for a second movement
+to collide with it.
 
 **What should move in the golden, and what should not.** None of the 16 `_grande` / `_peq` movements has
 a golden *movement* case: `genMovements` sweeps only the five circle rest positions

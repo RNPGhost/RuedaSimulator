@@ -58,14 +58,21 @@ planner's base sweep), and there is exactly one place it is a genuine free choic
 `+span/2` and `−span/2` are the same slot. That happens for real — `dile_dame_dos` at 4 couples — and
 the vocabulary is right to leave it to the path layer rather than pretend the address decides it.
 
-**Known gap: a full circuit is not expressible.** `resolvePlace` reduces `dh` modulo `span`, so on a
-2-couple mini-wheel (`span = 4`) a `dh` of −4 resolves to the same place as a `dh` of 0. That is fine
-while nothing travels a whole wheel, and **Dame Dos Pequeña** is the figure that breaks it: its leader
-crosses the mini-wheel twice and ends in the slot he began in, so the address alone cannot tell him
-apart from a dancer standing still. Unlike the antipode, this is not a free choice for the path layer to
-make — the **winding number is load-bearing choreography** and has to survive into it rather than being
-modded away. See `CLEANUP_PLAN.md` §2; it takes the scripted/dynamic discriminator with it, because that
-rule also compares only the endpoints.
+**Known gap, and where the missing information really lives.** `resolvePlace` reduces `dh` modulo
+`span`, so on a 2-couple mini-wheel (`span = 4`) a `dh` of −4 resolves to the same place as a `dh` of 0.
+That is fine while nothing travels a whole wheel, and **Dame Dos Pequeña** is the figure that breaks it:
+its leader crosses the mini-wheel twice and ends in the slot he began in, so the address alone cannot
+tell him apart from a dancer standing still. Unlike the antipode, this is not a free choice for the path
+layer to make.
+
+The tempting fix is a richer address — an unreduced `dh`, or an explicit winding. The better one is to
+notice that the address was never the right place to say it. **A progressive movement declares how many
+couples it progresses** (`k`, measured on the wheel it is danced on), and the addresses follow from it:
+`k = (F.dh − L.dh) / 2`, which holds for every definition in `TRAVELS` today. A Dame Dos is a two-couple
+progression on a wheel of any size; that two couples happens to be a full circuit of a mini-wheel of two
+is a fact about the wheel, not about the figure. See `CLEANUP_PLAN.md` §2 — the same declaration also
+repairs the scripted/dynamic discriminator, which compares only the endpoints and so calls that leader
+scripted.
 
 ## 3. Group predicates — which dancers an intent applies to
 
