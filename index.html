@@ -560,7 +560,9 @@ const MOVEMENTS = {
  * ------------------------------------------------------------------ */
 const CALLS = {
   dame:     { label: 'Dame',     desc: 'Call from Casino: the Dame movement, then (by default) a Dile Que No back to Casino — the leader progresses one couple. Called when a Dile Que No is already the next movement, it merges into a Dile Que No y Dame.', from: ['casino', 'afuera'], seq: ['dame'] },
-  dame_dos: { label: 'Dame Dos', desc: 'Call: like Dame but the leader progresses two couples. Called when a Dile Que No is already the next movement, it merges into a Dile Que No y Dame Dos.', from: ['casino', 'afuera'], seq: ['dame_dos'] },
+  // Not from afuera: the movement is banned there (holding the pass sides, which afuera does not change,
+  // sends the leaders round an enormous arc), so the call cannot be either. §40 keeps the two in step.
+  dame_dos: { label: 'Dame Dos', desc: 'Call: like Dame but the leader progresses two couples. Called when a Dile Que No is already the next movement, it merges into a Dile Que No y Dame Dos.', from: ['casino'], seq: ['dame_dos'] },
   enchufla: { label: 'Enchufla', desc: 'Call from Casino: an Enchufla movement, then a Dame, then (by default) a Dile Que No back to Casino.', from: ['casino', 'afuera'], seq: ['enchufla', 'dame'] },
   con_exhibela: { label: 'con Exhibela', desc: 'Modifier: diverts the dancers to an Exhibela movement when they next reach Exhibela, forgetting whatever the current call had planned next. Afterwards they default to a Dile Que No.', modifier: true },
   setenta:  { label: 'Setenta', desc: "Call from Casino: Vacilala, Adios, Enchufla, Leader's Enchufla, Enchufla, then (by default) a Dile Que No. No change of partner. The only interruption point is right before the closing Dile Que No.", from: ['casino', 'afuera'], seq: ['vacilala', 'adios', 'enchufla', 'leaders_enchufla', 'enchufla'] },
@@ -3181,7 +3183,7 @@ function issueCall(callKey){
   if (mode === 'step' && awaiting){                       // choosing a call at a pause
     if (call.modifier){ queue = ['exhibela']; queueCalls = [call.label]; }              // diverts: the current call is forgotten
     else if (isDame && pendingDefault === 'dile'){ queue = ['dile4', callKey]; queueCalls = [call.label, call.label]; }   // Dame over a pending Dile Que No -> 4-beat Dile Que No, then a Dame from it
-    else { if (call.from && !call.from.includes(posState)) return; queue = call.seq.concat(queue); queueCalls = call.seq.map(() => call.label).concat(queueCalls); }
+    else { if (!callOfferableFrom(call, posState)) return; queue = call.seq.concat(queue); queueCalls = call.seq.map(() => call.label).concat(queueCalls); }
     justIssued = true; logLine(call.label, 'call'); awaiting = false; proceed(); return;
   }
   if (call.modifier){                                     // con Exhibela (live): remember to divert at the next
@@ -3246,6 +3248,31 @@ function applyPanelPrefs(){
 }
 function setPanelTab(which){ panelTab = which; applyPanelPrefs(); }
 
+/* CAN THIS CALL ACTUALLY BE DANCED FROM HERE? A call's `from` list is written by hand and its movements'
+ * validity is derived, so the two drift: Dame Dos was banned from the afuera positions and its call went
+ * on offering itself there, because nothing checked that the list still matched the figures. Sam found it
+ * in the running sim, which is one place too late.
+ *
+ * So walk the sequence. The first movement must be valid where the dancers are, and each one after it
+ * must be valid where the previous one leaves them. `from` stays as the DECLARED entry points — a call
+ * may legitimately want fewer than its movements allow — but it can no longer claim more.
+ * Invariants §40 asserts the two agree, so a future ban cannot quietly outlive the call that used it. */
+function callDanceableFrom(c, pos){
+  if (!c || !c.seq || !c.seq.length) return true;             // modifiers and placeholders have no sequence
+  let at = pos;
+  for (const key of c.seq){
+    const m = MOVEMENTS[key];
+    if (!m || !validFrom(key, at)) return false;
+    at = resolveSets(m, at);
+  }
+  return true;
+}
+function callOfferableFrom(c, pos){
+  if (c.minCouples && N < c.minCouples) return false;
+  if (c.from && !c.from.includes(pos)) return false;
+  return callDanceableFrom(c, pos);
+}
+
 function updateUI(){
   const idle = !engineActive && !animating && !awaiting;
   const pn = document.getElementById('posname'); if (pn) pn.textContent = (POSITIONS[posState] || {}).name || '—';
@@ -3259,8 +3286,8 @@ function updateUI(){
   // behind the current sequence (the wheel will finish somewhere the call can start from). Offering
   // anything else invites a click that silently does nothing.
   const endPos = idle ? posState : projectedEndPos();
-  const canFollow = c => !c.from || c.from.includes(endPos);
-  const okHere = c => (!c.from || c.from.includes(posState)) && !(c.minCouples && N < c.minCouples);
+  const canFollow = c => callOfferableFrom(c, endPos);
+  const okHere = c => callOfferableFrom(c, posState);
   Object.entries(CALLS).forEach(([key, c]) => {
     const b = callBtns[key]; if (!b) return;
     const fits = !(c.minCouples && N < c.minCouples);
@@ -3270,7 +3297,7 @@ function updateUI(){
     else if (mode === 'step' && awaiting)
       en = c.modifier ? posState === 'exhibela'
          : (okHere(c) || ((key === 'dame' || key === 'dame_dos') && pendingDefault === 'dile'));
-    else en = fits && (c.modifier ? interruptionPointAhead() : canFollow(c));
+    else en = c.modifier ? (fits && interruptionPointAhead()) : canFollow(c);
     b.disabled = !en;
   });
   // A movement runs to completion — it cannot be interrupted — so the whole panel is dead while one plays.

@@ -2199,6 +2199,46 @@ function run() {
     nChecks++; check(named.length >= 5, `§39b only ${named.length} movements resolved to a travel definition`);
   }
 
+  // 40: A CALL MAY NOT OFFER ITSELF WHERE ITS OWN MOVEMENTS CANNOT BE DANCED.
+  //     A call's `from` list is written by hand; a movement's validity is derived. So the two drift, and
+  //     they drifted silently: Dame Dos was banned from the afuera positions and its call went on
+  //     offering itself there for as long as it took Sam to notice in the running sim. The list may
+  //     legitimately be NARROWER than the movements allow — a call can choose not to be offered somewhere
+  //     — but it can never be wider, because that is a button that does nothing.
+  {
+    let checked = 0;
+    const bad = [];
+    for (const key of T.keys().calls){
+      const c = T.CALLS[key];
+      if (!c.from || !c.seq || !c.seq.length) continue;      // modifiers and placeholders have no sequence
+      for (const pos of c.from){
+        // At the smallest couple count the call itself admits to: a floor it declares is not a drift.
+        const floor = Math.max(4, c.minCouples || 0);
+        let anyOk = false, tried = 0;
+        for (const n of NS){
+          if (n < floor) continue;
+          tried++;
+          T.setupRest(POSITIONS.includes(pos) ? pos : 'casino', n, 0);
+          if (T.callDanceableFrom(c, pos)) anyOk = true;
+        }
+        if (!tried) continue;                                 // the floor is above every count we sweep
+        checked++;
+        if (!anyOk) bad.push(`${key} offers itself from ${pos}`);
+      }
+    }
+    nChecks++; check(checked > 20, `§40 only ${checked} call/position pairs probed — the sweep is not finding calls`);
+    nChecks++; check(bad.length === 0,
+      `§40 ${bad.length} call(s) offer a position their own movements cannot dance from: ${bad.slice(0, 3).join('; ')}`);
+    // Self-test: the sweep must be able to see one. Ask a call about a position it plainly cannot start
+    // from and the same walk has to say no.
+    {
+      const c = T.CALLS.mujeres_arriba;
+      T.setupRest('casino', 6, 0);
+      nChecks++; check(c && !T.callDanceableFrom(c, 'casino'),
+        '§40 self-test: a call was judged danceable from a position its first movement rejects');
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

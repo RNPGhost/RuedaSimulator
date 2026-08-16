@@ -187,7 +187,7 @@ function load(htmlPath) {
       FIGURES, SOLVERS, TRAVELS,
       // Which wheel a figure is danced on — the reference a progression is counted against. Asked of the
       // engine rather than re-derived here: a re-derivation is a second opinion waiting to disagree.
-      refWheels, composeKind, declaredPasses,
+      refWheels, composeKind, declaredPasses, callDanceableFrom, resolveSets,
       viaTrace(on){ VIA_TRACE = on ? [] : null; return VIA_TRACE; }, getViaTrace(){ return VIA_TRACE; },
       // The winding each traveller's progression declared, from the most recent travel the engine ran.
       lastSweeps(){ return Object.assign({}, LAST_SWEEPS); },
