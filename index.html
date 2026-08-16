@@ -1405,15 +1405,30 @@ function planCrossings(o){
     if (skip.has(a + '\u0000' + b)) continue;          // declared as gathering into one couple
     checkPairs.push([a, b]);
   }
-  checkPairs.forEach(pr => {
-    const a = pr[0], b = pr[1];
+  /* Encounters are built on demand, not once up front. A collision resolved by moving two dancers can
+   * push a third pair together — Sam's loop: "as those collisions are resolved, new collisions may occur,
+   * which need to be added dynamically to the list of collisions... until there are no more collisions on
+   * any dancer's path". `engagePair` is therefore callable at any point in the solve, and remembers what
+   * it has already built. */
+  const epByPair = {}, episodes = [];
+  const pairKey = (a, b) => (a < b ? a + '\u0000' + b : b + '\u0000' + a);
+  function engagePair(a, b, force){
+    const key = pairKey(a, b);
+    // A pair recorded as "no collision" on the first pass MUST still be engageable later: that is the
+    // whole point of the loop, since resolving one collision is what pushes a new pair together. Only a
+    // built episode is remembered; a negative answer is not cached against a later `force`.
+    if (epByPair[key]) return epByPair[key];
     let crowd = false;
     for (let s = 0; s < NSMP && !crowd; s++) if (gap(a, b, smpT[s]) < CLEAR) crowd = true;
-    if (!crowd) return;
+    if (!crowd && !force) return null;
     let t0 = null, t1 = null;
     for (let s = 0; s < NSMP; s++){ const t = smpT[s];
       if (gap(a, b, t) < ENGAGE){ if (t0 === null) t0 = t; t1 = t; } }
-    if (t0 === null){ t0 = 0.4; t1 = 0.6; }               // guard; detection guarantees engagement in practice
+    if (t0 === null){                                     // forced open late: no window on the BASE paths,
+      let tc0 = 0.5, g0 = Infinity;                       // so centre it where they actually come closest
+      for (let s = 0; s < NSMP; s++){ const g = gap(a, b, smpT[s]); if (g < g0){ g0 = g; tc0 = smpT[s]; } }
+      t0 = Math.max(0, tc0 - 0.1); t1 = Math.min(1, tc0 + 0.1);
+    }
     const upEnd = Math.max(t0, R_MIN), upStart = Math.max(0, upEnd - R_MAX);
     const dnStart = Math.min(t1, 1 - R_MIN), dnEnd = Math.min(1, dnStart + R_MAX);
     const ep = { upStart, upEnd, dnStart, dnEnd };
@@ -1463,7 +1478,10 @@ function planCrossings(o){
     mates[unit(a)].push({ ep, sign: sideFor(a, b) });
     mates[unit(b)].push({ ep, sign: sideFor(b, a) });
     live.push({ a, b, tc, headOn: headOnAt(a, b, tc) });
-  });
+    epByPair[key] = ep; episodes.push(ep);
+    return ep;
+  }
+  checkPairs.forEach(pr => engagePair(pr[0], pr[1], false));
   // A pass is judged on its SIDE whenever the two come near enough to be passing each other at all —
   // which is a wider net than the pairs that crowd. Two dancers who go by comfortably still go by on a
   // side, and a figure that sends them past the wrong shoulder is wrong however much room it leaves.
@@ -1531,16 +1549,21 @@ function planCrossings(o){
   // stacking into a double-width lurch. Across directions they SUM, which is the whole point: a dancer
   // easing left for one passer and right for another nets out correctly wherever the two overlap, and if
   // they overlap so much that neither can be satisfied the amplitude solve fails and says so.
+  /* Each encounter carries its OWN amplitude, in pixels — the corridor that collision needs and no more.
+   * A single amplitude for the whole movement meant one tight pair made every dancer swing wide, which is
+   * what made the evasion read as searching rather than dancing. Within a direction the swells still
+   * merge rather than stack (the widest crest wins, so two overlapping passes become one wider one); across
+   * directions they still sum, which is what lets a dancer ease left for one passer and right for another. */
   const proxOf = (u, t) => {
     const ms = mates[u]; if (!ms.length) return 0;
-    let accR = 1, accL = 1;
-    ms.forEach(m => { const b = bumpOf(m.ep, t);
-      if (m.sign >= 0) accR *= (1 - b); else accL *= (1 - b); });
-    return (1 - accR) - (1 - accL);
+    let accR = 0, accL = 0;
+    ms.forEach(m => { const b = bumpOf(m.ep, t) * (m.ep.amp || 0);
+      if (m.sign >= 0) accR = Math.max(accR, b); else accL = Math.max(accL, b); });
+    return accR - accL;
   };
   const gA = (o.groups || [])[0], gB = (o.groups || [])[1];
   const yields = o.yields || (() => true);
-  const shareOf = (id, w) => yields(id) ? CLEAR * (o.group(id) === gA ? w : 1 - w) : 0;
+  const shareOf = (id, w) => yields(id) ? (o.group(id) === gA ? w : 1 - w) : 0;
   // If one whole group is scripted it can't take any of the corridor, so the other takes all of it —
   // balancing against a group that never deviates would otherwise drive the movers' share to zero.
   const moves = g => o.ids.some(id => o.group(id) === g && yields(id) && mates[unit(id)].length);
@@ -1587,26 +1610,68 @@ function planCrossings(o){
    * on the corridor gets eased apart regardless, which is what threw a mini-wheel loop out to radius 227
    * on a wheel of 57. "On a clear move a dancer stays exactly on that path" was already the stated rule;
    * it just had no way to be reached once a pair was on the register. */
-  const solveScale = w => { const MAXS = 6.0, SCAN = 0.1;
-    if (worst(w, 0) >= CLEAR) return 0;
-    let pass = null, bestSc = 0, bestW = worst(w, 0);
-    for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ const m = worst(w, sc);
-      if (m > bestW + 1e-9){ bestW = m; bestSc = sc; }
-      if (m >= CLEAR){ pass = sc; break; } }
-    /* NO AMPLITUDE CLEARS — so take the best one, not the largest one.
-     * Returning the cap was indefensible: the solver optimises the CLOSEST pair, so at the cap it buys
-     * nothing for the pair it could not fix and maximally shoves every dancer who was already fine.
-     * Measured on a Dame from the Dile Que No position at 4 couples, where each leader ends 33.5px from
-     * his own partner against a 35px corridor — a 1.5px shortfall the evasion cannot close. Chasing it
-     * to the cap stretched the leader's path from 134px to 478px (3.56×), sending him across the wheel
-     * and back, and opened TWELVE new conflicts down to 9.7px. Giving up gracefully leaves the one
-     * 1.5px shortfall and nothing else. The fault is still recorded either way — the engine says it
-     * could not hold the corridor, rather than pretending with a figure nobody would dance. */
-    if (pass === null) return bestSc;
-    let lo = Math.max(0, pass - SCAN), hi = pass;
-    for (let it = 0; it < 12; it++){ const m = (lo + hi) / 2; if (worst(w, m) >= CLEAR) hi = m; else lo = m; }
-    return hi; };
-  let scale = live.length ? solveScale(wSolve) : 0;
+  /* THE SOLVE, as Sam described it: try the straight path; where it collides, decide the side; open just
+   * enough corridor on that side for BOTH dancers; recompute, because moving two dancers can push a third
+   * pair together; repeat until nothing collides.
+   *
+   * Two things make it behave. Each encounter owns its amplitude, so a pair that needs room gets room and
+   * nobody else moves — the deviation is the minimum that clears, which is what "they should basically
+   * pass shoulder to shoulder" means arithmetically. And relaxation is partial (55% of the shortfall per
+   * pass) so the pairs settle together rather than each overshooting in turn; a full correction each time
+   * oscillates when one dancer is in two encounters at once. */
+  const RELAX = 0.55, MAXIT = 40;
+  /* The base path and the normal to it do not depend on any amplitude, so they are sampled once. Without
+   * this the loop re-derives every centroid and every central difference on every pass over every pair,
+   * which is the difference between a solve that runs and one that does not finish. */
+  const BASE = {}, NORM = {};
+  o.ids.forEach(id => { BASE[id] = smpT.map(t => o.base(id, t)); });
+  const unitsSeen = {}; o.ids.forEach(id => { const u = unit(id);
+    if (!unitsSeen[u]){ unitsSeen[u] = true; NORM[u] = smpT.map(t => normalOf(u, t)); } });
+  const atS = (id, sIdx, w) => {
+    const off = (NAT_NOEVADE ? 0 : 1) * shareOf(id, w) * proxOf(unit(id), smpT[sIdx]) * endEnvAt(smpT[sIdx]);
+    const p = BASE[id][sIdx];
+    if (!off) return p;
+    const n = NORM[unit(id)][sIdx];
+    const q = { x: p.x + n.x * off, y: p.y + n.y * off };
+    if (!o.orbit) return q;
+    const dx = q.x - o.orbit.x, dy = q.y - o.orbit.y, r = Math.hypot(dx, dy);
+    if (r >= RFLOOR || r < 1e-9) return q;
+    return { x: o.orbit.x + dx / r * RFLOOR, y: o.orbit.y + dy / r * RFLOOR };
+  };
+  const pairClosest = (a, b, w) => { let m = Infinity, tc = 0.5;
+    for (let s = 0; s < NSMP; s++){
+      const A = atS(a, s, w), B = atS(b, s, w);
+      const d = Math.hypot(A.x - B.x, A.y - B.y);
+      if (d < m){ m = d; tc = smpT[s]; } }
+    return { gap: m, tc }; };
+  /* KNOWN GAP: the solve measures at NSMP samples and the suite measures between them, so a pair can
+   * converge to CLEAR at every sample and still dip to ~33.5px on the drawn path. Solving to a larger
+   * target overshoots and destabilises (measured: 22 red becomes 29), so the fix is a refinement pass on
+   * a denser grid for the few pairs near the boundary, not a bigger number. Not yet built. */
+  const solveAmps = w => {
+    episodes.forEach(ep => { ep.amp = 0; });
+    let worst = 0;
+    for (let it = 0; it < MAXIT; it++){
+      const shorts = [];
+      worst = Infinity;
+      checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1], w);
+        if (r.gap < worst) worst = r.gap;
+        if (r.gap < CLEAR - 0.01) shorts.push({ a: pr[0], b: pr[1], gap: r.gap }); });
+      if (!shorts.length) return { ok: true, worst };
+      let moved = false;
+      shorts.forEach(sh => {
+        // A pair that has come into conflict since the last pass gets an encounter of its own now.
+        const ep = engagePair(sh.a, sh.b, true);
+        if (!ep) return;
+        ep.amp = (ep.amp || 0) + (CLEAR - sh.gap) * RELAX;
+        moved = true;
+      });
+      if (!moved) break;
+    }
+    return { ok: false, worst };
+  };
+  let solved = live.length ? solveAmps(wSolve) : { ok: true, worst: Infinity };
+  let scale = live.length ? 1 : 0;
   // Balance the split so the two groups feel equally natural: a dancer's naturalness cost rises with its
   // share, so bisect until the worst cost in each group meets.
   const groupCost = w => { const c = {};
@@ -1628,10 +1693,11 @@ function planCrossings(o){
   // which stops being true when one has OVERLAPPING engagements merged into a wider crest. So if the
   // balance moved the share, re-solve the amplitude at the share actually used. (Measured: without this,
   // a rebalanced overlapping crossing sat 0.9px inside the corridor.)
-  if (live.length && Math.abs(share - wSolve) > 1e-9) scale = solveScale(share);
-  // POSTCONDITION — say so when the corridor could not be held. `solveScale` returns its cap when no
-  // amplitude satisfies every pair, and returning that quietly is exactly how two dancers end up sharing
-  // a spot with nothing in the logs. The planner is the only thing that knows whether it succeeded, so it
+  if (live.length && Math.abs(share - wSolve) > 1e-9) solved = solveAmps(share);
+  // POSTCONDITION — say so when the corridor could not be held. The per-encounter solve reports whether
+  // it converged; it can fail to, when two encounters demand opposite things of the same dancer at the
+  // same moment. Returning that quietly is exactly how two dancers end up sharing a spot with nothing in
+  // the logs. The planner is the only thing that knows whether it succeeded, so it
   // is the only thing that can report it; `clear` is the closest any checked pair actually comes, and
   // invariants §33 asserts no shipped movement ever records a fault.
   // …except with evasion switched off, where the paths are MEANT to collide: NAT_NOEVADE generates the
@@ -1653,11 +1719,14 @@ function planCrossings(o){
     const got = Math.sign(d.x * (q.y - p.y) - d.y * (q.x - p.x));
     if (got !== 0 && got !== want) SIDE_FAULTS.push({ a: L.a, b: L.b, want, got });
   });
-  const clear = (checkPairs.length && !NAT_NOEVADE) ? worst(share, scale) : Infinity;
+  const worstNow = w => { let m = Infinity;
+    checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1], w); if (r.gap < m) m = r.gap; });
+    return m; };
+  const clear = (checkPairs.length && !NAT_NOEVADE) ? worstNow(share) : Infinity;
   if (live.length && clear < CLEAR - 0.05){
     PLAN_FAULTS.push({ clear, need: CLEAR, ids: o.ids.slice(), pairs: checkPairs.length });
     if (typeof console !== 'undefined' && console.warn)
-      console.warn(`planCrossings could not clear: closest ${clear.toFixed(2)}px, needs ${CLEAR.toFixed(2)}px [${o.ids.join(",")}] share=${share.toFixed(3)} scale=${scale.toFixed(2)}`);
+      console.warn(`planCrossings could not clear: closest ${clear.toFixed(2)}px, needs ${CLEAR.toFixed(2)}px [${o.ids.join(",")}] share=${share.toFixed(3)} amps=${episodes.length}`);
   }
   return { at: (id, t) => at(id, t, share, scale), share, scale, clear };
 }
