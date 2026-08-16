@@ -1605,7 +1605,10 @@ function planCrossings(o){
    * travelling to Línea was stretched by 32.02px, which is a couple pulled apart rather than moved. */
   const members = {}; o.ids.forEach(id => { const u = unit(id); (members[u] = members[u] || []).push(id); });
   const vias = {}; Object.keys(members).forEach(u => vias[u] = []);
-  const ss3 = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+  // C2 (smootherstep), not C1: the renderer blends circles through neighbouring keyframes, so a via that
+  // arrives with a discontinuous curvature makes the DRAWN path bulge away from the keyframes it
+  // interpolates — measured at 3.13px, and enough to open gaps between keyframes that are closed at them.
+  const ss3 = x => { x = Math.max(0, Math.min(1, x)); return x * x * x * (x * (6 * x - 15) + 10); };
   const viaWeight = (list, i, t) => {
     const ti = list[i].t;
     const lo = i > 0 ? list[i - 1].t : 0, hi = i < list.length - 1 ? list[i + 1].t : 1;
@@ -2836,8 +2839,7 @@ function grandeFrames(circleKey, from){
   const xIds = frames[0].map(d => d.id), F1 = frames.length;
   if (F1 > 1){
     const RW = refWheels('grande', m * 2);
-    const track = {}; frames[0].forEach(d => track[d.id] = []);
-    frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
+    const track = {};
     const ringOf = {}, roleOf = {};
     frames[0].forEach(d => { ringOf[d.id] = RW.of(d.station); roleOf[d.id] = d.role; });
     /* Nothing is excluded. Excluding same-ring pairs from the CHECK while still moving those dancers is
@@ -2846,25 +2848,42 @@ function grandeFrames(circleKey, from){
      * exactly on the corridor lets float noise reopen it, is answered elsewhere now: solveScale returns
      * zero when the paths it is given already clear, so a formation with nothing to do gets no offset
      * rather than a tiny one. */
+    /* Sample the path the way it will be DRAWN, not as a polyline. The renderer blends circles through
+     * neighbouring keyframes, so a linear reading of the same keyframes is a different curve — and
+     * planning against the wrong one leaves pairs that clear at every keyframe and cross between them
+     * (measured: 25.8px against a 34px floor, in a figure whose keyframes were all clean). The planner
+     * and the renderer have to be looking at the same path. */
     const sample = (id, t) => { const u = Math.max(0, Math.min(1, t)) * (F1 - 1);
       const i = Math.min(F1 - 2, Math.floor(u)), f = u - i;
-      const A = track[id][i], B = track[id][i + 1];
-      return { x: A.x + (B.x - A.x) * f, y: A.y + (B.y - A.y) * f }; };
+      return samplePath(track[id], i, f); };
     const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
     // The movement's own declarations still apply within a ring; the ring relation is what a pair from
     // DIFFERENT rings is judged on, since they are going round two different wheels and neither the
     // head-on nor the same-direction rule settles it. `refWheels('grande')` numbers inner 0, outer 1.
     const own = declaredPasses(mv, sub.outer) || {};
     const st0 = {}; dancers.forEach(d => st0[d.id] = d.station);
-    const plan = planCrossings({ ids: xIds, base: sample,
-      roleOf: id => roleOf[id],
-      relation: (a, b) => ringOf[a] !== ringOf[b] ? (ringOf[a] > ringOf[b] ? 'outer,inner' : 'inner,outer')
-                        : (st0[a] === st0[b] ? 'partner0' : null),
-      passes: Object.assign({}, own, { 'outer,inner': 'out', 'inner,outer': 'in' }),
-      orbit: { x: CX, y: CY },
-      group: id => roleOf[id], groups: ['L', 'F'],
-      clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
-    if (plan.scale > 0) frames.forEach((fr, i) => fr.forEach(d => { d.xy = plan.at(d.id, i / (F1 - 1)); }));
+    /* Re-plan against what the last pass actually produced. Writing offsets back changes the keyframes,
+     * and the drawn curve through the NEW keyframes is not the one the planner was looking at — a fixed
+     * point, not a single calculation. Two passes settle it; a third is there so "settled" is measured
+     * rather than assumed. Pairs that clear at every keyframe were crossing between them at 25.8px
+     * against a 34px floor until this loop closed. */
+    for (let pass = 0; pass < 3; pass++){
+      frames[0].forEach(d => track[d.id] = []);
+      frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
+      const plan = planCrossings({ ids: xIds, base: sample,
+        roleOf: id => roleOf[id],
+        relation: (a, b) => ringOf[a] !== ringOf[b] ? (ringOf[a] > ringOf[b] ? 'outer,inner' : 'inner,outer')
+                          : (st0[a] === st0[b] ? 'partner0' : null),
+        passes: Object.assign({}, own, { 'outer,inner': 'out', 'inner,outer': 'in' }),
+        orbit: { x: CX, y: CY },
+        group: id => roleOf[id], groups: ['L', 'F'],
+        clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
+      let moved = false;
+      frames.forEach((fr, i) => fr.forEach(d => { const q = plan.at(d.id, i / (F1 - 1));
+        if (Math.hypot(q.x - d.xy.x, q.y - d.xy.y) > 0.01) moved = true;
+        d.xy = q; }));
+      if (!moved) break;
+    }
   }
   const segBeats = inO.segBeats || outO.segBeats || null;
   return segBeats ? { frames, segBeats } : frames;
@@ -2921,10 +2940,14 @@ function pequenaFrames(circleKey, from){
     const sameWheel = [];
     for (let i = 0; i < xIds.length; i++) for (let j = i + 1; j < xIds.length; j++)
       if (wheelOf[xIds[i]] === wheelOf[xIds[j]]) sameWheel.push([xIds[i], xIds[j]]);
+    /* Sample the path the way it will be DRAWN, not as a polyline. The renderer blends circles through
+     * neighbouring keyframes, so a linear reading of the same keyframes is a different curve — and
+     * planning against the wrong one leaves pairs that clear at every keyframe and cross between them
+     * (measured: 25.8px against a 34px floor, in a figure whose keyframes were all clean). The planner
+     * and the renderer have to be looking at the same path. */
     const sample = (id, t) => { const u = Math.max(0, Math.min(1, t)) * (F1 - 1);
       const i = Math.min(F1 - 2, Math.floor(u)), f = u - i;
-      const A = track[id][i], B = track[id][i + 1];
-      return { x: A.x + (B.x - A.x) * f, y: A.y + (B.y - A.y) * f }; };
+      return samplePath(track[id], i, f); };
     const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
     const plan = planCrossings({ ids: xIds, exclude: sameWheel, base: sample,
       roleOf: id => roleOf[id], bonded: (a, b) => wheelOf[a] === wheelOf[b],
