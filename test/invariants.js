@@ -1888,6 +1888,47 @@ function run() {
     T.clearFaults();
   }
 
+  // 38: A MOVEMENT'S TEMPO MUST NOT DEPEND ON WHICH WAY THE DANCERS ENTERED IT.
+  //     Sam's repro: from Línea Moderna Exhibela at 4 couples, Dile Que No Pequeña → Adios Pequeña →
+  //     Dame Pequeña makes that Dame crawl, while repeated Dame Pequeñas are fine. His console traces
+  //     showed why — after an Adios every LEADER enters facing 180° from where they enter after a Dame:
+  //
+  //       GOOD entry   L1=0    L0=180  L3=180  L2=0
+  //       BAD  entry   L1=180  L0=360  L3=360  L2=180
+  //
+  //     The keyframes are byte-identical either way. Only the entry angle differs, and `playFrames`
+  //     seeds each rotation timeline from the accumulated on-screen angle, so the first segment carries
+  //     a 178° turn that the FIGURE never asked for — it is the transition from the previous movement.
+  //     At RREF that turn costs 324 units against a 2.4px step's 20, so it takes a quarter of the whole
+  //     movement and every dancer crawls through it.
+  //
+  //     The entry turn is real and has to happen; what it must not do is set the tempo. Same figure,
+  //     same beats, same ground to cover ⇒ same pacing, whichever way the dancers arrived.
+  {
+    const GOOD = { L1: 0,   F1: 0, L0: 180, F0: 180, L3: 180, F3: 180, L2: 0,   F2: 0   };
+    const BAD  = { L1: 180, F1: 0, L0: 360, F0: 180, L3: 360, F3: 180, L2: 180, F2: 360 };
+    const tempo = seed => {
+      T.captureLineaMovement('dame_peq', 4, 0);           // reach Línea Moderna Exhibela
+      T.seedRot(seed);
+      T.fireHere('dame_peq');
+      const t = T.lastTiming(), seg = t.seg;
+      const total = seg.reduce((a, b) => a + b, 0);
+      return { seg, total, worstShare: Math.max(...seg) / total };
+    };
+    const g = tempo(GOOD), b = tempo(BAD);
+    nChecks++; check(g.seg.length === b.seg.length,
+      `§38 the two entries produced different frame counts (${g.seg.length} vs ${b.seg.length}) — not the same figure`);
+    const drift = Math.max(...g.seg.map((x, i) => Math.abs(x - b.seg[i]) / Math.max(x, 1)));
+    nChecks++; check(drift < 0.15,
+      `§38 the same Dame Pequeña is paced differently depending on how the dancers entered it: ` +
+      `worst segment differs by ${(drift * 100).toFixed(0)}%`);
+    nChecks++; check(b.worstShare < 0.18,
+      `§38 one segment takes ${(b.worstShare * 100).toFixed(0)}% of the movement after an Adios — ` +
+      `an entry turn is setting the tempo`);
+    // Self-test: the probe must be able to tell the two entries apart at all.
+    nChecks++; check(JSON.stringify(GOOD) !== JSON.stringify(BAD), '§38 self-test: the two seeds are identical');
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

@@ -3,6 +3,34 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v133 — an entry turn must not set the tempo
+
+Sam, from the running sim: from Línea Moderna Exhibela at 4 couples, Dile Que No Pequeña → Adios Pequeña
+→ Dame Pequeña makes that Dame crawl — "really quickly, then incredibly slowly, then very quickly again"
+— while repeated Dame Pequeñas are fine.
+
+- **Cause, proven rather than inferred.** His console traces showed every LEADER enters the Dame 180°
+  from where a preceding Dame leaves them (`L0` 180 → 360, `L1` 0 → 180, and so on; followers unchanged).
+  The keyframes are byte-identical either way. But `playFrames` seeds each rotation timeline from
+  `nodes[id].rot`, the accumulated on-screen angle, so segment 0 carries a **178° turn the figure never
+  asked for** — the transition out of whatever danced last. At `RREF` that costs 324 units against the
+  2.4px step's 20, so it took **24% of the movement's entire time budget** and every dancer crawled
+  through it while one leader unwound. Seeding the two entry angles from Sam's traces and running the
+  same figure isolates it exactly: every turn after the first is identical, only segment 0 differs.
+- **Fix:** segment 0's rotation no longer contributes to the cost. The entry turn still happens — it has
+  to — but a figure's pacing cannot depend on which way the dancers arrived. Same figure, same beats,
+  same ground to cover ⇒ same tempo. Measured: leader speed variation **15.8× → 1.1×** on the bad path,
+  and **7.9× → 1.1×** on the good one, which was suffering the same artifact less visibly.
+- **Why the suite was blind, and what changed.** `nodes[id].rot` exists only in the DOM and only between
+  movements; headless there are no nodes, so the harness took the wrapped-`facingAngle` branch and every
+  movement started clean. The suite could not represent "what danced before" at all. It now models the
+  accumulation, `segmentTimes` is extracted from `playFrames` as a pure function so tests ask the real
+  code rather than re-deriving it (a re-derivation cannot see carried state — that state is the
+  function's input), and §38 asserts the property on Sam's exact sequence.
+- Three wrong guesses preceded this — the dancers' facing, the per-movement beat allocation, and a
+  drifting rotation accumulator — each ruled out by measurement. The accumulator theory was refuted by
+  Sam's own trace, which showed drift of 0 on the bad path and 360 on the good one.
+
 ## v132 — the whole formation is one collision problem
 - **Línea Moderna is planned as one formation, not as m separate mini-wheels.** Each mini-wheel was
   solved entirely on its own, so two dancers in *different* mini-wheels were never compared — the same

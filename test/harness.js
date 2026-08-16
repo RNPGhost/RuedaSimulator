@@ -178,6 +178,7 @@ function load(htmlPath) {
       get PLAN_FAULTS(){ return PLAN_FAULTS; }, clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; SIDE_FAULTS.length = 0; },
       get PLAN_LOG(){ return PLAN_LOG; },
       lastTiming(){ return { seg: cap.seg, rot: cap.rot, path: cap.segPath, rotStart: cap.rotStart }; },
+      seedRot(m){ cap.nodeRot = Object.assign({}, m); },
       get SIDE_FAULTS(){ return SIDE_FAULTS; }, clearSideFaults(){ SIDE_FAULTS.length = 0; },
       PASS_CONVENTION, PASS_SIGN, passSide,
       get STILL_PX(){ return STILL_PX; },

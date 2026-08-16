@@ -2887,7 +2887,14 @@ function segmentTimes(ids, P, ROT, SNAP, timing, msPerBeat){
     ids.forEach(id => {
       const a = P[id][i], b = P[id][i + 1];
       tr = Math.max(tr, Math.hypot(b.x - a.x, b.y - a.y));
-      if (!SNAP[id][i + 1]) ro = Math.max(ro, Math.abs(ROT[id][i + 1] - ROT[id][i]));
+      // Segment 0 runs from where the dancers are ON SCREEN into the figure's first keyframe, so its
+      // rotation is the TRANSITION out of whatever danced last — not turning this figure asked for. It
+      // still has to happen, but it must not set the tempo: entering a Dame Pequeña after an Adios
+      // leaves every leader 180° from where a Dame leaves them, and at RREF that phantom 178° cost 324
+      // units against a 2.4px step's 20 — a quarter of the movement's whole time budget, with every
+      // dancer crawling through it while one of them unwound. Same figure, same beats, same ground to
+      // cover: the pacing cannot depend on which way the dancers arrived.
+      if (i > 0 && !SNAP[id][i + 1]) ro = Math.max(ro, Math.abs(ROT[id][i + 1] - ROT[id][i]));
     });
     const c = Math.max(tr / SREF, ro / RREF); cost.push(c); tot += c;
   }
