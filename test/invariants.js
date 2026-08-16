@@ -2121,7 +2121,10 @@ function run() {
     nChecks++; check(mismatch.length === 0,
       `§39b ${mismatch.length} movement(s) declare a progression their travel definition contradicts, e.g. ` +
       (mismatch[0] ? `${mismatch[0].key} declares ${mismatch[0].got} but '${mismatch[0].via}' implies ${mismatch[0].want}` : ''));
-    nChecks++; check(named.length >= 6, `§39b only ${named.length} movements resolved to a travel definition`);
+    // Floor lowered with Dame Dos losing its Línea forms — that removed two composed movements from the
+    // set, which is accounted for rather than absorbed. Kept as a floor because a resolver that silently
+    // stops resolving anything would otherwise pass.
+    nChecks++; check(named.length >= 5, `§39b only ${named.length} movements resolved to a travel definition`);
   }
 
   // 8: determinism — the golden generator produces identical output twice.

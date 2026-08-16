@@ -263,7 +263,10 @@ const MOVEMENTS = {
   dame_dos: {
     label: 'Dame Dos',
     desc: 'Like Dame but the leader progresses two couples — he passes one follower and joins the next while the follower steps half a couple to the between-spoke. Flips the phase (lands on the other config) and ends in Exhibela facing the new partner.',
-    requires: ['casino', 'exhibela', 'dile'], sets: 'exhibela', progresses: 2, afueraReady: true,
+    // NOT afuera. Holding the pass sides — which afuera does not change — sends the leaders round an
+    // enormous arc, which is why it is almost never called that way on a floor. Sam: ban it rather than
+    // draw it. The same reasoning retires its Línea forms below.
+    requires: ['casino', 'exhibela', 'dile'], sets: 'exhibela', progresses: 2,
     flipsPhase: (from) => virtualPos(from) !== 'dile',
     anim: { duration: 820 },
     beats: 4,
@@ -291,7 +294,7 @@ const MOVEMENTS = {
   dame_dos_pequena: {
     label: 'Dame Dos Pequena',
     desc: 'Dame Pequeña progressing TWO couples instead of one: the leader does all the travelling and the follower dances the identical figure, so the spoke config is unchanged. On a mini 2-couple wheel two couples is the whole wheel — the leader crosses it twice, going by the other leader on each other’s right (left shoulder) both times, and lands back with his own partner in the slot he started in. Still 4 beats, so he covers twice the ground in the same time. Ends in Exhibela at the same spokes.',
-    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: 2, afueraReady: true,
+    requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: 2,   // not afuera — see Dame Dos
     anim: { duration: 820 },
     beats: 4,
     // Identical to Dame Pequeña but for the travel it names — which is the whole claim: the follower's
@@ -469,7 +472,10 @@ const MOVEMENTS = {
   const mapSets = (sets, map, un) => (typeof sets === 'function') ? (from) => map(sets(un(from))) : map(sets);
   const mapBeats = (beats, un) => (typeof beats === 'function') ? (from) => beats(un(from)) : beats;
   // circle keys that get Línea versions (the figures used by the ported calls)
-  const KEYS = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'dame', 'dame_dos', 'dile'];
+  // Dame Dos has no Línea form. On a ring it either does not fit (two couples of progression on a ring of
+  // two or three) or it forces the leaders round an arc nobody would dance. Banned outright rather than
+  // gated, and easy to restore if a ring ever wants it.
+  const KEYS = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'dame', 'dile'];
   for (const key of KEYS){
     const m = MOVEMENTS[key];
     /* A Dame Dos progresses TWO couples, and each Linea ring holds only half the wheel. On a ring of two
@@ -551,8 +557,6 @@ const CALLS = {
   adios_linea:   { label: 'Adios Línea',   desc: 'Call from Casino: the same opening into Rueda Línea Moderna, but the primeros sweep clockwise the long way round into the inner ring — the Adios-flavoured entry. Even couple counts only.', from: ['casino'], seq: ['adios_linea'] },
   dame_grande:    { label: 'Dame Grande',    lm: true, desc: 'Línea: Dame on both rings at once (each progresses one couple, shared phase flips), then a Dile Que No Grande.', from: ['linea'], seq: ['dame_grande'] },
   dame_pequena:   { label: 'Dame Pequeña',   lm: true, desc: 'Línea: Dame Pequeña in every mini 2-couple wheel (no phase change), then a Dile Que No Pequeña. The outer leader becomes the new inner leader.', from: ['linea'], seq: ['dame_peq'] },
-  dame_dos_grande:  { label: 'Dame Dos Grande',  lm: true, desc: 'Línea: Dame Dos on both rings at once (each progresses two couples), then a Dile Que No Grande.', from: ['linea'], seq: ['dame_dos_grande'] },
-  dame_dos_pequena: { label: 'Dame Dos Pequeña', lm: true, desc: 'Línea: within each mini 2-couple wheel a Dame Pequeña (two-couple progression is just the local swap), then a Dile Que No Pequeña.', from: ['linea'], seq: ['dame_dos_peq'] },
   enchufla_grande:  { label: 'Enchufla Grande',  lm: true, desc: 'Línea: Enchufla then Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['enchufla_grande', 'dame_grande'] },
   enchufla_pequena: { label: 'Enchufla Pequeña', lm: true, desc: 'Línea: Enchufla then Dame Pequeña in every mini 2-couple wheel, then a Dile Que No Pequeña. The outer leader ends as the new inner leader.', from: ['linea'], seq: ['enchufla_peq', 'dame_peq'] },
   adios_grande:   { label: 'Adios Grande',   lm: true, desc: 'Línea: Adios then Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios_grande', 'dame_grande'] },
@@ -2239,16 +2243,14 @@ function resolveTravel(name, ds, o){
      * their own left however the wheel is turned inside out. Same reason turns are not mirrored. Measured:
      * the conventions hold unchanged across the afuera positions, which is where the 144/144 in
      * PASSING.md comes from. Mirroring them put 120 shipped passes on the wrong side. */
-    /* Role-keyed sides do NOT mirror — a dancer's own left is their own left however the wheel is turned
-     * inside out, the same reason turns are not mirrored. RELATION-keyed ones DO. "Behind the partner I
-     * came in with" is a statement about a particular dancer's position rather than about my own facing,
-     * and which side of her is behind depends on which way round the wheel I am travelling — which is
-     * exactly what afuera reverses. Measured: `partner0: 'right'` clears Dame Dos Pequeña afuera at 10
-     * couples and breaks the non-afuera case; mirrored, both hold. */
-    passes: def.passes && (o.mirror
-      ? Object.fromEntries(Object.entries(def.passes).map(([k, v]) =>
-          [k, k.includes(',') ? v : (v === 'left' ? 'right' : 'left')]))
-      : def.passes),
+    /* A PASS SIDE IS NEVER MIRRORED. Not for roles, not for relations, not ever (Sam). `mirror` inverts
+     * the geometry — dh signs, lanes, which side of a spoke a step lands on — but which shoulder two
+     * dancers go by on is the same dance whichever way round the wheel is turned inside out. I had this
+     * wrong twice, in both directions, and each time the measurements looked like they supported the
+     * mirror; what they were really showing is that Dame Dos is a bad figure afuera, because holding the
+     * side forces the leaders into an enormous journey. That is a fact about the figure, not about the
+     * vocabulary — which is why Dame Dos is now banned afuera rather than mirrored into working. */
+    passes: def.passes,
   }, o);
 }
 
