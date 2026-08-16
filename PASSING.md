@@ -1,8 +1,8 @@
 # Passing — who you pass, and on which side
 
 **Status: built.** The engine resolves a side per encounter, eases each dancer accordingly, and verifies
-the outcome. What remains is widening the addressing from roles to arbitrary group predicates, and
-bringing rigid-unit formation changes under the same rules.
+the outcome. Rigid-unit formation changes are settled — pinned rather than governed, see below. What
+remains is widening the addressing from roles to arbitrary group predicates.
 
 ## The requirement
 
@@ -144,6 +144,13 @@ The second row is not hypothetical. Two leaders dancing a Dame from Exhibela on 
 meet in the middle of the wheel — it is the same encounter that had them passing within 10.5px before
 v130 — and they already pass on each other's right at every couple count.
 
+Where those 9 come from, since it is a useful probe to be able to rebuild: fire `dame_peq` from Línea
+Moderna Exhibela and every mini-wheel contributes one leader/leader encounter — 2 at 4 couples, 3 at 6,
+4 at 8. All nine are head-on (`dot = −1.00`), all nine sit at **44.8px**, and all nine measure
+`sa = sb = −1`, which is `PASS_SIGN['right']`. From LM *Casino* there is no such encounter at all: the
+follower dances her Reverse Adios and the leaders never come within the engagement distance. A sweep
+that only starts from Casino sees none of this, which is the same coverage gap §33a exists to close.
+
 Both rows now live in the engine as `PASS_CONVENTION`, with `PASS_SIGN` naming the one correspondence
 between a side and the measured sign so no other code rederives it. Invariant §35 asserts them by name,
 and self-tests by checking that the inverted convention matches nothing.
@@ -175,8 +182,25 @@ not a deviation to fix — a couple walking as one body to a spoke the formation
 passing decision, and the convention does not govern it. The three facts stay pinned so a reroute that
 changes them is still caught, but no action is owed here.
 
-## Still to build (step 3)
+## Step 3 — per-encounter deviation (built)
 
-The vocabulary above is resolvable but not yet *honoured* — the engine can measure a side and assert it,
-but it cannot yet dance to a declared one, because a dancer still has a single offset and a single pass
-sign for the whole movement. That is what per-encounter deviation is for.
+The vocabulary above is not merely resolvable, it is **honoured**. The engine used to be able to measure
+a side and assert it but not dance to a declared one, because a dancer carried a single offset and a
+single pass sign for the whole movement. That is gone: the offset is a sum of per-encounter
+contributions (the formula at the top of this document), so a dancer can ease left for one passer and
+right for another, and two dancers in the same role can separate at all.
+
+## Still to build
+
+**Group-predicate addressing.** A pass key is built from the pair's *role* today. The resolution rule
+(`passes[key] ?? PASS_CONVENTION[key]`) is already shaped for any `GROUPS` predicate, so a figure will
+eventually be able to say "pass the primeros on your left" without naming a dancer or a couple count.
+Nothing shipped needs it yet.
+
+**Resolving a same-role head-on crossing.** The planner can *detect* one but cannot yet resolve it: two
+dancers in a group share a share and a pass side, so they would offset together. It fails loudly
+(`PLAN_FAULTS`) rather than quietly. Nothing danced today needs it, and **Dame Dos Pequeña** (see
+`CLEANUP_PLAN.md` §2) probably will not either — it sends both leaders across a 2-couple mini-wheel
+twice rather than once, and the single crossing already clears unaided by 44.8px against a 35px
+corridor. It is the figure to watch, not a known blocker. The convention itself needs no change: the
+leaders pass on each other's right, exactly as they already do once in a Dame Pequeña.

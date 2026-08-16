@@ -58,6 +58,15 @@ planner's base sweep), and there is exactly one place it is a genuine free choic
 `+span/2` and `−span/2` are the same slot. That happens for real — `dile_dame_dos` at 4 couples — and
 the vocabulary is right to leave it to the path layer rather than pretend the address decides it.
 
+**Known gap: a full circuit is not expressible.** `resolvePlace` reduces `dh` modulo `span`, so on a
+2-couple mini-wheel (`span = 4`) a `dh` of −4 resolves to the same place as a `dh` of 0. That is fine
+while nothing travels a whole wheel, and **Dame Dos Pequeña** is the figure that breaks it: its leader
+crosses the mini-wheel twice and ends in the slot he began in, so the address alone cannot tell him
+apart from a dancer standing still. Unlike the antipode, this is not a free choice for the path layer to
+make — the **winding number is load-bearing choreography** and has to survive into it rather than being
+modded away. See `CLEANUP_PLAN.md` §2; it takes the scripted/dynamic discriminator with it, because that
+rule also compares only the endpoints.
+
 ## 3. Group predicates — which dancers an intent applies to
 
 ```
@@ -177,8 +186,6 @@ One thing the migrations flushed out: **an amplitude that depends on the geometr
 `swapMove`'s bow is solved from the couple width, so the solver stays in the generator and hands the
 primitive a number. That is the right split — primitives are shapes, not solvers.
 
-## 7. Still to build
-
 ## 7. Travel intents — the dynamic half (built)
 
 A traveller declares **where it lands** (a slot address, §2) and **which side it passes on**. The path
@@ -231,8 +238,9 @@ Dames use. Same start and end facings, **positions identical to 0.000px**, ≤4.
 deliberately (Sam, v118) rather than adding a frame-indexed window to the vocabulary: nothing chose
 frame 18, so it was an artifact of how the figure was written, not a dance decision.
 
-## 8. Still to build
-**Phrases (built).** A movement may be a **sequence of phrases** with different intents in each, each phrase
+## 8. Phrases — more than one intent in one movement (built)
+
+A movement may be a **sequence of phrases** with different intents in each, each phrase
 starting from where the last left the dancers (`playPhrases`). MOVEMENT_SPEC §4 listed "a dancer whose
 couple midpoint moves and then returns within one movement" as the model assumption most likely to need
 extending; it did, and the extension was additive rather than a rethink.
@@ -242,8 +250,9 @@ circle back to her own spot (midpoint unmoved, so scripted) while the leader cro
 Its opening is now **literally the same definition** the standalone 4-beat Dile Que No dances — one
 `dileOpeningPlan(io)`, so the two can no longer drift apart. Byte-identical, and it removed ~40 lines of
 duplicated geometry.
-- **Then:** the Línea entries/exits (`coupleWalkFrames`) and `dameLinea`, which are rigid-couple travel —
-  the same travel intent with `unit` set.
+
+The Línea entries/exits (`coupleWalkFrames`) and `dameLinea` followed, as rigid-couple travel — the same
+travel intent with `unit` set — and landed as the `formation` descriptor kind in §11.
 
 
 ## 9. Figures as pure data — the registry (built)

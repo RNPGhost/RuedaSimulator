@@ -69,7 +69,7 @@ how to add new movements and calls — are written up in [`CALLING.md`](CALLING.
 |------|-----------|-------|
 | Dame | Casino/Exhibela → Exhibela | Progresses the leader one couple; leader travels, follower faces the new leader |
 | Dame Dos | Casino/Exhibela → Exhibela | Progresses two couples; leaders steer left of followers, right of other leaders |
-| Dame Pequena | Casino/Exhibela → Exhibela | Progresses the leader one couple **without changing the spoke config**. From Exhibela the follower stays put and the leader does all the travel; from Casino the follower does a Reverse Adios across her own spoke while the leader travels the larger distance. (For Rueda / Línea Moderna; not a call yet) |
+| Dame Pequena | Casino/Exhibela → Exhibela | Progresses the leader one couple **without changing the spoke config**. From Exhibela the follower stays put and the leader does all the travel; from Casino the follower does a Reverse Adios across her own spoke while the leader travels the larger distance. Called in Línea Moderna; in the circle it is a movement only |
 | Enchufla | Casino → Exhibela | Partners swap 180° clockwise, just missing in the middle |
 | Vacilala | Casino → Exhibela | Like Enchufla but the follower spins 540° clockwise |
 | Adios | Casino ↔ Exhibela | Partners swap, each turning 180° clockwise, just missing — toggles the wheel between Casino and Exhibela |
@@ -80,6 +80,10 @@ how to add new movements and calls — are written up in [`CALLING.md`](CALLING.
 | Dile Que No | Exhibela → Casino | Both open with the first 3 Exhibela stages along their Exhibela lines (leader faces the follower throughout), then a 180° anti-clockwise orbit into Casino |
 | Dile Que No y Dame | Exhibela → Exhibela | Out-and-back, then both gather onto the midpoint spoke; the follower walks ~¾ of a circle back to her own spot while the leader travels straight (Dame-style) to the follower one couple anti-clockwise |
 | Dile Que No y Dame Dos | Exhibela → Exhibela | As Dile Que No y Dame but the leader progresses two couples anti-clockwise |
+| Dile Que No (4) | Exhibela → Dile Que No position | The 4-beat opening danced on its own: out and back along the Exhibela line, onto the couple's midpoint spoke, pause |
+| Mujeres Arriba | Dile Que No position → Exhibela | The women advance: each follower progresses one couple clockwise while each leader retraces his 4 beats back to his own spot. Leaders don't progress; no phase change |
+| Leader's Right Turn | Casino/Exhibela → unchanged | Danced in place: the follower stays put and doesn't rotate while the leader turns a full 360° to his right, ending exactly where and how he began |
+| Afuera / Adentro | Casino ↔ Afuera Exhibela, Exhibela ↔ Afuera Casino | 0-beat frame flips: nobody moves, but every figure afterwards is danced point-reflected |
 
 ### Calls (so far)
 
@@ -94,11 +98,23 @@ how to add new movements and calls — are written up in [`CALLING.md`](CALLING.
 | La Familia | Adios → Leader's Enchufla → Enchufla → Adios → Adios → Dame → (default) Dile Que No | Progresses one couple |
 | Enchufla Afuera | Enchufla → Leader's Right Turn → Afuera | Enters **Afuera Casino** (inside-out Casino); wheel stays afuera |
 | Enchufla Adentro | Enchufla → Leader's Right Turn → Adentro | From Afuera Casino only; un-flips back to normal Casino |
+| Mujeres Arriba | Dile Que No (4) → Mujeres Arriba → (default) Dile Que No | From Exhibela; the pairing shifts by one but the leaders stay put |
 | con Exhibela | inserts an Exhibela movement at the next Exhibela | Modifier |
 
 While afuera, all the normal Casino calls are available too and dance inside-out (progressing clockwise). **Afuera** / **Adentro** are 0-beat frame flips (Casino ↔ Afuera Exhibela, Exhibela ↔ Afuera Casino).
 
-Also supports a schematic **Línea Moderna** layout.
+### Línea Moderna
+
+A second formation, with its own calls. **Línea Moderna** / **Adios Línea** / **Dame Línea** open the
+rueda into two concentric rings — primeros inside, segundos outside — and **Rueda** / **Adios Rueda**
+fold it back into a single wheel. The inner ring is danced **afuera** (inside-out) and the outer ring
+normally, which is what makes a figure progress clockwise on one and anti-clockwise on the other.
+
+Most circle calls have Línea forms. Where a figure progresses somebody, it comes in two: a **Grande**
+form danced around each whole ring, and a **Pequeña** form danced inside each mini 2-couple wheel. Where
+nobody changes slot, the two forms are the same dance — and several such pairs currently exist as
+separate movements, which `CLEANUP_PLAN.md` is the agreed fix for. Names in that area are about to
+change; the app's own Movements panel is the current list.
 
 ## How it's built
 

@@ -46,12 +46,39 @@ Three things that look like the discriminator but are wrong, each with the case 
 **Scope:** the test holds *within a formation*. A formation change replaces the slot set, so everyone
 re-slots and the whole ensemble is dynamic. (Enforced by invariants §25, which skips formation changes.)
 
+**Known limit: it compares endpoints, so a full circuit reads as standing still.** A dancer who travels
+all the way round and lands back in the slot he started in has an unmoved couple midpoint, and the rule
+calls him scripted — i.e. an immutable obstacle who never yields and never needs to. Dame Dos Pequeña
+(`CLEANUP_PLAN.md` §2) is exactly that dancer, and it is not a misreading of the figure: Sam specified
+the leader crossing the mini-wheel twice and passing the other leader in the middle. Whichever way this
+is resolved — per-phrase intents, or a discriminator that reads the unreduced `dh` — it must be resolved
+before that movement is built, not worked around inside it.
+
 ### Scripted dancers never yield — and never need to
 
 A scripted dancer goes into the planner as an **immutable obstacle**: planned around, never deviated.
 If two scripted figures collide, **the figure is wrong** — do not fix it by adding an evasion. (§25
 asserts both halves: a scripted path is identical with and without evasion, and scripted dancers clear
 each other unaided.)
+
+### One movement, one name — across every formation it is danced in
+
+A movement is *a figure plus where it lands*, and the **formation supplies the slots**. So the same
+figure danced in Rueda, afuera and Línea Moderna is **one movement entry with one name**, whose `play`
+may branch on the position it is called from — exactly as `sets` and `beats` already do. `dame` declares
+`requires: ['casino', 'exhibela']` and dances a visibly different figure from each; afuera is one
+definition read inside-out through `mirror`. A second entry for the same figure under a decorated name
+is the first anti-pattern in the skill: *a second way to do something that already has a way.*
+
+**Grande and Pequeña are slot markers, not figure variants** (Sam):
+
+> "Grande and Pequeña are markers for which slot to progress to, so any movement where none of the
+> dancers change slots shouldn't have a Grande or Pequeña version."
+
+So a suffix earns its place only when **both** forms are callable from the same position and land the
+dancers somewhere different — the Dame family, and Mujeres Arriba. A figure in which nobody changes
+slot has nothing left to vary, and its Grande and Pequeña forms will be byte-identical; five pairs of
+them were, undetected, until they were measured. `CLEANUP_PLAN.md` is the working-through.
 
 ### `planCrossings` is the only thing in the app that avoids collisions
 
@@ -149,8 +176,8 @@ movement is two movements, or that a real new requirement is hiding (see §4).
 9. Which positions may this be called from? Does the same call mean something different from each?
 10. Does it need a couple-count constraint (even only, ≥6, …)? Several do — say why, in geometry.
 11. What is the resting state afterwards, and does the default trailing Dile Que No apply?
-12. Does it exist in Línea Moderna too (a grande and/or pequeña form)? Those compose through
-    `runOnWheel` on sub-wheels and usually fall out for free — but confirm rather than assume.
+12. Does it exist in Línea Moderna too? Those compose through `runOnWheel` on sub-wheels and usually
+    fall out for free — but the *naming* is decided by the rule below, not by whether it works.
 
 **Ask about anything that would need a new invariant.** If the movement asserts a rule the suite cannot
 currently see — the way "nobody walks through the middle of the wheel" was invisible until §26 — that
@@ -217,7 +244,8 @@ assume it is a misunderstanding either. Name the assumption, give the observable
 
 | Assumption | The observable that would mean a real new requirement | What it would cost |
 |---|---|---|
-| A dancer is scripted **or** dynamic for the whole movement | a dancer whose couple midpoint moves and then returns *within* one movement | intents would need to be per-phrase, not per-movement (the Dile Que No y Dame compound is already two phrases in one generator — this is the most likely one to bite) |
+| A dancer is scripted **or** dynamic for the whole movement | a dancer whose couple midpoint moves and then returns *within* one movement | intents would need to be per-phrase, not per-movement. **This one has bitten twice.** Dile Que No y Dame was the first and was additive — `playPhrases`, DECLARATIVE §8. Dame Dos Pequeña is the second and is harder, because the returning dancer is a *traveller*, not a scripted one: see §1 above |
+| A slot address determines the whole journey | a dancer who travels a full circuit and lands where he began — `dh` reduced modulo the span cannot tell him from a dancer standing still | the winding number becomes part of the address rather than a path-layer choice (DECLARATIVE §2) |
 | Scripted figures never need to yield | two scripted figures that genuinely cannot both be danced without touching | ENGINE_MODEL decision (2) — "the figure is wrong" — would need revisiting, and validation would have to become deformation |
 | Exactly **two** effort-sharing groups | three sets of dancers that can all meet each other, with no sensible pairing | the naturalness bisection generalises to an n-way balance; not hard, but it is a real change |
 | A unit is a dancer or a bonded **couple** | three or more dancers moving as one rigid body (a line, a bridge) | `unit` already supports it; the corridor sizing and the rigid reconstruction in `apply` would need generalising |
