@@ -1523,7 +1523,14 @@ function planCrossings(o){
   // The cap is a solver bound, not a style choice: a rigid unit needs a far wider corridor than a solo
   // dancer (two couples passing must separate by a couple width PLUS the clearance, ~2.5× on its own),
   // so 3.0 sat right on top of the rigid-pair case. Nothing today comes near this.
+  /* An intended path that already holds the corridor needs NO evasion. Engagement is judged at ENGAGE,
+   * which is deliberately wider than CLEAR so that every pass is looked at — but "looked at" must be
+   * allowed to conclude "nothing to do". Without this the scan starts at 0.2 and a pair sitting exactly
+   * on the corridor gets eased apart regardless, which is what threw a mini-wheel loop out to radius 227
+   * on a wheel of 57. "On a clear move a dancer stays exactly on that path" was already the stated rule;
+   * it just had no way to be reached once a pair was on the register. */
   const solveScale = w => { const MAXS = 6.0, SCAN = 0.1;
+    if (worst(w, 0) >= CLEAR) return 0;
     let pass = null; for (let sc = 0.2; sc <= MAXS + 1e-9; sc += SCAN){ if (worst(w, sc) >= CLEAR){ pass = sc; break; } }
     if (pass === null) return MAXS;
     let lo = Math.max(0, pass - SCAN), hi = pass;
@@ -1610,8 +1617,39 @@ function playTravel(ds, N, o){
     const p = placeOf(d, N, o.phaseBefore), q = resolvePlace(p, ref, N, phase);
     newSt[d.id] = q.station; endXY[d.id] = F.slot(q.station, q.lane, N);
     const S = cur[d.id], E = endXY[d.id];
-    kin[d.id] = { aS: _ang(S), rS: _rad(S), rE: _rad(E),
+    kin[d.id] = { S, E, aS: _ang(S), aE: _ang(E), rS: _rad(S), rE: _rad(E),
       sw: directedSweep(_ang(S), _ang(E), ref.dh * Math.PI / (p.span / 2)) };
+  });
+  /* THE INTENDED PATH: the shortest way to the destination that turns about the wheel's midpoint by the
+   * amount the progression declares.
+   *
+   * The winding is the real constraint. A dancer progressing k couples has to go ROUND the wheel, not
+   * merely end up somewhere — and `sw` (from the unreduced `dh`) is how far round. Measured on every
+   * shipped movement, today's paths already turn by exactly `sw`; the arc satisfied it as a side effect
+   * of being an arc, which is why the arc read like a rule when it was only ever a heuristic.
+   *
+   * Freed from the arc, the shortest path that satisfies it is:
+   *   |sw| < 180°  — a STRAIGHT LINE. It subtends exactly `sw` at the midpoint on its own, so there is
+   *                  nothing to add and no reason to bend. Cutting across the wheel is allowed.
+   *   |sw| ≥ 180°  — straight in toward the midpoint, once round it at radius ρ, straight out. A chord
+   *                  cannot subtend half a turn or more, so the turning has to happen somewhere, and
+   *                  doing it near the centre is where it costs least distance.
+   * ρ is not chosen. Every dancer that has to loop is looping at the same time, evenly spaced around the
+   * midpoint, so the smallest radius at which they clear each other is fixed by how many of them there
+   * are: a chord of 2ρ·sin(π/n) must hold the corridor. That IS Sam's "the radius grows until it's just
+   * big enough", solved in closed form rather than searched for. */
+  const looping = ds.filter(d => kin[d.id] && Math.abs(kin[d.id].sw) >= Math.PI - 1e-9);
+  const nLoop = Math.max(2, looping.length);
+  // Sized on the ENGAGEMENT distance, not the bare corridor: dancers going round the midpoint together
+  // are not passing each other, and a loop that merely grazes the corridor puts every one of them on the
+  // planner's register for the whole figure. Beyond `engage` they simply are not an encounter.
+  const RHO = (o.engage || 2 * (DOT_R + PATH_CLEAR) + 1.4 * DOT_R) / (2 * Math.sin(Math.PI / nLoop));
+  looping.forEach(d => { const k = kin[d.id];
+    k.loop = { rho: Math.min(RHO, Math.min(k.rS, k.rE) * 0.98) };
+    const L = { in: Math.max(0, k.rS - k.loop.rho), arc: k.loop.rho * Math.abs(k.sw),
+                out: Math.max(0, k.rE - k.loop.rho) };
+    const tot = L.in + L.arc + L.out || 1;
+    k.loop.t1 = L.in / tot; k.loop.t2 = (L.in + L.arc) / tot;
   });
   // Who ends up with whom — needed both to exclude a pair that is meant to gather and to aim the settle.
   const partnerAt = {}; ds.forEach(d => { const st = d.id in newSt ? newSt[d.id] : d.station;
@@ -1619,7 +1657,13 @@ function playTravel(ds, N, o){
   const newPartner = {}; ds.forEach(d => { const st = d.id in newSt ? newSt[d.id] : d.station;
     newPartner[d.id] = (partnerAt[st] || []).find(x => x !== d.id); });
   const baseAt = (id, t) => { const k = kin[id]; if (!k) return o.scriptAt(id)(t);
-    const te = _smooth(t); return _polar(k.aS + k.sw * te, k.rS + (k.rE - k.rS) * te); };
+    const te = _smooth(t);
+    if (!k.loop) return { x: k.S.x + (k.E.x - k.S.x) * te, y: k.S.y + (k.E.y - k.S.y) * te };
+    const { rho, t1, t2 } = k.loop;
+    if (te <= t1) return _polar(k.aS, k.rS + (rho - k.rS) * (t1 ? te / t1 : 1));
+    if (te <= t2) return _polar(k.aS + k.sw * ((te - t1) / Math.max(1e-9, t2 - t1)), rho);
+    return _polar(k.aE, rho + (k.rE - rho) * ((te - t2) / Math.max(1e-9, 1 - t2)));
+  };
   // The only pairs the planner must NOT try to separate are the ones gathering into a couple; it works
   // out every other candidate itself. Group membership decides how a corridor is SHARED, never who is
   // looked at — deciding both in one place is what let an assumption about the choreography silently
