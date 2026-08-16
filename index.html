@@ -1663,16 +1663,31 @@ function planCrossings(o){
     let own = _unit(A1.x - A0.x, A1.y - A0.y);
     if (!own){ const B = o.base(b, t), A = o.base(a, t); own = _unit(B.x - A.x, B.y - A.y) || { x: 1, y: 0 }; }
     if (!rel) rel = own;
-    let sgn = +1;
-    const ms = mates[unit(a)] || [];
-    const key = PAIRKEY(a, b);
-    for (const m of ms) if (m.pair === key){ sgn = m.sign; break; }
+    /* ASK THE MOVEMENT, every time. This used to read the side out of the cache of encounters built from
+     * the BASE paths, and default to "left" for anything not in it — so every collision discovered later
+     * in the solve, which is most of them once resolving one pushes another pair together, ignored the
+     * declaration entirely and went left. Sam spotted it from the drawing: two leaders passing on the
+     * left in a figure that declares otherwise. A declared side is worth nothing if only the pairs that
+     * were obvious up front are asked about it. */
+    const nm = passSide(o.roleOf && o.roleOf(a), o.roleOf && o.roleOf(b), o.passes,
+                        o.relation && o.relation(a, b));
+    const ownLeft = { x: own.y, y: -own.x }, relLeft = { x: rel.y, y: -rel.x };
+    /* A RADIAL side names a direction in the formation rather than a hand: 'out' means go round the
+     * outside of them. It is resolved against the centre, not against a heading. */
+    if ((nm === 'out' || nm === 'in') && o.orbit){
+      const P = o.base(a, t);
+      const away = _unit(P.x - o.orbit.x, P.y - o.orbit.y);
+      if (away){
+        const wantR = { x: away.x * (nm === 'out' ? 1 : -1), y: away.y * (nm === 'out' ? 1 : -1) };
+        const al = (relLeft.x * wantR.x + relLeft.y * wantR.y) >= 0 ? +1 : -1;
+        return { x: relLeft.x * al, y: relLeft.y * al };
+      }
+    }
+    const sgn = (nm && PASS_SIGN[nm] !== undefined) ? PASS_SIGN[nm] : +1;
     /* The AXIS comes from their relative motion, because that is what holds them apart for the whole
      * approach rather than at one instant. The SIDE still means what Sam defined it to mean — which hand
      * of MY OWN heading the other dancer goes past — so the axis is flipped, if need be, to agree with
-     * the heading-relative side. Getting this wrong does not collide anyone; it silently redefines the
-     * vocabulary, and 62 shipped passes went by on the opposite shoulder to their declaration. */
-    const ownLeft = { x: own.y, y: -own.x }, relLeft = { x: rel.y, y: -rel.x };
+     * the heading-relative side. */
     const want = { x: ownLeft.x * sgn, y: ownLeft.y * sgn };
     const align = (relLeft.x * want.x + relLeft.y * want.y) >= 0 ? +1 : -1;
     return { x: relLeft.x * align, y: relLeft.y * align };
@@ -2880,9 +2895,21 @@ function grandeFrames(circleKey, from){
       frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
       const plan = planCrossings({ ids: xIds, base: sample,
         roleOf: id => roleOf[id],
-        relation: (a, b) => ringOf[a] !== ringOf[b] ? (ringOf[a] > ringOf[b] ? 'outer,inner' : 'inner,outer')
-                          : (st0[a] === st0[b] ? 'partner0' : null),
-        passes: Object.assign({}, own, { 'outer,inner': 'out', 'inner,outer': 'in' }),
+        /* Cross-ring relations name the RING, and the ROLE too where the figure cares. Sam, for a Dame
+         * Grande: "leaders in the outer couples must pass all inner couple dancers, both leaders and
+         * followers, on the right, so that the leader stays on the outside of the wheel." That is a
+         * statement about one role on one ring, which the bare ring rule cannot make. Anything the figure
+         * does not name that finely still falls back to it — outer keeps outside. */
+        relation: (a, b) => {
+          if (ringOf[a] === ringOf[b]) return st0[a] === st0[b] ? 'partner0' : null;
+          const aIsOuter = ringOf[a] > ringOf[b];
+          if (aIsOuter && roleOf[a] === 'L') return 'outerL,inner';
+          if (!aIsOuter && roleOf[b] === 'L') return 'inner,outerL';
+          return aIsOuter ? 'outer,inner' : 'inner,outer';
+        },
+        passes: Object.assign({}, own, {
+          'outerL,inner': 'right', 'inner,outerL': 'right',
+          'outer,inner': 'out', 'inner,outer': 'in' }),
         orbit: { x: CX, y: CY },
         group: id => roleOf[id], groups: ['L', 'F'],
         clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
