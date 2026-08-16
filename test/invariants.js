@@ -1644,6 +1644,17 @@ function run() {
       for (const n of NS){
         let cap; try { cap = T.captureMovement(key, from, n, 0); } catch (e) { continue; }
         if (!cap || !cap.frames) continue;
+        /* SELECT ON THE INTENDED PATHS, MEASURE ON THE FINAL ONES. A declared side settles a collision,
+         * so the pairs to judge are the ones that WOULD have collided — and once the engine has done its
+         * job none of them still do, which is why selecting on the final paths found nothing at all to
+         * check. The side itself is still read off the final paths: two dancers can start on the wrong
+         * shoulder and be carried correctly across, and condemning that would condemn an outcome that is
+         * right (PASSING.md). */
+        let capI = null;
+        try { T.setNoEvade(true); capI = T.captureMovement(key, from, n, 0); } catch (e) {}
+        finally { T.setNoEvade(false); }
+        if (!capI || !capI.frames) continue;
+        const PI = timeline(capI).P;
         const { ids, P } = timeline(cap);
         const s0 = {}, s1 = {};
         cap.frames[0].forEach(d => s0[d.id] = d.station);
@@ -1660,6 +1671,12 @@ function run() {
           // splits along the forward/reverse axis (adios vs reverse_adios, enchufla vs reverse_enchufla),
           // which is the figure being itself. Only dancers who are not a couple before OR after are traffic.
           if (s0[a] === s0[b] || s1[a] === s1[b]) continue;
+          // Would these two have collided if nobody moved aside? If not, no side was ever chosen for them.
+          let wouldHit = false;
+          if (PI[a] && PI[b]){ const FI = Math.min(PI[a].length, PI[b].length);
+            for (let s = 0; s < FI && !wouldHit; s++)
+              if (Math.hypot(PI[a][s].x - PI[b][s].x, PI[a][s].y - PI[b][s].y) < CLEAR) wouldHit = true; }
+          if (!wouldHit) continue;
           let best = Infinity, k = -1;
           for (let s = 0; s < F; s++){ const d = Math.hypot(P[a][s].x - P[b][s].x, P[a][s].y - P[b][s].y);
             if (d < best){ best = d; k = s; } }
@@ -1677,7 +1694,6 @@ function run() {
            * every near-miss is what produced dozens of "violations" of sides nobody needed: the pass was
            * fine, it simply happened on the shoulder the shortest path preferred. Only pairs that would
            * actually collide are judged. */
-          if (best > CLEAR) continue;
           const rec = { tag: `${key}|${from}|n${n} ${a}/${b}`, sa, sb, gap: best, roleA: a[0], roleB: b[0],
             passes: T.declaredPasses(T.MOVEMENTS[key], from),
             rel: (sPre[a] !== undefined && sPre[a] === sPre[b]) ? 'partner0' : null };
