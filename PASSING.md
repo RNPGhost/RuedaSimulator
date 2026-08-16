@@ -169,9 +169,11 @@ couples' destinations are the formation's, not the planner's — so this is not 
 §35 pins all three facts (four encounters, above 40px, on that shoulder) so a reroute that changes any of
 them is caught rather than absorbed.
 
-**Open for Sam:** is a leader passing another leader on the wrong shoulder during a Línea entry something
-worth rerouting the couples for, or is it below the threshold of caring? It is cosmetic at 43.2px, but
-it is a real deviation from a convention we have otherwise stated as universal.
+**Settled (Sam):** *"It's ok for leaders and followers to pass each other the 'wrong way' when they're
+moving as couples to a new formation, as this is kind of just part of the formation change."* So this is
+not a deviation to fix — a couple walking as one body to a spoke the formation has fixed is not making a
+passing decision, and the convention does not govern it. The three facts stay pinned so a reroute that
+changes them is still caught, but no action is owed here.
 
 ## Still to build (step 3)
 
