@@ -69,7 +69,10 @@
                   white-space:normal;line-height:1.15;min-height:32px;display:flex;
                   align-items:center;justify-content:center}
   .grouped{display:flex;flex-direction:column;gap:10px}
-  .grouped.off{display:none}
+  /* `display:flex` above is an AUTHOR rule, and the `hidden` attribute is only styled by the UA
+     stylesheet — author beats UA regardless of specificity, so setting `.hidden` on a `.grouped`
+     did nothing and both tabs rendered at once. The inactive list has to be turned off explicitly. */
+  .grouped[hidden]{display:none}
   .grp-title{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
              margin:0 0 4px;font-weight:600}
   .grp.empty{display:none}
