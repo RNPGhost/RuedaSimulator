@@ -1490,12 +1490,27 @@ function planCrossings(o){
   const fixedShare = (movesA && movesB) ? null : (movesA ? 1 : (movesB ? 0 : 0.5));
   // Clearance depends only on the TOTAL corridor, so the amplitude is solved once (at an even split) and
   // the share only rebalances who yields.
+  /* AN EVASION MAY NOT TURN AN ORBIT INSIDE OUT. A unit eases along the normal to its own travel, and on
+   * a path that goes round a centre that normal is radial — so an offset comparable to the radius does
+   * not open a corridor, it carries the dancer through the middle and out the other side. Harmless on
+   * the full rueda, where nobody travels near the centre (§26). Fatal on a mini 2-couple wheel: a Dame
+   * Dos Pequeña leader orbiting at R2 = 57.4 with a 35px corridor to hold was flung out to radius 152
+   * and back through radius 2, and the solver ran to its cap rather than finding the answer.
+   * The floor is derived, not chosen: two dancers orbiting one centre on opposite sides and both held at
+   * CLEAR/2 are exactly CLEAR apart, so that is the smallest radius at which an orbit can still hold its
+   * own corridor. Keeping the ANGLE and flooring the RADIUS is what "the path still goes round the
+   * midpoint" means arithmetically — the winding survives the evasion instead of being spent on it. */
+  const RFLOOR = CLEAR / 2;
   const at = (id, t, w, scale) => {
     const off = (NAT_NOEVADE ? 0 : scale) * shareOf(id, w) * proxOf(unit(id), t) * endEnvAt(t);
     const p = o.base(id, t);
     if (!off) return p;
     const n = normalOf(unit(id), t);
-    return { x: p.x + n.x * off, y: p.y + n.y * off };
+    const q = { x: p.x + n.x * off, y: p.y + n.y * off };
+    if (!o.orbit) return q;
+    const dx = q.x - o.orbit.x, dy = q.y - o.orbit.y, r = Math.hypot(dx, dy);
+    if (r >= RFLOOR || r < 1e-9) return q;
+    return { x: o.orbit.x + dx / r * RFLOOR, y: o.orbit.y + dy / r * RFLOOR };
   };
   const worst = (w, scale) => { let m = Infinity;
     for (let s = 0; s < NSMP; s++){ const t = smpT[s], P = {};
@@ -1622,6 +1637,9 @@ function playTravel(ds, N, o){
   const gathering = ids.filter(a => newPartner[a] && startStation[a] !== startStation[newPartner[a]])
     .map(a => [a, newPartner[a]]);
   const plan = planCrossings({ ids, exclude: gathering, base: baseAt,
+    // Every traveller here rides a polar arc about the wheel it is dancing on, so that wheel's centre is
+    // the point their paths go round — the one thing an evasion must not carry them across.
+    orbit: { x: CX, y: CY },
     roleOf: id => roleById[id], passes: o.passes,
     bonded: (a, b) => startStation[a] === startStation[b] || newPartner[a] === b,
     group: o.group, groups: o.groups, unit: o.unit, yields: o.yields,
