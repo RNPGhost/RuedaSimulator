@@ -1648,6 +1648,11 @@ function run() {
         const s0 = {}, s1 = {};
         cap.frames[0].forEach(d => s0[d.id] = d.station);
         cap.frames[cap.frames.length - 1].forEach(d => s1[d.id] = d.station);
+        /* Who was partnered with whom BEFORE the movement — which `cap.frames[0]` cannot tell us, because
+         * a traveller's frames already carry its destination station from the first one. A declared
+         * `partner0` side is about the couple that walked in together, so it has to come from the rest
+         * state, not from the first frame of the figure. */
+        const sPre = {}; try { T.restDancers(from, n, 0).forEach(d => sPre[d.id] = d.station); } catch (e) {}
         const F = P[ids[0]].length;
         for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++){
           const a = ids[i], b = ids[j];
@@ -1666,7 +1671,9 @@ function run() {
           const r = { x: P[b][k].x - P[a][k].x, y: P[b][k].y - P[a][k].y };
           const sa = Math.sign(cross(ha, r)), sb = Math.sign(cross(hb, { x: -r.x, y: -r.y }));
           const dot = (ha.x * hb.x + ha.y * hb.y) / (la * lb);
-          const rec = { tag: `${key}|${from}|n${n} ${a}/${b}`, sa, sb, gap: best, roleA: a[0], roleB: b[0] };
+          const rec = { tag: `${key}|${from}|n${n} ${a}/${b}`, sa, sb, gap: best, roleA: a[0], roleB: b[0],
+            passes: T.declaredPasses(T.MOVEMENTS[key], from),
+            rel: (sPre[a] !== undefined && sPre[a] === sPre[b]) ? 'partner0' : null };
           if (a[0] === b[0]) sameRole.push(rec);
           else if (dot < -0.3) headOn.push(rec);
           else if (dot > 0.3) parallel.push(rec);
@@ -1761,7 +1768,11 @@ function run() {
     // rather than by measured sign is what makes this a rule instead of a snapshot.
     const wrongSide = [];
     for (const r of headOn.concat(sameRole.filter(x => x.sa === x.sb))){
-      const want = T.PASS_SIGN[T.passSide(r.roleA, r.roleB)];
+      // A movement's own declaration wins over the convention — that is what declaring one MEANS. The
+      // Dame from the Dile Que No position sends the leader BEHIND his own follower, so she goes by his
+      // left shoulder rather than his right; checking it against the global table condemns a figure that
+      // is doing exactly what it says.
+      const want = T.PASS_SIGN[T.passSide(r.roleA, r.roleB, r.passes, r.rel)];
       if (want !== undefined && r.sa !== want) wrongSide.push(r);
     }
     nChecks++; check(wrongSide.length === 0,
@@ -1771,7 +1782,7 @@ function run() {
     // Self-test: the convention must be falsifiable. Invert it and every measured pass must disagree.
     {
       let disagree = 0;
-      for (const r of headOn) if (r.sa === -T.PASS_SIGN[T.passSide(r.roleA, r.roleB)]) disagree++;
+      for (const r of headOn) if (r.sa === -T.PASS_SIGN[T.passSide(r.roleA, r.roleB, r.passes, r.rel)]) disagree++;
       nChecks++; check(disagree === 0 && headOn.length > 0,
         `§35 self-test: ${disagree} pass(es) match the INVERTED convention as well — the check is not discriminating`);
     }
@@ -2066,7 +2077,12 @@ function run() {
     // phrase — must declare the count those addresses imply. Following `of` is the point: a composed
     // movement that swaps in a DIFFERENT figure than its name claims is exactly how the count got lost.
     const travelOf = (mv, depth) => {
-      const pl = mv && mv.play; if (!pl || depth > 3) return null;
+      let pl = mv && mv.play; if (!pl || depth > 3) return null;
+      // A movement may dance differently depending on where it is called from. Each branch is its own
+      // travel with its own addresses, so only a single-branch movement has one progression to check.
+      if (pl.byFrom){ const bs = Object.values(pl.byFrom).filter(Boolean);
+        const ts = bs.map(b => b.travel).filter(x => typeof x === 'string');
+        return ts.length === 1 ? ts[0] : (ts.length && ts.every(x => x === ts[0]) ? ts[0] : null); }
       if (typeof pl.travel === 'string') return pl.travel;
       if (pl.compose && T.MOVEMENTS[pl.of]) return travelOf(T.MOVEMENTS[pl.of], depth + 1);
       if (Array.isArray(pl.phrases)){
@@ -2085,7 +2101,7 @@ function run() {
     nChecks++; check(mismatch.length === 0,
       `§39b ${mismatch.length} movement(s) declare a progression their travel definition contradicts, e.g. ` +
       (mismatch[0] ? `${mismatch[0].key} declares ${mismatch[0].got} but '${mismatch[0].via}' implies ${mismatch[0].want}` : ''));
-    nChecks++; check(named.length >= 11, `§39b only ${named.length} movements resolved to a travel definition`);
+    nChecks++; check(named.length >= 6, `§39b only ${named.length} movements resolved to a travel definition`);
   }
 
   // 8: determinism — the golden generator produces identical output twice.

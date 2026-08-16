@@ -1309,8 +1309,14 @@ const PASS_CONVENTION = {
   'L,L': 'right',     // two leaders meeting head-on — as they do when a Dame from Exhibela on a
   'F,F': 'right',     //   2-couple mini rueda brings them together in the middle — pass on each
 };                    //   other's right, so each goes by the other's LEFT shoulder
-// The side `a` should pass `b` on, resolved from the pair's roles. A movement's own `passes` map wins.
-function passSide(roleA, roleB, passes){
+/* The side `a` should pass `b` on. A movement's own `passes` map wins, and it may key on a RELATION as
+ * well as on roles — `partner0` is "the dancer you were partnered with when the movement began".
+ * Relations beat roles because they are more specific, and because they are the half of the vocabulary
+ * that survives losing the rueda: a figure with no wheel still knows who came in with whom, while
+ * "leader vs follower on a circle" stops meaning anything. Roles then conventions, as before, for
+ * everything a movement does not name. */
+function passSide(roleA, roleB, passes, rel){
+  if (passes && rel && passes[rel]) return passes[rel];
   const key = roleA + ',' + roleB;
   return (passes && passes[key]) || PASS_CONVENTION[key] || null;
 }
@@ -1395,7 +1401,7 @@ function planCrossings(o){
     // Geometry is the fallback where roles are meaningless — a unit that is a whole couple has no role —
     // and elsewhere it is the check, below.
     const sideFor = (x, y) => {
-      const c = o.roleOf && PASS_SIGN[passSide(o.roleOf(x), o.roleOf(y), o.passes)];
+      const c = o.roleOf && PASS_SIGN[passSide(o.roleOf(x), o.roleOf(y), o.passes, o.relation && o.relation(x, y))];
       // No roles to resolve a convention with — a unit that is a whole couple has no role, and the
       // synthetic planner cases have none either. Then everyone yields to their own LEFT, which is what
       // the engine has always done (the offset was a magnitude and the direction was each dancer's own
@@ -1418,8 +1424,11 @@ function planCrossings(o){
     // other is the FIGURE's handedness — measured, the sign there splits exactly along the forward/reverse
     // axis (adios vs reverse adios, enchufla vs reverse enchufla) — so a passing convention has nothing to
     // say about it. Still fully checked for collisions; just not judged on a side.
-    if (o.bonded && o.bonded(a, b)) return;
-    if (gc <= ENGAGE && headOnAt(a, b, tc)) judged.push({ a, b, tc });
+    // …UNLESS the movement names that pair. Declaring a side turns the figure's handedness from something
+    // only the code knew into something stated and therefore checkable, which is the whole point.
+    const named = o.relation && o.passes && o.passes[o.relation(a, b)];
+    if (!named && o.bonded && o.bonded(a, b)) return;
+    if (gc <= ENGAGE && (named || headOnAt(a, b, tc))) judged.push({ a, b, tc });
   });
   // A unit eases along the LEFT NORMAL of its own travel — its centroid's travel, so a bonded couple
   // sidesteps as one body instead of shearing. This is the general rule; the radial offset the ring
@@ -1692,6 +1701,9 @@ function playTravel(ds, N, o){
     // the point their paths go round — the one thing an evasion must not carry them across.
     orbit: { x: CX, y: CY },
     roleOf: id => roleById[id], passes: o.passes,
+    // Who these two were to each other when the movement began. Today only "partners at the start" is
+    // named; the hook is where a group predicate (primeros, inner, …) will resolve later.
+    relation: (a, b) => (startStation[a] === startStation[b] ? 'partner0' : null),
     bonded: (a, b) => startStation[a] === startStation[b] || newPartner[a] === b,
     group: o.group, groups: o.groups, unit: o.unit, yields: o.yields,
     clearance: o.clearance, engage: o.engage, forceShare: o.forceShare });
@@ -2116,16 +2128,23 @@ function playFigure(figure, ds, params, mirror){
  *
  * `mirror` at instantiation turns a figure inside out for the afuera positions — dh signs flip, lanes
  * swap, pass sides swap. One definition covers both, which is why there is no `dame_afuera` here. */
+/* WHICH DANCERS A FIGURE PASSES ON WHICH SIDE, stated by the figure rather than inferred from a global
+ * table. `PASS_CONVENTION` remains the default for anything a definition does not name, but a movement
+ * that means something different has to be able to say so — and the rueda's role conventions are exactly
+ * what a formation without a wheel will not have. Sides are from the first-named dancer's point of view:
+ * 'left' means you travel along their left-hand side, so they go by over your right shoulder.
+ * `partner0` names the dancer you came into the movement partnered with. */
+const PASSES_RUEDA = { 'L,F': 'left', 'F,L': 'left', 'L,L': 'right', 'F,F': 'right' };
 const TRAVELS = {
   // A Dame: the leader crosses an ODD number of half-spacings and the follower one the other way, which
   // together advance the pairing a whole couple — and, being odd, always flip the phase.
-  dame:         { groups: ['L', 'F'], L: { dh: -1, lane: 'cw' },
+  dame:         { groups: ['L', 'F'], passes: PASSES_RUEDA, L: { dh: -1, lane: 'cw' },
                                       F: { dh:  1, lane: 'ccw' } },
-  dame_dos:     { groups: ['L', 'F'], L: { dh: -3, lane: 'cw' },
+  dame_dos:     { groups: ['L', 'F'], passes: PASSES_RUEDA, L: { dh: -3, lane: 'cw' },
                                       F: { dh:  1, lane: 'ccw' } },
   // Dame Pequeña: the leader does all the travelling (an EVEN dh, so no phase flip) and the follower is
   // scripted. Mujeres Arriba is the same shape with the roles inverted.
-  dame_pequena: { groups: ['L', 'F'], L: { dh: -2, lane: 'cw' },
+  dame_pequena: { groups: ['L', 'F'], passes: PASSES_RUEDA, L: { dh: -2, lane: 'cw' },
                                       F: { scripted: true, lane: 'ccw' } },
   // Dame Dos Pequena: the same figure progressing TWO couples instead of one — the leader still does all
   // the travelling and the follower dances the identical scripted figure, which is why neither flips the
@@ -2133,15 +2152,15 @@ const TRAVELS = {
   // couples; on a mini 2-couple wheel it is the whole wheel, so he crosses twice, passes the other
   // leader both times and lands back with his own partner. Reducing it would turn the figure into
   // standing still, which is exactly the information a slot address alone cannot carry.
-  dame_dos_pequena: { groups: ['L', 'F'], L: { dh: -4, lane: 'cw' },
+  dame_dos_pequena: { groups: ['L', 'F'], passes: PASSES_RUEDA, L: { dh: -4, lane: 'cw' },
                                           F: { scripted: true, lane: 'ccw' } },
   // The close of a Dile Que No y Dame: the leader crosses to his new partner while the follower dances
   // her ¾ circle back to the spot she began the whole movement on.
-  dile_dame:     { groups: ['L', 'F'], L: { dh: -2, lane: 'cw' },
+  dile_dame:     { groups: ['L', 'F'], passes: Object.assign({}, PASSES_RUEDA, { partner0: 'right' }), L: { dh: -2, lane: 'cw' },
                                        F: { scripted: true, lane: 'ccw' } },
-  dile_dame_dos: { groups: ['L', 'F'], L: { dh: -4, lane: 'cw' },
+  dile_dame_dos: { groups: ['L', 'F'], passes: Object.assign({}, PASSES_RUEDA, { partner0: 'right' }), L: { dh: -4, lane: 'cw' },
                                        F: { scripted: true, lane: 'ccw' } },
-  mujeres:      { groups: ['F', 'L'], F: { dh:  2, lane: 'ccw' },
+  mujeres:      { groups: ['F', 'L'], passes: PASSES_RUEDA, F: { dh:  2, lane: 'ccw' },
                                       L: { scripted: true, lane: 'cw' } },
 };
 /* Turn a travel definition into the options `playTravel` takes. `o` supplies the engine-side wiring a
@@ -2157,6 +2176,12 @@ function resolveTravel(name, ds, o){
     yields: id => !def[role[id]].scripted,
     group: id => role[id], groups: def.groups,
     clearance: CLEAR, engage: CLEAR + 1.4 * DOT_R,
+    /* A definition's own pass sides, NOT mirrored. `mirror` inverts the geometry — dh signs, lanes, which
+     * side of the spoke a step lands on — but a pass side is facing-relative, and a dancer's own left is
+     * their own left however the wheel is turned inside out. Same reason turns are not mirrored. Measured:
+     * the conventions hold unchanged across the afuera positions, which is where the 144/144 in
+     * PASSING.md comes from. Mirroring them put 120 shipped passes on the wrong side. */
+    passes: def.passes,
   }, o);
 }
 
@@ -2568,6 +2593,17 @@ const composeKind = mv => (mv && mv.play && mv.play.compose) || null;
  * can be danced from several positions with different addresses. A Dame from Casino or Exhibela moves its
  * leader an ODD number of half-spacings and flips; the same Dame from the Dile Que No position moves him
  * an even number and does not. Resolved the way `sets` and `beats` already are. */
+/* The pass sides a movement declares, resolved through however its play is built. The suite has to be
+ * able to ask this: checking a movement against the GLOBAL convention condemns every figure that
+ * legitimately names an exception, which is the whole point of letting it name one. */
+function declaredPasses(mv, from, depth){
+  let p = mv && mv.play; if (!p || (depth || 0) > 3) return null;
+  if (p.byFrom) p = p.byFrom[virtualPos(from)] || p.byFrom.default;
+  if (!p) return null;
+  if (p.compose && MOVEMENTS[p.of]) return declaredPasses(MOVEMENTS[p.of], from, (depth || 0) + 1);
+  const def = typeof p.travel === 'string' ? TRAVELS[p.travel] : null;
+  return def ? def.passes || null : null;
+}
 const flipsPhaseOf = (mv, from) => typeof mv.flipsPhase === 'function' ? !!mv.flipsPhase(from) : !!mv.flipsPhase;
 function grandeFrames(circleKey, from){
   const m = LM.m, mv = MOVEMENTS[circleKey], sub = LINEA_SUB[from];
