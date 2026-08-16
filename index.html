@@ -2638,6 +2638,38 @@ function grandeFrames(circleKey, from){
     const of  = outO.frames[Math.min(i, outO.frames.length - 1)];
     frames.push(inf.map(d => ({ ...d })).concat(of.map(d => ({ ...d, station: d.station + m }))));
   }
+  /* THE WHOLE FORMATION IS ONE COLLISION PROBLEM — the other half of v132.
+   * Each ring is solved entirely on its own, so two dancers in DIFFERENT rings were never compared. That
+   * is exactly the blindness v132 fixed for the mini-wheels, and it was only ever fixed there: this
+   * function kept planning ring by ring. It went unnoticed while every traveller rode an arc around its
+   * own ring; straight-line paths cut across, and at 4 couples the inner ring's leader and the outer
+   * ring's leader now close to 29.4px against a 34px floor with NOTHING REPORTING A FAULT, because
+   * nothing was asked. Same-ring pairs are excluded — their spacing was already solved, and re-solving
+   * pairs that sit exactly on the corridor would let float noise reopen them. */
+  const xIds = frames[0].map(d => d.id), F1 = frames.length;
+  if (F1 > 1){
+    const RW = refWheels('grande', m * 2);
+    const track = {}; frames[0].forEach(d => track[d.id] = []);
+    frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
+    const ringOf = {}, roleOf = {};
+    frames[0].forEach(d => { ringOf[d.id] = RW.of(d.station); roleOf[d.id] = d.role; });
+    /* Nothing is excluded. Excluding same-ring pairs from the CHECK while still moving those dancers is
+     * how this pass made things worse than it found them — it broke spacing the per-ring solve had
+     * already earned (two leaders driven to 3.4px). The original worry, that re-solving a pair sitting
+     * exactly on the corridor lets float noise reopen it, is answered elsewhere now: solveScale returns
+     * zero when the paths it is given already clear, so a formation with nothing to do gets no offset
+     * rather than a tiny one. */
+    const sample = (id, t) => { const u = Math.max(0, Math.min(1, t)) * (F1 - 1);
+      const i = Math.min(F1 - 2, Math.floor(u)), f = u - i;
+      const A = track[id][i], B = track[id][i + 1];
+      return { x: A.x + (B.x - A.x) * f, y: A.y + (B.y - A.y) * f }; };
+    const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
+    const plan = planCrossings({ ids: xIds, base: sample,
+      roleOf: id => roleOf[id], bonded: (a, b) => ringOf[a] === ringOf[b],
+      group: id => roleOf[id], groups: ['L', 'F'],
+      clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
+    if (plan.scale > 0) frames.forEach((fr, i) => fr.forEach(d => { d.xy = plan.at(d.id, i / (F1 - 1)); }));
+  }
   const segBeats = inO.segBeats || outO.segBeats || null;
   return segBeats ? { frames, segBeats } : frames;
 }
