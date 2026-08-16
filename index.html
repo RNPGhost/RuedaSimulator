@@ -1302,6 +1302,15 @@ function arcLenPath(pts){
  *  line, and all 9 leader/leader passes in the Línea mini-wheels obey the second. Invariants §35 asserts
  *  both. A movement will be able to name an exception; until then this is the whole rule.
  * ------------------------------------------------------------------ */
+/* THE PASSING VOCABULARY, stated once (Sam, and easy to get backwards — see PASSING.md):
+ *
+ *     pass on the 'LEFT'   <=>  you travel along their left-hand side   <=>  you go by each other's RIGHT shoulders
+ *     pass on the 'RIGHT'  <=>  you travel along their right-hand side  <=>  you go by each other's LEFT shoulders
+ *
+ * The side names WHOSE side you walk along; the shoulder names what you actually see go past. They are
+ * opposites, and every sentence about passing in this codebase means the first form. `PASS_SIGN` is the
+ * one place that correspondence is written as arithmetic, so nothing else rederives it: in screen
+ * coordinates (y down) a positive cross(heading, other - self) means the other is on your RIGHT. */
 const PASS_SIGN = { left: +1, right: -1 };     // the side of the OTHER dancer that you travel along
 const PASS_CONVENTION = {
   'F,L': 'left',      // a leader and an oncoming follower each pass on the other's left,

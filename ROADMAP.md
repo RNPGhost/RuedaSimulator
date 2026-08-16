@@ -128,6 +128,44 @@ The path engine is not a rewrite-from-zero; the pieces are accreting:
    pass-side edits are the user's fallback.
 8. **Storage: local files first**, a shared library later.
 
+## Authoring a movement by resolving its collisions (agreed with Sam, not yet built)
+
+The way a user will define a movement, once the path engine is topological rather than geometric. It is
+the natural consequence of straight-line intent plus declared pass sides, and it is what the pass
+vocabulary (`PASSING.md`) exists to be the language of.
+
+**The loop.** The user gives start and end positions. The engine models every dancer's **straight-line**
+path and computes the collisions. It then asks the user to resolve each one — *not* by dragging anything,
+but by naming **which side each dancer passes on**. Resolving a collision changes those dancers' paths,
+which can create **new** collisions; those are added to the list dynamically. The loop ends when no
+dancer's path collides with any other's for the whole movement.
+
+Three things this has to get right, each of which is a way the naive version fails:
+
+- **It must scale with the formation.** A user cannot be made to answer for every dancer in the wheel,
+  and an answer given at 6 couples has to still mean something at 10. Answers are therefore in terms of
+  **relations and group predicates** — "the dancer you came in with", "the primeros", "the other leaders"
+  — never a dancer index. `passes` already keys this way (`partner0` today, any `GROUPS` predicate later).
+- **It must not ask about collisions the user does not care about.** Two dancers who clear comfortably
+  are not a question. The engine asks only where the corridor is actually contested.
+- **It must terminate, and say so when it cannot.** A set of side constraints can be unsatisfiable, and
+  the honest answer is to say which pair cannot be placed rather than to draw something false —
+  `PLAN_FAULTS` and `SIDE_FAULTS` are the beginnings of that.
+
+## Rotation about a named point (agreed with Sam, not yet built)
+
+A movement must be able to say **that its dancers go round a particular point**, which the engine then
+treats as the midpoint of a theoretical rueda. Everything about winding then follows from it: the path
+has to turn about that point by the amount the progression declares, and where a straight line cannot
+(half a turn or more) it goes in, round and out.
+
+This is already half-built and half-assumed. The engine derives the winding from the wheel it happens to
+be dancing on, which is exactly why **Dame Dos Pequeña** was expressible at all — a two-couple
+progression on a two-couple wheel is a full circuit. What is missing is letting a movement **name** the
+point rather than inherit it, which is what a formation with no rueda will need. See `DECLARATIVE.md` §2
+and the §26 winding invariant, both of which are written in terms of "the wheel's midpoint" and would
+take a named point without changing shape.
+
 ## Open questions (next round)
 
 *Resolved:* concurrency invariant = one movement per dancer, three composition modes (overlap /

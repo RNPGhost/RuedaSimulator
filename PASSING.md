@@ -118,6 +118,22 @@ Two details the first implementation got wrong, both worth keeping written down:
 A conflict — a side the paths cannot be brought onto — is recorded in `SIDE_FAULTS` rather than drawn.
 Invariants §35 and §36 assert both, and §36 builds the cases the shipped movements do not yet reach.
 
+## The vocabulary, in one line
+
+> "When dancers pass over each other's left shoulder that's passing on the 'right', and when dancers pass
+> over each other's right shoulders that's passing on the 'left'." — Sam
+
+| side | what you do | what you see |
+|---|---|---|
+| pass on the **left** | you travel along their **left**-hand side | you go by each other's **right** shoulders |
+| pass on the **right** | you travel along their **right**-hand side | you go by each other's **left** shoulders |
+
+The **side** names whose side you walk along. The **shoulder** names what you actually see go past. They
+are opposites, and every sentence about passing in this codebase means the first column. This matters
+more than it looks: it is the vocabulary abstract movements will be defined in, so a figure that names a
+side must mean the same thing to a dancer, to the engine and to the suite. `PASS_SIGN` is the single
+place the correspondence is written as arithmetic.
+
 ## Terminology — settled, and easy to get backwards
 
 > "The leader passes on the left hand side of the follower and the follower passes on the left hand side
