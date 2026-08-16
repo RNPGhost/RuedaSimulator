@@ -858,7 +858,16 @@ function run() {
         split = Math.max(split, Math.hypot(dL.x - dF.x, dL.y - dF.y));
       });
     }
-    nChecks++; check(plan.scale > 0, 'rigid pair: two couples walking head-on should have forced a deviation');
+    /* Assert what the dancers did, not what the solver called it. `scale` was a single global amplitude
+     * and there is no such number any more — each collision opens its own corridor — so the question is
+     * whether anyone actually moved off their intended line. */
+    {
+      let moved = 0;
+      for (let k = 0; k <= SMP; k++){ const t = k / SMP;
+        IDS.forEach(id => { const q = plan.at(id, t), b = at(id, t);
+          moved = Math.max(moved, Math.hypot(q.x - b.x, q.y - b.y)); }); }
+      nChecks++; check(moved > 1, 'rigid pair: two couples walking head-on should have forced a deviation');
+    }
     nChecks++; check(worst >= CLEAR - 0.5, `rigid pair: couples still collide (minClear ${worst.toFixed(1)} < ${CLEAR})`);
     nChecks++; check(stretch <= 0.01, `rigid pair: the couple was stretched by ${stretch.toFixed(2)}px — a unit must move as a body`);
     nChecks++; check(split <= 0.01, `rigid pair: partners took different offsets (${split.toFixed(2)}px apart) — they are one free variable`);
@@ -868,7 +877,12 @@ function run() {
       const near = (id, t, off) => ({ x: (id === 'AL' ? 0 : 20) + 100 * t + (off || 0), y: 0 });
       const p2 = T.planCrossings({ ids: ['AL', 'AF'], base: (id, t) => near(id, t),
         apply: near, unit: () => 'A', group: () => 'A', groups: ['A', 'B'], clearance: CLEAR });
-      nChecks++; check(p2.scale === 0, `rigid pair: the planner tried to separate two partners (scale ${p2.scale})`);
+      let budged = 0;
+      for (let k = 0; k <= SMP; k++){ const t = k / SMP;
+        ['AL', 'AF'].forEach(id => { const q = p2.at(id, t), b = near(id, t);
+          budged = Math.max(budged, Math.hypot(q.x - b.x, q.y - b.y)); }); }
+      nChecks++; check(budged <= 0.01,
+        `rigid pair: the planner tried to separate two partners (moved ${budged.toFixed(2)}px)`);
     }
   }
 
@@ -1169,43 +1183,57 @@ function run() {
     }
   }
 
-  // 32: the EQUAL-NATURALNESS SPLIT actually splits. Given the solved amplitude, the leader's share of
-  //     the corridor is bisected to where the two groups' path-naturalness costs meet, so neither ends up
-  //     more frantic than the other. Mutation testing found that **hardcoding it to 0.5 passes the whole
-  //     suite**: in every shipped movement the two groups are mirror images, so an even split IS the
-  //     equal-naturalness split and the bisection has nothing to correct. It is not dead — it moves when
-  //     a dancer's engagements OVERLAP, merging into one wider crest that costs more than a single pass —
-  //     so the case is built here rather than left untested until a future figure depends on it.
+  // 32: BOTH DANCERS OF A COLLISION STEP THE SAME DISTANCE.
+  //     This replaces the equal-naturalness split, which is gone with the mechanism it balanced. There
+  //     used to be one corridor and a question of who gave up more of it; the share was bisected until
+  //     neither group felt more frantic than the other. Sam retired the question: "remove the idea of
+  //     each dancer giving different amounts depending on the distance they're travelling. Instead the
+  //     partners should rotate around each other, shoulder to shoulder." So the property to assert is no
+  //     longer that a bisection found a fair split, but that there is nothing to split — two dancers who
+  //     must get out of each other's way move equally, whatever their paths cost them.
+  //     The exception is a dancer who CANNOT move: against a scripted, immutable obstacle the traveller
+  //     takes the whole corridor, because half of it from one side clears nothing.
   {
     const CLEAR = 2 * (T.DOT_R + T.PATH_CLEAR);
-    const paths = { B:  [{ x: 0, y: 0 }, { x: 400, y: 0 }],
-                    A1: [{ x: 120, y: -90 }, { x: 120, y: 90 }],
-                    A2: [{ x: 150, y: 90 }, { x: 150, y: -90 }] };
-    const at = (id, t, off) => { const [S, E] = paths[id];
-      const vx = E.x - S.x, vy = E.y - S.y, L = Math.hypot(vx, vy) || 1;
-      return { x: S.x + vx * t + (vy / L) * (off || 0), y: S.y + vy * t - (vx / L) * (off || 0) }; };
-    const ids = Object.keys(paths), pairs = [['B', 'A1'], ['B', 'A2']];
-    // A1 and A2 run past each other by construction; this case is about how B shares with the A's, so
-    // that one pair is declared out rather than left to be silently absent.
-    const mk = forceShare => T.planCrossings({ ids, exclude: [['A1', 'A2']], base: (i, t) => at(i, t), apply: at,
-      group: i => i[0] === 'B' ? 'B' : 'A', groups: ['B', 'A'],
-      clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R, forceShare });
-    const costOf = (plan, id) => { const bl = [], pts = [];
-      for (let s = 1; s <= 40; s++){ const t = s / 40; bl.push(at(id, t)); pts.push(plan.at(id, t)); }
-      return T.pathNaturalness(pts, null, bl).cost; };
-    const spread = plan => Math.abs(costOf(plan, 'B') - Math.max(costOf(plan, 'A1'), costOf(plan, 'A2')));
-    const auto = mk(null), even = mk(0.5);
-    nChecks++; check(Math.abs(auto.share - 0.5) > 0.005,
-      `naturalness split: overlapping engagements should shift the share off even (got ${auto.share.toFixed(4)})`);
-    nChecks++; check(spread(auto) < spread(even),
-      `naturalness split: the bisected share (${spread(auto).toFixed(4)}) should equalise the two groups' ` +
-      `costs better than an even one (${spread(even).toFixed(4)})`);
-    // …and it must still clear: balancing who yields never changes the total corridor.
-    let worst = Infinity;
-    for (let s = 0; s <= 40; s++){ const t = s / 40;
-      pairs.forEach(([a, b]) => { const p = auto.at(a, t), q = auto.at(b, t);
-        worst = Math.min(worst, Math.hypot(p.x - q.x, p.y - q.y)); }); }
-    nChecks++; check(worst >= CLEAR - 0.5, `naturalness split: rebalancing broke the clearance (${worst.toFixed(1)})`);
+    // Two dancers crossing at right angles — deliberately NOT a mirror-image pair, so "equal" cannot be
+    // an accident of symmetry the way it is in every shipped ring figure.
+    const paths = { P: [{ x: 0, y: 0 }, { x: 400, y: 0 }],
+                    Q: [{ x: 180, y: -140 }, { x: 220, y: 140 }] };
+    const at = (id, t) => { const [S, E] = paths[id];
+      return { x: S.x + (E.x - S.x) * t, y: S.y + (E.y - S.y) * t }; };
+    const plan = T.planCrossings({ ids: ['P', 'Q'], base: at,
+      roleOf: id => (id === 'P' ? 'L' : 'F'), passes: { 'L,F': 'left', 'F,L': 'left' },
+      group: id => id, groups: ['P', 'Q'],
+      clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+    let worst = Infinity, movedP = 0, movedQ = 0;
+    for (let s = 0; s <= 60; s++){ const t = s / 60;
+      const p = plan.at('P', t), q = plan.at('Q', t);
+      worst = Math.min(worst, Math.hypot(p.x - q.x, p.y - q.y));
+      movedP = Math.max(movedP, Math.hypot(p.x - at('P', t).x, p.y - at('P', t).y));
+      movedQ = Math.max(movedQ, Math.hypot(q.x - at('Q', t).x, q.y - at('Q', t).y));
+    }
+    nChecks++; check(worst >= CLEAR - 0.5,
+      `§32 two dancers crossing at right angles still collide (${worst.toFixed(1)} < ${CLEAR})`);
+    nChecks++; check(movedP > 1 && movedQ > 1,
+      `§32 only one of the pair moved (P ${movedP.toFixed(1)}px, Q ${movedQ.toFixed(1)}px) — both go round each other`);
+    nChecks++; check(Math.abs(movedP - movedQ) <= 1.5,
+      `§32 the two took different amounts (P ${movedP.toFixed(1)}px vs Q ${movedQ.toFixed(1)}px) — ` +
+      `there is no sharing by path length any more`);
+    // …and where one of them cannot move, the other covers the whole corridor on its own.
+    {
+      const p2 = T.planCrossings({ ids: ['P', 'Q'], base: at,
+        roleOf: id => (id === 'P' ? 'L' : 'F'), passes: { 'L,F': 'left', 'F,L': 'left' },
+        yields: id => id === 'P', group: id => id, groups: ['P', 'Q'],
+        clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+      let w2 = Infinity, mQ = 0;
+      for (let s = 0; s <= 60; s++){ const t = s / 60;
+        const p = p2.at('P', t), q = p2.at('Q', t);
+        w2 = Math.min(w2, Math.hypot(p.x - q.x, p.y - q.y));
+        mQ = Math.max(mQ, Math.hypot(q.x - at('Q', t).x, q.y - at('Q', t).y)); }
+      nChecks++; check(mQ <= 0.01, `§32 a dancer who cannot yield was moved anyway (${mQ.toFixed(2)}px)`);
+      nChecks++; check(w2 >= CLEAR - 0.5,
+        `§32 the traveller did not clear an immutable obstacle on its own (${w2.toFixed(1)} < ${CLEAR})`);
+    }
   }
 
   // 33: SYSTEMIC PROPERTIES — the rules that hold for every movement, in every formation, at every
@@ -1644,6 +1672,17 @@ function run() {
       for (const n of NS){
         let cap; try { cap = T.captureMovement(key, from, n, 0); } catch (e) { continue; }
         if (!cap || !cap.frames) continue;
+        /* SELECT ON THE INTENDED PATHS, MEASURE ON THE FINAL ONES. A declared side settles a collision,
+         * so the pairs to judge are the ones that WOULD have collided — and once the engine has done its
+         * job none of them still do, which is why selecting on the final paths found nothing at all to
+         * check. The side itself is still read off the final paths: two dancers can start on the wrong
+         * shoulder and be carried correctly across, and condemning that would condemn an outcome that is
+         * right (PASSING.md). */
+        let capI = null;
+        try { T.setNoEvade(true); capI = T.captureMovement(key, from, n, 0); } catch (e) {}
+        finally { T.setNoEvade(false); }
+        if (!capI || !capI.frames) continue;
+        const PI = timeline(capI).P;
         const { ids, P } = timeline(cap);
         const s0 = {}, s1 = {};
         cap.frames[0].forEach(d => s0[d.id] = d.station);
@@ -1660,6 +1699,12 @@ function run() {
           // splits along the forward/reverse axis (adios vs reverse_adios, enchufla vs reverse_enchufla),
           // which is the figure being itself. Only dancers who are not a couple before OR after are traffic.
           if (s0[a] === s0[b] || s1[a] === s1[b]) continue;
+          // Would these two have collided if nobody moved aside? If not, no side was ever chosen for them.
+          let wouldHit = false;
+          if (PI[a] && PI[b]){ const FI = Math.min(PI[a].length, PI[b].length);
+            for (let s = 0; s < FI && !wouldHit; s++)
+              if (Math.hypot(PI[a][s].x - PI[b][s].x, PI[a][s].y - PI[b][s].y) < CLEAR) wouldHit = true; }
+          if (!wouldHit) continue;
           let best = Infinity, k = -1;
           for (let s = 0; s < F; s++){ const d = Math.hypot(P[a][s].x - P[b][s].x, P[a][s].y - P[b][s].y);
             if (d < best){ best = d; k = s; } }
@@ -1677,7 +1722,6 @@ function run() {
            * every near-miss is what produced dozens of "violations" of sides nobody needed: the pass was
            * fine, it simply happened on the shoulder the shortest path preferred. Only pairs that would
            * actually collide are judged. */
-          if (best > CLEAR) continue;
           const rec = { tag: `${key}|${from}|n${n} ${a}/${b}`, sa, sb, gap: best, roleA: a[0], roleB: b[0],
             passes: T.declaredPasses(T.MOVEMENTS[key], from),
             rel: (sPre[a] !== undefined && sPre[a] === sPre[b]) ? 'partner0' : null };
@@ -1846,7 +1890,10 @@ function run() {
     {
       const path = { X: straight({ x: 0, y: 0 }, { x: 400, y: 0 }),
                      A: straight({ x: 100, y: -60 }, { x: 100, y: 60 }),
-                     B: straight({ x: 300, y: 60 }, { x: 300, y: -60 }) };
+                     // B is timed so it reaches X's line exactly when X gets there. Its old geometry
+                     // put B at y=-30 when X arrived, so dodging A already cleared B by 39.1px and the
+                     // case could not exercise what it exists for — one dancer owing two shoulders.
+                     B: straight({ x: 300, y: 90 }, { x: 300, y: -30 }) };
       const role = { X: 'L', A: 'F', B: 'L' };
       T.clearFaults();
       const plan = T.planCrossings({ ids: ['X', 'A', 'B'], base: (id, t) => path[id](t),
@@ -1861,14 +1908,21 @@ function run() {
       nChecks++; check(lo < -1 && hi > 1,
         `§36b one dancer's two passes did not go opposite ways (deviation ranged ${lo.toFixed(1)}…${hi.toFixed(1)}px) — ` +
         `a single per-movement offset cannot express "her on my left, him on my right"`);
-      // This case is deliberately over-tight, and shows the capability's LIMIT as well as the capability:
-      // the two engagements sit close enough together that the leftward and rightward swells overlap and
-      // partially cancel, so no amplitude satisfies both. That is a figure which cannot be danced as
-      // written, and the contract is that the engine says so rather than drawing something that looks
-      // plausible. Asserted here so the warning it prints is an expectation, not noise — an unexplained
-      // warning in a green run is how people learn to ignore warnings.
-      nChecks++; check(T.PLAN_FAULTS.length === 1,
-        `§36b two opposing passes crammed together should be reported as unclearable (got ${T.PLAN_FAULTS.length} fault(s))`);
+      /* This case used to be the capability's LIMIT as well as its demonstration: with a single swell per
+       * dancer the leftward and rightward crests overlapped and partially cancelled, so no amplitude
+       * satisfied both and the engine correctly reported a figure it could not dance. The via model has
+       * no such limit — each collision pins a position rather than adding an offset, so two opposite
+       * passes do not fight each other — and the honest assertion is now that it succeeds. */
+      {
+        let w = Infinity;
+        for (let s2 = 0; s2 <= SMP; s2++){ const t = s2 / SMP;
+          ['A', 'B'].forEach(o2 => { const p1 = plan.at('X', t), p2 = plan.at(o2, t);
+            w = Math.min(w, Math.hypot(p1.x - p2.x, p1.y - p2.y)); }); }
+        nChecks++; check(w >= CLEAR - 0.5,
+          `§36b two opposing passes crammed together were not both cleared (${w.toFixed(1)} < ${CLEAR})`);
+        nChecks++; check(T.PLAN_FAULTS.length === 0,
+          `§36b the engine reported a fault on a figure it did dance (${T.PLAN_FAULTS.length})`);
+      }
       T.clearFaults();
     }
 
@@ -1877,15 +1931,33 @@ function run() {
     //      so the engine says so instead of producing something that looks fine and isn't.
     {
       T.clearSideFaults();
-      // Far enough apart that no evasion is called for (45px against a 35px corridor), so nothing can
-      // carry them across — but close enough to be passing. They go by on each other's left; the
-      // movement asks for the right. That is a figure the engine cannot dance as written.
-      const path = { P: straight({ x: 0, y: 0 }, { x: 200, y: 0 }), Q: straight({ x: 200, y: 45 }, { x: 0, y: 45 }) };
-      T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
+      /* A DECLARED SIDE IS ACHIEVED EVEN WHERE THE INTENDED PATHS TAKE THE OTHER SHOULDER. This used to
+       * be the opposite assertion — that the engine REPORTS a side it cannot reach — because easing two
+       * dancers apart cannot carry a pass onto the other shoulder, it only drives them further onto the
+       * wrong one. The via model does not ease: it places each dancer on the side the movement names, so
+       * the declaration decides the shoulder rather than merely hoping for it. The stronger property is
+       * asserted, and the pair must still clear. */
+      const path = { P: straight({ x: 0, y: 0 }, { x: 200, y: 0 }), Q: straight({ x: 200, y: 8 }, { x: 0, y: 8 }) };
+      const pl3 = T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
         roleOf: () => 'L', passes: { 'L,L': 'right' },
         group: id => id, groups: ['P', 'Q'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
-      nChecks++; check(T.SIDE_FAULTS.length > 0,
-        '§36c a pass declared on the shoulder opposite to the intended paths was accepted in silence');
+      {
+        const h = 1 / 80, t = 0.5;
+        const a0 = pl3.at('P', t - h), a1 = pl3.at('P', t + h);
+        const d = { x: a1.x - a0.x, y: a1.y - a0.y };
+        const p = pl3.at('P', t), q = pl3.at('Q', t);
+        const side = Math.sign(d.x * (q.y - p.y) - d.y * (q.x - p.x));
+        let w = Infinity;
+        for (let s2 = 0; s2 <= SMP; s2++){ const tt = s2 / SMP;
+          const A = pl3.at('P', tt), B = pl3.at('Q', tt);
+          w = Math.min(w, Math.hypot(A.x - B.x, A.y - B.y)); }
+        nChecks++; check(side === T.PASS_SIGN['right'],
+          `§36c the declared side was not achieved (got ${side}, wanted ${T.PASS_SIGN['right']})`);
+        nChecks++; check(w >= CLEAR - 0.5,
+          `§36c the pair did not clear while taking the declared side (${w.toFixed(1)} < ${CLEAR})`);
+        nChecks++; check(T.SIDE_FAULTS.length === 0,
+          `§36c a fault was recorded for a pass that went where it was told (${T.SIDE_FAULTS.length})`);
+      }
       T.clearSideFaults();
       T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
         roleOf: () => 'L', passes: { 'L,L': 'left' },                // …and declared to match, no fault

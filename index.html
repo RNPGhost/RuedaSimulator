@@ -1360,7 +1360,8 @@ function passSide(roleA, roleB, passes, rel){
  * probe (§33e) with exactly the small-but-real steps it exists to distinguish from noise. */
 function _unit(vx, vy){ const L = Math.hypot(vx, vy); return L < 1e-9 ? null : { x: vx / L, y: vy / L }; }
 const PLAN_FAULTS = [];
-let LAST_SWEEPS = {};      // per-dancer declared winding from the most recent travel
+let LAST_SWEEPS = {};
+let VIA_TRACE = null;      // per-dancer declared winding from the most recent travel
 // Encounters whose intended paths already sit on the opposite shoulder to the one the movement declared.
 // Easing them apart cannot fix that — it drives them further onto the wrong side — so it is reported.
 const SIDE_FAULTS = [];
@@ -1582,118 +1583,201 @@ function planCrossings(o){
    * own corridor. Keeping the ANGLE and flooring the RADIUS is what "the path still goes round the
    * midpoint" means arithmetically — the winding survives the evasion instead of being spent on it. */
   const RFLOOR = CLEAR / 2;
-  const at = (id, t, w, scale) => {
-    const off = (NAT_NOEVADE ? 0 : scale) * shareOf(id, w) * proxOf(unit(id), t) * endEnvAt(t);
-    const p = o.base(id, t);
-    if (!off) return p;
-    const n = normalOf(unit(id), t);
-    const q = { x: p.x + n.x * off, y: p.y + n.y * off };
-    if (!o.orbit) return q;
-    const dx = q.x - o.orbit.x, dy = q.y - o.orbit.y, r = Math.hypot(dx, dy);
-    if (r >= RFLOOR || r < 1e-9) return q;
-    return { x: o.orbit.x + dx / r * RFLOOR, y: o.orbit.y + dy / r * RFLOOR };
-  };
-  const worst = (w, scale) => { let m = Infinity;
-    for (let s = 0; s < NSMP; s++){ const t = smpT[s], P = {};
-      checkPairs.forEach(pr => { const a = pr[0], b = pr[1];
-        if (P[a] === undefined) P[a] = at(a, t, w, scale);
-        if (P[b] === undefined) P[b] = at(b, t, w, scale);
-        const d = Math.hypot(P[a].x - P[b].x, P[a].y - P[b].y); if (d < m) m = d; }); }
-    return m; };
-  const wSolve = (fixedShare != null) ? fixedShare : 0.5;   // clearance is split-independent when both yield
-  // The cap is a solver bound, not a style choice: a rigid unit needs a far wider corridor than a solo
-  // dancer (two couples passing must separate by a couple width PLUS the clearance, ~2.5× on its own),
-  // so 3.0 sat right on top of the rigid-pair case. Nothing today comes near this.
-  /* An intended path that already holds the corridor needs NO evasion. Engagement is judged at ENGAGE,
-   * which is deliberately wider than CLEAR so that every pass is looked at — but "looked at" must be
-   * allowed to conclude "nothing to do". Without this the scan starts at 0.2 and a pair sitting exactly
-   * on the corridor gets eased apart regardless, which is what threw a mini-wheel loop out to radius 227
-   * on a wheel of 57. "On a clear move a dancer stays exactly on that path" was already the stated rule;
-   * it just had no way to be reached once a pair was on the register. */
-  /* THE SOLVE, as Sam described it: try the straight path; where it collides, decide the side; open just
-   * enough corridor on that side for BOTH dancers; recompute, because moving two dancers can push a third
-   * pair together; repeat until nothing collides.
+
+  /* ==================== VIA POINTS ==================================================================
+   * A dancer's path is their intended path, pinned to pass through a list of VIA POINTS. Sam's model:
+   * where two dancers would collide they go round each other shoulder to shoulder, so at the moment they
+   * meet they stand exactly one corridor apart, symmetrically about the point they would have hit, and
+   * the movement's declared side says which of them is on which end of that axis.
    *
-   * Two things make it behave. Each encounter owns its amplitude, so a pair that needs room gets room and
-   * nobody else moves — the deviation is the minimum that clears, which is what "they should basically
-   * pass shoulder to shoulder" means arithmetically. And relaxation is partial (55% of the shortfall per
-   * pass) so the pairs settle together rather than each overshooting in turn; a full correction each time
-   * oscillates when one dancer is in two encounters at once. */
-  const RELAX = 0.55, MAXIT = 40;
-  /* The base path and the normal to it do not depend on any amplitude, so they are sampled once. Without
-   * this the loop re-derives every centroid and every central difference on every pass over every pair,
-   * which is the difference between a solve that runs and one that does not finish. */
-  const BASE = {}, NORM = {};
-  o.ids.forEach(id => { BASE[id] = smpT.map(t => o.base(id, t)); });
-  const unitsSeen = {}; o.ids.forEach(id => { const u = unit(id);
-    if (!unitsSeen[u]){ unitsSeen[u] = true; NORM[u] = smpT.map(t => normalOf(u, t)); } });
-  const atS = (id, sIdx, w) => {
-    const off = (NAT_NOEVADE ? 0 : 1) * shareOf(id, w) * proxOf(unit(id), smpT[sIdx]) * endEnvAt(smpT[sIdx]);
-    const p = BASE[id][sIdx];
-    if (!off) return p;
-    const n = NORM[unit(id)][sIdx];
-    const q = { x: p.x + n.x * off, y: p.y + n.y * off };
+   * A via is a POSITION, not an offset, and that is the whole reason for this rewrite. An offset along a
+   * dancer's own normal separates a pair by the sum of the two offsets only when their paths are
+   * anti-parallel; at any other crossing angle the offsets partly cancel and the corridor never opens.
+   * Placing both dancers a fixed distance either side of a shared point separates them by that distance
+   * doubled at ANY angle. See PATHING.md.
+   *
+   * Between vias the path returns smoothly to its intended line: each via contributes a displacement that
+   * is full at its own moment and fades to nothing at the neighbouring vias and at both ends, so landings
+   * stay exact and a dancer with two encounters deals with them one after the other. */
+  /* Vias belong to a UNIT, and hold a DISPLACEMENT rather than a position. A bonded couple is one free
+   * variable — both partners take the same sidestep so the pair moves as a body instead of being sheared
+   * — and a position can only ever describe one of them. Measured when this was per dancer: a couple
+   * travelling to Línea was stretched by 32.02px, which is a couple pulled apart rather than moved. */
+  const members = {}; o.ids.forEach(id => { const u = unit(id); (members[u] = members[u] || []).push(id); });
+  const vias = {}; Object.keys(members).forEach(u => vias[u] = []);
+  // C2 (smootherstep), not C1: the renderer blends circles through neighbouring keyframes, so a via that
+  // arrives with a discontinuous curvature makes the DRAWN path bulge away from the keyframes it
+  // interpolates — measured at 3.13px, and enough to open gaps between keyframes that are closed at them.
+  const ss3 = x => { x = Math.max(0, Math.min(1, x)); return x * x * x * (x * (6 * x - 15) + 10); };
+  const viaWeight = (list, i, t) => {
+    const ti = list[i].t;
+    const lo = i > 0 ? list[i - 1].t : 0, hi = i < list.length - 1 ? list[i + 1].t : 1;
+    if (t <= lo || t >= hi) return 0;
+    return t <= ti ? ss3((t - lo) / Math.max(1e-6, ti - lo))
+                   : ss3((hi - t) / Math.max(1e-6, hi - ti));
+  };
+  const at = (id, t) => {
+    const p = o.base(id, t), vs = vias[unit(id)];
+    if (NAT_NOEVADE || !vs.length) return p;
+    let x = p.x, y = p.y;
+    for (let i = 0; i < vs.length; i++){
+      const w = viaWeight(vs, i, t); if (!w) continue;
+      x += vs[i].d.x * w; y += vs[i].d.y * w;
+    }
+    const q = { x, y };
     if (!o.orbit) return q;
     const dx = q.x - o.orbit.x, dy = q.y - o.orbit.y, r = Math.hypot(dx, dy);
     if (r >= RFLOOR || r < 1e-9) return q;
     return { x: o.orbit.x + dx / r * RFLOOR, y: o.orbit.y + dy / r * RFLOOR };
   };
-  const pairClosest = (a, b, w) => { let m = Infinity, tc = 0.5;
-    for (let s = 0; s < NSMP; s++){
-      const A = atS(a, s, w), B = atS(b, s, w);
+  // `P` is where THIS dancer should be at `t`; what is stored is the displacement that puts them there,
+  // which every member of their unit then shares.
+  const addVia = (id, t, P) => {
+    const b = o.base(id, t);
+    const d = { x: P.x - b.x, y: P.y - b.y };
+    const vs = vias[unit(id)];
+    for (const v of vs) if (Math.abs(v.t - t) < 0.06){ v.d = d; return; }
+    vs.push({ t, d }); vs.sort((u, v) => u.t - v.t);
+  };
+  const pairClosest = (a, b) => { let m = Infinity, tc = 0.5;
+    for (let s = 0; s < NSMP; s++){ const t = smpT[s];
+      const A = at(a, t), B = at(b, t);
       const d = Math.hypot(A.x - B.x, A.y - B.y);
-      if (d < m){ m = d; tc = smpT[s]; } }
+      if (d < m){ m = d; tc = t; } }
     return { gap: m, tc }; };
-  /* KNOWN GAP: the solve measures at NSMP samples and the suite measures between them, so a pair can
-   * converge to CLEAR at every sample and still dip to ~33.5px on the drawn path. Solving to a larger
-   * target overshoots and destabilises (measured: 22 red becomes 29), so the fix is a refinement pass on
-   * a denser grid for the few pairs near the boundary, not a bigger number. Not yet built. */
-  const solveAmps = w => {
-    episodes.forEach(ep => { ep.amp = 0; });
-    let worst = 0;
+  const yields2 = o.yields || (() => true);
+  const PAIRKEY = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+  /* The side a takes against b, as a unit vector in the world: perpendicular to a's own travel, pointing
+   * to whichever hand the movement declared. This is where a declared side becomes geometry. */
+  const sideVec = (a, b, t) => {
+    const h = 1 / (2 * NSMP);
+    const A0 = at(a, Math.max(0, t - h)), A1 = at(a, Math.min(1, t + h));
+    const B0 = at(b, Math.max(0, t - h)), B1 = at(b, Math.min(1, t + h));
+    /* The axis they separate along is perpendicular to their RELATIVE motion, not to one dancer's own
+     * travel. Standing them either side of a line drawn across his path only holds them apart at the
+     * instant he is there; standing them either side of the line they are closing along holds them apart
+     * for the whole approach, which is what a pass IS. It matters most where one of the two is scripted
+     * and dancing a figure of her own — she is not standing still, so a berth measured against his
+     * heading alone decays as she moves. */
+    let rel = _unit((A1.x - A0.x) - (B1.x - B0.x), (A1.y - A0.y) - (B1.y - B0.y));
+    let own = _unit(A1.x - A0.x, A1.y - A0.y);
+    if (!own){ const B = o.base(b, t), A = o.base(a, t); own = _unit(B.x - A.x, B.y - A.y) || { x: 1, y: 0 }; }
+    if (!rel) rel = own;
+    /* ASK THE MOVEMENT, every time. This used to read the side out of the cache of encounters built from
+     * the BASE paths, and default to "left" for anything not in it — so every collision discovered later
+     * in the solve, which is most of them once resolving one pushes another pair together, ignored the
+     * declaration entirely and went left. Sam spotted it from the drawing: two leaders passing on the
+     * left in a figure that declares otherwise. A declared side is worth nothing if only the pairs that
+     * were obvious up front are asked about it. */
+    const nm = passSide(o.roleOf && o.roleOf(a), o.roleOf && o.roleOf(b), o.passes,
+                        o.relation && o.relation(a, b));
+    const ownLeft = { x: own.y, y: -own.x }, relLeft = { x: rel.y, y: -rel.x };
+    /* A RADIAL side names a direction in the formation rather than a hand: 'out' means go round the
+     * outside of them. It is resolved against the centre, not against a heading. */
+    if ((nm === 'out' || nm === 'in') && o.orbit){
+      const P = o.base(a, t);
+      const away = _unit(P.x - o.orbit.x, P.y - o.orbit.y);
+      if (away){
+        const wantR = { x: away.x * (nm === 'out' ? 1 : -1), y: away.y * (nm === 'out' ? 1 : -1) };
+        const al = (relLeft.x * wantR.x + relLeft.y * wantR.y) >= 0 ? +1 : -1;
+        return { x: relLeft.x * al, y: relLeft.y * al };
+      }
+    }
+    const sgn = (nm && PASS_SIGN[nm] !== undefined) ? PASS_SIGN[nm] : +1;
+    /* The AXIS comes from their relative motion, because that is what holds them apart for the whole
+     * approach rather than at one instant. The SIDE still means what Sam defined it to mean — which hand
+     * of MY OWN heading the other dancer goes past — so the axis is flipped, if need be, to agree with
+     * the heading-relative side. */
+    const want = { x: ownLeft.x * sgn, y: ownLeft.y * sgn };
+    const align = (relLeft.x * want.x + relLeft.y * want.y) >= 0 ? +1 : -1;
+    return { x: relLeft.x * align, y: relLeft.y * align };
+  };
+  const centreOfFormation = (() => { if (o.orbit) return o.orbit;
+    let x = 0, y = 0, n = 0;
+    o.ids.forEach(id => { const p = o.base(id, 0.5); x += p.x; y += p.y; n++; });
+    return { x: x / n, y: y / n }; })();
+  /* Resolve one collision: put both dancers a half-corridor either side of the point they would have hit,
+   * along the axis the declared side names. Where one of them cannot move - a scripted dancer is an
+   * immutable obstacle - the traveller alone goes a whole corridor clear of her, since half from one side
+   * clears nothing. */
+  const resolveAt = (a, b, t, k) => {
+    const g = k || 1;
+    const A = at(a, t), B = at(b, t);
+    const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+    const ax = sideVec(a, b, t);
+    const ya = yields2(a), yb = yields2(b);
+    /* Against a dancer who cannot move, the traveller never needs to be more than ONE corridor away at
+     * the moment they meet — going further buys nothing, because she is not coming after him. Growth is
+     * for the case where the closest approach moves after the paths bend, and against an immutable
+     * obstacle the answer to that is a via at the new moment, not a wider berth at the old one. Left
+     * uncapped it sent a leader 210px off his line to clear a woman standing still. */
+    const half = (CLEAR / 2) * g, full = CLEAR * Math.min(g, 1.25);
+    if (ya && yb){
+      /* Each dancer goes to the side THEIR OWN declaration names. Deriving b's side by negating a's
+       * forces the two to be opposite, which is right for a mutual head-on pass and wrong wherever the
+       * movement names the two halves separately — b ends up on the far side of the axis from the one it
+       * was told to take, and the pass is measured on the wrong shoulder even though nobody collides.
+       * Where the two declarations do oppose, this is the same placement as before. */
+      const bx = sideVec(b, a, t);
+      const opposed = (ax.x * bx.x + ax.y * bx.y) < 0;
+      const bDir = opposed ? bx : { x: -ax.x, y: -ax.y };
+      addVia(a, t, { x: C.x + ax.x * half, y: C.y + ax.y * half });
+      addVia(b, t, { x: C.x + bDir.x * half, y: C.y + bDir.y * half });
+    } else if (ya){
+      addVia(a, t, { x: B.x + ax.x * full, y: B.y + ax.y * full });
+    } else if (yb){
+      const bx = sideVec(b, a, t);
+      addVia(b, t, { x: A.x + bx.x * full, y: A.y + bx.y * full });
+    } else return false;
+    return true;
+  };
+  const MAXIT = 60;
+  /* Resolve EVERY collision on each pass, innermost first, then recompute. Taking only the worst one per
+   * pass cannot converge: a pair pinned at its via can still come closest a sample or two later, so the
+   * loop re-picks the same pair forever and never reaches the others. Measured on a Dame from Exhibela at
+   * 4 couples: L0/F0 fixed to 34.83px at t=0.45 against a 35px corridor, re-chosen sixty times, while the
+   * other three couples sat untouched at 0.7px.
+   *
+   * And a pair that is still short after being placed has its radius GROWN. Standing a half-corridor
+   * either side of the point they would have hit is exactly right at that instant, but the moment of
+   * closest approach moves once the paths bend; growing until the measured approach clears is what makes
+   * the placement answer the path rather than the instant. */
+  const GROW_STEP = 1.12, GROW_CAP = 6;
+  const grow = {};
+  const solveVias = () => {
+    Object.keys(vias).forEach(u => { vias[u].length = 0; });
+    let worstGap = Infinity;
     for (let it = 0; it < MAXIT; it++){
       const shorts = [];
-      worst = Infinity;
-      checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1], w);
-        if (r.gap < worst) worst = r.gap;
-        if (r.gap < CLEAR - 0.01) shorts.push({ a: pr[0], b: pr[1], gap: r.gap }); });
-      if (!shorts.length) return { ok: true, worst };
-      let moved = false;
-      shorts.forEach(sh => {
-        // A pair that has come into conflict since the last pass gets an encounter of its own now.
-        const ep = engagePair(sh.a, sh.b, true);
-        if (!ep) return;
-        ep.amp = (ep.amp || 0) + (CLEAR - sh.gap) * RELAX;
-        moved = true;
-      });
-      if (!moved) break;
+      worstGap = Infinity;
+      checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1]);
+        if (r.gap < worstGap) worstGap = r.gap;
+        if (r.gap < CLEAR - 0.01){
+          const A = at(pr[0], r.tc), B = at(pr[1], r.tc);
+          const mid = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+          shorts.push({ a: pr[0], b: pr[1], t: r.tc, gap: r.gap,
+            depth: Math.hypot(mid.x - centreOfFormation.x, mid.y - centreOfFormation.y) }); } });
+      if (!shorts.length) return { ok: true, worst: worstGap };
+      /* Innermost first (Sam): a collision near the middle pushes its dancers outward, which is what makes
+       * the couples further out have to move. Resolve from the centre out, so each outer pair answers the
+       * arrangement it will actually meet rather than one about to change under it. */
+      shorts.sort((x, y) => x.depth - y.depth);
+      let any = false;
+      for (const sh of shorts){
+        const k = PAIRKEY(sh.a, sh.b);
+        /* Grow by how short the pair ACTUALLY is, and only once it has already been placed. Compounding a
+         * fixed factor on every pass — including the first placement — is how a pair that needed 0.17px
+         * more ended up thrown several corridors wide; the correction has to be the size of the error. */
+        grow[k] = (grow[k] || 1) * GROW_STEP;
+        if (grow[k] > GROW_CAP) continue;                // cannot be placed; report rather than thrash
+        if (resolveAt(sh.a, sh.b, sh.t, grow[k])) any = true;
+      }
+      if (!any) return { ok: false, worst: worstGap };
     }
-    return { ok: false, worst };
+    return { ok: false, worst: worstGap };
   };
-  let solved = live.length ? solveAmps(wSolve) : { ok: true, worst: Infinity };
-  let scale = live.length ? 1 : 0;
-  // Balance the split so the two groups feel equally natural: a dancer's naturalness cost rises with its
-  // share, so bisect until the worst cost in each group meets.
-  const groupCost = w => { const c = {};
-    o.ids.forEach(id => { const g = o.group(id);
-      const bl = smpT.map(tt => o.base(id, tt));
-      const pts = smpT.map(tt => at(id, tt, w, scale));
-      const cost = pathNaturalness(pts, null, bl).cost;
-      if (!(g in c) || cost > c[g]) c[g] = cost; });
-    return c; };
-  let share = 0.5;
-  if (fixedShare != null) share = fixedShare;
-  else if (live.length && o.forceShare == null){
-    let lo = 0, hi = 1;
-    for (let it = 0; it < 16; it++){ const m = (lo + hi) / 2; const c = groupCost(m);
-      if ((c[gA] || 0) > (c[gB] || 0)) hi = m; else lo = m; }
-    share = (lo + hi) / 2;
-  } else if (o.forceShare != null) share = o.forceShare;
-  // The corridor total is split-independent ONLY while the two dancers of a pair share a swell shape,
-  // which stops being true when one has OVERLAPPING engagements merged into a wider crest. So if the
-  // balance moved the share, re-solve the amplitude at the share actually used. (Measured: without this,
-  // a rebalanced overlapping crossing sat 0.9px inside the corridor.)
-  if (live.length && Math.abs(share - wSolve) > 1e-9) solved = solveAmps(share);
+  const share = 0.5, scale = 1;
+  const solved = checkPairs.length ? solveVias() : { ok: true, worst: Infinity };
   // POSTCONDITION — say so when the corridor could not be held. The per-encounter solve reports whether
   // it converged; it can fail to, when two encounters demand opposite things of the same dancer at the
   // same moment. Returning that quietly is exactly how two dancers end up sharing a spot with nothing in
@@ -1710,19 +1794,22 @@ function planCrossings(o){
   // judging the intent would condemn an outcome that is right. A parallel pass has no mutual side
   // (PASSING.md), so only head-on ones are judged.
   if (o.roleOf && !NAT_NOEVADE) judged.forEach(L => {
-    const want = PASS_SIGN[passSide(o.roleOf(L.a), o.roleOf(L.b), o.passes)];
+    // WITH the relation. Without it this resolved the role key and judged every pass against a rule the
+    // movement had explicitly overridden — 58 shipped passes reported on the wrong shoulder for going
+    // exactly where they were told. The verification has to ask the same question the placement asked.
+    const want = PASS_SIGN[passSide(o.roleOf(L.a), o.roleOf(L.b), o.passes, o.relation && o.relation(L.a, L.b))];
     if (want === undefined || want === null) return;
     const h = 1 / (2 * NSMP), t = L.tc;
-    const A0 = at(L.a, Math.max(0, t - h), share, scale), A1 = at(L.a, Math.min(1, t + h), share, scale);
+    const A0 = at(L.a, Math.max(0, t - h)), A1 = at(L.a, Math.min(1, t + h));
     const d = _unit(A1.x - A0.x, A1.y - A0.y); if (!d) return;
-    const p = at(L.a, t, share, scale), q = at(L.b, t, share, scale);
+    const p = at(L.a, t), q = at(L.b, t);
     const got = Math.sign(d.x * (q.y - p.y) - d.y * (q.x - p.x));
     if (got !== 0 && got !== want) SIDE_FAULTS.push({ a: L.a, b: L.b, want, got });
   });
-  const worstNow = w => { let m = Infinity;
-    checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1], w); if (r.gap < m) m = r.gap; });
+  const worstNow = () => { let m = Infinity;
+    checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1]); if (r.gap < m) m = r.gap; });
     return m; };
-  const clear = (checkPairs.length && !NAT_NOEVADE) ? worstNow(share) : Infinity;
+  const clear = (checkPairs.length && !NAT_NOEVADE) ? worstNow() : Infinity;
   if (live.length && clear < CLEAR - 0.05){
     PLAN_FAULTS.push({ clear, need: CLEAR, ids: o.ids.slice(), pairs: checkPairs.length });
     if (typeof console !== 'undefined' && console.warn)
@@ -2786,8 +2873,7 @@ function grandeFrames(circleKey, from){
   const xIds = frames[0].map(d => d.id), F1 = frames.length;
   if (F1 > 1){
     const RW = refWheels('grande', m * 2);
-    const track = {}; frames[0].forEach(d => track[d.id] = []);
-    frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
+    const track = {};
     const ringOf = {}, roleOf = {};
     frames[0].forEach(d => { ringOf[d.id] = RW.of(d.station); roleOf[d.id] = d.role; });
     /* Nothing is excluded. Excluding same-ring pairs from the CHECK while still moving those dancers is
@@ -2796,25 +2882,54 @@ function grandeFrames(circleKey, from){
      * exactly on the corridor lets float noise reopen it, is answered elsewhere now: solveScale returns
      * zero when the paths it is given already clear, so a formation with nothing to do gets no offset
      * rather than a tiny one. */
+    /* Sample the path the way it will be DRAWN, not as a polyline. The renderer blends circles through
+     * neighbouring keyframes, so a linear reading of the same keyframes is a different curve — and
+     * planning against the wrong one leaves pairs that clear at every keyframe and cross between them
+     * (measured: 25.8px against a 34px floor, in a figure whose keyframes were all clean). The planner
+     * and the renderer have to be looking at the same path. */
     const sample = (id, t) => { const u = Math.max(0, Math.min(1, t)) * (F1 - 1);
       const i = Math.min(F1 - 2, Math.floor(u)), f = u - i;
-      const A = track[id][i], B = track[id][i + 1];
-      return { x: A.x + (B.x - A.x) * f, y: A.y + (B.y - A.y) * f }; };
+      return samplePath(track[id], i, f); };
     const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
     // The movement's own declarations still apply within a ring; the ring relation is what a pair from
     // DIFFERENT rings is judged on, since they are going round two different wheels and neither the
     // head-on nor the same-direction rule settles it. `refWheels('grande')` numbers inner 0, outer 1.
     const own = declaredPasses(mv, sub.outer) || {};
     const st0 = {}; dancers.forEach(d => st0[d.id] = d.station);
-    const plan = planCrossings({ ids: xIds, base: sample,
-      roleOf: id => roleOf[id],
-      relation: (a, b) => ringOf[a] !== ringOf[b] ? (ringOf[a] > ringOf[b] ? 'outer,inner' : 'inner,outer')
-                        : (st0[a] === st0[b] ? 'partner0' : null),
-      passes: Object.assign({}, own, { 'outer,inner': 'out', 'inner,outer': 'in' }),
-      orbit: { x: CX, y: CY },
-      group: id => roleOf[id], groups: ['L', 'F'],
-      clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
-    if (plan.scale > 0) frames.forEach((fr, i) => fr.forEach(d => { d.xy = plan.at(d.id, i / (F1 - 1)); }));
+    /* Re-plan against what the last pass actually produced. Writing offsets back changes the keyframes,
+     * and the drawn curve through the NEW keyframes is not the one the planner was looking at — a fixed
+     * point, not a single calculation. Two passes settle it; a third is there so "settled" is measured
+     * rather than assumed. Pairs that clear at every keyframe were crossing between them at 25.8px
+     * against a 34px floor until this loop closed. */
+    for (let pass = 0; pass < 3; pass++){
+      frames[0].forEach(d => track[d.id] = []);
+      frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
+      const plan = planCrossings({ ids: xIds, base: sample,
+        roleOf: id => roleOf[id],
+        /* Cross-ring relations name the RING, and the ROLE too where the figure cares. Sam, for a Dame
+         * Grande: "leaders in the outer couples must pass all inner couple dancers, both leaders and
+         * followers, on the right, so that the leader stays on the outside of the wheel." That is a
+         * statement about one role on one ring, which the bare ring rule cannot make. Anything the figure
+         * does not name that finely still falls back to it — outer keeps outside. */
+        relation: (a, b) => {
+          if (ringOf[a] === ringOf[b]) return st0[a] === st0[b] ? 'partner0' : null;
+          const aIsOuter = ringOf[a] > ringOf[b];
+          if (aIsOuter && roleOf[a] === 'L') return 'outerL,inner';
+          if (!aIsOuter && roleOf[b] === 'L') return 'inner,outerL';
+          return aIsOuter ? 'outer,inner' : 'inner,outer';
+        },
+        passes: Object.assign({}, own, {
+          'outerL,inner': 'right', 'inner,outerL': 'right',
+          'outer,inner': 'out', 'inner,outer': 'in' }),
+        orbit: { x: CX, y: CY },
+        group: id => roleOf[id], groups: ['L', 'F'],
+        clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
+      let moved = false;
+      frames.forEach((fr, i) => fr.forEach(d => { const q = plan.at(d.id, i / (F1 - 1));
+        if (Math.hypot(q.x - d.xy.x, q.y - d.xy.y) > 0.01) moved = true;
+        d.xy = q; }));
+      if (!moved) break;
+    }
   }
   const segBeats = inO.segBeats || outO.segBeats || null;
   return segBeats ? { frames, segBeats } : frames;
@@ -2871,10 +2986,14 @@ function pequenaFrames(circleKey, from){
     const sameWheel = [];
     for (let i = 0; i < xIds.length; i++) for (let j = i + 1; j < xIds.length; j++)
       if (wheelOf[xIds[i]] === wheelOf[xIds[j]]) sameWheel.push([xIds[i], xIds[j]]);
+    /* Sample the path the way it will be DRAWN, not as a polyline. The renderer blends circles through
+     * neighbouring keyframes, so a linear reading of the same keyframes is a different curve — and
+     * planning against the wrong one leaves pairs that clear at every keyframe and cross between them
+     * (measured: 25.8px against a 34px floor, in a figure whose keyframes were all clean). The planner
+     * and the renderer have to be looking at the same path. */
     const sample = (id, t) => { const u = Math.max(0, Math.min(1, t)) * (F1 - 1);
       const i = Math.min(F1 - 2, Math.floor(u)), f = u - i;
-      const A = track[id][i], B = track[id][i + 1];
-      return { x: A.x + (B.x - A.x) * f, y: A.y + (B.y - A.y) * f }; };
+      return samplePath(track[id], i, f); };
     const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
     const plan = planCrossings({ ids: xIds, exclude: sameWheel, base: sample,
       roleOf: id => roleOf[id], bonded: (a, b) => wheelOf[a] === wheelOf[b],
