@@ -1360,7 +1360,8 @@ function passSide(roleA, roleB, passes, rel){
  * probe (§33e) with exactly the small-but-real steps it exists to distinguish from noise. */
 function _unit(vx, vy){ const L = Math.hypot(vx, vy); return L < 1e-9 ? null : { x: vx / L, y: vy / L }; }
 const PLAN_FAULTS = [];
-let LAST_SWEEPS = {};      // per-dancer declared winding from the most recent travel
+let LAST_SWEEPS = {};
+let VIA_TRACE = null;      // per-dancer declared winding from the most recent travel
 // Encounters whose intended paths already sit on the opposite shoulder to the one the movement declared.
 // Easing them apart cannot fix that — it drives them further onto the wrong side — so it is reported.
 const SIDE_FAULTS = [];
@@ -1657,23 +1658,37 @@ function planCrossings(o){
    * along the axis the declared side names. Where one of them cannot move - a scripted dancer is an
    * immutable obstacle - the traveller alone goes a whole corridor clear of her, since half from one side
    * clears nothing. */
-  const resolveAt = (a, b, t) => {
+  const resolveAt = (a, b, t, k) => {
+    const g = k || 1;
     const A = at(a, t), B = at(b, t);
     const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
     const ax = sideVec(a, b, t);
     const ya = yields2(a), yb = yields2(b);
+    const half = (CLEAR / 2) * g, full = CLEAR * g;
     if (ya && yb){
-      addVia(a, t, { x: C.x + ax.x * (CLEAR / 2), y: C.y + ax.y * (CLEAR / 2) });
-      addVia(b, t, { x: C.x - ax.x * (CLEAR / 2), y: C.y - ax.y * (CLEAR / 2) });
+      addVia(a, t, { x: C.x + ax.x * half, y: C.y + ax.y * half });
+      addVia(b, t, { x: C.x - ax.x * half, y: C.y - ax.y * half });
     } else if (ya){
-      addVia(a, t, { x: B.x + ax.x * CLEAR, y: B.y + ax.y * CLEAR });
+      addVia(a, t, { x: B.x + ax.x * full, y: B.y + ax.y * full });
     } else if (yb){
       const bx = sideVec(b, a, t);
-      addVia(b, t, { x: A.x + bx.x * CLEAR, y: A.y + bx.y * CLEAR });
+      addVia(b, t, { x: A.x + bx.x * full, y: A.y + bx.y * full });
     } else return false;
     return true;
   };
   const MAXIT = 60;
+  /* Resolve EVERY collision on each pass, innermost first, then recompute. Taking only the worst one per
+   * pass cannot converge: a pair pinned at its via can still come closest a sample or two later, so the
+   * loop re-picks the same pair forever and never reaches the others. Measured on a Dame from Exhibela at
+   * 4 couples: L0/F0 fixed to 34.83px at t=0.45 against a 35px corridor, re-chosen sixty times, while the
+   * other three couples sat untouched at 0.7px.
+   *
+   * And a pair that is still short after being placed has its radius GROWN. Standing a half-corridor
+   * either side of the point they would have hit is exactly right at that instant, but the moment of
+   * closest approach moves once the paths bend; growing until the measured approach clears is what makes
+   * the placement answer the path rather than the instant. */
+  const GROW_STEP = 1.12, GROW_CAP = 6;
+  const grow = {};
   const solveVias = () => {
     o.ids.forEach(id => { vias[id].length = 0; });
     let worstGap = Infinity;
@@ -1692,7 +1707,17 @@ function planCrossings(o){
        * the couples further out have to move. Resolve from the centre out, so each outer pair answers the
        * arrangement it will actually meet rather than one about to change under it. */
       shorts.sort((x, y) => x.depth - y.depth);
-      if (!resolveAt(shorts[0].a, shorts[0].b, shorts[0].t)) return { ok: false, worst: worstGap };
+      let any = false;
+      for (const sh of shorts){
+        const k = PAIRKEY(sh.a, sh.b);
+        /* Grow by how short the pair ACTUALLY is, and only once it has already been placed. Compounding a
+         * fixed factor on every pass — including the first placement — is how a pair that needed 0.17px
+         * more ended up thrown several corridors wide; the correction has to be the size of the error. */
+        grow[k] = (grow[k] || 1) * GROW_STEP;
+        if (grow[k] > GROW_CAP) continue;                // cannot be placed; report rather than thrash
+        if (resolveAt(sh.a, sh.b, sh.t, grow[k])) any = true;
+      }
+      if (!any) return { ok: false, worst: worstGap };
     }
     return { ok: false, worst: worstGap };
   };
