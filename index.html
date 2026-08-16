@@ -2351,11 +2351,12 @@ const PASSES_RUEDA = { 'L,F': 'left', 'F,L': 'left', 'L,L': 'right', 'F,F': 'rig
 const TRAVELS = {
   // A Dame: the leader crosses an ODD number of half-spacings and the follower one the other way, which
   // together advance the pairing a whole couple — and, being odd, always flip the phase.
-  // He passes BEHIND the woman he is leaving. From Casino they separate at once and it never arises; from
-  // Exhibela — which is where a Dame lands after any other figure — he does all the travelling and his
-  // straight line runs within 0.7px of her if he is sent round the front. Same encounter Sam settled for
-  // the Dame from the Dile Que No position, and the same answer.
-  dame:         { groups: ['L', 'F'], passes: Object.assign({}, PASSES_RUEDA, { partner0: 'right' }),
+  /* He passes his current partner on her LEFT, so she goes by over his right shoulder (Sam). NOT behind
+   * her: that is the Dame from the Dile Que No position, where he starts outside the wheel and the short
+   * way past is round the back. Here he is on the ring beside her and the ordinary leader/follower
+   * handedness applies — which is what the rueda default says anyway, stated explicitly because this
+   * pair is a collision the figure has to resolve rather than one it can leave to a convention. */
+  dame:         { groups: ['L', 'F'], passes: Object.assign({}, PASSES_RUEDA, { partner0: 'left' }),
                                       L: { dh: -1, lane: 'cw' },
                                       F: { dh:  1, lane: 'ccw' } },
   dame_dos:     { groups: ['L', 'F'], passes: PASSES_RUEDA, L: { dh: -3, lane: 'cw' },
