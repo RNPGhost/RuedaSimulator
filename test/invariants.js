@@ -1768,21 +1768,23 @@ function run() {
     // rather than by measured sign is what makes this a rule instead of a snapshot.
     const wrongSide = [];
     for (const r of headOn.concat(sameRole.filter(x => x.sa === x.sb))){
-      // A movement's own declaration wins over the convention — that is what declaring one MEANS. The
-      // Dame from the Dile Que No position sends the leader BEHIND his own follower, so she goes by his
-      // left shoulder rather than his right; checking it against the global table condemns a figure that
-      // is doing exactly what it says.
-      const want = T.PASS_SIGN[T.passSide(r.roleA, r.roleB, r.passes, r.rel)];
-      if (want !== undefined && r.sa !== want) wrongSide.push(r);
+      /* A MOVEMENT DECLARES THE COLLISIONS IT HAS, and there is no global authority left to measure it
+       * against. An undeclared pair is not a failure — it is a pair the figure never made a claim about,
+       * and inventing a claim on its behalf is what made this check fight every complex formation. What
+       * is asserted is the thing that matters: where a movement DID name a side, the dancers took it. */
+      const decl = T.passSide(r.roleA, r.roleB, r.passes, r.rel);
+      if (!decl) continue;
+      if (r.sa !== T.PASS_SIGN[decl]) wrongSide.push(r);
     }
     nChecks++; check(wrongSide.length === 0,
-      `§35 ${wrongSide.length} pass(es) on the wrong side of the convention, e.g. ${wrongSide[0] && wrongSide[0].tag}`);
+      `§35 ${wrongSide.length} pass(es) went the opposite way to the side their movement DECLARES, e.g. ${wrongSide[0] && wrongSide[0].tag}`);
     nChecks++; check(sameRole.length > 0,
       '§35 no same-role encounter found — the leaders meeting in a 2-couple mini rueda should be one');
     // Self-test: the convention must be falsifiable. Invert it and every measured pass must disagree.
     {
       let disagree = 0;
-      for (const r of headOn) if (r.sa === -T.PASS_SIGN[T.passSide(r.roleA, r.roleB, r.passes, r.rel)]) disagree++;
+      for (const r of headOn){ const d = T.passSide(r.roleA, r.roleB, r.passes, r.rel);
+        if (d && r.sa === -T.PASS_SIGN[d]) disagree++; }
       nChecks++; check(disagree === 0 && headOn.length > 0,
         `§35 self-test: ${disagree} pass(es) match the INVERTED convention as well — the check is not discriminating`);
     }

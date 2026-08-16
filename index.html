@@ -1312,6 +1312,9 @@ function arcLenPath(pts){
  * one place that correspondence is written as arithmetic, so nothing else rederives it: in screen
  * coordinates (y down) a positive cross(heading, other - self) means the other is on your RIGHT. */
 const PASS_SIGN = { left: +1, right: -1 };     // the side of the OTHER dancer that you travel along
+/* The rueda's role defaults — a NAMED SHORTHAND a movement may adopt, not a rule the engine applies.
+ * They describe one wheel of couples and stop describing anything once a formation has rings, or has no
+ * wheel at all. `PASSES_RUEDA` is where a definition picks them up. */
 const PASS_CONVENTION = {
   'F,L': 'left',      // a leader and an oncoming follower each pass on the other's left,
   'L,F': 'left',      //   so each goes by the other's RIGHT shoulder
@@ -1324,10 +1327,20 @@ const PASS_CONVENTION = {
  * that survives losing the rueda: a figure with no wheel still knows who came in with whom, while
  * "leader vs follower on a circle" stops meaning anything. Roles then conventions, as before, for
  * everything a movement does not name. */
+/* A MOVEMENT DECLARES ITS OWN PASSES. There is no global authority any more.
+ * `PASS_CONVENTION` survives only as a NAMED DEFAULT a definition may spread into its own map
+ * (`PASSES_RUEDA`) — useful shorthand for a figure danced on one wheel, and meaningless for anything
+ * else. Sam: "the number of violations of the convention rule show that it's very outdated and needs to
+ * be gotten rid of, particularly for complex formations. We should rely instead on dealing with
+ * collisions from individual movements and specifying the passing direction for each collision."
+ * That is the roadmap's authoring model arriving early: a movement owns the collisions it actually has.
+ * A pair the movement does not name gets no convention — it falls through to "yield to your own left",
+ * which is what the engine has always done where roles could not resolve one, and which the caller can
+ * always override by naming the pair. */
 function passSide(roleA, roleB, passes, rel){
-  if (passes && rel && passes[rel]) return passes[rel];
-  const key = roleA + ',' + roleB;
-  return (passes && passes[key]) || PASS_CONVENTION[key] || null;
+  if (!passes) return null;
+  if (rel && passes[rel]) return passes[rel];
+  return passes[roleA + ',' + roleB] || null;
 }
 
 // Every solve that could not hold its corridor, in order. Empty is the contract.
