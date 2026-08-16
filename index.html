@@ -26,8 +26,16 @@
   .stage{flex:1 1 auto;min-height:0;background:var(--stage);border:1px solid var(--line);
          border-radius:14px;overflow:hidden;position:relative}
   svg{display:block;width:100%;height:100%}
-  .side{flex:0 0 340px;border-left:1px solid var(--line);background:var(--panel);
+  /* Wider than it was (340px): the panel is now the only home for both lists, and the animation can
+     afford the room — Sam: "give the panel more horizontal room, the animation may shrink to pay for it." */
+  .side{flex:0 0 420px;border-left:1px solid var(--line);background:var(--panel);
         display:flex;flex-direction:column;min-height:0}
+  .tabrow{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+  .tab{background:transparent;border:1px solid transparent;border-radius:8px;padding:5px 12px;
+       font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:var(--chip);border-color:var(--line);color:var(--ink)}
+  .movehint{font-size:11.5px}
   .calls-pin{flex:0 0 auto;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
   .side-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
   @media (orientation:portrait){
@@ -49,7 +57,7 @@
     header{padding:8px 16px}
     .stagewrap{padding:8px 10px;gap:6px}
     .toolbar button{padding:6px 10px}
-    .side{flex-basis:300px}
+    .side{flex-basis:340px}
   }
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .calls{display:flex;flex-wrap:wrap;gap:8px}
@@ -175,28 +183,22 @@
   </main>
 
   <aside class="side">
+    <!-- One panel, two tabs. Calls and Movements are the same kind of thing to a user — a list of things
+         you can fire — so they share a space rather than competing for one, and the tabs replace the two
+         `show` checkboxes that used to do the same job less clearly. -->
     <div class="calls-pin">
-      <div class="sectitle"><span>Calls</span>
-        <span class="secctl" style="margin-left:auto">
-          <label class="ctl"><input type="checkbox" id="callsHideUnavail"> hide unavailable</label>
-          <label class="ctl"><input type="checkbox" id="callsOn" checked> show</label>
-        </span>
+      <div class="tabrow" role="tablist">
+        <button class="tab active" id="tabCalls" role="tab" aria-selected="true">Calls</button>
+        <button class="tab" id="tabMoves" role="tab" aria-selected="false">Movements</button>
+        <label class="ctl" style="margin-left:auto"><input type="checkbox" id="hideUnavail"> Hide Unavailable</label>
       </div>
       <div class="grouped" id="callButtons"></div>
+      <div class="grouped" id="moveButtons" hidden></div>
+      <p class="muted movehint" id="moveHint" hidden style="margin:8px 0 0">Fire one at a time to test — a movement runs to completion and can't be interrupted.</p>
     </div>
 
     <div class="side-scroll">
-      <div class="section" style="margin-top:0">
-        <div class="sectitle"><span>Movements <span class="hint">— fire one at a time to test</span></span>
-          <span class="secctl" style="margin-left:auto">
-            <label class="ctl"><input type="checkbox" id="movesHideUnavail"> hide unavailable</label>
-            <label class="ctl"><input type="checkbox" id="movesOn" checked> show</label>
-          </span>
-        </div>
-        <div class="grouped" id="moveButtons"></div>
-      </div>
-
-      <div class="card">
+      <div class="card" style="margin-top:0">
         <h2>Queue <span class="hint">— called, not yet executed</span></h2>
         <div id="queueList"></div>
       </div>
@@ -204,23 +206,6 @@
       <div class="card">
         <h2>Call log</h2>
         <div id="log"></div>
-      </div>
-
-      <div class="card">
-        <h2>Positions (verification)</h2>
-        <table id="postable"><thead>
-          <tr><th>Station</th><th>Leader</th><th>Follower</th></tr>
-        </thead><tbody></tbody></table>
-        <p class="muted" style="margin:8px 0 0">Each station holds exactly one leader + one follower — they're partners right now.</p>
-      </div>
-
-      <div class="card">
-        <h2>Legend</h2>
-        <div class="legend">
-          <span><span class="dot" style="background:var(--lead)"></span>Leader</span>
-          <span><span class="dot" style="background:var(--follow)"></span>Follower</span>
-        </div>
-        <p class="muted" style="margin:8px 0 0">Number = couple ID (who they started with). The arrow shows the direction each dancer is facing.</p>
       </div>
     </div>
   </aside>
@@ -2736,8 +2721,12 @@ function render(){
   renderTable();
 }
 
+/* The Positions box is gone (Sam) — it was a verification aid from before the suite existed, and the
+ * invariants assert everything it showed, continuously and at every couple count. Kept as a no-op so the
+ * callers that keep the UI in step do not each need to know it went. */
 function renderTable(){
   const tb = document.querySelector('#postable tbody');
+  if (!tb) return;
   tb.innerHTML = '';
   for (let s=0; s<N; s++){
     const L = dancers.find(d=>d.station===s && d.role==='L');
@@ -3234,13 +3223,20 @@ function setMode(m){
 
 /* Panel toggles: show/hide the whole section, and whether unavailable entries grey out (default) or
  * disappear. Hiding is applied per BUTTON and per GROUP, so an empty group takes its heading with it. */
+let panelTab = 'calls';                                  // which list the one panel is showing
 function applyPanelPrefs(){
-  [['callsOn', 'callsHideUnavail', 'callButtons', callBtns],
-   ['movesOn', 'movesHideUnavail', 'moveButtons', moveBtns]].forEach(([onId, hideId, hostId, btns]) => {
-    const on = document.getElementById(onId), hide = document.getElementById(hideId), host = document.getElementById(hostId);
-    if (!host) return;
-    host.classList.toggle('off', !!(on && !on.checked));
-    const hiding = !!(hide && hide.checked);
+  const hiding = !!(document.getElementById('hideUnavail') || {}).checked;
+  const showing = { calls: panelTab === 'calls', moves: panelTab === 'moves' };
+  [['tabCalls', 'calls'], ['tabMoves', 'moves']].forEach(([id, which]) => {
+    const t = document.getElementById(id); if (!t) return;
+    t.classList.toggle('active', showing[which]);
+    t.setAttribute('aria-selected', showing[which] ? 'true' : 'false');
+  });
+  const hint = document.getElementById('moveHint'); if (hint) hint.hidden = !showing.moves;
+  [['callButtons', callBtns, showing.calls], ['moveButtons', moveBtns, showing.moves]].forEach(([hostId, btns, on]) => {
+    const host = document.getElementById(hostId); if (!host) return;
+    host.hidden = !on;
+    // Hiding applies per BUTTON and per GROUP, so an empty group takes its heading with it.
     Object.values(btns || {}).forEach(b => { b.style.display = (hiding && b.disabled) ? 'none' : ''; });
     host.querySelectorAll('.grp').forEach(g => {
       const any = [...g.querySelectorAll('button')].some(b => b.style.display !== 'none');
@@ -3248,6 +3244,7 @@ function applyPanelPrefs(){
     });
   });
 }
+function setPanelTab(which){ panelTab = which; applyPanelPrefs(); }
 
 function updateUI(){
   const idle = !engineActive && !animating && !awaiting;
@@ -3681,9 +3678,11 @@ document.getElementById('modeLive').onclick = () => setMode('live');
 document.getElementById('modeStep').onclick = () => setMode('step');
 document.getElementById('silenceBtn').onclick = takeDefault;
 
-['callsOn','callsHideUnavail','movesOn','movesHideUnavail'].forEach(id => {
-  const el = document.getElementById(id); if (el) el.addEventListener('change', applyPanelPrefs);
-});
+{ const h = document.getElementById('hideUnavail');
+  if (h) h.addEventListener('change', applyPanelPrefs);
+  const tc = document.getElementById('tabCalls'), tm = document.getElementById('tabMoves');
+  if (tc) tc.onclick = () => setPanelTab('calls');
+  if (tm) tm.onclick = () => setPanelTab('moves'); }
 buildButtons();
 reset();
 requestAnimationFrame(metronome);
