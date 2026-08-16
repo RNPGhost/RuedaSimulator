@@ -1599,7 +1599,12 @@ function planCrossings(o){
    * Between vias the path returns smoothly to its intended line: each via contributes a displacement that
    * is full at its own moment and fades to nothing at the neighbouring vias and at both ends, so landings
    * stay exact and a dancer with two encounters deals with them one after the other. */
-  const vias = {}; o.ids.forEach(id => vias[id] = []);
+  /* Vias belong to a UNIT, and hold a DISPLACEMENT rather than a position. A bonded couple is one free
+   * variable — both partners take the same sidestep so the pair moves as a body instead of being sheared
+   * — and a position can only ever describe one of them. Measured when this was per dancer: a couple
+   * travelling to Línea was stretched by 32.02px, which is a couple pulled apart rather than moved. */
+  const members = {}; o.ids.forEach(id => { const u = unit(id); (members[u] = members[u] || []).push(id); });
+  const vias = {}; Object.keys(members).forEach(u => vias[u] = []);
   const ss3 = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
   const viaWeight = (list, i, t) => {
     const ti = list[i].t;
@@ -1609,13 +1614,12 @@ function planCrossings(o){
                    : ss3((hi - t) / Math.max(1e-6, hi - ti));
   };
   const at = (id, t) => {
-    const p = o.base(id, t), vs = vias[id];
+    const p = o.base(id, t), vs = vias[unit(id)];
     if (NAT_NOEVADE || !vs.length) return p;
     let x = p.x, y = p.y;
     for (let i = 0; i < vs.length; i++){
       const w = viaWeight(vs, i, t); if (!w) continue;
-      const b = o.base(id, vs[i].t);
-      x += (vs[i].P.x - b.x) * w; y += (vs[i].P.y - b.y) * w;
+      x += vs[i].d.x * w; y += vs[i].d.y * w;
     }
     const q = { x, y };
     if (!o.orbit) return q;
@@ -1623,10 +1627,14 @@ function planCrossings(o){
     if (r >= RFLOOR || r < 1e-9) return q;
     return { x: o.orbit.x + dx / r * RFLOOR, y: o.orbit.y + dy / r * RFLOOR };
   };
+  // `P` is where THIS dancer should be at `t`; what is stored is the displacement that puts them there,
+  // which every member of their unit then shares.
   const addVia = (id, t, P) => {
-    const vs = vias[id];
-    for (const v of vs) if (Math.abs(v.t - t) < 0.06){ v.P = P; return; }
-    vs.push({ t, P }); vs.sort((u, v) => u.t - v.t);
+    const b = o.base(id, t);
+    const d = { x: P.x - b.x, y: P.y - b.y };
+    const vs = vias[unit(id)];
+    for (const v of vs) if (Math.abs(v.t - t) < 0.06){ v.d = d; return; }
+    vs.push({ t, d }); vs.sort((u, v) => u.t - v.t);
   };
   const pairClosest = (a, b) => { let m = Infinity, tc = 0.5;
     for (let s = 0; s < NSMP; s++){ const t = smpT[s];
@@ -1640,8 +1648,16 @@ function planCrossings(o){
    * to whichever hand the movement declared. This is where a declared side becomes geometry. */
   const sideVec = (a, b, t) => {
     const h = 1 / (2 * NSMP);
-    const A0 = o.base(a, Math.max(0, t - h)), A1 = o.base(a, Math.min(1, t + h));
-    let d = _unit(A1.x - A0.x, A1.y - A0.y);
+    const A0 = at(a, Math.max(0, t - h)), A1 = at(a, Math.min(1, t + h));
+    const B0 = at(b, Math.max(0, t - h)), B1 = at(b, Math.min(1, t + h));
+    /* The axis they separate along is perpendicular to their RELATIVE motion, not to one dancer's own
+     * travel. Standing them either side of a line drawn across his path only holds them apart at the
+     * instant he is there; standing them either side of the line they are closing along holds them apart
+     * for the whole approach, which is what a pass IS. It matters most where one of the two is scripted
+     * and dancing a figure of her own — she is not standing still, so a berth measured against his
+     * heading alone decays as she moves. */
+    let d = _unit((A1.x - A0.x) - (B1.x - B0.x), (A1.y - A0.y) - (B1.y - B0.y));
+    if (!d) d = _unit(A1.x - A0.x, A1.y - A0.y);
     if (!d){ const B = o.base(b, t), A = o.base(a, t); d = _unit(B.x - A.x, B.y - A.y) || { x: 1, y: 0 }; }
     const left = { x: d.y, y: -d.x };
     let sgn = +1;
@@ -1664,7 +1680,12 @@ function planCrossings(o){
     const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
     const ax = sideVec(a, b, t);
     const ya = yields2(a), yb = yields2(b);
-    const half = (CLEAR / 2) * g, full = CLEAR * g;
+    /* Against a dancer who cannot move, the traveller never needs to be more than ONE corridor away at
+     * the moment they meet — going further buys nothing, because she is not coming after him. Growth is
+     * for the case where the closest approach moves after the paths bend, and against an immutable
+     * obstacle the answer to that is a via at the new moment, not a wider berth at the old one. Left
+     * uncapped it sent a leader 210px off his line to clear a woman standing still. */
+    const half = (CLEAR / 2) * g, full = CLEAR * Math.min(g, 1.25);
     if (ya && yb){
       addVia(a, t, { x: C.x + ax.x * half, y: C.y + ax.y * half });
       addVia(b, t, { x: C.x - ax.x * half, y: C.y - ax.y * half });
@@ -1690,7 +1711,7 @@ function planCrossings(o){
   const GROW_STEP = 1.12, GROW_CAP = 6;
   const grow = {};
   const solveVias = () => {
-    o.ids.forEach(id => { vias[id].length = 0; });
+    Object.keys(vias).forEach(u => { vias[u].length = 0; });
     let worstGap = Infinity;
     for (let it = 0; it < MAXIT; it++){
       const shorts = [];
