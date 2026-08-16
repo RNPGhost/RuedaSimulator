@@ -1330,6 +1330,7 @@ function passSide(roleA, roleB, passes){
  * probe (§33e) with exactly the small-but-real steps it exists to distinguish from noise. */
 function _unit(vx, vy){ const L = Math.hypot(vx, vy); return L < 1e-9 ? null : { x: vx / L, y: vy / L }; }
 const PLAN_FAULTS = [];
+let LAST_SWEEPS = {};      // per-dancer declared winding from the most recent travel
 // Encounters whose intended paths already sit on the opposite shoulder to the one the movement declared.
 // Easing them apart cannot fix that — it drives them further onto the wrong side — so it is reported.
 const SIDE_FAULTS = [];
@@ -1638,6 +1639,9 @@ function playTravel(ds, N, o){
    * midpoint, so the smallest radius at which they clear each other is fixed by how many of them there
    * are: a chord of 2ρ·sin(π/n) must hold the corridor. That IS Sam's "the radius grows until it's just
    * big enough", solved in closed form rather than searched for. */
+  // What each traveller's progression DECLARES it must turn about the midpoint. Recorded rather than
+  // re-derived so the suite asks the engine the same question the engine answered (§26).
+  LAST_SWEEPS = {}; ds.forEach(d => { if (kin[d.id]) LAST_SWEEPS[d.id] = kin[d.id].sw; });
   const looping = ds.filter(d => kin[d.id] && Math.abs(kin[d.id].sw) >= Math.PI - 1e-9);
   const nLoop = Math.max(2, looping.length);
   // Sized on the ENGAGEMENT distance, not the bare corridor: dancers going round the midpoint together

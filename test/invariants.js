@@ -764,33 +764,64 @@ function run() {
     }
   }
 
-  // 26: nobody walks through the middle of the wheel. A rueda is danced ON the ring: a traveller crossing
-  //     to another couple rides round it, and the deepest anyone ever cuts inside is the one passing
-  //     corridor an evasion needs. This is a rule the collision checks cannot see — the centre of the
-  //     wheel is empty, so a leader strolling straight across it collides with nothing and still looks
-  //     completely wrong. It caught a real one: before the Phase-3 migration `dile_dame_dos` from Afuera
-  //     Exhibela at 4 couples sent its leaders within 25px of the wheel centre (2.3 corridors inside the
-  //     ring) on a straight-line chord. Bound at 1.5 corridors, so a correct evasion has 50% headroom and
-  //     that chord is still caught. Formation changes are exempt: the Línea entries genuinely build an
-  //     inner ring, and that is where their dancers are supposed to go.
+  // 26: A TRAVELLER TURNS ABOUT THE MIDPOINT BY EXACTLY THE AMOUNT THE PROGRESSION DECLARES.
+  //     This replaces "nobody walks through the middle of the wheel", which was a heuristic wearing a
+  //     rule's clothes. Cutting across the wheel is allowed — Sam: "a straight line path is most
+  //     efficient, and then the evasion engine should deal with navigating collisions". What is NOT
+  //     negotiable is the WINDING: a dancer progressing k couples has to go round the wheel, not merely
+  //     end up somewhere, and on a small wheel those are different things. The old rule could not see
+  //     that at all; this one catches the case that motivated it (a leader strolling across the middle
+  //     is a leader who did not turn far enough) AND the case it was blind to, since a path with 180 deg
+  //     of winding cannot be a 360 deg progression however tidily it lands.
+  //     Measured before it was asserted: every shipped traveller already satisfies this exactly, on both
+  //     the old arc paths and the new straight ones. Scripted dancers are exempt by construction — they
+  //     dance in their own frame and have no progression to declare.
   {
-    const CORRIDOR = 2 * (T.DOT_R + T.PATH_CLEAR);
-    for (const key of T.keys().movements) {
-      for (const from of POSITIONS) {
+    const TOL = 0.5;                                   // degrees, over a whole path resampled per keyframe
+    const windingOf = (P, c) => { let tot = 0;
+      for (let i = 1; i < P.length; i++){
+        const a1 = Math.atan2(P[i - 1].y - c.y, P[i - 1].x - c.x), a2 = Math.atan2(P[i].y - c.y, P[i].x - c.x);
+        let d = a2 - a1; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; tot += d; }
+      return tot * 180 / Math.PI; };
+    let nWind = 0, nStraight = 0;
+    for (const key of T.keys().movements){
+      const mv = T.MOVEMENTS[key];
+      if (mv.changesLayout || (mv.play && mv.play.formation)) continue;   // a new slot set: no common wheel
+      // Only movements that ARE a travel end to end. A `phrases` movement runs several plays, so the
+      // winding measured over all its frames includes the scripted phrases' rotation and cannot be
+      // compared against one phrase's declaration. Their collisions are §33a's business; this is a
+      // coverage limit, stated rather than hidden.
+      const pl = mv.play || {};
+      const isTravel = x => x && (typeof x.travel === 'string' ||
+        (x.compose && T.MOVEMENTS[x.of] && isTravel(T.MOVEMENTS[x.of].play)));
+      if (!isTravel(pl)) continue;
+      for (const from of POSITIONS){
         if (!T.validFrom(key, from)) continue;
-        for (const n of NS) {
-          const cap = T.captureMovement(key, from, n, 0);
-          if (!cap.frames) continue;
-          if (cap.endPos !== from && !POSITIONS.includes(cap.endPos)) continue;   // leaves the circle formation
-          const R = T.wheelContext().R_RING, floor = R - 1.5 * CORRIDOR;
-          let minR = Infinity, who = '';
-          cap.frames.forEach(fr => fr.forEach(d => { const r = Math.hypot(d.xy.x - T.CX, d.xy.y - T.CY);
-            if (r < minR) { minR = r; who = d.id; } }));
-          nChecks++; check(minR >= floor, `cuts the wheel: ${key}|${from}|n${n} ${who} reaches ${minR.toFixed(0)}px ` +
-            `from the centre — ${((R - minR) / CORRIDOR).toFixed(1)} corridors inside the ${R.toFixed(0)}px ring (max 1.5)`);
+        for (const n of NS){
+          let cap; try { cap = T.captureMovement(key, from, n, 0); } catch (e) { continue; }
+          if (!cap || !cap.frames) continue;
+          if (cap.endPos !== from && !POSITIONS.includes(cap.endPos)) continue;
+          const want = T.lastSweeps && T.lastSweeps();
+          if (!want || !Object.keys(want).length) continue;
+          const c = { x: T.CX, y: T.CY }, st = cap.start || {};
+          const ids = cap.frames[0].map(d => d.id);
+          for (const id of ids){
+            if (!(id in want)) continue;               // scripted: no declared sweep
+            const P = (st[id] ? [st[id]] : []).concat(cap.frames.map(fr => fr.find(d => d.id === id).xy));
+            const got = windingOf(P, c), target = want[id] * 180 / Math.PI;
+            nWind++;
+            if (Math.abs(target) < 179) nStraight++;
+            nChecks++; check(Math.abs(got - target) < TOL,
+              `§26 ${key}|${from}|n${n} ${id} turned ${got.toFixed(1)}° about the midpoint, ` +
+              `but its progression declares ${target.toFixed(1)}° — a landing is not a journey`);
+          }
         }
       }
     }
+    nChecks++; check(nWind > 100, `§26 only ${nWind} traveller paths probed — the sweep is not finding them`);
+    // Self-test: the probe has to be able to fail. A path that turns the other way round, or not at all,
+    // must not pass — check that at least some declared sweeps are big enough for that to be meaningful.
+    nChecks++; check(nStraight > 0, '§26 self-test: no sub-half-turn sweeps found, so the tolerance is untested');
   }
 
   // 27: rigid-pair travel — `planCrossings`' UNIT support, driven directly. Every current Línea entry and

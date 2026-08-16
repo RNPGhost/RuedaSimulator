@@ -188,6 +188,8 @@ function load(htmlPath) {
       // Which wheel a figure is danced on — the reference a progression is counted against. Asked of the
       // engine rather than re-derived here: a re-derivation is a second opinion waiting to disagree.
       refWheels, composeKind,
+      // The winding each traveller's progression declared, from the most recent travel the engine ran.
+      lastSweeps(){ return Object.assign({}, LAST_SWEEPS); },
       // Run a TRAVEL definition straight from data, as if it had come out of a file.
       playTravelFrom(def, from, n, ph, opts){ setupRest(from, n, ph);
         return playTravel(dancers, n, resolveTravel(def, dancers, Object.assign({ phaseBefore: ph }, opts || {}))); },
