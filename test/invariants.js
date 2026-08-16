@@ -1809,7 +1809,8 @@ function run() {
     {
       const path = { P: straight({ x: 0, y: 0 }, { x: 200, y: 0 }), Q: straight({ x: 200, y: 6 }, { x: 0, y: 6 }) };
       const plan = T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
-        roleOf: () => 'L', group: id => id, groups: ['P', 'Q'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+        roleOf: () => 'L', passes: { 'L,L': 'right' },
+        group: id => id, groups: ['P', 'Q'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
       let worst = Infinity;
       for (let s = 0; s <= SMP; s++){ const t = s / SMP, a = plan.at('P', t), b = plan.at('Q', t);
         worst = Math.min(worst, Math.hypot(a.x - b.x, a.y - b.y)); }
@@ -1822,8 +1823,10 @@ function run() {
       const ha = { x: plan.at('P', k / SMP + h).x - plan.at('P', k / SMP - h).x,
                    y: plan.at('P', k / SMP + h).y - plan.at('P', k / SMP - h).y };
       const side = Math.sign(ha.x * (pb.y - pa.y) - ha.y * (pb.x - pa.x));
-      nChecks++; check(side === T.PASS_SIGN[T.PASS_CONVENTION['L,L']],
-        `§36a the leaders passed on the wrong side (${side}, wanted ${T.PASS_SIGN[T.PASS_CONVENTION['L,L']]})`);
+      // …and on the side the CASE DECLARES. There is no global convention to appeal to any more; the
+      // point of the check is that a declared side is honoured, which is stronger than it was.
+      nChecks++; check(side === T.PASS_SIGN['right'],
+        `§36a the leaders passed on the wrong side (${side}, wanted ${T.PASS_SIGN['right']})`);
     }
 
     // 36b: ONE DANCER, TWO PASSES, OPPOSITE SIDES. A leader crossing a follower and then another leader
@@ -1836,7 +1839,10 @@ function run() {
       const role = { X: 'L', A: 'F', B: 'L' };
       T.clearFaults();
       const plan = T.planCrossings({ ids: ['X', 'A', 'B'], base: (id, t) => path[id](t),
-        roleOf: id => role[id], group: id => (id === 'X' ? 'X' : 'Y'), groups: ['X', 'Y'],
+        // X meets a follower and a leader, and the case exists to prove it can go opposite ways for the
+        // two. Declared explicitly now that nothing is inherited — which is the mechanism under test.
+        roleOf: id => role[id], passes: { 'L,F': 'left', 'F,L': 'left', 'L,L': 'right' },
+        group: id => (id === 'X' ? 'X' : 'Y'), groups: ['X', 'Y'],
         clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
       let lo = 0, hi = 0;
       for (let s = 0; s <= SMP; s++){ const t = s / SMP;
@@ -1865,7 +1871,8 @@ function run() {
       // movement asks for the right. That is a figure the engine cannot dance as written.
       const path = { P: straight({ x: 0, y: 0 }, { x: 200, y: 0 }), Q: straight({ x: 200, y: 45 }, { x: 0, y: 45 }) };
       T.planCrossings({ ids: ['P', 'Q'], base: (id, t) => path[id](t),
-        roleOf: () => 'L', group: id => id, groups: ['P', 'Q'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
+        roleOf: () => 'L', passes: { 'L,L': 'right' },
+        group: id => id, groups: ['P', 'Q'], clearance: CLEAR, engage: CLEAR + 1.4 * T.DOT_R });
       nChecks++; check(T.SIDE_FAULTS.length > 0,
         '§36c a pass declared on the shoulder opposite to the intended paths was accepted in silence');
       T.clearSideFaults();

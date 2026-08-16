@@ -472,8 +472,15 @@ const MOVEMENTS = {
   const KEYS = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'dame', 'dame_dos', 'dile'];
   for (const key of KEYS){
     const m = MOVEMENTS[key];
+    /* A Dame Dos progresses TWO couples, and each Linea ring holds only half the wheel. On a ring of two
+     * that is the whole ring — the same discovery as Dame Dos Pequena, one level up — and on a ring of
+     * three it is a near-antipodal swap that the ring has no room for: measured, leaders close to 3.1px
+     * at 4 couples and 15.8px at 6, against a 34px floor, with the collisions unresolvable by any side.
+     * So the grande form needs four couples per ring, i.e. eight in the wheel. Sam's call, and it is a
+     * geometric limit rather than a preference: the figure does not fit. */
+    const grandeMin = (key === 'dame_dos') ? 8 : m.minCouples;
     MOVEMENTS[key + '_grande'] = {
-      label: m.label + ' Grande', linea: true,
+      label: m.label + ' Grande', linea: true, minCouples: grandeMin,
       requires: m.requires.filter(v => gMap(v) !== v).map(gMap), sets: mapSets(m.sets, gMap, gUn),
       progresses: m.progresses, flipsPhase: m.flipsPhase,
       beats: mapBeats(m.beats, gUn), anim: m.anim,
