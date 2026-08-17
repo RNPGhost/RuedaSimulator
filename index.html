@@ -2874,6 +2874,12 @@ const eneOuterL = dh => ({ dh, ring: 'inner', lane: 'ccw' });
  * ruling — this is the value that clears, not a value anyone chose. */
 const ENE_PASSES_ACW = Object.assign({}, PASSES_RUEDA, {
   partner0: 'right', wheel0: 'right',
+  /* SAM'S RULING IS 'left' FOR partner1 — "they pass on the left of the follower they end up with" —
+   * and it is PARKED, not overruled. Applied today it closes the arrivals to 13.8px at four couples and
+   * 27.4px at six; measured against the current planner, whose failure modes Sam has called out and
+   * which is being rebuilt (see PATHING_V2.md). The ruling is recorded here so it is applied the moment
+   * the new planner lands, and 'right' is the value that clears in the meantime. Dame Eñe as a whole is
+   * marked to revisit then. */
   partner1: 'right', wheel1: 'right',
   /* …except the man stepping OUT of the slot he is arriving at. Sam: they meet at the very end of one
    * journey and the very start of the other, "so they should not actually collide … for completeness,
