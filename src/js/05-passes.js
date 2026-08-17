@@ -96,9 +96,20 @@ function buildSideBook(o){
   const book = {
     lookup(a, b){
       const rel = relOf && relOf(a, b);
-      if (declared && rel && declared[rel]) return { side: declared[rel], source: 'declared', key: rel };
       const rk = (roleOf ? roleOf(a) : null) + ',' + (roleOf ? roleOf(b) : null);
+      /* A RELATION MAY BE QUALIFIED BY THE ROLES IN IT, and that key wins over the bare relation. A
+       * relation that names a GROUP — `wheel0`, `wheel1` — covers four dancers of two roles, and a figure
+       * can want different sides for the two. Sam, on Dame Eñe: "outer leaders pass on the right of all
+       * the dancers in their starting mini wheel" AND "outer leaders pass on the right of the other outer
+       * leaders" — the second is about the wheel he is arriving INTO, where everyone else is 'left'. With
+       * only a bare `wheel1` there is no way to say it: the relation beats the role key, so `'L,L'` never
+       * gets a hearing. `'wheel1:L,L'` is that sentence, and it is strictly more specific than `wheel1`,
+       * which is why it is tried first rather than being another thing with an opinion. */
+      const qk = rel ? rel + ':' + rk : null;
+      if (declared && qk && declared[qk]) return { side: declared[qk], source: 'declared', key: qk };
+      if (declared && rel && declared[rel]) return { side: declared[rel], source: 'declared', key: rel };
       if (declared && declared[rk]) return { side: declared[rk], source: 'declared', key: rk };
+      if (formation && qk && formation[qk]) return { side: formation[qk], source: 'formation', key: qk };
       if (formation && rel && formation[rel]) return { side: formation[rel], source: 'formation', key: rel };
       if (formation && formation[rk]) return { side: formation[rk], source: 'formation', key: rk };
       /* NOT SILENT. Same behaviour the engine has always had where nothing resolved — everyone yields to

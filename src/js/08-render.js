@@ -139,7 +139,7 @@ const validFrom = (key, p) => {
 // figure that closes into a Dile Que No should END on beat 8 (so the Dile lands on beat 1), i.e. start
 // on beat 9 − its beat count (Dame from Casino = 2 beats → 7; a 4-beat Dame/Dame Grande/Pequeña → 5).
 // Everything else starts on 1.
-const DAME_KEYS = new Set(['dame', 'dame_dos', 'dame_grande', 'dame_peq', 'dame_pequena', 'dame_linea']);
+const DAME_KEYS = new Set(['dame', 'dame_dos', 'dame_grande', 'dame_peq', 'dame_pequena', 'dame_linea', 'dame_ene']);
 function startBeatOf(key, from){
   if (DAME_KEYS.has(key)){ const mv = MOVEMENTS[key];
     const beats = typeof mv.beats === 'function' ? mv.beats(from) : (mv.beats || 4);

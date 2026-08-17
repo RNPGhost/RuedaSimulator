@@ -354,6 +354,48 @@ const MOVEMENTS = {
     beats: 8,
     play: { formation: 'circle', turn: 'cw' }
   },
+  /* DAME EÑE — the first figure in which a dancer LEAVES HIS MINI-WHEEL.
+   *
+   * Sam: "3 of the dancers in each mini wheel (both inner dancers and the outer follower) do exactly what
+   * they would do from that same position if they were doing a Dame Pequeña movement. The only dancer
+   * whose movement differs is the outside leader … If they start in LM Casino position, they change slots
+   * into the inner couple slot of the mini wheel one wheel anti-clockwise from their starting mini wheel.
+   * If they start in LM Exhibela position, they change slots into the inner couple slot of the mini wheel
+   * one wheel clockwise of their starting wheel."
+   *
+   * NOT COMPOSED, and that is the point of it. `compose: 'pequena'` runs a figure inside each mini-wheel's
+   * own context, where a landing in the wheel NEXT DOOR cannot even be addressed — the two-couple wheel's
+   * place vocabulary has no word for it. So this is a top-level Línea travel, which is what the group
+   * selectors, the `ring` in a landing and the per-dancer winding centre were all built to allow. It is
+   * the acceptance test for that work as much as it is a figure.
+   *
+   * Every dancer's clause is SLOTS ONLY — see the note at the travels. Measured, from LM Exhibela:
+   * intended paths 1.00x their straight line at 4, 6 and 8 couples; planned 1.11x / 1.02x / 1.00x with
+   * every pair clear of the corridor. */
+  dame_ene: {
+    label: 'Dame Eñe', linea: true,
+    desc: 'From Rueda Línea Moderna: every mini 2-couple wheel dances what looks like a Dame Pequeña — the inner leader crosses straight out to the outer slot of his own wheel and the followers stay on their spokes — except the OUTER LEADER leaves the wheel entirely, crossing to the inner couple slot of the mini wheel next door: one wheel anti-clockwise from LM Casino and from the LM Dile Que No position, one wheel clockwise from LM Exhibela. Every slot is filled exactly once, the spoke config does not change, and everyone ends in LM Exhibela ready for a Dile Que No. From the Dile Que No position the followers dance their ¾ circle back to their own spot, as they do in every Dame from there.',
+    requires: ['linea', 'linea_ex', 'linea_dile'], sets: 'linea_ex', progresses: 1, interrupt: true,
+    beats: 4,
+    anim: { speed: 0.10, rotSpeed: 0.42 },
+    play: { byFrom: {
+      /* The followers' figures are danced ON THEIR OWN MINI-WHEEL (`about: 'ownWheel'`) while the outer
+       * leader's journey is planned across the whole formation — one movement holding two centres at
+       * once, which is the thing no figure before this needed. */
+      linea:    { travel: 'dame_ene_acw',
+                  script: { F: { kind: 'to_lane', lane: 'ccw', bow: { side: 'right', amp: 'justMiss' }, about: 'ownWheel' } },
+                  opts: { steps: 16, settle: 0.3, beats: 4 } },
+      linea_ex: { travel: 'dame_ene_exhibela',
+                  script: { F: { kind: 'to_lane', lane: 'ccw', bow: { side: 'right', amp: 'justMiss' }, about: 'ownWheel' } },
+                  opts: { steps: 16, settle: 0.3, beats: 4 } },
+      // From the Dile Que No position she dances the ¾ circle back to the spot she started the movement
+      // on — the same close every Dame from there already uses, on her own mini-wheel.
+      linea_dile: { travel: 'dame_ene_acw',
+                    script: { F: { kind: 'three_quarter_circle', lane: 'ccw', about: 'ownWheel' } },
+                    opts: { steps: 32, settle: 0.28, beats: 4 },
+                    face: { L: 'partner', F: { from: 'travel', to: 'partnerEnd', after: 0.75, freeze: true } } },
+    } }
+  },
   adios_linea: {
     label: 'Adios Línea',
     desc: 'The same entry into Rueda Línea Moderna as Línea Moderna — primeros in to the inner ring one spoke clockwise, segundos straight out to the outer ring — but the primeros sweep CLOCKWISE the long way round into their new orientation instead of taking the tight anti-clockwise turn, which gives the figure its Adios-like character. Requires an even number of couples.',
@@ -707,6 +749,17 @@ const CALLS = {
   adios_hermana_pequena: { label: 'Adios con la Hermana Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'dame_peq'] },
   la_familia_grande:  { label: 'La Familia Grande',  lm: true, desc: 'Línea (grande): Adios, Leader’s Enchufla, Enchufla, Adios, Adios, Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'adios', 'adios', 'dame_grande'] },
   la_familia_pequena: { label: 'La Familia Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'adios', 'adios', 'dame_peq'] },
+  /* DAME EÑE, AND THE INTERRUPT IT ALREADY IS. Sam asked for three things: the call from LM Casino, an
+   * Enchufla Eñe, and "Dame Eñe as an interruption call, which replaces the final default Dile Que No in
+   * the current call chain with a Dile Que No (4) movement followed by a Dame Eñe movement from LM Dile
+   * Que No position". The third is not a third call — it is what THIS call already does, because which
+   * calls may take a pending Dile Que No's place is derived rather than listed: `canInterruptDile` asks
+   * whether `['dile4', …seq]` is danceable from the position that Dile Que No would have been danced
+   * from, and `dame_ene` requires `linea_dile`, which is exactly what `dile4` lands in. Writing it out
+   * separately would mint a second word for a call the caller already has — the Mujeres Arriba Grande
+   * mistake, one figure along. */
+  dame_ene:     { label: 'Dame Eñe',     lm: true, desc: 'Línea: every mini 2-couple wheel dances what looks like a Dame Pequeña, except each OUTER LEADER leaves for the wheel next door — anti-clockwise from LM Casino, clockwise from LM Exhibela — taking its inner couple slot. Then a Dile Que No. Shouted over a Dile Que No that has nothing queued behind it, it takes its place: a 4-beat Dile Que No into the Línea Dile Que No position, then Dame Eñe from there.', from: ['linea'], seq: ['dame_ene'] },
+  enchufla_ene: { label: 'Enchufla Eñe', lm: true, desc: 'Línea: an Enchufla on the spot, then Dame Eñe from the LM Exhibela it lands in — each outer leader crossing to the mini wheel one clockwise — then a Dile Que No.', from: ['linea'], seq: ['enchufla', 'dame_ene'] },
   // Non-progressing figure → a single Línea call (danced on the whole rings).
   setenta_lm: { label: 'Setenta (Línea)', lm: true, desc: 'Línea: Vacilala, Adios, Enchufla, Leader’s Enchufla, Enchufla on both rings — no partner change — then a Dile Que No Grande.', from: ['linea'], seq: ['vacilala', 'adios', 'enchufla', 'leaders_enchufla', 'enchufla'] }
 };
@@ -1579,9 +1632,20 @@ function buildSideBook(o){
   const book = {
     lookup(a, b){
       const rel = relOf && relOf(a, b);
-      if (declared && rel && declared[rel]) return { side: declared[rel], source: 'declared', key: rel };
       const rk = (roleOf ? roleOf(a) : null) + ',' + (roleOf ? roleOf(b) : null);
+      /* A RELATION MAY BE QUALIFIED BY THE ROLES IN IT, and that key wins over the bare relation. A
+       * relation that names a GROUP — `wheel0`, `wheel1` — covers four dancers of two roles, and a figure
+       * can want different sides for the two. Sam, on Dame Eñe: "outer leaders pass on the right of all
+       * the dancers in their starting mini wheel" AND "outer leaders pass on the right of the other outer
+       * leaders" — the second is about the wheel he is arriving INTO, where everyone else is 'left'. With
+       * only a bare `wheel1` there is no way to say it: the relation beats the role key, so `'L,L'` never
+       * gets a hearing. `'wheel1:L,L'` is that sentence, and it is strictly more specific than `wheel1`,
+       * which is why it is tried first rather than being another thing with an opinion. */
+      const qk = rel ? rel + ':' + rk : null;
+      if (declared && qk && declared[qk]) return { side: declared[qk], source: 'declared', key: qk };
+      if (declared && rel && declared[rel]) return { side: declared[rel], source: 'declared', key: rel };
       if (declared && declared[rk]) return { side: declared[rk], source: 'declared', key: rk };
+      if (formation && qk && formation[qk]) return { side: formation[qk], source: 'formation', key: qk };
       if (formation && rel && formation[rel]) return { side: formation[rel], source: 'formation', key: rel };
       if (formation && formation[rk]) return { side: formation[rk], source: 'formation', key: rk };
       /* NOT SILENT. Same behaviour the engine has always had where nothing resolved — everyone yields to
@@ -2291,6 +2355,15 @@ function playTravel(ds, N, o){
   // gathering cannot be pushed apart at the moment it matters.
   const gathering = ids.filter(a => newPartner[a] && startStation[a] !== startStation[newPartner[a]])
     .map(a => [a, newPartner[a]]);
+  /* Which sub-wheel a station belongs to, or null where the formation has none. The partition itself is
+   * the formation's (`refWheels`), not restated here — this is only the guard that keeps `wheel0` and
+   * `wheel1` silent on a plain circle, where every station is on the one wheel and the relation would
+   * mean "everybody", which is not a relation at all. */
+  const wheelOfStation = (st) => {
+    if (st === undefined || !F.miniCenter) return null;
+    const spokes = N / 2;
+    return ((st % spokes) + spokes) % spokes;
+  };
   const plan = planCrossings({ ids, gathering, base: baseAt,
     // Every traveller here rides a polar arc about the wheel it is dancing on, so that wheel's centre is
     // the point their paths go round — the one thing an evasion must not carry them across.
@@ -2305,8 +2378,24 @@ function playTravel(ds, N, o){
      * of the partner he was walking to and cost him 68px of detour to get round her.
      * `partner0` first: two dancers who both started AND ended together are being described as the pair
      * the figure held onto, which is the more specific statement. */
+    /* …AND WHICH SUB-WHEEL THEY BELONG TO, once a formation has them. A cross-wheel figure's sides are
+     * not naturally stated per dancer at all — Sam states them per WHEEL: "outer leaders pass on the
+     * right of all the dancers in their starting mini wheel", and the crossing with the inner leader
+     * vacating his destination "should not actually collide. If they do, they pass on the left."
+     *
+     * That is two clauses covering five encounters, and it scales with the couple count, which naming
+     * dancers never could. `wheel0` is anyone you started the movement sharing a mini-wheel with; `wheel1`
+     * is anyone who started in the wheel you are going to — so the partner you are arriving to and the
+     * leader vacating the slot beside her are one statement, which is how the dancer thinks about it.
+     *
+     * `partner0` and `partner1` still win where they apply: they name ONE dancer inside a wheel of four,
+     * so they are the more specific thing to have said. A formation with no sub-wheels answers neither. */
     relation: (a, b) => (startStation[a] === startStation[b] ? 'partner0'
-                       : newPartner[a] === b ? 'partner1' : null),
+                       : newPartner[a] === b ? 'partner1'
+                       : wheelOfStation(startStation[a]) !== null
+                         && wheelOfStation(startStation[a]) === wheelOfStation(startStation[b]) ? 'wheel0'
+                       : wheelOfStation(newSt[a]) !== null
+                         && wheelOfStation(newSt[a]) === wheelOfStation(startStation[b]) ? 'wheel1' : null),
     bonded: (a, b) => startStation[a] === startStation[b] || newPartner[a] === b,
     group: o.group, groups: o.groups, unit: o.unit, yields: o.yields,
     clearance: o.clearance, engage: o.engage, forceShare: o.forceShare });
@@ -2739,6 +2828,48 @@ function playFigure(figure, ds, params, mirror){
  * 'left' means you travel along their left-hand side, so they go by over your right shoulder.
  * `partner0` names the dancer you came into the movement partnered with. */
 const PASSES_RUEDA = { 'L,F': 'left', 'F,L': 'left', 'L,L': 'right', 'F,F': 'right' };
+/* ------------------------------------------------------------------ *
+ *  DAME EÑE — the shared clauses, stated once for the three positions it is danced from.
+ *
+ *  The first CROSS-WHEEL progression, and the figure the whole descriptor epic was built for: three of
+ *  the four dancers in every mini-wheel dance their ordinary Dame Pequeña while the OUTER LEADER alone
+ *  leaves for the wheel next door. That is expressible now because a clause can name WHO it is about
+ *  (`'outer,L'` beats `'L'`) and WHICH RING a landing is on.
+ *
+ *  Each clause is SLOTS ONLY — no path quoted from another figure. Sam, after the first attempt did quote
+ *  one: "I should not have been able to define progressive movements using an existing progressive
+ *  movement … the slot changes are the same, but the pathing should be recalculated based on different
+ *  movements of other dancers." Written as `about: 'ownWheel', turn: 180` — the Dame Pequeña's *path* —
+ *  the inner leaders inherited an arc that exists to avoid the other leader coming the other way, who in
+ *  Dame Eñe has left for another wheel entirely. Straight lines here; the planner does the rest.
+ * ------------------------------------------------------------------ */
+// The inner leader goes straight out to the outer slot of his OWN mini-wheel — no wheel change, and with
+// the outer leader gone there is nothing on the way.
+const ENE_INNER_L = { dh: 0, ring: 'outer', lane: 'cw' };
+const ENE_F       = { scripted: true, lane: 'ccw' };
+// The outer leader changes wheel: `dh: ±2` is one spoke (h counts half-spacings, a spoke is two of them)
+// and `ring: 'inner'` is the couple slot he lands in there. The direction depends on where he starts —
+// anti-clockwise from Casino and from the Dile Que No position, clockwise from Exhibela (Sam).
+const eneOuterL = dh => ({ dh, ring: 'inner', lane: 'ccw' });
+/* THE ANTI-CLOCKWISE FORMS' SIDES, stated per WHEEL because that is how Sam states them and the only way
+ * they scale with the couple count:
+ *   "Outer leaders pass on the right of all the dancers in their starting mini wheel."
+ *   "Outer leaders pass on the right of the other outer leaders."
+ * `wheel0` is everyone he came in with — his own follower, that wheel's inner leader and its follower —
+ * one clause for three encounters. `wheel1` is everyone in the wheel he is going to: the partner he
+ * arrives beside AND the leader stepping out of the slot next to her. The single-dancer keys are kept
+ * because `relation` resolves them first, and they must agree with the wheel they sit inside.
+ *
+ * `wheel1` IS 'right' AND SAM SAID 'left' — flagged, not hidden. His rule was that the arrival should not
+ * collide at all ("that crossing is late in the outer leader's path and early in the inner leader's path,
+ * so they should not actually collide"), with 'left' as the fallback if it did. It does: measured 13.8px
+ * at four couples and 27.4px at six with 'left', and 36.0 / 39.1 / 39.2px with 'right'. Awaiting his
+ * ruling — this is the value that clears, not a value anyone chose. */
+const ENE_PASSES_ACW = Object.assign({}, PASSES_RUEDA, {
+  partner0: 'right', wheel0: 'right',
+  partner1: 'right', wheel1: 'right',
+  'wheel0:L,L': 'right', 'wheel1:L,L': 'right',
+});
 const TRAVELS = {
   // A Dame: the leader crosses an ODD number of half-spacings and the follower one the other way, which
   // together advance the pairing a whole couple — and, being odd, always flip the phase.
@@ -2803,6 +2934,31 @@ const TRAVELS = {
    * arithmetic exactly, character for character, and `dame` above already states it. Two names for one
    * figure is what §46 exists to catch; the entry is gone rather than kept in step. The Dile Que No form
    * declares its own pass sides through the movement, which is the part that legitimately differs. */
+  /* DAME EÑE, from the three positions it is danced from. Same figure, three different starting places,
+   * and each needs its own entry because the outer leader's DIRECTION and the pass sides both change —
+   * which is exactly what an entry is for.
+   *
+   * The sides are Sam's, asked and not derived. From Casino and Exhibela everything is the rueda's own
+   * leader/follower handedness. From the Dile Que No position it is not: "the inner leaders progress to
+   * the outer slot on their current mini rueda, passing their current partner on the right (left
+   * shoulder) … [the outer leaders] pass their current follower on the right, and they pass their new
+   * follower on the left." `partner0` and `partner1` say precisely that — the woman you came in with and
+   * the woman you are going to, which is a distinction the Dile Que No position needs and the others do
+   * not, because from there he leaves round the back of her. */
+  /* ONE TRAVEL FOR BOTH ANTI-CLOCKWISE FORMS, and one side table with it. Casino and the Dile Que No
+   * position send the outer leader the long way round — 133° at six couples against the clockwise form's
+   * 86° — so he meets his own wheel on the way out and the wheel next door on the way in. Their slots and
+   * their sides are the same statement, character for character; what differs is the FOLLOWER'S FIGURE
+   * (she walks to her lane from Casino, and dances her ¾ circle from the Dile Que No position), and that
+   * lives on the movement's `script`, not here. Two names for one travel is exactly what §46 exists to
+   * catch — it caught these — and `dame_pequena` already shares `dile_dame` the same way.
+   *
+   * Measured with the per-wheel sides: 36.0 / 39.1 / 39.2px at 4, 6 and 8 couples against a 35px
+   * corridor, no unsatisfiable pairs. On the bare rueda default the same journey closes to 4.3px at six. */
+  dame_ene_acw:      { groups: ['L', 'F'], passes: ENE_PASSES_ACW,
+                       'outer,L': eneOuterL(-2), 'inner,L': ENE_INNER_L, F: ENE_F },
+  dame_ene_exhibela: { groups: ['L', 'F'], passes: PASSES_RUEDA,
+                       'outer,L': eneOuterL(2),  'inner,L': ENE_INNER_L, F: ENE_F },
 };
 /* ------------------------------------------------------------------ *
  *  WHICH DANCERS A CLAUSE IS ABOUT — a travel's keys are GROUP SELECTORS.
@@ -3247,7 +3403,7 @@ const validFrom = (key, p) => {
 // figure that closes into a Dile Que No should END on beat 8 (so the Dile lands on beat 1), i.e. start
 // on beat 9 − its beat count (Dame from Casino = 2 beats → 7; a 4-beat Dame/Dame Grande/Pequeña → 5).
 // Everything else starts on 1.
-const DAME_KEYS = new Set(['dame', 'dame_dos', 'dame_grande', 'dame_peq', 'dame_pequena', 'dame_linea']);
+const DAME_KEYS = new Set(['dame', 'dame_dos', 'dame_grande', 'dame_peq', 'dame_pequena', 'dame_linea', 'dame_ene']);
 function startBeatOf(key, from){
   if (DAME_KEYS.has(key)){ const mv = MOVEMENTS[key];
     const beats = typeof mv.beats === 'function' ? mv.beats(from) : (mv.beats || 4);

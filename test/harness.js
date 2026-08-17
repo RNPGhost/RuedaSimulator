@@ -306,10 +306,22 @@ function load(htmlPath) {
       },
       // Fire one movement on the CURRENT state (no reset) — for checking a move from a state that was
       // itself reached by dancing (e.g. a Línea formation on a non-default orientation).
+      /* THE LAYOUT HAS TO BE THE ONE THE DANCERS ARE ACTUALLY IN. The Linea capture helpers restore
+       * layoutName = 'circle' on the way out so other tests start clean, which meant every movement
+       * fired through here — the whole call-chain arm of the sweep — ran a LINEA position in the CIRCLE
+       * layout. Invisible for years: every Linea call is built from COMPOSED movements, and the
+       * composition sets its own wheel context from FORMATIONS.linea directly, so it never asked what
+       * layoutName said. The first top-level Linea travel did ask, and got the circle's geometry:
+       * measured, two dancers on the same spot (0.0px) in a figure that is clear at 35px+ when the same
+       * movement is driven through captureLineaMovementFrom. */
       fireHere(key){
-        if (!validFrom(key, posState)) return null;
-        cap.frames = null; doMovement(key);
-        return { frames: cap.frames, start: cap.start, endPos: posState, endPhase: phase };
+        const wasLayout = layoutName;
+        if (/^linea/.test(posState)) layoutName = 'linea';
+        try {
+          if (!validFrom(key, posState)) return null;
+          cap.frames = null; doMovement(key);
+          return { frames: cap.frames, start: cap.start, endPos: posState, endPhase: phase };
+        } finally { layoutName = wasLayout; }
       },
       // Issue a Línea call in live mode and run to rest; return transcript + end grid.
       runLineaCall(callKey, n){

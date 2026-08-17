@@ -77,6 +77,48 @@ function playFigure(figure, ds, params, mirror){
  * 'left' means you travel along their left-hand side, so they go by over your right shoulder.
  * `partner0` names the dancer you came into the movement partnered with. */
 const PASSES_RUEDA = { 'L,F': 'left', 'F,L': 'left', 'L,L': 'right', 'F,F': 'right' };
+/* ------------------------------------------------------------------ *
+ *  DAME EÑE — the shared clauses, stated once for the three positions it is danced from.
+ *
+ *  The first CROSS-WHEEL progression, and the figure the whole descriptor epic was built for: three of
+ *  the four dancers in every mini-wheel dance their ordinary Dame Pequeña while the OUTER LEADER alone
+ *  leaves for the wheel next door. That is expressible now because a clause can name WHO it is about
+ *  (`'outer,L'` beats `'L'`) and WHICH RING a landing is on.
+ *
+ *  Each clause is SLOTS ONLY — no path quoted from another figure. Sam, after the first attempt did quote
+ *  one: "I should not have been able to define progressive movements using an existing progressive
+ *  movement … the slot changes are the same, but the pathing should be recalculated based on different
+ *  movements of other dancers." Written as `about: 'ownWheel', turn: 180` — the Dame Pequeña's *path* —
+ *  the inner leaders inherited an arc that exists to avoid the other leader coming the other way, who in
+ *  Dame Eñe has left for another wheel entirely. Straight lines here; the planner does the rest.
+ * ------------------------------------------------------------------ */
+// The inner leader goes straight out to the outer slot of his OWN mini-wheel — no wheel change, and with
+// the outer leader gone there is nothing on the way.
+const ENE_INNER_L = { dh: 0, ring: 'outer', lane: 'cw' };
+const ENE_F       = { scripted: true, lane: 'ccw' };
+// The outer leader changes wheel: `dh: ±2` is one spoke (h counts half-spacings, a spoke is two of them)
+// and `ring: 'inner'` is the couple slot he lands in there. The direction depends on where he starts —
+// anti-clockwise from Casino and from the Dile Que No position, clockwise from Exhibela (Sam).
+const eneOuterL = dh => ({ dh, ring: 'inner', lane: 'ccw' });
+/* THE ANTI-CLOCKWISE FORMS' SIDES, stated per WHEEL because that is how Sam states them and the only way
+ * they scale with the couple count:
+ *   "Outer leaders pass on the right of all the dancers in their starting mini wheel."
+ *   "Outer leaders pass on the right of the other outer leaders."
+ * `wheel0` is everyone he came in with — his own follower, that wheel's inner leader and its follower —
+ * one clause for three encounters. `wheel1` is everyone in the wheel he is going to: the partner he
+ * arrives beside AND the leader stepping out of the slot next to her. The single-dancer keys are kept
+ * because `relation` resolves them first, and they must agree with the wheel they sit inside.
+ *
+ * `wheel1` IS 'right' AND SAM SAID 'left' — flagged, not hidden. His rule was that the arrival should not
+ * collide at all ("that crossing is late in the outer leader's path and early in the inner leader's path,
+ * so they should not actually collide"), with 'left' as the fallback if it did. It does: measured 13.8px
+ * at four couples and 27.4px at six with 'left', and 36.0 / 39.1 / 39.2px with 'right'. Awaiting his
+ * ruling — this is the value that clears, not a value anyone chose. */
+const ENE_PASSES_ACW = Object.assign({}, PASSES_RUEDA, {
+  partner0: 'right', wheel0: 'right',
+  partner1: 'right', wheel1: 'right',
+  'wheel0:L,L': 'right', 'wheel1:L,L': 'right',
+});
 const TRAVELS = {
   // A Dame: the leader crosses an ODD number of half-spacings and the follower one the other way, which
   // together advance the pairing a whole couple — and, being odd, always flip the phase.
@@ -141,6 +183,31 @@ const TRAVELS = {
    * arithmetic exactly, character for character, and `dame` above already states it. Two names for one
    * figure is what §46 exists to catch; the entry is gone rather than kept in step. The Dile Que No form
    * declares its own pass sides through the movement, which is the part that legitimately differs. */
+  /* DAME EÑE, from the three positions it is danced from. Same figure, three different starting places,
+   * and each needs its own entry because the outer leader's DIRECTION and the pass sides both change —
+   * which is exactly what an entry is for.
+   *
+   * The sides are Sam's, asked and not derived. From Casino and Exhibela everything is the rueda's own
+   * leader/follower handedness. From the Dile Que No position it is not: "the inner leaders progress to
+   * the outer slot on their current mini rueda, passing their current partner on the right (left
+   * shoulder) … [the outer leaders] pass their current follower on the right, and they pass their new
+   * follower on the left." `partner0` and `partner1` say precisely that — the woman you came in with and
+   * the woman you are going to, which is a distinction the Dile Que No position needs and the others do
+   * not, because from there he leaves round the back of her. */
+  /* ONE TRAVEL FOR BOTH ANTI-CLOCKWISE FORMS, and one side table with it. Casino and the Dile Que No
+   * position send the outer leader the long way round — 133° at six couples against the clockwise form's
+   * 86° — so he meets his own wheel on the way out and the wheel next door on the way in. Their slots and
+   * their sides are the same statement, character for character; what differs is the FOLLOWER'S FIGURE
+   * (she walks to her lane from Casino, and dances her ¾ circle from the Dile Que No position), and that
+   * lives on the movement's `script`, not here. Two names for one travel is exactly what §46 exists to
+   * catch — it caught these — and `dame_pequena` already shares `dile_dame` the same way.
+   *
+   * Measured with the per-wheel sides: 36.0 / 39.1 / 39.2px at 4, 6 and 8 couples against a 35px
+   * corridor, no unsatisfiable pairs. On the bare rueda default the same journey closes to 4.3px at six. */
+  dame_ene_acw:      { groups: ['L', 'F'], passes: ENE_PASSES_ACW,
+                       'outer,L': eneOuterL(-2), 'inner,L': ENE_INNER_L, F: ENE_F },
+  dame_ene_exhibela: { groups: ['L', 'F'], passes: PASSES_RUEDA,
+                       'outer,L': eneOuterL(2),  'inner,L': ENE_INNER_L, F: ENE_F },
 };
 /* ------------------------------------------------------------------ *
  *  WHICH DANCERS A CLAUSE IS ABOUT — a travel's keys are GROUP SELECTORS.

@@ -56,6 +56,17 @@ const CALLS = {
   adios_hermana_pequena: { label: 'Adios con la Hermana Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'dame_peq'] },
   la_familia_grande:  { label: 'La Familia Grande',  lm: true, desc: 'Línea (grande): Adios, Leader’s Enchufla, Enchufla, Adios, Adios, Dame on both rings, then a Dile Que No Grande.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'adios', 'adios', 'dame_grande'] },
   la_familia_pequena: { label: 'La Familia Pequeña', lm: true, desc: 'Línea (pequeña): the same in every mini 2-couple wheel with Dame → Dame Pequeña.', from: ['linea'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'adios', 'adios', 'dame_peq'] },
+  /* DAME EÑE, AND THE INTERRUPT IT ALREADY IS. Sam asked for three things: the call from LM Casino, an
+   * Enchufla Eñe, and "Dame Eñe as an interruption call, which replaces the final default Dile Que No in
+   * the current call chain with a Dile Que No (4) movement followed by a Dame Eñe movement from LM Dile
+   * Que No position". The third is not a third call — it is what THIS call already does, because which
+   * calls may take a pending Dile Que No's place is derived rather than listed: `canInterruptDile` asks
+   * whether `['dile4', …seq]` is danceable from the position that Dile Que No would have been danced
+   * from, and `dame_ene` requires `linea_dile`, which is exactly what `dile4` lands in. Writing it out
+   * separately would mint a second word for a call the caller already has — the Mujeres Arriba Grande
+   * mistake, one figure along. */
+  dame_ene:     { label: 'Dame Eñe',     lm: true, desc: 'Línea: every mini 2-couple wheel dances what looks like a Dame Pequeña, except each OUTER LEADER leaves for the wheel next door — anti-clockwise from LM Casino, clockwise from LM Exhibela — taking its inner couple slot. Then a Dile Que No. Shouted over a Dile Que No that has nothing queued behind it, it takes its place: a 4-beat Dile Que No into the Línea Dile Que No position, then Dame Eñe from there.', from: ['linea'], seq: ['dame_ene'] },
+  enchufla_ene: { label: 'Enchufla Eñe', lm: true, desc: 'Línea: an Enchufla on the spot, then Dame Eñe from the LM Exhibela it lands in — each outer leader crossing to the mini wheel one clockwise — then a Dile Que No.', from: ['linea'], seq: ['enchufla', 'dame_ene'] },
   // Non-progressing figure → a single Línea call (danced on the whole rings).
   setenta_lm: { label: 'Setenta (Línea)', lm: true, desc: 'Línea: Vacilala, Adios, Enchufla, Leader’s Enchufla, Enchufla on both rings — no partner change — then a Dile Que No Grande.', from: ['linea'], seq: ['vacilala', 'adios', 'enchufla', 'leaders_enchufla', 'enchufla'] }
 };

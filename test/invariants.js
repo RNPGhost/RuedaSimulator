@@ -2293,15 +2293,32 @@ function run() {
     // (b) DERIVED — the count against the addresses, which is what tells k=2 from k=0 on a 2-couple
     //     wheel. A traveller's `dh` is in half-spacings and is NOT reduced, so the pair of them carries
     //     the whole journey: k = (F.dh - L.dh) / 2, a scripted role counting as dh 0.
+    /* THE FORMULA IS IN `dh` SPACE, AND SOME FIGURES ARE NOT. `k = (F.dh − L.dh) / 2` describes a
+     * progression counted in half-spacings around one wheel, which is every figure the circle has. A
+     * clause that changes RING is not one: in Línea, `h` counts SPOKES, so a leader crossing from the
+     * inner slot of a spoke to its outer slot has `dh: 0` and has still advanced a whole couple on his
+     * mini-wheel — and a cross-wheel leader who changes spoke AND ring has left his reference wheel
+     * altogether, where "couples progressed around it" is not a well-formed question.
+     *
+     * So those travels are OUTSIDE this check's domain, and are skipped BY NAME-FREE RULE (does any
+     * clause name a ring?) and counted. §39a still judges them, and it is the check that matters: it
+     * measures the pairing the figure actually delivered, at every couple count, against the count the
+     * movement declares. What is asserted here is that the skip list is exactly the ring-changers —
+     * so a figure cannot slip out of the derived check by any other route. */
+    const clausesOf = def => Object.keys(def).filter(k => k !== 'groups' && k !== 'passes').map(k => def[k]);
+    const changesRing = def => clausesOf(def).some(c => c && c.ring && c.ring !== 'same');
     const kOf = def => { const dh = r => (def[r] && typeof def[r].dh === 'number') ? def[r].dh : 0;
       return (dh('F') - dh('L')) / 2; };
-    let nTravels = 0;
+    let nTravels = 0; const ringChangers = [];
     for (const name of Object.keys(T.TRAVELS)){
+      if (changesRing(T.TRAVELS[name])){ ringChangers.push(name); continue; }
       nChecks++; nTravels++;
       check(Number.isInteger(kOf(T.TRAVELS[name])),
         `§39b travel '${name}' implies a fractional progression of ${kOf(T.TRAVELS[name])} couples`);
     }
     nChecks++; check(nTravels >= 6, `§39b only ${nTravels} travel definitions found`);
+    nChecks++; check(ringChangers.every(n => changesRing(T.TRAVELS[n])),
+      '§39b a travel was skipped that does not change ring — the exemption is wider than its reason');
     // Every movement that reaches a travel definition — directly, through a compose, or inside a
     // phrase — must declare the count those addresses imply. Following `of` is the point: a composed
     // movement that swaps in a DIFFERENT figure than its name claims is exactly how the count got lost.
@@ -2326,7 +2343,7 @@ function run() {
     for (const key of T.keys().movements){
       const mv = T.MOVEMENTS[key];
       for (const tName of [...new Set(travelsOf(mv, 0))]){
-        if (!T.TRAVELS[tName]) continue;
+        if (!T.TRAVELS[tName] || changesRing(T.TRAVELS[tName])) continue;   // see the note above
         named.push({ key, want: Math.abs(kOf(T.TRAVELS[tName])), got: mv.progresses || 0, via: tName });
       }
     }
@@ -2682,9 +2699,14 @@ function run() {
    *     always the question "have I just re-derived something?", asked at the moment it can still be
    *     answered cheaply. */
   {
-    const fp = d => ['L', 'F'].map(r => {
-      const x = d[r] || {};
-      return `${r}:${x.scripted ? 'scripted' : 'dh' + x.dh}/${x.lane}`;
+    /* THE FINGERPRINT READS THE CLAUSES, whatever they are keyed on. It used to look up `d.L` and `d.F`
+     * by name, so the moment a travel keyed a clause on a GROUP SELECTOR (`'outer,L'`) it fingerprinted
+     * as `dhundefined` — and three genuinely different figures collided on that one meaningless print,
+     * which is the opposite of what this check is for. Every clause, in key order, with everything that
+     * makes a landing what it is: dh, ring and lane. */
+    const fp = d => Object.keys(d).filter(k => k !== 'groups' && k !== 'passes').sort().map(k => {
+      const x = d[k] || {};
+      return `${k}:${x.scripted ? 'scripted' : 'dh' + x.dh}${x.ring ? '/' + x.ring : ''}/${x.lane}`;
     }).join(' ');
     const byPrint = {};
     for (const [key, def] of Object.entries(T.TRAVELS)) {

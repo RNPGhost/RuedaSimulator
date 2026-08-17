@@ -657,6 +657,15 @@ function playTravel(ds, N, o){
   // gathering cannot be pushed apart at the moment it matters.
   const gathering = ids.filter(a => newPartner[a] && startStation[a] !== startStation[newPartner[a]])
     .map(a => [a, newPartner[a]]);
+  /* Which sub-wheel a station belongs to, or null where the formation has none. The partition itself is
+   * the formation's (`refWheels`), not restated here — this is only the guard that keeps `wheel0` and
+   * `wheel1` silent on a plain circle, where every station is on the one wheel and the relation would
+   * mean "everybody", which is not a relation at all. */
+  const wheelOfStation = (st) => {
+    if (st === undefined || !F.miniCenter) return null;
+    const spokes = N / 2;
+    return ((st % spokes) + spokes) % spokes;
+  };
   const plan = planCrossings({ ids, gathering, base: baseAt,
     // Every traveller here rides a polar arc about the wheel it is dancing on, so that wheel's centre is
     // the point their paths go round — the one thing an evasion must not carry them across.
@@ -671,8 +680,24 @@ function playTravel(ds, N, o){
      * of the partner he was walking to and cost him 68px of detour to get round her.
      * `partner0` first: two dancers who both started AND ended together are being described as the pair
      * the figure held onto, which is the more specific statement. */
+    /* …AND WHICH SUB-WHEEL THEY BELONG TO, once a formation has them. A cross-wheel figure's sides are
+     * not naturally stated per dancer at all — Sam states them per WHEEL: "outer leaders pass on the
+     * right of all the dancers in their starting mini wheel", and the crossing with the inner leader
+     * vacating his destination "should not actually collide. If they do, they pass on the left."
+     *
+     * That is two clauses covering five encounters, and it scales with the couple count, which naming
+     * dancers never could. `wheel0` is anyone you started the movement sharing a mini-wheel with; `wheel1`
+     * is anyone who started in the wheel you are going to — so the partner you are arriving to and the
+     * leader vacating the slot beside her are one statement, which is how the dancer thinks about it.
+     *
+     * `partner0` and `partner1` still win where they apply: they name ONE dancer inside a wheel of four,
+     * so they are the more specific thing to have said. A formation with no sub-wheels answers neither. */
     relation: (a, b) => (startStation[a] === startStation[b] ? 'partner0'
-                       : newPartner[a] === b ? 'partner1' : null),
+                       : newPartner[a] === b ? 'partner1'
+                       : wheelOfStation(startStation[a]) !== null
+                         && wheelOfStation(startStation[a]) === wheelOfStation(startStation[b]) ? 'wheel0'
+                       : wheelOfStation(newSt[a]) !== null
+                         && wheelOfStation(newSt[a]) === wheelOfStation(startStation[b]) ? 'wheel1' : null),
     bonded: (a, b) => startStation[a] === startStation[b] || newPartner[a] === b,
     group: o.group, groups: o.groups, unit: o.unit, yields: o.yields,
     clearance: o.clearance, engage: o.engage, forceShare: o.forceShare });

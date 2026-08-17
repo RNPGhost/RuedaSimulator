@@ -126,6 +126,48 @@ const MOVEMENTS = {
     beats: 8,
     play: { formation: 'circle', turn: 'cw' }
   },
+  /* DAME EÑE — the first figure in which a dancer LEAVES HIS MINI-WHEEL.
+   *
+   * Sam: "3 of the dancers in each mini wheel (both inner dancers and the outer follower) do exactly what
+   * they would do from that same position if they were doing a Dame Pequeña movement. The only dancer
+   * whose movement differs is the outside leader … If they start in LM Casino position, they change slots
+   * into the inner couple slot of the mini wheel one wheel anti-clockwise from their starting mini wheel.
+   * If they start in LM Exhibela position, they change slots into the inner couple slot of the mini wheel
+   * one wheel clockwise of their starting wheel."
+   *
+   * NOT COMPOSED, and that is the point of it. `compose: 'pequena'` runs a figure inside each mini-wheel's
+   * own context, where a landing in the wheel NEXT DOOR cannot even be addressed — the two-couple wheel's
+   * place vocabulary has no word for it. So this is a top-level Línea travel, which is what the group
+   * selectors, the `ring` in a landing and the per-dancer winding centre were all built to allow. It is
+   * the acceptance test for that work as much as it is a figure.
+   *
+   * Every dancer's clause is SLOTS ONLY — see the note at the travels. Measured, from LM Exhibela:
+   * intended paths 1.00x their straight line at 4, 6 and 8 couples; planned 1.11x / 1.02x / 1.00x with
+   * every pair clear of the corridor. */
+  dame_ene: {
+    label: 'Dame Eñe', linea: true,
+    desc: 'From Rueda Línea Moderna: every mini 2-couple wheel dances what looks like a Dame Pequeña — the inner leader crosses straight out to the outer slot of his own wheel and the followers stay on their spokes — except the OUTER LEADER leaves the wheel entirely, crossing to the inner couple slot of the mini wheel next door: one wheel anti-clockwise from LM Casino and from the LM Dile Que No position, one wheel clockwise from LM Exhibela. Every slot is filled exactly once, the spoke config does not change, and everyone ends in LM Exhibela ready for a Dile Que No. From the Dile Que No position the followers dance their ¾ circle back to their own spot, as they do in every Dame from there.',
+    requires: ['linea', 'linea_ex', 'linea_dile'], sets: 'linea_ex', progresses: 1, interrupt: true,
+    beats: 4,
+    anim: { speed: 0.10, rotSpeed: 0.42 },
+    play: { byFrom: {
+      /* The followers' figures are danced ON THEIR OWN MINI-WHEEL (`about: 'ownWheel'`) while the outer
+       * leader's journey is planned across the whole formation — one movement holding two centres at
+       * once, which is the thing no figure before this needed. */
+      linea:    { travel: 'dame_ene_acw',
+                  script: { F: { kind: 'to_lane', lane: 'ccw', bow: { side: 'right', amp: 'justMiss' }, about: 'ownWheel' } },
+                  opts: { steps: 16, settle: 0.3, beats: 4 } },
+      linea_ex: { travel: 'dame_ene_exhibela',
+                  script: { F: { kind: 'to_lane', lane: 'ccw', bow: { side: 'right', amp: 'justMiss' }, about: 'ownWheel' } },
+                  opts: { steps: 16, settle: 0.3, beats: 4 } },
+      // From the Dile Que No position she dances the ¾ circle back to the spot she started the movement
+      // on — the same close every Dame from there already uses, on her own mini-wheel.
+      linea_dile: { travel: 'dame_ene_acw',
+                    script: { F: { kind: 'three_quarter_circle', lane: 'ccw', about: 'ownWheel' } },
+                    opts: { steps: 32, settle: 0.28, beats: 4 },
+                    face: { L: 'partner', F: { from: 'travel', to: 'partnerEnd', after: 0.75, freeze: true } } },
+    } }
+  },
   adios_linea: {
     label: 'Adios Línea',
     desc: 'The same entry into Rueda Línea Moderna as Línea Moderna — primeros in to the inner ring one spoke clockwise, segundos straight out to the outer ring — but the primeros sweep CLOCKWISE the long way round into their new orientation instead of taking the tight anti-clockwise turn, which gives the figure its Adios-like character. Requires an even number of couples.',
