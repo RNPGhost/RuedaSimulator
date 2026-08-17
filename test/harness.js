@@ -194,6 +194,20 @@ function load(htmlPath) {
       get INTERRUPTIBLE(){ return INTERRUPTIBLE; },
       positionDefault, dileInterruptAt, interruptLandsFrom, canInterruptDile, interruptSeqOf, interruptionPointAhead,
       POSITIONS,
+      // Resolve a slot address inside a LIVE Línea context — placeOf/resolvePlace read layoutName,
+      // which the capture helpers reset to 'circle' on exit, so a caller cannot probe Línea addresses
+      // without this. Used by the ENGINE_PLAN Dame Ene feasibility check.
+      probeLineaAddress(n, dancerId, ref){
+        resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; BASE_ANG = -90; computeWheel(n); phase = 0;
+        dancers = lineaBaseState(n); posState = 'linea';
+        const d = dancers.find(x => x.id === dancerId);
+        const pl = placeOf(d, n, phase);
+        const q = resolvePlace(pl, ref, n, phase);
+        const xy = FORMATIONS.linea.slot(q.station, q.lane, n);
+        const r = { place: pl, target: q, xy };
+        layoutName = 'circle';
+        return r;
+      },
       get LINEA_SUB(){ return LINEA_SUB; }, get LINEA_SUB_PEQ(){ return LINEA_SUB_PEQ; },
       // Put the engine in a chosen mid-sequence state so the interruption rule can be probed directly.
       poseQueue(pos, keys){ posState = pos; queue = keys.slice(); queueCalls = keys.map(() => ({ id: 0, label: 'x' }));
