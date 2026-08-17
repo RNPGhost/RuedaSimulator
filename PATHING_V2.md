@@ -261,6 +261,14 @@ non-stickiness theorem, as a test). Both mutation-tested (resurrect via-stickine
 recorded in the registry comment); re-measure all three positions; the outside-the-inner-ring routing
 question for the ACW outer leaders; then the calls' beat grid check end-to-end.
 
+*Phase E status (post-cutover):* measured. Under the elastic, `partner1: 'left'` clears every case
+except the four-couple anti-clockwise forms, and the blocker there is no longer the arrival: it is the
+**two travelling leaders squeezed off opposite loop phase in the middle** (13.8px from Casino, 29.7px
+from Dile vs the via solver's 22.4 / 13.8 — better, not clear). Their mutual side cannot resolve a
+same-orbit squeeze and a radial declaration measured no better; the likely answer is a *capability*
+(staggered loop radii or a timing offset for co-looping dancers), which is a design question for Sam.
+The ruling stays parked in the registry with these numbers until then.
+
 *Not proposed*: CBS/MAPF search layers, ORCA, any change to the Side Book, the declaration vocabulary,
 composition, or the intent generators. One subsystem is replaced: the deformation loop.
 

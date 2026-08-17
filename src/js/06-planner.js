@@ -424,8 +424,19 @@ function planCrossings(o){
       return w; };
     const baseWorst = measureWorst();
     let best = { worst: baseWorst, dev: snap(), ok: baseWorst >= CLEAR - 0.05 };
-    seedClass();
+    /* SEED, RELAX, AND — IF THE RELAXATION STALLS SHORT — SEED AGAIN. Resolving one round of conflicts
+     * can surface a barrier the first seed could not see (a pair pushed together by everyone else's
+     * evasions, on the wrong side of each other). That is Sam's original loop, verbatim: "as those
+     * collisions are resolved, new collisions may occur, which need to be added dynamically … until
+     * there are no more collisions on any dancer's path." A re-seed is only spent when the plateau
+     * broke below the corridor, and the best-iterate gate means a round that makes things worse costs
+     * nothing but time. */
     let iters = 0, plateau = { worst: -Infinity, n: 0 };
+    const ROUNDS = 3;
+    for (let round = 0; round < ROUNDS; round++){
+    seedClass();
+    plateau = { worst: -Infinity, n: 0 };
+    let stalled = false;
     for (let pass = 0; pass < MAXPASS; pass++){
       iters = pass + 1;
       const push = {}; for (const u in dev) if (unitYields[u]) push[u] = dev[u].map(() => ({ x: 0, y: 0, n: 0 }));
@@ -584,9 +595,12 @@ function planCrossings(o){
        * stopped improving for a stretch (a demand the geometry cannot meet, being pushed round in
        * circles). Both mean: stop, keep the best arrangement seen, report. A floor of a dozen passes
        * first, because early passes legitimately move slowly while conflicts hand displacement around. */
-      if (moved < EPS && pass > 12) break;
-      if (worst <= plateau.worst + 0.05){ if (++plateau.n >= 8) break; }
+      if (moved < EPS && pass > 12){ stalled = true; break; }
+      if (worst <= plateau.worst + 0.05){ if (++plateau.n >= 8){ stalled = true; break; } }
       else plateau = { worst, n: 0 };
+    }
+    if (!stalled || best.worst >= CLEAR - 0.05) break;    // clear, or out of ideas that a re-seed answers
+    load(best.dev);                                       // re-seed from the best arrangement so far
     }
     load(best.dev);
     /* A FINAL POLISH PASS. The loop's bumps are as taut as the push/tension equilibrium leaves them,

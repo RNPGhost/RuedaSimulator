@@ -117,11 +117,14 @@ const eneOuterL = dh => ({ dh, ring: 'inner', lane: 'ccw' });
 const ENE_PASSES_ACW = Object.assign({}, PASSES_RUEDA, {
   partner0: 'right', wheel0: 'right',
   /* SAM'S RULING IS 'left' FOR partner1 — "they pass on the left of the follower they end up with" —
-   * and it is PARKED, not overruled. Applied today it closes the arrivals to 13.8px at four couples and
-   * 27.4px at six; measured against the current planner, whose failure modes Sam has called out and
-   * which is being rebuilt (see PATHING_V2.md). The ruling is recorded here so it is applied the moment
-   * the new planner lands, and 'right' is the value that clears in the meantime. Dame Eñe as a whole is
-   * marked to revisit then. */
+   * and it is still PARKED, now with the elastic's numbers. Applied under the new planner it clears
+   * everything except the four-couple anti-clockwise forms, where the open pair is no longer the arrival
+   * at all: it is the TWO TRAVELLING LEADERS meeting in the middle (their loops squeezed off opposite
+   * phase by everyone else's evasions — 13.8px from Casino, 29.7px from the Dile Que No position, both
+   * against 35, where the via solver managed 22.4 and 13.8). Their declared mutual side ('right') does
+   * not resolve a same-orbit squeeze, and a radial declaration ('out') measured no better; what they
+   * likely need is a capability, not a side — staggered loop radii or a timing offset — which is Sam's
+   * design call. Until then 'right' is the value that keeps every shipped case clear. */
   partner1: 'right', wheel1: 'right',
   /* …except the man stepping OUT of the slot he is arriving at. Sam: they meet at the very end of one
    * journey and the very start of the other, "so they should not actually collide … for completeness,
