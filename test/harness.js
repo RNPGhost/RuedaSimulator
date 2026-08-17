@@ -266,6 +266,9 @@ function load(htmlPath) {
       setDameWL(v){ DAME_WL_FORCE = v; },
       circleAt(station, lane, n, ph){ return FORMATIONS.circle.slot(station, lane, n, ph); },
       lineaGeom(){ return Object.assign({}, LM); },
+      // A mini-wheel's centre, in the linea layout, for tools that draw the formation behind a path.
+      lineaMiniCenter(k, ph){ const s = layoutName; layoutName = 'linea';
+        const p = FORMATIONS.linea.miniCenter(k, ph); layoutName = s; return p; },
       // Build the Línea Moderna rest state for n couples; return dancers (pos + face) and geometry.
       setupLinea(n){
         resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; BASE_ANG = -90; computeWheel(n); phase = 0; posState = 'linea';

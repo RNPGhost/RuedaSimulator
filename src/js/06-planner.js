@@ -659,9 +659,17 @@ function playTravel(ds, N, o){
     // the point their paths go round — the one thing an evasion must not carry them across.
     orbit: { x: CX, y: CY },
     roleOf: id => roleById[id], passes: o.passes,
-    // Who these two were to each other when the movement began. Today only "partners at the start" is
-    // named; the hook is where a group predicate (primeros, inner, …) will resolve later.
-    relation: (a, b) => (startStation[a] === startStation[b] ? 'partner0' : null),
+    /* Who these two are to each other — at the START and at the END, because a figure has opinions about
+     * both. `partner0` is the dancer you came in with; `partner1` is the dancer you are going to. They
+     * are different encounters and a figure can want different sides for them: the woman you are leaving
+     * is behind you and the woman you are arriving to is ahead, and "which shoulder" is not the same
+     * question. Until now only the first was sayable, so an arrival could only be described through the
+     * role default — measured on the first figure with a long approach, that put a leader on the far side
+     * of the partner he was walking to and cost him 68px of detour to get round her.
+     * `partner0` first: two dancers who both started AND ended together are being described as the pair
+     * the figure held onto, which is the more specific statement. */
+    relation: (a, b) => (startStation[a] === startStation[b] ? 'partner0'
+                       : newPartner[a] === b ? 'partner1' : null),
     bonded: (a, b) => startStation[a] === startStation[b] || newPartner[a] === b,
     group: o.group, groups: o.groups, unit: o.unit, yields: o.yields,
     clearance: o.clearance, engage: o.engage, forceShare: o.forceShare });
