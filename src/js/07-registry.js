@@ -142,17 +142,71 @@ const TRAVELS = {
    * figure is what §46 exists to catch; the entry is gone rather than kept in step. The Dile Que No form
    * declares its own pass sides through the movement, which is the part that legitimately differs. */
 };
+/* ------------------------------------------------------------------ *
+ *  WHICH DANCERS A CLAUSE IS ABOUT — a travel's keys are GROUP SELECTORS.
+ *
+ *  `L:` and `F:` are not special; they are one-predicate selectors, aliases for `leaders` and
+ *  `followers`, and they carry on reading exactly as they always did. What is new is that a clause may
+ *  name any conjunction from `GROUPS`: `'outer,L'` is the outer ring's leaders, `'inner,F'` the inner
+ *  ring's followers, `'primeros,L'` every other leader from the cantante round.
+ *
+ *  WHY. Every figure so far does one thing per role, so a role table was the whole vocabulary. The
+ *  roadmap's cross-wheel progressions are not like that: in Dame Ene three of the four dancers in a
+ *  mini-wheel dance their ordinary Dame Pequeña and the OUTER LEADER alone does something else. Written
+ *  as a role table that is two movements, or one movement with a conditional inside the engine. Written
+ *  as selectors it is one clause: state the exception, inherit the rest.
+ *
+ *  MOST SPECIFIC WINS, by predicate count — `'outer,L'` (two) beats `'L'` (one), which is the reading
+ *  that makes "everyone does X, except these" expressible in the order an author thinks it. A tie is an
+ *  AMBIGUITY, not a precedence puzzle to be resolved by key order, and a dancer matched by nothing is a
+ *  HOLE; both are recorded here and asserted away by §49 rather than being silently survivable, because
+ *  either one means the movement does not say what its author thinks it says.
+ * ------------------------------------------------------------------ */
+const TRAVEL_META_KEYS = new Set(['groups', 'passes']);
+const SELECTOR_ALIAS = { L: 'leaders', F: 'followers' };
+const selectorPreds = key => key.split(',').map(s => SELECTOR_ALIAS[s.trim()] || s.trim());
+// Clauses that two dancers could both claim, and dancers no clause claims. Empty is the contract (§49).
+const TRAVEL_AMBIGUOUS = [], TRAVEL_UNCOVERED = [];
+/* Resolve every dancer to the clause that governs them, once per travel rather than per lookup — the
+ * predicates read positions, and a movement resolves the same dancer from `target`, `yields` and the
+ * lane in three different places. */
+function travelClauses(def, ds, n, ph, tag){
+  const keys = Object.keys(def).filter(k => !TRAVEL_META_KEYS.has(k));
+  const ctx = groupContext(ds, n, ph);
+  const out = {};
+  ds.forEach(d => {
+    let best = null, bestN = -1, tie = null;
+    for (const k of keys){
+      const preds = selectorPreds(k);
+      if (!preds.every(p => GROUPS[p] && GROUPS[p](d, ctx))) continue;
+      if (preds.length > bestN){ best = k; bestN = preds.length; tie = null; }
+      else if (preds.length === bestN) tie = k;
+    }
+    if (tie) TRAVEL_AMBIGUOUS.push({ tag, id: d.id, a: best, b: tie });
+    if (!best) TRAVEL_UNCOVERED.push({ tag, id: d.id, role: d.role, keys });
+    out[d.id] = best ? def[best] : {};
+  });
+  return out;
+}
 /* Turn a travel definition into the options `playTravel` takes. `o` supplies the engine-side wiring a
  * definition cannot state: the scripted roles' paths, any facing rules, and the beat/step budget. */
 function resolveTravel(name, ds, o){
   const def = typeof name === 'string' ? TRAVELS[name] : name;
   const mir = o.mirror ? -1 : 1;
-  const laneOf = r => { const l = def[r].lane; return o.mirror ? LANE_SWAP[l] : l; };
+  const cl = travelClauses(def, ds, o.n, o.phaseBefore, typeof name === 'string' ? name : '(inline)');
+  const laneOf = d => { const l = cl[d.id].lane; return o.mirror ? LANE_SWAP[l] : l; };
+  /* WHICH RING A LANDING IS ON, carried the same way the lane is and mirrored the same way. It has
+   * always been expressible in a slot address — `resolvePlace` has read `ref.ring` since the Línea
+   * places were written — and there has never been a way for a travel to SAY it, so every figure landed
+   * on the ring it started on and the one thing Línea's geometry adds over the circle was unreachable
+   * from a descriptor. A cross-wheel progression is exactly a landing that names a different ring. */
+  const ringOf = d => { const r = cl[d.id].ring; return (o.mirror && (r === 'inner' || r === 'outer')) ? LANE_SWAP[r] : r; };
   const role = {}; ds.forEach(d => role[d.id] = d.role);
   const CLEAR = 2 * (DOT_R + PATH_CLEAR);
   return Object.assign({
-    target: d => def[d.role].scripted ? null : { dh: mir * def[d.role].dh, lane: laneOf(d.role) },
-    yields: id => !def[role[id]].scripted,
+    target: d => cl[d.id].scripted ? null
+      : { dh: mir * cl[d.id].dh, lane: laneOf(d), ring: ringOf(d), about: cl[d.id].about },
+    yields: id => !cl[id].scripted,
     group: id => role[id], groups: def.groups,
     clearance: CLEAR, engage: CLEAR + 1.4 * DOT_R,
     /* A definition's own pass sides, NOT mirrored. `mirror` inverts the geometry — dh signs, lanes, which

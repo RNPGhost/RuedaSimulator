@@ -891,12 +891,15 @@ function run() {
           if (cap.endPos !== from && !POSITIONS.includes(cap.endPos)) continue;
           const want = T.lastSweeps && T.lastSweeps();
           if (!want || !Object.keys(want).length) continue;
-          const c = { x: T.CX, y: T.CY }, st = cap.start || {};
+          // Each dancer's winding is measured about the point THEIR clause named. For every figure
+          // shipped today that is the formation centre, which is why this used to be a constant.
+          const centres = (T.lastCentres && T.lastCentres()) || {};
+          const c0 = { x: T.CX, y: T.CY }, st = cap.start || {};
           const ids = cap.frames[0].map(d => d.id);
           for (const id of ids){
             if (!(id in want)) continue;               // scripted: no declared sweep
             const P = (st[id] ? [st[id]] : []).concat(cap.frames.map(fr => fr.find(d => d.id === id).xy));
-            const got = windingOf(P, c), target = want[id] * 180 / Math.PI;
+            const got = windingOf(P, centres[id] || c0), target = want[id] * 180 / Math.PI;
             nWind++;
             if (Math.abs(target) < 179) nStraight++;
             nChecks++; check(Math.abs(got - target) < TOL,
@@ -2972,6 +2975,76 @@ function run() {
       group: id => id, groups: ['A', 'B'], clearance: 35, engage: 45 });
     nChecks++; check(okPlan.ok === true && okPlan.faults.length === 0,
       '§48 self-test: a plan with room to spare was reported as a failure');
+  }
+
+  /* 49: A TRAVEL'S CLAUSES PARTITION ITS DANCERS.
+   *
+   *     A travel definition's keys select dancers — `'L'` and `'F'` are the one-predicate case, `'outer,L'`
+   *     the finer one. Two things can go wrong with a selector table and neither shows up as a bad path:
+   *
+   *       UNCOVERED — a dancer matched by no clause. She gets `{}`, which reads as `dh: undefined`,
+   *         `scripted: falsy`: a traveller with no destination. Silent, and the figure simply omits her.
+   *       AMBIGUOUS — two clauses of EQUAL specificity both matching. Whichever the key order happens to
+   *         put first wins, so the figure means one thing today and another after an unrelated edit.
+   *
+   *     Specificity resolves the intended case ('everyone does X, except these'), so a tie is never a
+   *     precedence question — it is two authors' clauses colliding. Both are recorded at resolution time
+   *     and asserted away here, across every movement and every Línea call at 4/6/8 couples and both
+   *     phases, which is where a `ring` predicate that only bites on one configuration would show up. */
+  {
+    T.clearFaults();
+    const NS49 = [4, 6, 8];
+    let resolved = 0;
+    for (const key of T.keys().movements) for (const from of POSITIONS){
+      if (!T.validFrom(key, from)) continue;
+      for (const n of NS49) for (const ph of PHASES){
+        try { T.captureMovement(key, from, n, ph); resolved++; } catch (e) {} }
+    }
+    for (const [ck, c] of Object.entries(T.CALLS)){
+      if (!c.from || !c.from.includes('linea') || !c.seq) continue;
+      for (const n of NS49) for (const ph of PHASES){ let first = true;
+        for (const mv of c.seq){
+          try { first ? T.captureLineaMovement(mv, n, ph) : T.fireHere(mv); resolved++; } catch (e) { break; }
+          first = false; } }
+    }
+    nChecks++; check(resolved > 300, `§49 only ${resolved} movements resolved — the sweep is not wired in`);
+    const unc = T.TRAVEL_UNCOVERED, amb = T.TRAVEL_AMBIGUOUS;
+    nChecks++; check(unc.length === 0,
+      `§49 ${unc.length} dancer(s) matched no clause of their travel` +
+      (unc.length ? ` (e.g. ${unc[0].id} in ${unc[0].tag}, which offers ${unc[0].keys.join(' / ')})` : '') +
+      ' — they travel nowhere and the figure does not say so');
+    nChecks++; check(amb.length === 0,
+      `§49 ${amb.length} dancer(s) matched two equally specific clauses` +
+      (amb.length ? ` (e.g. ${amb[0].id} in ${amb[0].tag}: '${amb[0].a}' and '${amb[0].b}')` : '') +
+      ' — which one governs is decided by key order');
+
+    /* Self-tests, because "0 of each" is only worth reading if the probe can produce either. Resolve a
+     * deliberately holed table and a deliberately tied one directly, off any real figure. */
+    {
+      const n = 6;
+      T.clearFaults();
+      T.probeClauses({ L: { dh: -1, lane: 'cw' } }, n, 0);                  // no clause for the followers
+      nChecks++; check(T.TRAVEL_UNCOVERED.length > 0,
+        '§49 self-test: a travel with no clause for the followers was resolved without complaint');
+      T.clearFaults();
+      T.probeClauses({ L: { dh: -1 }, leaders: { dh: -3 }, F: { scripted: true } }, n, 0);
+      nChecks++; check(T.TRAVEL_AMBIGUOUS.length > 0,
+        "§49 self-test: 'L' and 'leaders' are the same selector written twice and the tie was not reported");
+      T.clearFaults();
+      // …and the specificity rule itself: a two-predicate clause must beat a one-predicate one, with no
+      // ambiguity reported, or "most specific wins" is not what is happening.
+      const pr = T.probeClauses({ L: { dh: -1 }, 'outer,L': { dh: -2 }, F: { scripted: true } }, n, 0);
+      const cl = pr.clauses;
+      const outerL = pr.dancers.filter(d => d.role === 'L' && d.station >= n / 2);
+      const innerL = pr.dancers.filter(d => d.role === 'L' && d.station < n / 2);
+      nChecks++; check(T.TRAVEL_AMBIGUOUS.length === 0 && T.TRAVEL_UNCOVERED.length === 0,
+        '§49 self-test: a well-formed selector table was reported as ambiguous or holed');
+      nChecks++; check(outerL.length > 0 && outerL.every(d => cl[d.id].dh === -2),
+        "§49 self-test: 'outer,L' did not beat 'L' — most-specific-wins is not the resolution rule");
+      nChecks++; check(innerL.length > 0 && innerL.every(d => cl[d.id].dh === -1),
+        "§49 self-test: 'outer,L' captured the inner leaders too — the predicate is not selecting");
+      T.clearFaults();
+    }
   }
 
   // 8: determinism — the golden generator produces identical output twice.

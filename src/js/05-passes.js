@@ -128,6 +128,10 @@ const SIDE_CONFLICTS = [];
 function _unit(vx, vy){ const L = Math.hypot(vx, vy); return L < 1e-9 ? null : { x: vx / L, y: vy / L }; }
 const PLAN_FAULTS = [];
 let LAST_SWEEPS = {};
+/* …and the point each of those sweeps was measured about. One centre per movement was an invariant of
+ * the engine until a clause could name its own; §26 has to ask each dancer about the right point or it
+ * is checking a cross-wheel traveller's winding around somebody else's wheel. */
+let LAST_CENTRES = {};
 let VIA_TRACE = null;      // per-dancer declared winding from the most recent travel
 // Encounters whose intended paths already sit on the opposite shoulder to the one the movement declared.
 // Easing them apart cannot fix that — it drives them further onto the wrong side — so it is reported.

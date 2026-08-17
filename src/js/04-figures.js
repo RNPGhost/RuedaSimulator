@@ -258,6 +258,15 @@ const PATH_CLEAR = 1.5;                                  // Δ anti-collision ma
 const _ang = p => Math.atan2(p.y - CY, p.x - CX);
 const _rad = p => Math.hypot(p.x - CX, p.y - CY);
 const _polar = (a, r) => ({ x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) });
+/* THE SAME THREE, ABOUT AN ARBITRARY POINT. `CX,CY` is the wheel a figure is being danced on, which for
+ * every figure written so far is the only centre there is — the composition seam rebinds it per sub-wheel
+ * rather than letting one figure hold two. A cross-wheel progression is the first thing that needs both
+ * at once: the dancers staying in their mini-wheel turn about IT, while the one leaving turns about the
+ * formation. So the centre becomes an argument, and `_ang`/`_rad`/`_polar` stay as the (very common)
+ * case where it is the current wheel. */
+const _angAbout = (p, C) => Math.atan2(p.y - C.y, p.x - C.x);
+const _radAbout = (p, C) => Math.hypot(p.x - C.x, p.y - C.y);
+const _polarAbout = (a, r, C) => ({ x: C.x + r * Math.cos(a), y: C.y + r * Math.sin(a) });
 const _smooth = t => t * t * (3 - 2 * t);                // smoothstep — gentle ease in and out
 
 /* ------------------------------------------------------------------ *

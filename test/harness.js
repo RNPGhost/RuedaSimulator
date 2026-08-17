@@ -191,7 +191,20 @@ function load(htmlPath) {
       // screen actually draws rather than a re-implementation of it.
       samplePath, get CORNER_DEG(){ return CORNER_DEG; },
       get PLAN_FAULTS(){ return PLAN_FAULTS; }, get REPLAN_UNSETTLED(){ return REPLAN_UNSETTLED; },
-      clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; SIDE_FAULTS.length = 0; REPLAN_UNSETTLED.length = 0; },
+      get TRAVEL_AMBIGUOUS(){ return TRAVEL_AMBIGUOUS; }, get TRAVEL_UNCOVERED(){ return TRAVEL_UNCOVERED; },
+      selectorPreds,
+      /* Resolve a travel definition's selector clauses against a real Línea Moderna wheel — the layout
+       * has to be live, because outer/inner read a dancer's PLACE and the circle has one ring. */
+      probeClauses(def, n, ph){
+        resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; BASE_ANG = -90; computeWheel(n); phase = ph || 0;
+        dancers = lineaBaseState(n);
+        const out = travelClauses(def, dancers, n, ph || 0, 'probe');
+        const ds = dancers.map(d => ({ id: d.id, role: d.role, station: d.station }));
+        layoutName = 'circle';
+        return { clauses: out, dancers: ds };
+      },
+      clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; SIDE_FAULTS.length = 0; REPLAN_UNSETTLED.length = 0;
+        TRAVEL_AMBIGUOUS.length = 0; TRAVEL_UNCOVERED.length = 0; },
       get PLAN_LOG(){ return PLAN_LOG; },
       lastTiming(){ return { seg: cap.seg, rot: cap.rot, path: cap.segPath, rotStart: cap.rotStart }; },
       seedRot(m){ cap.nodeRot = Object.assign({}, m); },
@@ -243,6 +256,7 @@ function load(htmlPath) {
       viaTrace(on){ VIA_TRACE = on ? [] : null; return VIA_TRACE; }, getViaTrace(){ return VIA_TRACE; },
       // The winding each traveller's progression declared, from the most recent travel the engine ran.
       lastSweeps(){ return Object.assign({}, LAST_SWEEPS); },
+      lastCentres(){ return Object.assign({}, LAST_CENTRES); },
       // Run a TRAVEL definition straight from data, as if it had come out of a file.
       playTravelFrom(def, from, n, ph, opts){ setupRest(from, n, ph);
         return playTravel(dancers, n, resolveTravel(def, dancers, Object.assign({ phaseBefore: ph }, opts || {}))); },

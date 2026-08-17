@@ -32,6 +32,9 @@ function movementFrames(mv, ds, N, from){
     Object.assign(paths, SCRIPT_KINDS[cfg.kind](ds, N, cfg, mirror, r)); }
   const pick = spec => spec && spec.byVirtualPos ? spec.byVirtualPos[virtualPos(from)] : spec;
   return playTravel(ds, N, resolveTravel(p.travel, ds, Object.assign({
+    // `n` so a travel's group selectors resolve against the wheel this movement is actually danced on —
+    // a grande ring is an m-couple rueda, not the whole formation, and `GROUPS` reads places.
+    n: N,
     phaseBefore: flipsPhaseOf(mv, from) ? phase ^ 1 : phase, mirror,
     scriptAt: id => paths[id],
     face: p.face ? (id => pick(p.face[roleOf[id]])) : undefined,

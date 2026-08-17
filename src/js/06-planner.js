@@ -531,13 +531,42 @@ function playTravel(ds, N, o){
   const F = FORMATIONS[layoutName];
   const cur = {}, kin = {}, newSt = {}, endXY = {};
   ds.forEach(d => { cur[d.id] = d.xy ? d.xy : F.slot(d.station, d.lane, N, o.phaseBefore); });
+  /* WHICH POINT A DANCER'S PROGRESSION TURNS ABOUT. Until now there was one answer for a whole movement
+   * — the wheel it was being danced on — because the composition seam gives each sub-wheel its own run
+   * and no figure ever held two centres at once. A cross-wheel progression is exactly the figure that
+   * does: the dancers who stay in their mini-wheel wind about IT, and the one who leaves winds about the
+   * formation. So a clause may name its centre, and 'formation' (what every figure means today, and what
+   * every one of them gets by saying nothing) stays the default.
+   *
+   *   'formation'   — the wheel this movement is being danced on. CX,CY.
+   *   'ownWheel'    — the sub-wheel the dancer STARTS in.
+   *   'targetWheel' — the sub-wheel they land in.
+   *
+   * A formation with no sub-wheels answers all three the same way, which is what makes this safe to
+   * write on a figure that may be danced on a circle as well as a Línea. */
+  const centreOf = (about, stFrom, stTo) => {
+    if (!about || about === 'formation' || !F.miniCenter) return { x: CX, y: CY };
+    const spokes = N / 2, spokeOf = st => ((st % spokes) + spokes) % spokes;
+    // A sub-wheel's centre moves with the configuration, so "the wheel she starts in" is read at the
+    // config she starts in and "the wheel she lands in" at the one the movement rests in.
+    return about === 'targetWheel' ? F.miniCenter(spokeOf(stTo), phase)
+                                   : F.miniCenter(spokeOf(stFrom), o.phaseBefore);
+  };
   // Resolve every traveller's landing from its slot address — the one place a couple count enters.
   ds.forEach(d => { const ref = o.target(d); if (!ref) return;
     const p = placeOf(d, N, o.phaseBefore), q = resolvePlace(p, ref, N, phase);
     newSt[d.id] = q.station; endXY[d.id] = F.slot(q.station, q.lane, N);
     const S = cur[d.id], E = endXY[d.id];
-    kin[d.id] = { S, E, aS: _ang(S), aE: _ang(E), rS: _rad(S), rE: _rad(E),
-      sw: directedSweep(_ang(S), _ang(E), ref.dh * Math.PI / (p.span / 2)) };
+    const C = centreOf(ref.about, d.station, q.station);
+    /* HOW FAR ROUND, stated the way the centre makes sense of. A progression counted in the FORMATION's
+     * half-spacings says nothing about a turn around a two-couple mini-wheel — `dh: 0, ring: 'swap'` is
+     * a half turn there and no turn at all here — so a clause that names a sub-wheel centre states its
+     * turn in degrees about that centre instead. Both end up as `sw`, and `directedSweep` still picks the
+     * branch nearest the declaration, which is what stops a progression quietly taking the short way. */
+    const base = ref.turn !== undefined ? ref.turn * Math.PI / 180 : ref.dh * Math.PI / (p.span / 2);
+    kin[d.id] = { S, E, C, aS: _angAbout(S, C), aE: _angAbout(E, C),
+      rS: _radAbout(S, C), rE: _radAbout(E, C),
+      sw: directedSweep(_angAbout(S, C), _angAbout(E, C), base) };
   });
   /* THE INTENDED PATH: the shortest way to the destination that turns about the wheel's midpoint by the
    * amount the progression declares.
@@ -559,14 +588,23 @@ function playTravel(ds, N, o){
    * big enough", solved in closed form rather than searched for. */
   // What each traveller's progression DECLARES it must turn about the midpoint. Recorded rather than
   // re-derived so the suite asks the engine the same question the engine answered (§26).
-  LAST_SWEEPS = {}; ds.forEach(d => { if (kin[d.id]) LAST_SWEEPS[d.id] = kin[d.id].sw; });
+  LAST_SWEEPS = {}; LAST_CENTRES = {};
+  ds.forEach(d => { if (!kin[d.id]) return; LAST_SWEEPS[d.id] = kin[d.id].sw; LAST_CENTRES[d.id] = kin[d.id].C; });
   const looping = ds.filter(d => kin[d.id] && Math.abs(kin[d.id].sw) >= Math.PI - 1e-9);
-  const nLoop = Math.max(2, looping.length);
+  /* HOW MANY OF THEM ARE ROUND THE SAME POINT. The loop radius is fixed by the dancers who have to fit
+   * round the midpoint at once — a chord of 2ρ·sin(π/n) must hold the corridor — and that "n" is not the
+   * number of loopers in the movement, it is the number sharing a CENTRE. Identical while a movement had
+   * one; the moment three mini-wheels each turn two dancers about their own midpoint, counting all six
+   * makes every ρ three times too generous and the figure balloons. So they are counted per centre. */
+  const centreKey = C => Math.round(C.x * 100) + ':' + Math.round(C.y * 100);
+  const loopersAt = {};
+  looping.forEach(d => { const k = centreKey(kin[d.id].C); loopersAt[k] = (loopersAt[k] || 0) + 1; });
   // Sized on the ENGAGEMENT distance, not the bare corridor: dancers going round the midpoint together
   // are not passing each other, and a loop that merely grazes the corridor puts every one of them on the
   // planner's register for the whole figure. Beyond `engage` they simply are not an encounter.
-  const RHO = (o.engage || 2 * (DOT_R + PATH_CLEAR) + 1.4 * DOT_R) / (2 * Math.sin(Math.PI / nLoop));
+  const ENG = o.engage || 2 * (DOT_R + PATH_CLEAR) + 1.4 * DOT_R;
   looping.forEach(d => { const k = kin[d.id];
+    const RHO = ENG / (2 * Math.sin(Math.PI / Math.max(2, loopersAt[centreKey(k.C)])));
     k.loop = { rho: Math.min(RHO, Math.min(k.rS, k.rE) * 0.98) };
     const L = { in: Math.max(0, k.rS - k.loop.rho), arc: k.loop.rho * Math.abs(k.sw),
                 out: Math.max(0, k.rE - k.loop.rho) };
@@ -582,9 +620,9 @@ function playTravel(ds, N, o){
     const te = _smooth(t);
     if (!k.loop) return { x: k.S.x + (k.E.x - k.S.x) * te, y: k.S.y + (k.E.y - k.S.y) * te };
     const { rho, t1, t2 } = k.loop;
-    if (te <= t1) return _polar(k.aS, k.rS + (rho - k.rS) * (t1 ? te / t1 : 1));
-    if (te <= t2) return _polar(k.aS + k.sw * ((te - t1) / Math.max(1e-9, t2 - t1)), rho);
-    return _polar(k.aE, rho + (k.rE - rho) * ((te - t2) / Math.max(1e-9, 1 - t2)));
+    if (te <= t1) return _polarAbout(k.aS, k.rS + (rho - k.rS) * (t1 ? te / t1 : 1), k.C);
+    if (te <= t2) return _polarAbout(k.aS + k.sw * ((te - t1) / Math.max(1e-9, t2 - t1)), rho, k.C);
+    return _polarAbout(k.aE, rho + (k.rE - rho) * ((te - t2) / Math.max(1e-9, 1 - t2)), k.C);
   };
   // The only pairs the planner must NOT try to separate are the ones gathering into a couple; it works
   // out every other candidate itself. Group membership decides how a corridor is SHARED, never who is
@@ -666,6 +704,7 @@ function dameToEnchufla(ds, N, k, fromEnch, afuera){
   // `mirror` turns it inside out for the afuera positions. Nothing declares the phase flip — the two
   // dh values sum to an odd number, and the arithmetic does the rest.
   return playTravel(ds, N, resolveTravel(k === 2 ? 'dame_dos' : 'dame', ds, {
+    n: N,
     phaseBefore: phase ^ 1,                                  // a Dame is danced from the pre-flip config
     mirror: !!afuera, forceShare: DAME_WL_FORCE,
   })).frames;
