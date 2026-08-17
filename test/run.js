@@ -10,6 +10,18 @@ const invariants = require('./invariants');
 
 let ok = true;
 
+/* --- build ---
+ * The suite tests `src/`; this is the only thing that tests the ARTIFACT. Without it a forgotten build
+ * ships a stale index.html behind a green suite — the exact shape of failure §46 and `assertCovered`
+ * exist to prevent elsewhere: a check that quietly stops covering the thing it names. */
+{
+  const want = require('../build').render();
+  const outPath = path.join(__dirname, '..', 'index.html');
+  const have = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf8') : '';
+  if (want === have) console.log('BUILD      OK   — index.html matches src/');
+  else { ok = false; console.log('BUILD      STALE — run `node build.js` (index.html does not match src/)'); }
+}
+
 // --- golden ---
 const baseFile = path.join(__dirname, 'golden', 'baseline.json');
 if (!fs.existsSync(baseFile)) {

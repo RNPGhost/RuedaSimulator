@@ -761,6 +761,7 @@ const R_MID = () => R_RING * Math.cos(DELTA_DEG * Math.PI / 180);
  * reach geometry through here rather than hard-coding a layout.
  * (Refactor Phase 2: the seam is established. The shared globals CX/CY/R_RING/DELTA_DEG/phase are
  * still module-level and read directly by the generators; folding those in comes in later phases.) */
+
 const FORMATIONS = {
   circle: {
     // Slot: where (station, lane) sits. The wheel rests in one of two configs: phase 0 (base) or
@@ -1441,43 +1442,7 @@ function arcLenPath(pts){
     const seg = cum[i] - cum[i - 1] || 1, f = (target - cum[i - 1]) / seg;
     return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f }; };
 }
-/* ------------------------------------------------------------------ *
- *  planCrossings — THE crossing planner, shared by every figure that moves dancers between couples.
- *
- *  Given each dancer's INTENDED path, it finds the smallest planned deviation that keeps every crossing
- *  pair clear, and splits that effort so the dancers doing the yielding feel equally natural. This is the
- *  one place that knows about avoidance: figures supply intent and geometry, never evasion.
- *
- *    o.ids          every dancer in play
- *    o.base(id,t)   that dancer's intended path, t∈[0,1] → {x,y}. SCRIPTED dancers are included here —
- *                   they are immutable obstacles: they are planned around, never deviated.
- *    (there is no `apply`: the planner owns the offset frame. A unit eases along the LEFT NORMAL of
- *     its own centroid's travel, which is the general rule the ring figures' radial offset was a
- *     special case of — see PASSING.md. A caller that supplied its own could, and did, disagree
- *     with the planner about which way 'aside' is.)
- *    o.bonded(a,b)  are these two a couple before or after? Their interaction is the figure's own
- *                   handedness, so it is checked for collisions but never judged against a passing
- *                   convention (see PASSING.md).
- *    o.exclude      [a,b] pairs the FIGURE holds together and the planner must not try to separate —
- *                   partners gathering into one couple. Everything else is a candidate: the planner
- *                   builds the pair set itself from o.ids rather than accepting one, because a caller
- *                   that builds its own can narrow the safety check by accident. It did: the set used
- *                   to be cross-group only, so no candidate ever contained two leaders, and two leaders
- *                   passed within 10.5px on a Línea mini-wheel with nothing to report it. A caller can
- *                   now only ever EXCLUDE a named pair, never quietly omit a class of them.
- *    o.unit(id)     which free variable this dancer belongs to (default: itself). Dancers sharing a unit
- *                   share ONE offset, so a bonded couple deviates as a rigid body; partners inside a
- *                   unit are never treated as a crossing pair. Collisions stay dancer-vs-dancer.
- *    o.yields(id)   may this dancer be deviated? false ⇒ a SCRIPTED dancer: an immutable obstacle that is
- *                   planned around but never moved. If a whole group is scripted, the other group takes
- *                   the full corridor (and the solved amplitude widens to cover it).
- *    o.group(id)    effort-sharing group key; o.groups names the two groups being balanced.
- *    o.clearance    centre-distance to hold between a crossing pair
- *    o.engage       how near two intended paths must come to count as one engagement
- *    o.forceShare   pin the first group's share instead of balancing (A/B testing)
- *
- *  Returns { at(id,t), share, scale }.
- * ------------------------------------------------------------------ */
+
 /* ------------------------------------------------------------------ *
  *  PASSING CONVENTIONS  (see PASSING.md)
  *
@@ -1554,6 +1519,45 @@ const SIDE_FAULTS = [];
  * path unchanged and every behavioural check green, which is exactly why this is recorded structurally
  * and asserted by invariants §33f rather than inferred from what the dancers did. */
 const PLAN_LOG = [];
+
+/* ------------------------------------------------------------------ *
+ *  planCrossings — THE crossing planner, shared by every figure that moves dancers between couples.
+ *
+ *  Given each dancer's INTENDED path, it finds the smallest planned deviation that keeps every crossing
+ *  pair clear, and splits that effort so the dancers doing the yielding feel equally natural. This is the
+ *  one place that knows about avoidance: figures supply intent and geometry, never evasion.
+ *
+ *    o.ids          every dancer in play
+ *    o.base(id,t)   that dancer's intended path, t∈[0,1] → {x,y}. SCRIPTED dancers are included here —
+ *                   they are immutable obstacles: they are planned around, never deviated.
+ *    (there is no `apply`: the planner owns the offset frame. A unit eases along the LEFT NORMAL of
+ *     its own centroid's travel, which is the general rule the ring figures' radial offset was a
+ *     special case of — see PASSING.md. A caller that supplied its own could, and did, disagree
+ *     with the planner about which way 'aside' is.)
+ *    o.bonded(a,b)  are these two a couple before or after? Their interaction is the figure's own
+ *                   handedness, so it is checked for collisions but never judged against a passing
+ *                   convention (see PASSING.md).
+ *    o.exclude      [a,b] pairs the FIGURE holds together and the planner must not try to separate —
+ *                   partners gathering into one couple. Everything else is a candidate: the planner
+ *                   builds the pair set itself from o.ids rather than accepting one, because a caller
+ *                   that builds its own can narrow the safety check by accident. It did: the set used
+ *                   to be cross-group only, so no candidate ever contained two leaders, and two leaders
+ *                   passed within 10.5px on a Línea mini-wheel with nothing to report it. A caller can
+ *                   now only ever EXCLUDE a named pair, never quietly omit a class of them.
+ *    o.unit(id)     which free variable this dancer belongs to (default: itself). Dancers sharing a unit
+ *                   share ONE offset, so a bonded couple deviates as a rigid body; partners inside a
+ *                   unit are never treated as a crossing pair. Collisions stay dancer-vs-dancer.
+ *    o.yields(id)   may this dancer be deviated? false ⇒ a SCRIPTED dancer: an immutable obstacle that is
+ *                   planned around but never moved. If a whole group is scripted, the other group takes
+ *                   the full corridor (and the solved amplitude widens to cover it).
+ *    o.group(id)    effort-sharing group key; o.groups names the two groups being balanced.
+ *    o.clearance    centre-distance to hold between a crossing pair
+ *    o.engage       how near two intended paths must come to count as one engagement
+ *    o.forceShare   pin the first group's share instead of balancing (A/B testing)
+ *
+ *  Returns { at(id,t), share, scale }.
+ * ------------------------------------------------------------------ */
+
 function planCrossings(o){
   const NSMP = o.samples || 40, smpT = [];
   for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
@@ -3285,6 +3289,7 @@ function pequenaFrames(circleKey, from){
  * descriptor and nothing else, so anything expressible here is expressible by a user.
  *   play := { figure, params } | { travel, mirror, opts }
  * `mirror: true` mirrors the definition inside out when danced from an afuera position. */
+
 function movementFrames(mv, ds, N, from){
   let p = mv.play;
   if (!p) return mv.frames(ds, N, from);
@@ -3497,30 +3502,7 @@ function setMode(m){
   else updateUI();
 }
 
-/* Panel toggles: show/hide the whole section, and whether unavailable entries grey out (default) or
- * disappear. Hiding is applied per BUTTON and per GROUP, so an empty group takes its heading with it. */
-let panelTab = 'calls';                                  // which list the one panel is showing
-function applyPanelPrefs(){
-  const hiding = !!(document.getElementById('hideUnavail') || {}).checked;
-  const showing = { calls: panelTab === 'calls', moves: panelTab === 'moves' };
-  [['tabCalls', 'calls'], ['tabMoves', 'moves']].forEach(([id, which]) => {
-    const t = document.getElementById(id); if (!t) return;
-    t.classList.toggle('active', showing[which]);
-    t.setAttribute('aria-selected', showing[which] ? 'true' : 'false');
-  });
-  const hint = document.getElementById('moveHint'); if (hint) hint.hidden = !showing.moves;
-  [['callButtons', callBtns, showing.calls], ['moveButtons', moveBtns, showing.moves]].forEach(([hostId, btns, on]) => {
-    const host = document.getElementById(hostId); if (!host) return;
-    host.hidden = !on;
-    // Hiding applies per BUTTON and per GROUP, so an empty group takes its heading with it.
-    Object.values(btns || {}).forEach(b => { b.style.display = (hiding && b.disabled) ? 'none' : ''; });
-    host.querySelectorAll('.grp').forEach(g => {
-      const any = [...g.querySelectorAll('button')].some(b => b.style.display !== 'none');
-      g.classList.toggle('empty', !any);
-    });
-  });
-}
-function setPanelTab(which){ panelTab = which; applyPanelPrefs(); }
+
 
 /* CAN THIS CALL ACTUALLY BE DANCED FROM HERE? A call's `from` list is written by hand and its movements'
  * validity is derived, so the two drift: Dame Dos was banned from the afuera positions and its call went
@@ -3636,6 +3618,7 @@ function queuedCalls(){
   if (pendingCall) out.push(pendingCall);
   return out;
 }
+
 /* ------------------------------------------------------------------ *
  *  Sub-keyframe interpolation — how the renderer gets BETWEEN keyframes.
  *
@@ -3879,6 +3862,31 @@ function logLine(move, note, undo=false){
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
 }
+
+/* Panel toggles: show/hide the whole section, and whether unavailable entries grey out (default) or
+ * disappear. Hiding is applied per BUTTON and per GROUP, so an empty group takes its heading with it. */
+let panelTab = 'calls';                                  // which list the one panel is showing
+function applyPanelPrefs(){
+  const hiding = !!(document.getElementById('hideUnavail') || {}).checked;
+  const showing = { calls: panelTab === 'calls', moves: panelTab === 'moves' };
+  [['tabCalls', 'calls'], ['tabMoves', 'moves']].forEach(([id, which]) => {
+    const t = document.getElementById(id); if (!t) return;
+    t.classList.toggle('active', showing[which]);
+    t.setAttribute('aria-selected', showing[which] ? 'true' : 'false');
+  });
+  const hint = document.getElementById('moveHint'); if (hint) hint.hidden = !showing.moves;
+  [['callButtons', callBtns, showing.calls], ['moveButtons', moveBtns, showing.moves]].forEach(([hostId, btns, on]) => {
+    const host = document.getElementById(hostId); if (!host) return;
+    host.hidden = !on;
+    // Hiding applies per BUTTON and per GROUP, so an empty group takes its heading with it.
+    Object.values(btns || {}).forEach(b => { b.style.display = (hiding && b.disabled) ? 'none' : ''; });
+    host.querySelectorAll('.grp').forEach(g => {
+      const any = [...g.querySelectorAll('button')].some(b => b.style.display !== 'none');
+      g.classList.toggle('empty', !any);
+    });
+  });
+}
+function setPanelTab(which){ panelTab = which; applyPanelPrefs(); }
 
 /* ------------------------------ wiring ------------------------------ */
 /* ------------------------------------------------------------------ *

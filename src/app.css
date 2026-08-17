@@ -1,0 +1,138 @@
+  :root{
+    --bg:#0f1220; --panel:#181c2e; --panel2:#20263f; --line:#2c3352;
+    --ink:#e8ebf7; --muted:#9aa3c4; --accent:#5b8cff;
+    --lead:#ff7a59; --follow:#3fc6a0; --stage:#12162a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);
+       height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+  header{padding:10px 20px;border-bottom:1px solid var(--line);flex:0 0 auto}
+  header h1{margin:0;font-size:17px;font-weight:650;letter-spacing:.2px}
+  header p{margin:3px 0 0;color:var(--muted);font-size:12px}
+  /* Full-viewport layout: stage flexes to fill; the Calls panel is always pinned/visible.
+     Landscape → Calls on the right; Portrait → Calls at the bottom. The page never scrolls. */
+  #app{flex:1 1 auto;min-height:0;display:flex}
+  .stagewrap{flex:1 1 auto;min-width:0;min-height:0;padding:12px 14px;
+             display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  .stage{flex:1 1 auto;min-height:0;background:var(--stage);border:1px solid var(--line);
+         border-radius:14px;overflow:hidden;position:relative}
+  svg{display:block;width:100%;height:100%}
+  /* Wider than it was (340px): the panel is now the only home for both lists, and the animation can
+     afford the room — Sam: "give the panel more horizontal room, the animation may shrink to pay for it." */
+  .side{flex:0 0 420px;border-left:1px solid var(--line);background:var(--panel);
+        display:flex;flex-direction:column;min-height:0}
+  .tabrow{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+  .tab{background:transparent;border:1px solid transparent;border-radius:8px;padding:5px 12px;
+       font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:var(--chip);border-color:var(--line);color:var(--ink)}
+  .movehint{font-size:11.5px}
+  .calls-pin{flex:0 0 auto;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .side-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+  @media (orientation:portrait){
+    #app{flex-direction:column}
+    .side{flex:0 0 auto;max-height:42vh;border-left:none;border-top:1px solid var(--line)}
+    .calls-pin{border-bottom:1px solid var(--line)}
+    /* Trim vertical chrome so the wheel keeps as much height as possible. */
+    header p{display:none}
+    header{padding:8px 16px}
+    .stagewrap{padding:8px 10px;gap:6px}
+    .toolbar{gap:6px}
+    .toolbar label.ctl,.toolbar button,.toolbar select{font-size:12px}
+    .toolbar button{padding:6px 10px}
+    .modebar{margin:2px 0}
+  }
+  /* Short landscape screens (e.g. phone held sideways): trim vertical chrome so everything still fits. */
+  @media (orientation:landscape) and (max-height:560px){
+    header p{display:none}
+    header{padding:8px 16px}
+    .stagewrap{padding:8px 10px;gap:6px}
+    .toolbar button{padding:6px 10px}
+    .side{flex-basis:340px}
+  }
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .calls{display:flex;flex-wrap:wrap;gap:8px}
+  /* Buttons live in a fixed GRID, not a wrapping flex row: a hover or a state change can alter a
+     button's ink but never its cell, so nothing reflows and a button can't slide out from under the
+     pointer mid-click (which used to deselect a call as you tried to pick it). */
+  .btngrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:5px}
+  .btngrid button{width:100%;padding:6px 6px;font-size:11.5px;text-align:center;
+                  white-space:normal;line-height:1.15;min-height:32px;display:flex;
+                  align-items:center;justify-content:center}
+  .grouped{display:flex;flex-direction:column;gap:10px}
+  /* `display:flex` above is an AUTHOR rule, and the `hidden` attribute is only styled by the UA
+     stylesheet — author beats UA regardless of specificity, so setting `.hidden` on a `.grouped`
+     did nothing and both tabs rendered at once. The inactive list has to be turned off explicitly. */
+  .grouped[hidden]{display:none}
+  .grp-title{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+             margin:0 0 4px;font-weight:600}
+  .grp.empty{display:none}
+  .secctl{display:flex;gap:10px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0}
+  .secctl label.ctl{font-size:11px;gap:4px}
+  .secctl input{margin:0}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+         padding:9px 14px;border-radius:10px;transition:transform .05s, border-color .15s, background .15s}
+  button:hover{border-color:var(--accent)}
+  button:active{transform:translateY(1px)}
+  button.call{background:#232a45}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#0b1020;font-weight:600}
+  button.ghost{background:transparent}
+  button:disabled{opacity:.32;cursor:not-allowed;border-color:var(--line)}
+  button:disabled:hover{border-color:var(--line)}
+  .posbar{font-size:13px;color:var(--muted);margin-top:2px}
+  .posname{color:var(--ink);font-weight:600}
+  select{font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+         padding:8px 10px;border-radius:10px}
+  label.ctl{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .card h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+  .legend{display:flex;gap:16px;font-size:13px}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+  #log{max-height:120px;overflow:auto;font-size:13px;line-height:1.6}
+  #log .step{color:var(--muted)}
+  #log .move{color:var(--ink);font-weight:600}
+  #log .note{color:var(--muted);font-style:italic}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  .pill{font-size:11px;padding:1px 7px;border-radius:20px}
+  .pill.L{background:rgba(255,122,89,.18);color:var(--lead)}
+  .pill.F{background:rgba(63,198,160,.18);color:var(--follow)}
+  .muted{color:var(--muted);font-size:12px;line-height:1.5}
+  .modebar{display:flex;align-items:center;gap:8px;margin:6px 0 2px}
+  .modebar .modelabel{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px}
+  .modebtn{padding:6px 12px;border-radius:8px;background:var(--panel2);font-size:13px}
+  .modebtn.active{background:var(--accent);color:#0b1020;border-color:var(--accent);font-weight:600}
+  .section{margin-top:12px}
+  .sectitle{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 7px;display:flex;align-items:center;gap:8px}
+  .sectitle .hint{text-transform:none;letter-spacing:0;font-size:11px;opacity:.75}
+  .decision{margin:12px 0;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;
+            background:rgba(91,140,255,.08);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .decision .dtext{font-size:13px;color:var(--ink)}
+  button.silence{background:#2a3150}
+  .beatbig{position:absolute;top:6px;right:18px;font-size:72px;line-height:1;font-weight:800;
+           color:var(--accent);opacity:.92;font-variant-numeric:tabular-nums;pointer-events:none;
+           text-shadow:0 2px 14px rgba(0,0,0,.55)}
+  /* The corner stack: now-playing, a gap, the queue. `min-height` on the now-playing line keeps the
+     queue from jumping up and down as calls start and stop — the queue is a list you read, and a list
+     that moves when nothing about it changed is a list you stop trusting. */
+  .corner{position:absolute;top:12px;left:18px;pointer-events:none;max-width:60%}
+  .nowplaying{font-size:15px;font-weight:600;color:var(--ink);min-height:20px;
+              text-shadow:0 2px 12px rgba(0,0,0,.55)}
+  .nowplaying .np-call{color:var(--accent)}
+  .nowplaying .np-move{color:var(--ink)}
+  /* 22px of nothing. Not a border, not a rule — the queue is the same kind of thing as the line above it
+     and a divider would imply otherwise; it is simply not happening yet, and distance says that. */
+  .queuelist{margin-top:22px;text-shadow:0 2px 12px rgba(0,0,0,.55)}
+  .queuelist .qhead{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);
+                    margin-bottom:4px;font-weight:600}
+  .queuelist .qcall{font-size:13.5px;line-height:1.65;color:var(--ink);opacity:.72}
+  .queuelist .qcall .qnum{color:var(--muted);font-size:12px;margin-right:4px}
+  /* The next call up is the one about to be danced — it reads brighter than the ones behind it. */
+  .queuelist .qcall.qnext{opacity:1;font-weight:600}
+  .beatstrip{display:flex;justify-content:center;margin-top:2px}
+  .beatpips{display:flex;gap:8px}
+  .beatpips span{width:30px;height:9px;border-radius:5px;background:var(--line);transition:background .06s}
+  .beatpips span.on{background:var(--accent)}

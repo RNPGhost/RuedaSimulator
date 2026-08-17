@@ -24,10 +24,21 @@ function stubEl() {
   return new Proxy(el, { get(t, p) { return p in t ? t[p] : stubEl(); }, set(t, p, v) { t[p] = v; return true; } });
 }
 
+/* THE SUITE TESTS SOURCE, NOT THE ARTIFACT. With no argument the harness assembles the script from
+ * `src/js/*` through the same builder that writes index.html, so there is exactly one definition of
+ * "the script" and the tests cannot pass against a stale build. `node build.js --check` is what asserts
+ * the shipped file matches; keeping the two jobs separate means a forgotten build fails loudly as a
+ * build check rather than quietly as a passing test of the wrong bytes.
+ *
+ * An explicit path still regex-extracts, which is how a saved artifact (a bisect copy, a downloaded
+ * index.html) can be measured against the current suite. */
 function load(htmlPath) {
-  const file = htmlPath || path.join(__dirname, '..', 'index.html');
-  const html = fs.readFileSync(file, 'utf8');
-  let script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+  let script;
+  if (htmlPath) {
+    script = fs.readFileSync(htmlPath, 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+  } else {
+    script = require(path.join(__dirname, '..', 'build.js')).scriptSource();
+  }
 
   const sandbox = {};
   sandbox.document = {

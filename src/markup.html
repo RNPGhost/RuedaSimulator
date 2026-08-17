@@ -1,0 +1,79 @@
+<header>
+  <h1>Rueda de Casino — Call Simulator <span style="color:var(--muted);font-weight:400">· MVP</span></h1>
+  <p>Step through calls and watch the formation change. Model is a first draft — meant to be corrected against the real dance.</p>
+</header>
+
+<div id="app">
+  <main class="stagewrap">
+    <div class="toolbar">
+      <label class="ctl">Couples
+        <select id="couples">
+          <option>4</option><option>6</option><option>8</option>
+        </select>
+      </label>
+      <label class="ctl">Formation
+        <select id="layout">
+          <option value="circle">Rueda (circle)</option>
+          <option value="linea">Línea Moderna</option>
+        </select>
+      </label>
+      <label class="ctl">Speed
+        <input type="range" id="speed" min="0" max="1" step="0.01" value="0.5" style="width:120px;vertical-align:middle">
+        <span id="speedval" class="muted">1.0×</span>
+      </label>
+      <button id="beatToggle" class="ghost">⏸ Stop beat</button>
+      <button id="reset" class="ghost">Reset to base</button>
+      <button id="undo" class="ghost">← Undo</button>
+    </div>
+
+    <div class="stage">
+      <svg id="stage" viewBox="85 5 510 510" preserveAspectRatio="xMidYMid meet"></svg>
+      <!-- Top-left corner: what is happening NOW, then a deliberate gap, then what is coming. The gap is
+           the whole point — it is what tells a dancer at a glance which line is the call being danced and
+           which lines are merely promised. -->
+      <div class="corner">
+        <div id="nowplaying" class="nowplaying"></div>
+        <div id="queueList" class="queuelist"></div>
+      </div>
+      <div id="beatbig" class="beatbig">1</div>
+    </div>
+
+    <div class="beatstrip"><div id="beatpips" class="beatpips"></div></div>
+    <div class="posbar">Formation: <span id="posname" class="posname">Casino position</span></div>
+
+    <div class="modebar">
+      <span class="modelabel">Mode</span>
+      <button id="modeLive" class="modebtn">Live · queue calls</button>
+      <button id="modeStep" class="modebtn">Step · pause for calls</button>
+    </div>
+
+    <div id="decision" class="decision" style="display:none">
+      <span class="dtext" id="decisionText"></span>
+      <button id="silenceBtn" class="silence">Silence</button>
+    </div>
+  </main>
+
+  <aside class="side">
+    <!-- One panel, two tabs. Calls and Movements are the same kind of thing to a user — a list of things
+         you can fire — so they share a space rather than competing for one, and the tabs replace the two
+         `show` checkboxes that used to do the same job less clearly. -->
+    <div class="calls-pin">
+      <div class="tabrow" role="tablist">
+        <button class="tab active" id="tabCalls" role="tab" aria-selected="true">Calls</button>
+        <button class="tab" id="tabMoves" role="tab" aria-selected="false">Movements</button>
+        <label class="ctl" style="margin-left:auto"><input type="checkbox" id="hideUnavail"> Hide Unavailable</label>
+      </div>
+      <div class="grouped" id="callButtons"></div>
+      <div class="grouped" id="moveButtons" hidden></div>
+      <p class="muted movehint" id="moveHint" hidden style="margin:8px 0 0">Fire one at a time to test — a movement runs to completion and can't be interrupted.</p>
+    </div>
+
+    <div class="side-scroll">
+      <div class="card" style="margin-top:0">
+        <h2>Call log</h2>
+        <div id="log"></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
