@@ -314,11 +314,59 @@ which is closer to changing formation than to an ordinary figure.
   from). `projectedEndPos()` walks the remaining queue plus the default that follows it to work that out.
   Offering anything else invites a click that silently does nothing.
 
-Each panel has two toggles: **show** (the whole section, default on) and **hide unavailable** (default
-off, so unavailable entries grey out as before). Hiding is applied per button *and* per group, so an
-empty group takes its heading with it. Buttons live in a fixed **grid**, not a wrapping flex row: a hover
-or a state change can alter a button's ink but never its cell, so nothing reflows and a button can no
-longer slide out from under the pointer mid-click.
+The side panel is **one surface with three tabs** — Calls, Movements, Call log — plus a **hide
+unavailable** checkbox (default off, so unavailable entries grey out rather than vanish). Hiding is
+applied per button *and* per group, so an empty group takes its heading with it. Buttons live in a fixed
+**grid**, not a wrapping flex row: a hover or a state change can alter a button's ink but never its
+cell, so nothing reflows and a button can no longer slide out from under the pointer mid-click.
+
+Only the **tab row is pinned**; everything below it scrolls. The lists used to sit in the fixed block,
+which is why on a short screen the last few calls were below the bottom of the panel with no way to
+reach them.
+
+### The Position picker
+
+Beside the Formation picker, and the same kind of statement: which floor plan, and where within it. It
+is a readout — a figure moves the wheel and the picker says so — and a control: choosing a position puts
+the dancers in it.
+
+It is a **setup control, not a figure**. Nobody dances there, so it snaps rather than animating and
+writes nothing to the call log (the log is what was *called*). It may be used at any time, including
+mid-figure, where it abandons whatever was running — which is what makes it the way out of a sequence
+you did not mean to start.
+
+**Who is partnered with whom is preserved.** Every dancer keeps their station; only their lane and
+facing change. So "put them back in Casino from here" works after a Dame has progressed the wheel, which
+is the point of having it — *Reset to base* already covers starting over.
+
+Two rules it encodes, both measured off the positions the engine actually reaches rather than read out
+of the figures that land in them:
+
+- **Lanes.** Circle positions come from `REST_LANES`. Línea's two rings are mirror images (the inner one
+  dances afuera), so `linea` and `linea_ex` state their lanes *per ring* in `LINEA_REST_LANES`;
+  `linea_dile` does not need to, because `FORMATIONS.linea.slot` already flips the radial sign for the
+  inner ring, so both rings name the same two lanes.
+- **Facing is one rule.** Partners face each other — *except* that in a Dile Que No position the
+  follower faces 90° clockwise of her partner: she stands beside him on the couple's spoke looking round
+  the wheel, not at him. That holds in the circle, inverted (afuera), and on both Línea rings, whose
+  opposite senses of "clockwise" it absorbs for free.
+
+**`afuera_dile` is not offered**, because the circle cannot reach it: the 4-beat Dile Que No is the only
+way into a Dile Que No position and it is `entryOnly`, which `validFrom` blocks while afuera. It exists
+as a label for Línea's inner ring during grande composition. Offering it would invent a state the wheel
+has no way to arrive at, and therefore one nothing has ever tested.
+
+### Mode, and what is no longer on screen
+
+The **Mode** row is hidden by default, behind a toggle in the toolbar: Live vs Step is a practice
+setting you choose once, not something you reach for between calls. Hiding it does **not** change the
+mode — in Step the decision prompt still appears on the stage, so the row can be put away and Step still
+works.
+
+Two things are gone outright. The **beat pips** under the stage said exactly what the big number in the
+stage's corner already says. The **Undo** button was the least earned thing in the toolbar, which is the
+scarcest row on a phone; the machinery stays (every movement still records its state) so restoring the
+control is one line of wiring, and the Position picker covers the case it was mostly used for.
 
 ## Decision points, queue, and the two modes
 

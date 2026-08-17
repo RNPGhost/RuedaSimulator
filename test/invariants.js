@@ -2653,6 +2653,98 @@ function run() {
       '§46 mujeres_shared is back — it was TRAVELS.dame under another name');
   }
 
+  /* 47: THE WINDOW CONTAINS THE DANCE.
+   *
+   * The stage's viewBox is computed from the formation's resting slots plus a margin of one dancer's
+   * disc and the reach of their facing arrow (`stageExtent` in index.html). That margin was chosen to
+   * make a resting dancer whole on screen — but it is quietly doing a second job it was never promised
+   * to do: covering how much further out than the resting slots a FIGURE travels. It does today, in
+   * every formation at every couple count. Nothing obliges a new movement to respect it, and the
+   * failure mode is a dancer sliding off the edge of the stage mid-figure, which no other check here
+   * would see (they are all about where dancers are relative to each other, not to the frame).
+   *
+   * So assert it directly rather than trusting the measurement that picked the constant. The whole
+   * disc has to be inside, not merely the centre. If this fails the answer is not to shrink the
+   * figure: it is that `stageExtent` needs a bigger margin, or the window needs to follow the dance. */
+  {
+    /* THE WHOLE GLYPH, not just the centre. A dancer is drawn as a disc of DOT_R and a facing arrow
+     * reaching ARROW_LEN out along the way they are looking — and the arrow is the longer of the two.
+     * The harness records each waypoint's rotation alongside its position (the same pair the renderer
+     * interpolates), so the arrow tip can be placed exactly rather than allowed for by assuming the
+     * worst direction, which would fail cases that never point that way. */
+    const ARROW_LEN = T.STAGE_MARGIN - T.DOT_R;
+    const glyphReach = () => {
+      const { path, rot } = T.lastTiming();
+      let m = 0;
+      for (const id in (path || {})) {
+        const ps = path[id], rs = (rot || {})[id] || [];
+        for (let i = 0; i < ps.length; i++) {
+          const p = ps[i], a = (rs[i] || 0) * Math.PI / 180;
+          const centre = Math.hypot(p.x - T.CX, p.y - T.CY);
+          const tip = Math.hypot(p.x + ARROW_LEN * Math.cos(a) - T.CX, p.y + ARROW_LEN * Math.sin(a) - T.CY);
+          m = Math.max(m, centre + T.DOT_R, tip);
+        }
+      }
+      return m;
+    };
+    let sweep = 0, beyondRest = 0, tightest = { slack: Infinity, what: null };
+    const judge = (extent, tag) => {
+      const m = glyphReach();
+      if (!m) return;
+      sweep++;
+      const slack = extent - m;
+      if (slack < tightest.slack) tightest = { slack, what: tag };
+      if (m > extent - T.STAGE_MARGIN) beyondRest++;    // reached outside the resting slots
+      nChecks++;
+      check(slack >= 0, `§47 ${tag}: a dancer is drawn out to ${m.toFixed(1)} from the centre, ` +
+        `${(-slack).toFixed(1)}px outside the ${extent.toFixed(1)} the stage window covers`);
+    };
+
+    /* WHICH WINDOW IS IN FORCE. `playMovement` fits the stage after generating the frames — by which
+     * point a formation-changing movement has already flipped the layout — and covers BOTH the
+     * formation being left and the one being joined, because during such a movement the dancers
+     * genuinely occupy both. So a movement is judged against that same union, which for everything
+     * except the four entries and exits is simply its own formation's window. */
+    for (const n of NS) {
+      const ext = { circle: T.stageExtentCircle(n), linea: T.stageExtentLinea(n) };
+      const layoutAt = p => (T.POSITIONS[p] || {}).variant === 'linea' ? 'linea' : 'circle';
+      const windowFor = (from, to) => Math.max(ext[layoutAt(from)], ext[layoutAt(to)]);
+
+      for (const key of T.keys().movements) {
+        for (const from of POSITIONS) {
+          if (!T.validFrom(key, from)) continue;
+          for (const ph of PHASES) {
+            const cap = T.captureMovement(key, from, n, ph);
+            if (cap && cap.frames) judge(windowFor(from, cap.endPos), `${key}|${from}|n${n}|ph${ph}`);
+          }
+        }
+      }
+      // Línea, movement by movement and then whole calls — a call reaches states no from-rest movement
+      // does. The exits (Rueda, Adios Rueda) land in the circle, and are judged by the union too.
+      for (const key of T.keys().movements) {
+        for (const ph of PHASES) {
+          let cap; try { cap = T.captureLineaMovement(key, n, ph); } catch (e) { continue; }
+          if (cap && cap.frames) judge(windowFor('linea', cap.endPos), `linea ${key}|n${n}|ph${ph}`);
+        }
+      }
+      for (const key of T.keys().calls) {
+        const c = T.CALLS[key];
+        if (!c.seq || !(c.from || []).includes('linea')) continue;
+        let r; try { r = T.runLineaCall(key, n); } catch (e) { continue; }
+        if (r) judge(windowFor('linea', r.endPos), `linea call ${key}|n${n}`);
+      }
+    }
+    nChecks++; check(sweep >= 300, `§47 only ${sweep} cases measured — the sweep is not reaching the figures`);
+    /* Self-test: the check must be capable of failing. If nothing ever travelled outside the resting
+     * slots, the margin would be covering the resting geometry alone and this section would be
+     * asserting arithmetic rather than behaviour. */
+    nChecks++; check(beyondRest > 0,
+      '§47 self-test: no figure travels outside the resting slots — the sweep is measuring rest states');
+    if (tightest.what && tightest.slack < 5)
+      warns.push(`§47 tightest fit is ${tightest.what}, ${tightest.slack.toFixed(1)}px of the stage window to spare ` +
+        `— STAGE_MARGIN is nearly spent, and the next figure that swings wider will fail this section`);
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

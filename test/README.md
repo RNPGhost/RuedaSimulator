@@ -31,9 +31,18 @@ stay green.
   new movement most often trips are collision-free ≥ GAP (§1), grid-exact rest and partners facing
   (§3–4), no overtaking (§9), evasion smoothness (§18e), orientation inheritance (§22), the
   scripted/dynamic contract (§25), "nobody cuts the wheel" (§26) and the planner's rigid-unit contract
-  (§27). **MOVEMENT_SPEC.md §3 is the checklist**; read that before adding a movement.
+  (§27) — and **§47, "the window contains the dance"**: no part of a dancer's glyph (disc *or* facing
+  arrow) may fall outside the stage window the renderer computes for the formation. A figure that swings
+  wider than any current one fails there rather than sliding off the edge of the stage, which nothing
+  else would notice — every other check is about where dancers are relative to *each other*, never to
+  the frame. **MOVEMENT_SPEC.md §3 is the checklist**; read that before adding a movement.
 - **`visual.js`** — Chromium screenshots of settled states (rest + afuera), diffed in-browser against
   `golden/visual/*.png`. Guards the `render`/`buildNodes`/CSS path the headless suite can't see.
+  - Needs `playwright` installed, and `executablePath` is hard-coded to `/opt/pw-browsers/chromium` — a
+    Linux path, so it does not run on a Windows checkout without editing that line.
+  - **The v145 UI work invalidates all 15 baselines** (the stage window is computed now, so every scene
+    is drawn at a different scale). They need `node test/visual.js --update` on a machine that can run
+    it, and the new PNGs reviewed before they are committed.
 
 ## Known issues surfaced by the suite
 

@@ -3,6 +3,87 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v145 — the window is fitted to the wheel, and the phone gets its height back
+
+Sam, on small screens: "I want to remove a lot of the things taking up vertical room." Six changes, all
+of them in the UI, none of them in the engine — `GOLDEN 357/132/6` did not move by a pixel, which is the
+point of the last one.
+
+**Position is a control now, not a caption.** The `Formation: Casino position` line under the stage has
+become a **Position** picker sitting beside the Formation picker — one row instead of two, and the two
+are the same kind of statement: which floor plan, and where within it. It still reports where the wheel
+is; it will also put it there. A setup control rather than a figure, so it snaps, writes nothing to the
+log, and may be used mid-figure, where it abandons whatever was running. **Partners are preserved** —
+every dancer keeps their station and only their lane and facing change — so "put them back in Casino
+from here" works after a Dame has progressed the wheel. *Reset to base* already covers starting over.
+
+Its two rules were **measured off the engine rather than read out of the figures** that land in these
+positions, because the `lane` field cannot be trusted after a movement (see the finding below):
+
+| | rule |
+|---|---|
+| Lanes, circle | `REST_LANES` |
+| Lanes, Línea | per *ring* — the inner one dances afuera, so `linea_ex` is `linea`'s swap on each ring |
+| Facing | partners face each other — **except** the Dile Que No follower, who faces 90° clockwise of her partner |
+
+That one facing exception covers the circle, afuera, and both Línea rings, whose opposite senses of
+"clockwise" it absorbs for free. `afuera_dile` is **not** offered: `dile4` is the only way into a Dile
+Que No position and it is `entryOnly`, which `validFrom` blocks while afuera — so the circle cannot
+reach it, and offering it would invent a state nothing has ever tested.
+
+**Gone:** the beat pips (they said what the big corner number already says), and Undo (the least earned
+thing in the scarcest row; the machinery stays, so the button is one line of wiring away).
+**Hidden by default:** the Mode row, behind a toolbar toggle. Hiding it does not change the mode — in
+Step the decision prompt still appears on the stage, so Step still works with the row put away.
+
+**The panel scrolls.** The lists lived in the *pinned* block, so on a 375×812 phone the last call sat at
+y=1056 — 244px below the bottom of the screen with no way to reach it. Now only the tab row is pinned
+and everything below it scrolls, and the call log has joined Calls and Movements as a third tab so the
+list you are picking from gets the panel's whole height.
+
+### The stage window, and the pixel worry
+
+Sam: "I worry that the system is currently inherently tied to display pixels when calculating paths. If
+this is the case, we should separate the visual display logic from the engine simulation logic."
+
+It is not, and the separation already existed — it just was not being used. The engine works in its own
+units and never reads a screen pixel; the `viewBox` is where those units become a picture. What tied the
+picture to a size was that the `viewBox` was a **fixed 510-unit square**, big enough for the largest
+formation, while the wheel is sized to the couple count. So the window is computed from the formation
+instead — a render change that moves no engine value:
+
+| | 4 couples | 6 | 8 |
+|---|---|---|---|
+| circle wheel radius | 104.4 | 154.0 | 204.2 |
+| window half-size (was 255) | **168.3** | **219.6** | **270.7** |
+| how much of the window the wheel fills | 47% → **72%** | 67% → **77%** | 86% → **81%** |
+| magnification | **1.51×** | **1.16×** | 0.94× |
+
+The point is not only the 1.51× at four couples but the *consistency*: the wheel now fills 72–81% of the
+stage whatever the couple count, instead of ranging from a half-empty 47% to an 81% that was over its
+own edge — at eight couples a dancer used to cross the boundary by 4.5px during a Dame Pequeña from
+Afuera Exhibela.
+
+The margin is one dancer's disc plus the reach of their facing arrow: what it takes for no part of a
+resting dancer to be outside. Measured across every movement at 4/6/8 couples in both formations, that
+same margin also clears every excursion a figure makes beyond the resting slots — the largest is 18.9
+units, against a margin of 46 — so the window never has to move while anyone is dancing. During a
+formation change it covers **both** formations, since the dancers genuinely occupy both; without that
+the four-couple exit ran with 6px of clearance on the discs and less than none on the arrows.
+
+**§47 asserts it**, so this is a property rather than a measurement that was true once. It places each
+waypoint's arrow tip using the rotation the harness records beside the position — the whole glyph, not
+the centre — across 395 cases, and self-tests that figures really do travel outside the resting slots so
+a green run means something. A future figure that swings wider than the margin is now a test failure
+instead of a dancer sliding off the stage.
+
+**The toolbar is now the biggest consumer of height on a phone**, and taking Position into it made that
+worse before it got better: at 375px it wrapped to five rows and 154px, over half of what the wheel
+itself was getting. A density pass that removes no information — the slider does not need 120px, the
+selects were padded for a mouse — brought it to **106px**, and the stage from **256px to 304px** (32% →
+37% of the screen). The slider's width had to move out of an inline `style` first, which was beating the
+media query and silently doing nothing.
+
 ## v144 — she dances her ¾ circle here too, and one heading replaces two
 
 Sam, on Dame Pequeña from the LM Dile Que No position: "the dancers pass the dancer that they're
