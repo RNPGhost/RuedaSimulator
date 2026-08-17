@@ -64,6 +64,7 @@ function planCrossings(o){
   // passing head-on are the clean example: each sidesteps away from the partner it was going to hit and
   // straight toward the other one.
   const skip = new Set();
+  const PAIRKEY0 = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
   (o.exclude || []).forEach(pr => { skip.add(pr[0] + '\u0000' + pr[1]); skip.add(pr[1] + '\u0000' + pr[0]); });
   const checkPairs = [];
   for (let i = 0; i < o.ids.length; i++) for (let j = i + 1; j < o.ids.length; j++){
@@ -223,14 +224,27 @@ function planCrossings(o){
     for (const v of vs) if (Math.abs(v.t - t) < 0.06){ v.d = d; return; }
     vs.push({ t, d }); vs.sort((u, v) => u.t - v.t);
   };
+  /* GATHERING IS A LANDING, NOT A LICENCE. Two dancers a figure is bringing into one couple must be
+   * allowed to close at the end — that is the figure's whole point, and judging them against the corridor
+   * there would condemn every Dame ever written. What it must not mean is that they are invisible for the
+   * WHOLE journey, because then a traveller may walk straight through the partner he is walking towards
+   * and nothing says a word. Measured on the first figure whose approach comes in from another wheel: a
+   * cross-wheel leader passing 0.56px from the follower he was arriving to, at 8 couples, with the plan
+   * reporting success. So a gathering pair is an ordinary pair up to `GATHER_GATE` and unjudged after it.
+   * Sam named the side they pass on; this is what lets the planner apply it. */
+  const GATHER_GATE = 0.75;
+  const gatherSkip = new Set();
+  (o.gathering || []).forEach(pr => { gatherSkip.add(PAIRKEY0(pr[0], pr[1])); });
   const pairClosest = (a, b) => { let m = Infinity, tc = 0.5;
+    const gate = gatherSkip.has(PAIRKEY0(a, b)) ? GATHER_GATE : 1.0;
     for (let s = 0; s < NSMP; s++){ const t = smpT[s];
+      if (t > gate) break;
       const A = at(a, t), B = at(b, t);
       const d = Math.hypot(A.x - B.x, A.y - B.y);
       if (d < m){ m = d; tc = t; } }
     return { gap: m, tc }; };
   const yields2 = o.yields || (() => true);
-  const PAIRKEY = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+  const PAIRKEY = PAIRKEY0;
   /* The side a takes against b, as a unit vector in the world: perpendicular to a's own travel, pointing
    * to whichever hand the movement declared. This is where a declared side becomes geometry. */
   const sideVec = (a, b, t) => {
@@ -640,7 +654,7 @@ function playTravel(ds, N, o){
   // gathering cannot be pushed apart at the moment it matters.
   const gathering = ids.filter(a => newPartner[a] && startStation[a] !== startStation[newPartner[a]])
     .map(a => [a, newPartner[a]]);
-  const plan = planCrossings({ ids, exclude: gathering, base: baseAt,
+  const plan = planCrossings({ ids, gathering, base: baseAt,
     // Every traveller here rides a polar arc about the wheel it is dancing on, so that wheel's centre is
     // the point their paths go round — the one thing an evasion must not carry them across.
     orbit: { x: CX, y: CY },

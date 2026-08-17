@@ -271,7 +271,7 @@ const SCRIPT_KINDS = {
    * the far side of the ring, and back to the spot she started the movement on. Her couple midpoint never
    * moves, so she is scripted — but the shape is a circle through three known points rather than anything
    * the segment primitives can state, which is why it is a named kind. */
-  three_quarter_circle(ds, N, cfg, mirror, role){
+  three_quarter_circle(ds, N, cfg, mirror, who){
     const TWO = 2 * Math.PI, io = mirror ? -1 : 1;
     const circ3 = (A, B, C) => {
       const d = 2 * (A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
@@ -279,7 +279,7 @@ const SCRIPT_KINDS = {
       return { x: (A2*(B.y-C.y)+B2*(C.y-A.y)+C2*(A.y-B.y)) / d, y: (A2*(C.x-B.x)+B2*(A.x-C.x)+C2*(B.x-A.x)) / d };
     };
     const at = {};
-    ds.filter(d => d.role === role).forEach(d => {
+    ds.filter(who).forEach(d => {
       /* Where she is walking back TO. In the old compound this was remembered from before the 4-beat
        * opening; as a movement in its own right there is nothing to remember, so it resolves from the
        * slot system — which is what it always meant. "Her own spot" is an address, not a souvenir. */
@@ -307,13 +307,14 @@ const SCRIPT_KINDS = {
     return at;
   },
 
-  // `ds` is the WHOLE wheel (a solver may need to measure the couple), `role` picks whose paths to build.
-  to_lane(ds, N, cfg, mirror, role){
+  // `ds` is the WHOLE wheel (a solver may need to measure the couple), `who` picks whose paths to build —
+  // a predicate rather than a role name, so a script clause is selected exactly as a travel clause is.
+  to_lane(ds, N, cfg, mirror, who){
     const lane = mirror ? LANE_SWAP[cfg.lane] : cfg.lane;
     const side = cfg.bow ? (mirror ? (cfg.bow.side === 'right' ? 'left' : 'right') : cfg.bow.side) : null;
     const amp = cfg.bow ? SOLVERS[cfg.bow.amp](ds) : 0;
     const at = {};
-    ds.filter(d => d.role === role).forEach(d => { const S = pos(d), E = FORMATIONS[layoutName].slot(d.station, lane, N);
+    ds.filter(who).forEach(d => { const S = pos(d), E = FORMATIONS[layoutName].slot(d.station, lane, N);
       const vx = E.x - S.x, vy = E.y - S.y, sg = side === 'right' ? 1 : -1;
       // A dancer whose lane slot is where she already stands does not travel — and a dancer who does
       // not travel has no side to bow to. The bow is the NORMAL to her travel, so a zero travel vector

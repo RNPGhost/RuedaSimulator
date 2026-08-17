@@ -26,10 +26,30 @@ function movementFrames(mv, ds, N, from){
   // path, and a facing rule that may branch on the position the movement was called from.
   const roleOf = {}; ds.forEach(d => roleOf[d.id] = d.role);
   const paths = {};
-  // The raw declared lane; each SCRIPT_KIND mirrors it itself if its geometry needs it (`to_lane` and
-  // `three_quarter_circle` both do). Mirroring here as well would double it back.
-  for (const r in (p.script || {})){ const cfg = Object.assign({ lane: def[r].lane, startOf: p.startOf }, p.script[r]);
-    Object.assign(paths, SCRIPT_KINDS[cfg.kind](ds, N, cfg, mirror, r)); }
+  /* A SCRIPT CLAUSE IS SELECTED THE WAY A TRAVEL CLAUSE IS. Its key was a role and is now a selector, so
+   * the scripted half of a figure can name `'inner,F'` for the same reason the travelling half can.
+   *
+   * The raw declared lane; each SCRIPT_KIND mirrors it itself if its geometry needs it (`to_lane` and
+   * `three_quarter_circle` both do). Mirroring here as well would double it back. */
+  const gctx = groupContext(ds, N, flipsPhaseOf(mv, from) ? phase ^ 1 : phase);
+  for (const r in (p.script || {})){
+    const preds = selectorPreds(r);
+    const who = d => preds.every(pr => GROUPS[pr] && GROUPS[pr](d, gctx));
+    const cfg = Object.assign({ lane: def[r] && def[r].lane, startOf: p.startOf }, p.script[r]);
+    /* …AND MAY BE DANCED ON ITS OWN SUB-WHEEL. A scripted figure is stated in the frame of the wheel it
+     * is danced on — `three_quarter_circle` reads `CX,CY` and `R_MID()` directly — which is exactly right
+     * and exactly why the composition seam exists. A cross-wheel figure is the first one that needs the
+     * scripted half on the mini-wheels while the travelling half works in the formation, so a clause may
+     * say `about: 'ownWheel'` and get built inside each mini-wheel's context, through the same view the
+     * pequeña composition uses. The paths it returns are absolute: every kind resolves its geometry when
+     * it is built, so a path built in one context is safe to evaluate in another. */
+    if (cfg.about === 'ownWheel' && FORMATIONS[layoutName].miniCenter){
+      for (let k = 0; k < N / 2; k++){
+        const v = miniWheelView(ds, k);
+        Object.assign(paths, runOnWheel(v.ctx, v.sub, () => SCRIPT_KINDS[cfg.kind](v.sub, 2, cfg, mirror, who)));
+      }
+    } else Object.assign(paths, SCRIPT_KINDS[cfg.kind](ds, N, cfg, mirror, who));
+  }
   const pick = spec => spec && spec.byVirtualPos ? spec.byVirtualPos[virtualPos(from)] : spec;
   return playTravel(ds, N, resolveTravel(p.travel, ds, Object.assign({
     // `n` so a travel's group selectors resolve against the wheel this movement is actually danced on —

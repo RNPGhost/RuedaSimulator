@@ -221,19 +221,30 @@ function grandeFrames(circleKey, from){
  *  phase change. Each mini-wheel runs the ordinary circle move; frames merge.
  * ------------------------------------------------------------------ */
 const LINEA_SUB_PEQ = { linea: 'casino', linea_ex: 'exhibela', linea_dile: 'dile' };
+const MINI_SWAP = l => l === 'cw' ? 'ccw' : l === 'ccw' ? 'cw' : l;
+/* ONE MINI-WHEEL, AS A TWO-COUPLE RUEDA — the view and the wheel context together, because they are one
+ * fact and the composition is no longer the only thing that needs it. A top-level figure whose dancers
+ * do their ordinary pequeña dancing while one of them leaves the wheel has to be able to build the same
+ * view for the scripted half, and building it a second time by hand is how the two would drift.
+ * The outer couple takes mini station 0, the inner couple station 1 with its lane swapped: the inner
+ * couple's afuera look is a 180° flip, which the mini-centre (sitting outside it) already provides. */
+function miniWheelView(ds, k){
+  const m = LM.m;
+  const byStation = {}; ds.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
+  const cur = d => d.xy ? d.xy : pos(d), fc = d => (typeof d.face === 'number') ? d.face : facingAngle(d);
+  const sub = [];
+  (byStation[m + k] || []).forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 0, lane: d.lane,             xy: cur(d), face: fc(d) }));
+  (byStation[k]     || []).forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 1, lane: MINI_SWAP(d.lane),  xy: cur(d), face: fc(d) }));
+  const mc = FORMATIONS.linea.miniCenter(k);
+  const thk = LM_BASE + k * 360 / m + phase * 180 / m;
+  return { sub, ctx: { CX: mc.x, CY: mc.y, R_RING: LM.R2, DELTA_DEG: LM.d2 * 180 / Math.PI, N: 2, BASE_ANG: thk, phase: 0 } };
+}
 function pequenaFrames(circleKey, from){
   const m = LM.m, mv = MOVEMENTS[circleKey], fromPos = LINEA_SUB_PEQ[from];
-  const swap = l => l === 'cw' ? 'ccw' : l === 'ccw' ? 'cw' : l;
-  const byStation = {}; dancers.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
-  const cur = d => d.xy ? d.xy : pos(d), fc = d => (typeof d.face === 'number') ? d.face : facingAngle(d);
   const wheels = []; let Fcount = 0, segB = null;
   for (let k = 0; k < m; k++){
-    const sub = [];
-    byStation[m + k].forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 0, lane: d.lane,        xy: cur(d), face: fc(d) })); // outer -> mini station 0
-    byStation[k].forEach(d     => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 1, lane: swap(d.lane),  xy: cur(d), face: fc(d) })); // inner -> mini station 1 (lane swapped)
-    const mc = FORMATIONS.linea.miniCenter(k);
-    const thk = LM_BASE + k * 360 / m + phase * 180 / m;
-    const out = runOnWheel({ CX: mc.x, CY: mc.y, R_RING: LM.R2, DELTA_DEG: LM.d2 * 180 / Math.PI, N: 2, BASE_ANG: thk, phase: 0 }, sub,
+    const { sub, ctx } = miniWheelView(dancers, k);
+    const out = runOnWheel(ctx, sub,
       () => { const o = movementFrames(mv, sub, 2, fromPos); return Array.isArray(o) ? { frames: o, segBeats: null } : o; });
     wheels.push(out); Fcount = Math.max(Fcount, out.frames.length); segB = segB || out.segBeats;
   }
@@ -242,7 +253,7 @@ function pequenaFrames(circleKey, from){
     const merged = [];
     for (let k = 0; k < m; k++){ const wf = wheels[k].frames[Math.min(i, wheels[k].frames.length - 1)];
       wf.forEach(d => { const outer = d.station === 0;
-        merged.push({ ...d, station: outer ? m + k : k, lane: outer ? d.lane : swap(d.lane) }); }); }
+        merged.push({ ...d, station: outer ? m + k : k, lane: outer ? d.lane : MINI_SWAP(d.lane) }); }); }
     frames.push(merged);
   }
   /* Each mini-wheel was planned on its own, so two dancers in DIFFERENT mini-wheels have never been

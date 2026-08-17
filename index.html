@@ -1666,6 +1666,7 @@ function planCrossings(o){
   // passing head-on are the clean example: each sidesteps away from the partner it was going to hit and
   // straight toward the other one.
   const skip = new Set();
+  const PAIRKEY0 = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
   (o.exclude || []).forEach(pr => { skip.add(pr[0] + '\u0000' + pr[1]); skip.add(pr[1] + '\u0000' + pr[0]); });
   const checkPairs = [];
   for (let i = 0; i < o.ids.length; i++) for (let j = i + 1; j < o.ids.length; j++){
@@ -1825,14 +1826,27 @@ function planCrossings(o){
     for (const v of vs) if (Math.abs(v.t - t) < 0.06){ v.d = d; return; }
     vs.push({ t, d }); vs.sort((u, v) => u.t - v.t);
   };
+  /* GATHERING IS A LANDING, NOT A LICENCE. Two dancers a figure is bringing into one couple must be
+   * allowed to close at the end — that is the figure's whole point, and judging them against the corridor
+   * there would condemn every Dame ever written. What it must not mean is that they are invisible for the
+   * WHOLE journey, because then a traveller may walk straight through the partner he is walking towards
+   * and nothing says a word. Measured on the first figure whose approach comes in from another wheel: a
+   * cross-wheel leader passing 0.56px from the follower he was arriving to, at 8 couples, with the plan
+   * reporting success. So a gathering pair is an ordinary pair up to `GATHER_GATE` and unjudged after it.
+   * Sam named the side they pass on; this is what lets the planner apply it. */
+  const GATHER_GATE = 0.75;
+  const gatherSkip = new Set();
+  (o.gathering || []).forEach(pr => { gatherSkip.add(PAIRKEY0(pr[0], pr[1])); });
   const pairClosest = (a, b) => { let m = Infinity, tc = 0.5;
+    const gate = gatherSkip.has(PAIRKEY0(a, b)) ? GATHER_GATE : 1.0;
     for (let s = 0; s < NSMP; s++){ const t = smpT[s];
+      if (t > gate) break;
       const A = at(a, t), B = at(b, t);
       const d = Math.hypot(A.x - B.x, A.y - B.y);
       if (d < m){ m = d; tc = t; } }
     return { gap: m, tc }; };
   const yields2 = o.yields || (() => true);
-  const PAIRKEY = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+  const PAIRKEY = PAIRKEY0;
   /* The side a takes against b, as a unit vector in the world: perpendicular to a's own travel, pointing
    * to whichever hand the movement declared. This is where a declared side becomes geometry. */
   const sideVec = (a, b, t) => {
@@ -2242,7 +2256,7 @@ function playTravel(ds, N, o){
   // gathering cannot be pushed apart at the moment it matters.
   const gathering = ids.filter(a => newPartner[a] && startStation[a] !== startStation[newPartner[a]])
     .map(a => [a, newPartner[a]]);
-  const plan = planCrossings({ ids, exclude: gathering, base: baseAt,
+  const plan = planCrossings({ ids, gathering, base: baseAt,
     // Every traveller here rides a polar arc about the wheel it is dancing on, so that wheel's centre is
     // the point their paths go round — the one thing an evasion must not carry them across.
     orbit: { x: CX, y: CY },
@@ -2876,7 +2890,7 @@ const SCRIPT_KINDS = {
    * the far side of the ring, and back to the spot she started the movement on. Her couple midpoint never
    * moves, so she is scripted — but the shape is a circle through three known points rather than anything
    * the segment primitives can state, which is why it is a named kind. */
-  three_quarter_circle(ds, N, cfg, mirror, role){
+  three_quarter_circle(ds, N, cfg, mirror, who){
     const TWO = 2 * Math.PI, io = mirror ? -1 : 1;
     const circ3 = (A, B, C) => {
       const d = 2 * (A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
@@ -2884,7 +2898,7 @@ const SCRIPT_KINDS = {
       return { x: (A2*(B.y-C.y)+B2*(C.y-A.y)+C2*(A.y-B.y)) / d, y: (A2*(C.x-B.x)+B2*(A.x-C.x)+C2*(B.x-A.x)) / d };
     };
     const at = {};
-    ds.filter(d => d.role === role).forEach(d => {
+    ds.filter(who).forEach(d => {
       /* Where she is walking back TO. In the old compound this was remembered from before the 4-beat
        * opening; as a movement in its own right there is nothing to remember, so it resolves from the
        * slot system — which is what it always meant. "Her own spot" is an address, not a souvenir. */
@@ -2912,13 +2926,14 @@ const SCRIPT_KINDS = {
     return at;
   },
 
-  // `ds` is the WHOLE wheel (a solver may need to measure the couple), `role` picks whose paths to build.
-  to_lane(ds, N, cfg, mirror, role){
+  // `ds` is the WHOLE wheel (a solver may need to measure the couple), `who` picks whose paths to build —
+  // a predicate rather than a role name, so a script clause is selected exactly as a travel clause is.
+  to_lane(ds, N, cfg, mirror, who){
     const lane = mirror ? LANE_SWAP[cfg.lane] : cfg.lane;
     const side = cfg.bow ? (mirror ? (cfg.bow.side === 'right' ? 'left' : 'right') : cfg.bow.side) : null;
     const amp = cfg.bow ? SOLVERS[cfg.bow.amp](ds) : 0;
     const at = {};
-    ds.filter(d => d.role === role).forEach(d => { const S = pos(d), E = FORMATIONS[layoutName].slot(d.station, lane, N);
+    ds.filter(who).forEach(d => { const S = pos(d), E = FORMATIONS[layoutName].slot(d.station, lane, N);
       const vx = E.x - S.x, vy = E.y - S.y, sg = side === 'right' ? 1 : -1;
       // A dancer whose lane slot is where she already stands does not travel — and a dancer who does
       // not travel has no side to bow to. The bow is the NORMAL to her travel, so a zero travel vector
@@ -3447,19 +3462,30 @@ function grandeFrames(circleKey, from){
  *  phase change. Each mini-wheel runs the ordinary circle move; frames merge.
  * ------------------------------------------------------------------ */
 const LINEA_SUB_PEQ = { linea: 'casino', linea_ex: 'exhibela', linea_dile: 'dile' };
+const MINI_SWAP = l => l === 'cw' ? 'ccw' : l === 'ccw' ? 'cw' : l;
+/* ONE MINI-WHEEL, AS A TWO-COUPLE RUEDA — the view and the wheel context together, because they are one
+ * fact and the composition is no longer the only thing that needs it. A top-level figure whose dancers
+ * do their ordinary pequeña dancing while one of them leaves the wheel has to be able to build the same
+ * view for the scripted half, and building it a second time by hand is how the two would drift.
+ * The outer couple takes mini station 0, the inner couple station 1 with its lane swapped: the inner
+ * couple's afuera look is a 180° flip, which the mini-centre (sitting outside it) already provides. */
+function miniWheelView(ds, k){
+  const m = LM.m;
+  const byStation = {}; ds.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
+  const cur = d => d.xy ? d.xy : pos(d), fc = d => (typeof d.face === 'number') ? d.face : facingAngle(d);
+  const sub = [];
+  (byStation[m + k] || []).forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 0, lane: d.lane,             xy: cur(d), face: fc(d) }));
+  (byStation[k]     || []).forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 1, lane: MINI_SWAP(d.lane),  xy: cur(d), face: fc(d) }));
+  const mc = FORMATIONS.linea.miniCenter(k);
+  const thk = LM_BASE + k * 360 / m + phase * 180 / m;
+  return { sub, ctx: { CX: mc.x, CY: mc.y, R_RING: LM.R2, DELTA_DEG: LM.d2 * 180 / Math.PI, N: 2, BASE_ANG: thk, phase: 0 } };
+}
 function pequenaFrames(circleKey, from){
   const m = LM.m, mv = MOVEMENTS[circleKey], fromPos = LINEA_SUB_PEQ[from];
-  const swap = l => l === 'cw' ? 'ccw' : l === 'ccw' ? 'cw' : l;
-  const byStation = {}; dancers.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
-  const cur = d => d.xy ? d.xy : pos(d), fc = d => (typeof d.face === 'number') ? d.face : facingAngle(d);
   const wheels = []; let Fcount = 0, segB = null;
   for (let k = 0; k < m; k++){
-    const sub = [];
-    byStation[m + k].forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 0, lane: d.lane,        xy: cur(d), face: fc(d) })); // outer -> mini station 0
-    byStation[k].forEach(d     => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 1, lane: swap(d.lane),  xy: cur(d), face: fc(d) })); // inner -> mini station 1 (lane swapped)
-    const mc = FORMATIONS.linea.miniCenter(k);
-    const thk = LM_BASE + k * 360 / m + phase * 180 / m;
-    const out = runOnWheel({ CX: mc.x, CY: mc.y, R_RING: LM.R2, DELTA_DEG: LM.d2 * 180 / Math.PI, N: 2, BASE_ANG: thk, phase: 0 }, sub,
+    const { sub, ctx } = miniWheelView(dancers, k);
+    const out = runOnWheel(ctx, sub,
       () => { const o = movementFrames(mv, sub, 2, fromPos); return Array.isArray(o) ? { frames: o, segBeats: null } : o; });
     wheels.push(out); Fcount = Math.max(Fcount, out.frames.length); segB = segB || out.segBeats;
   }
@@ -3468,7 +3494,7 @@ function pequenaFrames(circleKey, from){
     const merged = [];
     for (let k = 0; k < m; k++){ const wf = wheels[k].frames[Math.min(i, wheels[k].frames.length - 1)];
       wf.forEach(d => { const outer = d.station === 0;
-        merged.push({ ...d, station: outer ? m + k : k, lane: outer ? d.lane : swap(d.lane) }); }); }
+        merged.push({ ...d, station: outer ? m + k : k, lane: outer ? d.lane : MINI_SWAP(d.lane) }); }); }
     frames.push(merged);
   }
   /* Each mini-wheel was planned on its own, so two dancers in DIFFERENT mini-wheels have never been
@@ -3568,10 +3594,30 @@ function movementFrames(mv, ds, N, from){
   // path, and a facing rule that may branch on the position the movement was called from.
   const roleOf = {}; ds.forEach(d => roleOf[d.id] = d.role);
   const paths = {};
-  // The raw declared lane; each SCRIPT_KIND mirrors it itself if its geometry needs it (`to_lane` and
-  // `three_quarter_circle` both do). Mirroring here as well would double it back.
-  for (const r in (p.script || {})){ const cfg = Object.assign({ lane: def[r].lane, startOf: p.startOf }, p.script[r]);
-    Object.assign(paths, SCRIPT_KINDS[cfg.kind](ds, N, cfg, mirror, r)); }
+  /* A SCRIPT CLAUSE IS SELECTED THE WAY A TRAVEL CLAUSE IS. Its key was a role and is now a selector, so
+   * the scripted half of a figure can name `'inner,F'` for the same reason the travelling half can.
+   *
+   * The raw declared lane; each SCRIPT_KIND mirrors it itself if its geometry needs it (`to_lane` and
+   * `three_quarter_circle` both do). Mirroring here as well would double it back. */
+  const gctx = groupContext(ds, N, flipsPhaseOf(mv, from) ? phase ^ 1 : phase);
+  for (const r in (p.script || {})){
+    const preds = selectorPreds(r);
+    const who = d => preds.every(pr => GROUPS[pr] && GROUPS[pr](d, gctx));
+    const cfg = Object.assign({ lane: def[r] && def[r].lane, startOf: p.startOf }, p.script[r]);
+    /* …AND MAY BE DANCED ON ITS OWN SUB-WHEEL. A scripted figure is stated in the frame of the wheel it
+     * is danced on — `three_quarter_circle` reads `CX,CY` and `R_MID()` directly — which is exactly right
+     * and exactly why the composition seam exists. A cross-wheel figure is the first one that needs the
+     * scripted half on the mini-wheels while the travelling half works in the formation, so a clause may
+     * say `about: 'ownWheel'` and get built inside each mini-wheel's context, through the same view the
+     * pequeña composition uses. The paths it returns are absolute: every kind resolves its geometry when
+     * it is built, so a path built in one context is safe to evaluate in another. */
+    if (cfg.about === 'ownWheel' && FORMATIONS[layoutName].miniCenter){
+      for (let k = 0; k < N / 2; k++){
+        const v = miniWheelView(ds, k);
+        Object.assign(paths, runOnWheel(v.ctx, v.sub, () => SCRIPT_KINDS[cfg.kind](v.sub, 2, cfg, mirror, who)));
+      }
+    } else Object.assign(paths, SCRIPT_KINDS[cfg.kind](ds, N, cfg, mirror, who));
+  }
   const pick = spec => spec && spec.byVirtualPos ? spec.byVirtualPos[virtualPos(from)] : spec;
   return playTravel(ds, N, resolveTravel(p.travel, ds, Object.assign({
     // `n` so a travel's group selectors resolve against the wheel this movement is actually danced on —
