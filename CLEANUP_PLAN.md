@@ -243,7 +243,14 @@ Dame the **leader** travels and the follower dances her ¾ circle; in Mujeres Ar
 travel and the leaders retrace their opening.
 
 **Mujeres Arriba Pequeña** — she crosses her mini 2-couple wheel, which swaps her between the rings.
-**Mujeres Arriba Grande** — she advances one couple around the ring she is already on, and stays on it.
+**Mujeres Arriba Grande** — *does not exist.* Worked out to Sam's own specification (the pairing advancing
+one couple around each ring, both partners sharing the crossing so it fits on a ring of two), it lands
+every dancer in exactly the slots a **Dame** lands them in, on the same flipped phase. It IS a Dame
+Grande from the Dile Que No position, and both the movement and the call have been folded into that name.
+
+Which is what this file's own §4 was written to overturn — the code comment *"a grande Mujeres Arriba
+would just be a Dile Que No y Dame, so it has no grande form."* The comment was right. Four versions were
+spent deriving the way back to it.
 
 Which ring she ends on is the honest discriminator, and it is what the suite now asserts (§24). "She got
 a new partner" is true of both and proves nothing.

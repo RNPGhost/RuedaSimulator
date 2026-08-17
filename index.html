@@ -282,13 +282,31 @@ const MOVEMENTS = {
     requires: ['casino', 'exhibela'], sets: 'exhibela', progresses: 1, afueraReady: true,
     anim: { duration: 820 },
     beats: 4,
-    play: { travel: 'dame_pequena', mirror: true,
+    /* FROM THE DILE QUE NO POSITION SHE DANCES HER ¾ CIRCLE — the same figure the circle Dame already
+     * does from there. Sam: "when doing a Dame move where the follower wants to end up back in the same
+     * slot, she should do her 3/4 circle movement that we've already defined as part of Rueda formation …
+     * The same should be true for Dame Pequeña in LM formation."
+     *
+     * And the leader passes her on the RIGHT, which is the Dile Que No position's own convention rather
+     * than the rueda role default. Without that declaration the planner fell back to `'L,F': 'left'` and
+     * drove him round the wrong side: measured, the INTENDED path already went right at 6.49px and the
+     * evasion reversed it to 38px on the left. No fault was recorded, because it achieved exactly the
+     * rule it had been given — the rule was the wrong one. */
+    play: { byFrom: {
       // She dances a Reverse Adios across her own spoke from Casino, and simply stands still from
       // Exhibela — which is the same instruction, because from Exhibela that slot is where she already
       // is. Only the facing differs: coming from Casino she spins anti-clockwise onto her new leader.
-      script: { F: { kind: 'to_lane', bow: { side: 'right', amp: 'justMiss' } } },
-      face: { F: { byVirtualPos: { exhibela: null,
-        casino: { from: 'start', to: 'partnerEnd', dir: 'ccw', after: 0, ease: 'linear' } } } } }
+      default: { travel: 'dame_pequena', mirror: true,
+        script: { F: { kind: 'to_lane', bow: { side: 'right', amp: 'justMiss' } } },
+        face: { F: { byVirtualPos: { exhibela: null,
+          casino: { from: 'start', to: 'partnerEnd', dir: 'ccw', after: 0, ease: 'linear' } } } } },
+      // The SAME definition the circle Dame uses from here — `dile_dame` already states both the leader's
+      // one-couple crossing and the Dile Que No position's `partner0: 'right'`. Sharing it rather than
+      // restating it is the point: these are one figure, and §46 was flagging the near-duplicate.
+      dile: { travel: 'dile_dame', mirror: true, opts: { steps: 32, settle: 0.28, beats: 4 },
+        script: { F: { kind: 'three_quarter_circle' } },
+        face: { L: 'partner', F: { from: 'travel', to: 'partnerEnd', after: 0.75, freeze: true } } },
+    } }
   },
   dame_dos_pequena: {
     label: 'Dame Dos Pequena',
@@ -377,12 +395,34 @@ const MOVEMENTS = {
    * — it is not a circle figure and there is no circle position it belongs to; `grandeFrames` reaches it
    * by name, which does not go through `validFrom`. It exists as a movement rather than as an inline
    * special case so the grande form is built the same way every other grande form is. */
-  mujeres_shared: {
-    label: 'Mujeres Arriba (shared)',
-    desc: 'From the Dile Que No position: the women advance one couple, but the men advance to meet them rather than standing. Each dancer crosses one half-spacing — she clockwise, he anti-clockwise — so they meet on the between-spoke and the wheel lands on the other config. Same pairing result as a Mujeres Arriba, half the distance each.',
+  /* THE DAME, DANCED FROM THE DILE QUE NO POSITION, SHARED BETWEEN BOTH PARTNERS. Sam's specification,
+   * in full: the phase changes; the leader progresses to the next slot anti-clockwise (clockwise on the
+   * inner ring); the follower to the next slot clockwise (anti-clockwise on the inner ring, matching the
+   * way she faces); both land in Exhibela on the opposite config.
+   *
+   * That is `L dh -1 / F dh +1` — one odd half-spacing each, in opposite directions, meeting on the
+   * between-spoke. The odd numbers ARE the phase flip; nothing declares it separately. And it is the
+   * plain Dame travel, which is the whole point: **this figure had already been derived.** It was built
+   * once as "Mujeres Arriba Grande" and once, badly, as a Dame Grande, and nothing noticed they were the
+   * same movement. Sam: "Mujeres Arriba Grande IS the same movement as Dame Grande from Dile Que No
+   * position." One name now, and §46 watches for the next one.
+   *
+   * `requires: []` so nothing offers it directly — it is reached by name from `grandeFrames`, which does
+   * not go through `validFrom`. It exists as a movement rather than an inline case so the grande form is
+   * built the way every other grande form is. */
+  dame_shared: {
+    label: 'Dame (shared)',
+    desc: 'A Dame danced from the Dile Que No position with the work shared: each partner crosses one half-spacing — he anti-clockwise, she clockwise — and they meet on the between-spoke, so the wheel lands on the other config. Same pairing result as a Dame, half the distance each, and the reason it fits on a ring of two.',
     requires: [], sets: 'exhibela', progresses: 1, flipsPhase: true, entryOnly: true,
     beats: 4,
-    play: { travel: 'mujeres_shared', mirror: true, opts: { steps: 24, settle: 0.3, beats: 4 } },
+    // The partner you start beside is the one you leave past, and Sam names that side: to the right of
+    // them, over your own left shoulder — the same for inner and outer couples, because afuera never
+    // changes which side a dancer passes on.
+    play: { travel: 'dame', mirror: true,
+      // Stated inline rather than spread from PASSES_RUEDA, which is declared with the travel registry
+      // further down and is in its temporal dead zone here.
+      opts: { steps: 24, settle: 0.3, beats: 4,
+              passes: { 'L,F': 'left', 'F,L': 'left', 'L,L': 'right', 'F,F': 'right', partner0: 'right' } } },
     anim: { speed: 0.10, rotSpeed: 0.42 }
   },
   enchufla: {
@@ -475,12 +515,17 @@ const MOVEMENTS = {
  *  (both rings exhibela). grandeFrames/pequenaFrames are hoisted below.
  * ------------------------------------------------------------------ */
 (function buildLineaMovements(){
-  // A composition can only carry over the positions it knows how to translate. A position the map leaves
-  // alone is one this composition has no Línea counterpart for — a Dame is now callable from the Dile Que
-  // No position, but there is no Línea Moderna Dile Que No entry for the GRANDE form, so it is dropped
-  // rather than silently handed a position it cannot resolve.
-  const gMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_ex' : v;
-  const gUn  = l => l === 'linea' ? 'casino' : 'exhibela';
+  /* A composition can only carry over the positions it knows how to translate. A position the map leaves
+   * alone is one this composition has no Línea counterpart for, and is dropped rather than silently
+   * handed a position it cannot resolve.
+   *
+   * The GRANDE map used to stop at casino and exhibela, because there was no Línea Moderna Dile Que No
+   * entry in `LINEA_SUB` for it. There is now, so `dile` maps too — and that is what makes a Dame Grande
+   * danceable FROM the LM Dile Que No position, which is what a Dame called over a pending Dile Que No
+   * needs. Sam found it the other way round: the call skipped the Dile Que No and danced a Dame Grande
+   * from Exhibela, because a Dame Grande from the Dile Que No position did not exist to be danced. */
+  const gMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_ex' : v === 'dile' ? 'linea_dile' : v;
+  const gUn  = l => l === 'linea' ? 'casino' : l === 'linea_dile' ? 'dile' : 'exhibela';
   const pMap = v => v === 'casino' ? 'linea' : v === 'exhibela' ? 'linea_ex' : v === 'dile' ? 'linea_dile' : v;
   const pUn  = l => l === 'linea' ? 'casino' : l === 'linea_dile' ? 'dile' : 'exhibela';
   const mapSets = (sets, map, un) => (typeof sets === 'function') ? (from) => map(sets(un(from))) : map(sets);
@@ -566,48 +611,40 @@ const MOVEMENTS = {
       play: { compose: 'pequena', of: pKey },
     };
   }
-  /* MUJERES ARRIBA HAS BOTH FORMS, because it PROGRESSES — and a progression is exactly where grande and
-   * pequeña stop meaning the same thing. Grande: each woman advances one couple around her own RING.
-   * Pequeña: she crosses to the other couple of her mini 2-couple wheel, which swaps her between the
-   * rings. Two different figures, both real, both reachable from the same LM Dile Que No position.
+  /* MUJERES ARRIBA HAS ONE FORM IN LÍNEA, AND THE OTHER TURNED OUT TO BE A DAME.
    *
-   * The 4-beat Dile Que No that gets you there does NOT need two forms, and that is measured rather than
-   * assumed: it progresses nobody, and the grande and pequeña Dile Que No positions are the same place to
-   * 0.00px, so both senses describe one figure. It stays in IN_PLACE with the rest of the in-place
-   * family. This is the same rule as before — Grande and Pequeña are markers for which slot to progress
-   * to, so a figure that progresses nobody has one form — now applied one level further in. */
+   * Pequeña is a real, distinct figure: the woman crosses her mini 2-couple wheel alone, which swaps her
+   * between the rings, while the men stay put. Grande is not. Worked out properly — the pairing advancing
+   * one couple around each ring, with both partners sharing the crossing so it fits on a ring of two — it
+   * lands every dancer in exactly the slots a DAME lands them in, on the same flipped phase. Sam:
+   * "Mujeres Arriba Grande IS the same movement as Dame Grande from Dile Que No position."
+   *
+   * Which is what the code said before any of this was built: *"a grande Mujeres Arriba would just be a
+   * Dile Que No y Dame, so it has no grande form."* That comment was right, and it was deleted to make
+   * room for a form that then took four attempts to derive back to the thing it had described. */
   for (const key of ['mujeres']){
     const m = MOVEMENTS[key];
-    const shared = MOVEMENTS[key + '_shared'];
-    MOVEMENTS[key + '_grande'] = {
-      label: m.label + ' Grande', linea: true,
-      requires: m.requires.map(pMap), sets: mapSets(m.sets, gMap, gUn),
-      // A grande progression around a ring FLIPS THE PHASE, because both dancers cross an odd half-spacing
-      // to meet in between. Read off the figure it composes rather than off `mujeres`, which does not.
-      progresses: shared.progresses, flipsPhase: shared.flipsPhase,
-      beats: mapBeats(m.beats, pUn), anim: m.anim,
-      /* NO GATE, AND THE REASON IS THE FIGURE, NOT THE COUPLE COUNT. Built the obvious way — she advances
-       * a whole couple while he stands — this needed six: on a ring of two a whole couple IS the ring, so
-       * both women travelled the same near-antipodal chord in opposite senses and the planner reported it
-       * could not clear them (12.2px against a 35px corridor at four couples). Sam's rule dissolved it
-       * rather than gating it: a grande progression flips the phase, so each dancer crosses one odd
-       * half-spacing and they meet on the between-spoke. Measured on the shared form: **41.45px clear at
-       * four, six and eight couples alike, with every path exactly 1.00× its straight line** — the figure
-       * now needs no evasion at all, at any size. The gate was a symptom of getting the dance wrong. */
-      play: { compose: 'grande', of: key + '_shared' },
-    };
     MOVEMENTS[key + '_peq'] = {
       label: m.label + ' Pequeña', linea: true,
       requires: m.requires.map(pMap), sets: mapSets(m.sets, pMap, pUn),
       progresses: m.progresses,
       beats: mapBeats(m.beats, pUn), anim: m.anim,
-      /* No gate. It carried the same stale `minCouples: 6` the 4-beat Dile Que No did, from the same
-       * pre-via-point measurement. Re-measured: the closest approach is **33.15px at four, six AND eight
-       * couples** — the identical number, because a mini 2-couple wheel is the same size whatever the
-       * rueda around it is doing. A figure whose clearance does not vary with N cannot have a floor in N. */
+      /* No gate. It carried a `minCouples: 6` from a pre-via-point measurement; re-measured, the closest
+       * approach is 33.15px at four, six AND eight couples — the identical number, because a mini
+       * 2-couple wheel is the same size whatever the rueda around it is doing. A figure whose clearance
+       * does not vary with N cannot have a floor in N. */
       play: { compose: 'pequena', of: key },
     };
   }
+  /* THE DAME GRANDE IS TWO FIGURES UNDER ONE NAME, chosen by where it is danced from. From LM Casino or
+   * LM Exhibela it composes the ordinary Dame. From the LM Dile Que No position it composes the SHARED
+   * Dame — because the circle Dame from there is the one-dancer-does-everything version that the Dile Que
+   * No y Dame compound wants, and on a Línea ring that version does not fit: the leader crossing a whole
+   * couple while his partner is scripted in place is the shape that could not be pathed. */
+  MOVEMENTS.dame_grande.play = { byFrom: {
+    default:    { compose: 'grande', of: 'dame' },
+    linea_dile: { compose: 'grande', of: 'dame_shared' },
+  } };
 })();
 
 /* ------------------------------------------------------------------ *
@@ -638,14 +675,23 @@ const CALLS = {
    * says so; that is just the rule of rueda doing its job.
    *
    * Same declaration on all three forms, because it is the same figure on three different wheels. */
-  mujeres_arriba: { label: 'Mujeres Arriba', interruptsDile: true, desc: 'Call from Exhibela, or shouted over a Dile Que No that has nothing queued behind it: a 4-beat Dile Que No into the Dile Que No position, then Mujeres Arriba — the women each progress one couple clockwise to a new partner while the men return to their own spots. Ends in Exhibela (a default Dile Que No then closes back to Casino).', from: ['exhibela'], seq: ['dile4', 'mujeres'] },
+  mujeres_arriba: { label: 'Mujeres Arriba', desc: 'Call from Exhibela, or shouted over a Dile Que No that has nothing queued behind it: a 4-beat Dile Que No into the Dile Que No position, then Mujeres Arriba — the women each progress one couple clockwise to a new partner while the men return to their own spots. Ends in Exhibela (a default Dile Que No then closes back to Casino).', from: ['exhibela'], seq: ['dile4', 'mujeres'] },
   // --- Rueda Línea Moderna calls (all from the resting 'linea' state) ---
   // Progressing figures get a GRANDE (whole rings, standard Dame, phase as usual) and a PEQUEÑA (mini
   // wheels, Dame → Dame Pequeña, no phase change). Each closes with a default Dile Que No (grande/peq).
   linea_moderna: { label: 'Línea Moderna', desc: 'Call from Casino: the rueda opens into the Rueda Línea Moderna formation — primeros (the cantante’s couple and every other one clockwise) to the inner ring, turning anti-clockwise into place; segundos out to the outer ring on their own spokes. Even couple counts only.', from: ['casino'], seq: ['linea_moderna'] },
   dame_linea:    { label: 'Dame Línea',    desc: 'Call from Casino: a Dame that lands the wheel in Rueda Línea Moderna — segundo leaders Dame out to the outer ring with the primero followers, primero leaders and segundo followers walk in to the inner ring, all in Exhibela. Closes with a Dile Que No Grande. Even couple counts only.', from: ['casino'], seq: ['dame_linea'] },
-  mujeres_arriba_pequena: { label: 'Mujeres Arriba Pequeña', lm: true, interruptsDile: true, desc: 'Call from Línea Moderna Exhibela, or over a Dile Que No with nothing queued behind it: a 4-beat Dile Que No into the Línea Moderna Dile Que No position, then Mujeres Arriba Pequeña — inside every mini 2-couple wheel the woman crosses to the other couple, swapping her between the rings, while the men return to their own spots. Ends in Línea Moderna Exhibela (a Dile Que No then closes back to LM Casino).', from: ['linea_ex'], seq: ['dile4', 'mujeres_peq'] },
-  mujeres_arriba_grande:  { label: 'Mujeres Arriba Grande',  lm: true, interruptsDile: true, desc: 'Call from Línea Moderna Exhibela, or over a Dile Que No with nothing queued behind it: a 4-beat Dile Que No into the Línea Moderna Dile Que No position, then Mujeres Arriba Grande — the pairing advances one couple around each RING, and each dancer crosses one half-spacing to meet in between, so the wheel lands on the other config. The pequeña crosses the woman between rings instead. Ends in Línea Moderna Exhibela. Available at every couple count, exactly as the pequeña is.', from: ['linea_ex'], seq: ['dile4', 'mujeres_grande'] },
+  mujeres_arriba_pequena: { label: 'Mujeres Arriba Pequeña', lm: true, desc: 'Call from Línea Moderna Exhibela, or over a Dile Que No with nothing queued behind it: a 4-beat Dile Que No into the Línea Moderna Dile Que No position, then Mujeres Arriba Pequeña — inside every mini 2-couple wheel the woman crosses to the other couple, swapping her between the rings, while the men return to their own spots. Ends in Línea Moderna Exhibela (a Dile Que No then closes back to LM Casino).', from: ['linea_ex'], seq: ['dile4', 'mujeres_peq'] },
+  /* NO MUJERES ARRIBA GRANDE CALL. Once the movement turned out to be a Dame, the call became a second
+   * word for one the caller already has: both expand to `['dile4', 'dame_grande']`, byte for byte, and
+   * Dame Grande is already offered wherever this was. Sam: "Mujeres Arriba Grande is just the same as
+   * calling Dame Grande as an interrupt, so we should get rid of Mujeres Arriba Grande."
+   *
+   * Nothing is lost, and that is measured rather than assumed: LM Exhibela is a TRANSIENT position — a
+   * Dile Que No is always pending there, so the wheel never rests at it — which means every moment this
+   * call could have been shouted is a moment Dame Grande can interrupt, at 4, 6 and 8 couples alike.
+   * The PEQUEÑA keeps its call, because it is a different figure: it crosses the woman between the rings
+   * and no Dame does that. */
   rueda:         { label: 'Rueda',         lm: true, desc: 'Call from Línea Moderna: fold the two rings back into a single rueda — outer couples walk straight in on their own spokes, inner couples come out one place clockwise of them, turning anti-clockwise into place.', from: ['linea'], seq: ['rueda'] },
   adios_rueda:   { label: 'Adios Rueda',   lm: true, desc: 'Call from Línea Moderna: the same fold back to the rueda, but the inner couples sweep clockwise the long way round into their new orientation.', from: ['linea'], seq: ['adios_rueda'] },
   adios_linea:   { label: 'Adios Línea',   desc: 'Call from Casino: the same opening into Rueda Línea Moderna, but the primeros sweep clockwise the long way round into the inner ring — the Adios-flavoured entry. Even couple counts only.', from: ['casino'], seq: ['adios_linea'] },
@@ -985,6 +1031,15 @@ const REST_LANES = {
   afuera_exhibela: { L: 'ccw',   F: 'cw'    },   // Afuera Exhibela looks like Casino
   dile:            { L: 'outer', F: 'inner' },
   afuera_dile:     { L: 'inner', F: 'outer' },   // inside out: his step out from the ring points inward
+  /* THE LÍNEA DILE QUE NO POSITION IS HERE, unlike the other Línea states, and the exception is principled:
+   * its lanes do NOT depend on which ring a couple is on. `FORMATIONS.linea.slot` already flips the sign
+   * for the inner ring inside the 'outer'/'inner' branch, so both rings name the same two lanes and the
+   * geometry does the rest.
+   *
+   * Without this the dancers kept whatever lane they were standing in before the 4-beat Dile Que No — the
+   * Exhibela cw/ccw — and anything that addresses a slot by (spoke, lane) was reading a lane that no
+   * longer described where they were. A Dame Grande danced from here put two dancers 0.00px apart. */
+  linea_dile:      { L: 'outer', F: 'inner' },
 };
 /* `lane` must be AUTHORITATIVE after a movement, not a souvenir of where the dancer started. Most circle
  * generators carry `lane` through untouched — harmless while `pos()` prefers the live `xy`, but wrong the
@@ -2535,9 +2590,10 @@ const TRAVELS = {
    * of them travelling the same chord in opposite senses; the planner reported it could not clear them,
    * 12.2px against a 35px corridor. Half the journey each, from opposite ends, is not a smaller version of
    * that problem — it is a different one, and it has an answer. */
-  mujeres_shared: { groups: ['F', 'L'], passes: Object.assign({}, PASSES_RUEDA, { 'F,F': 'left' }),
-                                        F: { dh:  1, lane: 'ccw' },
-                                        L: { dh: -1, lane: 'cw'  } },
+  /* NO SEPARATE TRAVEL. What used to sit here as `mujeres_shared` — `L dh -1 / F dh +1` — is the Dame's
+   * arithmetic exactly, character for character, and `dame` above already states it. Two names for one
+   * figure is what §46 exists to catch; the entry is gone rather than kept in step. The Dile Que No form
+   * declares its own pass sides through the movement, which is the part that legitimately differs. */
 };
 /* Turn a travel definition into the options `playTravel` takes. `o` supplies the engine-side wiring a
  * definition cannot state: the scripted roles' paths, any facing rules, and the beat/step budget. */
@@ -2620,7 +2676,15 @@ const SCRIPT_KINDS = {
       /* Where she is walking back TO. In the old compound this was remembered from before the 4-beat
        * opening; as a movement in its own right there is nothing to remember, so it resolves from the
        * slot system — which is what it always meant. "Her own spot" is an address, not a souvenir. */
-      const F0 = (cfg.startOf && cfg.startOf[d.id]) || FORMATIONS[layoutName].slot(d.station, cfg.lane, N);
+      /* HER OWN SPOT, MIRRORED WHEN THE WHEEL IS. `to_lane` swaps its lane for an inverted wheel and this
+       * did not, so on the inner Línea ring the travelling leader aimed for the mirrored side of the
+       * spoke while she aimed for the unmirrored one — the same side. Measured on the first figure that
+       * could reach it, a Dame Grande from the Línea Moderna Dile Que No position: he and the follower he
+       * was walking to landed **0.00px apart**, at 4, 6 and 8 couples alike. Unreachable until now, which
+       * is why it survived: the circle has no afuera Dile Que No position to dance a mirrored Dame from,
+       * and Línea's grande map did not carry `dile` across until this version. */
+      const lane = mirror ? LANE_SWAP[cfg.lane] : cfg.lane;
+      const F0 = (cfg.startOf && cfg.startOf[d.id]) || FORMATIONS[layoutName].slot(d.station, lane, N);
       const fr = dancerFrame(d, ds);
       const Xs = { x: CX + R_MID() * fr.out.x, y: CY + R_MID() * fr.out.y };
       const Pf   = { x: Xs.x - io * R_STEP * fr.out.x, y: Xs.y - io * R_STEP * fr.out.y };   // her spoke point
@@ -2999,9 +3063,44 @@ function declaredPasses(mv, from, depth){
   let p = mv && mv.play; if (!p || (depth || 0) > 3) return null;
   if (p.byFrom) p = p.byFrom[virtualPos(from)] || p.byFrom.default;
   if (!p) return null;
-  if (p.compose && MOVEMENTS[p.of]) return declaredPasses(MOVEMENTS[p.of], from, (depth || 0) + 1);
+  /* A COMPOSITION MUST TRANSLATE THE POSITION, NOT JUST THE FIGURE. `grandeFrames` runs the circle figure
+   * from the ring's sub-position and `pequenaFrames` from the mini-wheel's; recursing with the LÍNEA name
+   * asked the circle figure about a position it has never heard of, so `byFrom` fell through to its
+   * default branch and reported the wrong figure's pass sides.
+   *
+   * Measured: a Dame Grande from the Línea Moderna Dile Que No position reported `partner0: 'left'` — the
+   * Casino Dame's side — where the Dile Que No Dame declares `'right'`. The planner was told to hold the
+   * leader on the wrong side of the partner he starts beside, spent the whole figure failing to, and left
+   * a follower walking 10.42x her straight line. Sam, who had told me the side twice: "I suspect that
+   * this is probably caused by the passing side being wrong for this movement." It was. */
+  if (p.compose && MOVEMENTS[p.of]){
+    const sub = p.compose === 'grande' ? (LINEA_SUB[from] || {}).outer : LINEA_SUB_PEQ[from];
+    return declaredPasses(MOVEMENTS[p.of], sub || from, (depth || 0) + 1);
+  }
   const def = typeof p.travel === 'string' ? TRAVELS[p.travel] : null;
-  return def ? def.passes || null : null;
+  // A play may override the definition's sides through `opts` — `resolveTravel` merges `o` over the
+  // definition, so this has to read the same way round or the suite judges sides the figure replaced.
+  const over = p.opts && p.opts.passes;
+  return over || (def ? def.passes || null : null);
+}
+/* WHICH ROLES ARE SCRIPTED in a figure, resolved through however its play is built — the same walk as
+ * `declaredPasses`. A scripted dancer's path is choreography stated in her own frame: she walks exactly
+ * what she was told, so measuring how far that is against the straight line between her endpoints says
+ * nothing about the pathing. Sam: "scripted routes like the follower's 3/4 circle shouldn't be included
+ * in the path-vs-straight ratio, only moves that are non-scripted pathings like the Dames." */
+function scriptedRoles(mv, from, depth){
+  let p = mv && mv.play; const out = new Set();
+  if (!p || (depth || 0) > 3) return out;
+  if (p.byFrom) p = p.byFrom[virtualPos(from)] || p.byFrom.default;
+  if (!p) return out;
+  if (p.compose && MOVEMENTS[p.of]){                       // same translation as declaredPasses
+    const sub = p.compose === 'grande' ? (LINEA_SUB[from] || {}).outer : LINEA_SUB_PEQ[from];
+    return scriptedRoles(MOVEMENTS[p.of], sub || from, (depth || 0) + 1);
+  }
+  Object.keys(p.script || {}).forEach(r => out.add(r));
+  const def = typeof p.travel === 'string' ? TRAVELS[p.travel] : null;
+  if (def) ['L', 'F'].forEach(r => { if (def[r] && def[r].scripted) out.add(r); });
+  return out;
 }
 const flipsPhaseOf = (mv, from) => typeof mv.flipsPhase === 'function' ? !!mv.flipsPhase(from) : !!mv.flipsPhase;
 function grandeFrames(circleKey, from){
@@ -3080,21 +3179,22 @@ function grandeFrames(circleKey, from){
       frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
       const plan = planCrossings({ ids: xIds, base: sample,
         roleOf: id => roleOf[id],
-        /* Cross-ring relations name the RING, and the ROLE too where the figure cares. Sam, for a Dame
-         * Grande: "leaders in the outer couples must pass all inner couple dancers, both leaders and
-         * followers, on the right, so that the leader stays on the outside of the wheel." That is a
-         * statement about one role on one ring, which the bare ring rule cannot make. Anything the figure
-         * does not name that finely still falls back to it — outer keeps outside. */
+        /* CROSS-RING RELATIONS NAME THE RING, AND ONLY THE RING. Sam: "all outer dancers should pass
+         * outside any inner dancers if there is a collision between an outer dancer and an inner dancer
+         * in Linea Moderna." One rule, every role, stated radially — which is what "outside" means on a
+         * formation of concentric rings.
+         *
+         * There used to be an extra clause here for outer LEADERS specifically, reading 'right'. It came
+         * from an earlier report of Sam's about a Dame Grande from LM Exhibela — "so that the leader stays
+         * on the outside of the wheel" — and 'right' was how that intent happened to come out for that one
+         * geometry. The intent was always the radial one; naming a shoulder instead tied it to a
+         * particular arrangement of the dancers, and from the Dile Que No position, where the couples
+         * stand on the spoke rather than either side of it, the same shoulder points the other way. */
         relation: (a, b) => {
           if (ringOf[a] === ringOf[b]) return st0[a] === st0[b] ? 'partner0' : null;
-          const aIsOuter = ringOf[a] > ringOf[b];
-          if (aIsOuter && roleOf[a] === 'L') return 'outerL,inner';
-          if (!aIsOuter && roleOf[b] === 'L') return 'inner,outerL';
-          return aIsOuter ? 'outer,inner' : 'inner,outer';
+          return ringOf[a] > ringOf[b] ? 'outer,inner' : 'inner,outer';
         },
-        passes: Object.assign({}, own, {
-          'outerL,inner': 'right', 'inner,outerL': 'right',
-          'outer,inner': 'out', 'inner,outer': 'in' }),
+        passes: Object.assign({}, own, { 'outer,inner': 'out', 'inner,outer': 'in' }),
         orbit: { x: CX, y: CY },
         group: id => roleOf[id], groups: ['L', 'F'],
         clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
@@ -3213,6 +3313,8 @@ function movementFrames(mv, ds, N, from){
   // path, and a facing rule that may branch on the position the movement was called from.
   const roleOf = {}; ds.forEach(d => roleOf[d.id] = d.role);
   const paths = {};
+  // The raw declared lane; each SCRIPT_KIND mirrors it itself if its geometry needs it (`to_lane` and
+  // `three_quarter_circle` both do). Mirroring here as well would double it back.
   for (const r in (p.script || {})){ const cfg = Object.assign({ lane: def[r].lane, startOf: p.startOf }, p.script[r]);
     Object.assign(paths, SCRIPT_KINDS[cfg.kind](ds, N, cfg, mirror, r)); }
   const pick = spec => spec && spec.byVirtualPos ? spec.byVirtualPos[virtualPos(from)] : spec;
@@ -3279,29 +3381,23 @@ function step(){
   if (pendingInterrupt === 'con_exhibela'){                 // live: apply a called divert here
     pendingInterrupt = null; queue = ['exhibela']; queueCalls = [pendingCall || mkCall('con Exhibela')]; pendingCall = null; justIssued = true; proceed(); return;
   }
-  if ((pendingInterrupt === 'dame' || pendingInterrupt === 'dame_dos') && nk === 'dile'){
-    // Dame over a pending Dile Que No -> the compound figure. Afuera compounds aren't built yet, so
-    // there the Dame just runs (a plain Dame, then its own default Dile Que No follows).
-    // The compound is not a movement, it is two: the 4-beat Dile Que No, then a Dame danced FROM the
-    // Dile Que No position. Expressing it as a sequence rather than a third movement is what stops the
-    // engine having a private definition of a figure it already knows.
-    // The Dile Que No half of this is IMPLICIT — the rules of rueda put it there, no caller asked for
-    // it — so both movements are owned by the Dame instance and the log says nothing new. Sam: "don't
-    // mention the implicitly done Dile Que No or Dames that are actually part of the calls."
-    const dameKey = pendingInterrupt, owner = pendingCall || mkCall(CALLS[dameKey].label);
-    pendingInterrupt = null; pendingCall = null; queue = ['dile4', dameKey]; queueCalls = [owner, owner];
-    justIssued = true; proceed(); return;
-  }
-  // Mujeres Arriba over a Dile Que No: its own sequence opens with a 4-beat Dile Que No, so the one it
-  // replaces is not skipped so much as cut short. Only lands where the rule allows — the juncture has to
-  // still BE a Dile Que No with nothing behind it by the time we get here, which a call queued in the
-  // meantime could have changed.
-  const mi = pendingInterrupt && CALLS[pendingInterrupt] && CALLS[pendingInterrupt].interruptsDile
-    ? CALLS[pendingInterrupt] : null;
-  if (mi && nk === positionDefault(posState) && dileInterruptAt() === posState && callOfferableFrom(mi, posState)){
-    const owner = pendingCall || mkCall(mi.label);
+  /* AN INTERRUPTING CALL TAKES THE PENDING DILE QUE NO'S PLACE. Not by skipping it — by cutting it short
+   * to its own 4-beat opening and dancing the call from the Dile Que No position that lands in. One path
+   * for every call that can do this, where there used to be a Dame special case (two hard-coded circle
+   * keys) beside a Mujeres Arriba special case.
+   *
+   * The Dile Que No half is IMPLICIT — the rules of rueda put it there, no caller asked for it — so both
+   * movements are owned by the calling instance and the log says nothing new. Sam: "don't mention the
+   * implicitly done Dile Que No or Dames that are actually part of the calls."
+   *
+   * Re-checked here rather than trusted from when it was shouted: a call queued in the meantime can have
+   * moved the juncture, and the rule is about the wheel as it stands now. */
+  const ic = pendingInterrupt && CALLS[pendingInterrupt];
+  if (ic && nk === positionDefault(posState) && dileInterruptAt() === posState && canInterruptDile(ic, posState)){
+    const owner = pendingCall || mkCall(ic.label);
+    const seq = interruptSeqOf(ic);
     pendingInterrupt = null; pendingCall = null;
-    queue = mi.seq.slice(); queueCalls = mi.seq.map(() => owner);
+    queue = seq; queueCalls = seq.map(() => owner);
     justIssued = true; proceed(); return;
   }
   proceed();
@@ -3334,20 +3430,18 @@ function issueCall(callKey){
   const call = CALLS[callKey];
   if (call.placeholder){ logLine(call.label, 'movements not yet defined'); return; }
 
-  const isDame = callKey === 'dame' || callKey === 'dame_dos';
-
   // ONE instance per shout. Every movement this call expands to points at the same object, so the queue
   // can show "Dame" once however many movements it takes, and twice when it was shouted twice.
   const owner = mkCall(call.label);
 
   if (mode === 'step' && awaiting){                       // choosing a call at a pause
     if (call.modifier){ queue = ['exhibela']; queueCalls = [owner]; }              // diverts: the current call is forgotten
-    else if (isDame && pendingDefault === 'dile'){ queue = ['dile4', callKey]; queueCalls = [owner, owner]; }   // Dame over a pending Dile Que No -> 4-beat Dile Que No, then a Dame from it
-    // Mujeres Arriba at a paused Dile Que No: it replaces the pause's default outright, rather than being
-    // pushed in front of it, because its own opening IS a Dile Que No.
-    else if (call.interruptsDile && pendingDefault === positionDefault(posState) && dileInterruptAt() === posState){
-      if (!callOfferableFrom(call, posState)) return;
-      queue = call.seq.slice(); queueCalls = call.seq.map(() => owner);
+    // At a paused Dile Que No, an interrupting call REPLACES the pause's default rather than being pushed
+    // in front of it — the Dile Que No is cut short to its opening and the call is danced from there.
+    else if (pendingDefault === positionDefault(posState) && dileInterruptAt() === posState
+             && canInterruptDile(call, posState)){
+      const seq = interruptSeqOf(call);
+      queue = seq; queueCalls = seq.map(() => owner);
     }
     else { if (!callOfferableFrom(call, posState)) return; queue = call.seq.concat(queue); queueCalls = call.seq.map(() => owner).concat(queueCalls); }
     justIssued = true; logLine(call.label, 'call'); awaiting = false; proceed(); return;
@@ -3358,12 +3452,9 @@ function issueCall(callKey){
     }
     return;
   }
-  if (isDame && (engineActive || animating)){             // live: merge with an upcoming Dile Que No
-    pendingInterrupt = callKey; pendingCall = owner; logLine(call.label, 'queued'); updateUI(); return;
-  }
-  // Mujeres Arriba (live): wait for the Dile Que No it is going to replace. If there is no such juncture
-  // it falls through and queues normally, which is what a caller shouting it at rest means.
-  if (call.interruptsDile && (engineActive || animating) && mujeresLandsFrom(call)){
+  // Live: wait for the Dile Que No this call is going to take the place of. With no such juncture it
+  // falls through and queues normally, which is what shouting it at rest means.
+  if ((engineActive || animating) && interruptLandsFrom(call)){
     pendingInterrupt = callKey; pendingCall = owner; logLine(call.label, 'queued'); updateUI(); return;
   }
   if (!engineActive && !animating){                       // start a fresh call from rest
@@ -3484,8 +3575,8 @@ function updateUI(){
     // Mid-sequence: a modifier needs any juncture ahead; a Mujeres Arriba needs specifically a Dile Que No
     // juncture with nothing behind it; everything else needs the wheel to finish somewhere it can start.
     else if (c.modifier) en = fits && interruptionPointAhead();
-    else if (c.interruptsDile) en = fits && (mujeresLandsFrom(c) || canFollow(c));
-    else en = canFollow(c);
+    // Either it can take the pending Dile Que No's place, or it can be lined up behind the sequence.
+    else en = fits && (interruptLandsFrom(c) || canFollow(c));
     b.disabled = !en;
   });
   // A movement runs to completion — it cannot be interrupted — so the whole panel is dead while one plays.
@@ -3796,10 +3887,19 @@ function logLine(move, note, undo=false){
  *  movements it expands to. So a new movement lands in the right group without anyone maintaining a
  *  list, and the two panels can never disagree about what something is.
  * ------------------------------------------------------------------ */
+/* ONE PROGRESSIONS GROUP, not two. It used to split "Progressions that flip the phase" from
+ * "Progressions on the same phase" — a real distinction in the arithmetic, and a false one on a button,
+ * because whether a figure flips the phase can depend on WHERE IT IS DANCED FROM. Sam: "Dame is listed in
+ * the movements that flip the phase section, however if it's called from Dile Que No position, it doesn't
+ * flip the phase."
+ *
+ * Exactly so: `dame.flipsPhase` is `virtualPos(from) !== 'dile'`. A panel heading has no from-position, so
+ * it was filing a movement under one of two answers to a question that has several. The distinction is
+ * still there where it belongs — in `flipsPhase`, which the engine asks per call — and off the label,
+ * which cannot state it honestly. */
 const MOVE_GROUPS = [
   ['formation',  'Formation & frame'],
-  ['phaseflip',  'Progressions that flip the phase'],
-  ['samephase',  'Progressions on the same phase'],
+  ['progressive','Progressions'],
   ['standard',   'Standard'],
 ];
 const CALL_GROUPS = [
@@ -3813,15 +3913,16 @@ function moveGroup(key){
   // A formation change replaces the slot set; a relabel (Afuera/Adentro) turns the whole wheel
   // inside out. Neither moves anyone to a new partner, but both change how everything after is danced.
   if ((m.play && m.play.formation) || m.relabel) return 'formation';
-  if (!m.progresses) return 'standard';
-  return m.flipsPhase ? 'phaseflip' : 'samephase';
+  // Progressing is a property of the figure; flipping the phase is a property of the figure AND the
+  // position it is danced from, so it cannot label a button. Both panels now name the same group.
+  return m.progresses ? 'progressive' : 'standard';
 }
 function callGroup(key){
   const c = CALLS[key]; if (!c) return 'standard';
   if (c.modifier) return 'interrupt';
   const groups = (c.seq || []).map(moveGroup);
   if (groups.includes('formation')) return 'formation';
-  if (groups.includes('phaseflip') || groups.includes('samephase')) return 'progressive';
+  if (groups.includes('progressive')) return 'progressive';
   return 'standard';
 }
 
@@ -3885,10 +3986,34 @@ function dileInterruptAt(){
   }
   return null;
 }
-// A Mujeres Arriba is offerable mid-sequence if such a juncture exists AND its figures fit there.
-function mujeresLandsFrom(c){
+/* WHAT A CALL BECOMES WHEN IT TAKES A PENDING DILE QUE NO'S PLACE. Sam: "Dame Calls ... which are called
+ * when there is a Dile Que No at the end of the queue of movements ready to play, will interrupt that
+ * Dile Que No, not by directly replacing it with the called dame movement, but by replacing it with a
+ * Dile Que No (4) and then appending the correct Dame."
+ *
+ * So the Dile Que No is not SKIPPED, it is CUT SHORT to its own 4-beat opening — and the call is then
+ * danced from the Dile Que No position that opening lands in. A call already written to open that way
+ * (Mujeres Arriba) needs no prefix; it is the same sequence either way. */
+const interruptSeqOf = c => (c.seq && c.seq[0] === 'dile4') ? c.seq.slice() : ['dile4'].concat(c.seq || []);
+/* WHICH CALLS MAY DO THIS IS DERIVED, NOT LISTED. It used to be `callKey === 'dame' || callKey ===
+ * 'dame_dos'` — two circle keys — so Dame Grande and Dame Pequeña, which Línea mints under derived names,
+ * fell straight past it and queued normally. Sam found the consequence: "when I called Dame Grande in
+ * Linea Moderna as an interrupt on an active call which ended in a Dile Que No, it skipped the Dile Que
+ * No entirely and went straight for a Dame Grande from Exhibela position." Same failure as the
+ * interruption points before it, and the same fix.
+ *
+ * The question a hand-list was standing in for is simply: cut the Dile Que No short, and can this call be
+ * danced from where that leaves the wheel? A Dame can, because a Dame is defined from the Dile Que No
+ * position. An Enchufla cannot, and is not offered. Nothing has to remember which is which. */
+function canInterruptDile(c, at){
+  if (!c || !c.seq || !c.seq.length || c.modifier) return false;
+  if (c.minCouples && N < c.minCouples) return false;
+  return callDanceableFrom({ seq: interruptSeqOf(c) }, at);
+}
+// Offerable mid-sequence if such a juncture exists AND the call's figures fit there.
+function interruptLandsFrom(c){
   const at = dileInterruptAt();
-  return !!at && callOfferableFrom(c, at);
+  return !!at && canInterruptDile(c, at);
 }
 
 function buildButtons(){

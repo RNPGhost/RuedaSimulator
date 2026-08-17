@@ -116,7 +116,8 @@ const LINEA_CALLS = ['dame_grande', 'enchufla_grande', 'dame_pequena', 'enchufla
 const LINEA_CHAINS = [
   [['dame_peq'], 'dile4'],
   [['dame_peq', 'dile4'], 'mujeres_peq'],
-  [['dame_peq', 'dile4'], 'mujeres_grande'],
+  [['dame_peq', 'dile4'], 'dame_peq'],        // the Dame Pequeña danced FROM the LM Dile Que No position
+  [['dame_peq', 'dile4'], 'dame_grande'],
 ];
 function genLineaChains(T) {
   const out = {};

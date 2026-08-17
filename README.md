@@ -91,7 +91,8 @@ how to add new movements and calls — are written up in [`CALLING.md`](CALLING.
 | Dile Que No y Dame Dos | Exhibela → Exhibela | As Dile Que No y Dame but the leader progresses two couples anti-clockwise |
 | Dile Que No (4) | Exhibela → Dile Que No position | The 4-beat opening danced on its own: out and back along the Exhibela line, onto the couple's midpoint spoke, pause |
 | Mujeres Arriba | Dile Que No position → Exhibela | The women advance: each follower progresses one couple clockwise while each leader retraces his 4 beats back to his own spot. Leaders don't progress; no phase change |
-| Mujeres Arriba Grande / Pequeña | LM Dile Que No position → LM Exhibela | Línea Moderna. **Grande**: the pairing advances one couple around each ring, with both dancers crossing one half-spacing to meet in between — so it flips the phase, and nobody has to cross a whole ring. **Pequeña**: the woman crosses her mini 2-couple wheel alone, swapping her between the rings; the men stay put. Both available at every couple count |
+| Mujeres Arriba Pequeña | LM Dile Que No position → LM Exhibela | Línea Moderna: the woman crosses her mini 2-couple wheel alone, swapping her between the rings, while the men stay put. There is no grande form — worked out properly it lands everyone exactly where a **Dame Grande** does, so that is what it is called |
+| Dame Grande (from the LM Dile Que No position) | LM Dile Que No position → LM Exhibela | The pairing advances one couple around each ring, with both partners crossing one half-spacing to meet in between — so it flips the phase, and nobody crosses a whole ring. That sharing is why it fits on a ring of two |
 | Leader's Right Turn | Casino/Exhibela → unchanged | Danced in place: the follower stays put and doesn't rotate while the leader turns a full 360° to his right, ending exactly where and how he began |
 | Afuera / Adentro | Casino ↔ Afuera Exhibela, Exhibela ↔ Afuera Casino | 0-beat frame flips: nobody moves, but every figure afterwards is danced point-reflected |
 
@@ -109,7 +110,7 @@ how to add new movements and calls — are written up in [`CALLING.md`](CALLING.
 | Enchufla Afuera | Enchufla → Leader's Right Turn → Afuera | Enters **Afuera Casino** (inside-out Casino); wheel stays afuera |
 | Enchufla Adentro | Enchufla → Leader's Right Turn → Adentro | From Afuera Casino only; un-flips back to normal Casino |
 | Mujeres Arriba | Dile Que No (4) → Mujeres Arriba → (default) Dile Que No | From Exhibela, **or shouted over a Dile Que No that has nothing queued behind it** — it takes that Dile Que No's place, since its own opening is one. The pairing shifts by one; the leaders stay put |
-| Mujeres Arriba Grande / Pequeña | Dile Que No (4) → Mujeres Arriba Grande/Pequeña → (default) Dile Que No | The Línea Moderna forms; the caller has to pick one |
+| Mujeres Arriba Pequeña | Dile Que No (4) → Mujeres Arriba Pequeña → (default) Dile Que No | The Línea Moderna form. There is no *Grande* call: that figure is a Dame Grande, so you call **Dame Grande** over the pending Dile Que No |
 | con Exhibela | inserts an Exhibela movement at the next Exhibela | Modifier |
 
 While afuera, all the normal Casino calls are available too and dance inside-out (progressing clockwise). **Afuera** / **Adentro** are 0-beat frame flips (Casino ↔ Afuera Exhibela, Exhibela ↔ Afuera Casino).

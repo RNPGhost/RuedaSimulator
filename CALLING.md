@@ -388,9 +388,17 @@ Two calls use these junctures, and they use them differently:
 - ***con Exhibela*** is a **modifier**: it needs *any* juncture ahead, and when it lands it replaces
   whatever the current call had planned with an Exhibela movement. The rest of the interrupted call is
   forgotten.
-- ***Mujeres Arriba*** declares `interruptsDile`: it needs specifically a **Dile Que No** juncture with
-  **nothing queued behind it**, and it takes that Dile Que No's place rather than displacing it — its own
-  sequence opens with a 4-beat Dile Que No, so the movement is cut short rather than skipped.
+- **Any call that can be danced from the Dile Que No position** — the Dame family and Mujeres Arriba —
+  needs specifically a **Dile Que No** juncture with **nothing queued behind it**, and takes that Dile Que
+  No's place rather than displacing it. The Dile Que No is **cut short to its own 4-beat opening**, and
+  the call is danced from the position that lands in.
+
+  Which calls those are is **derived, never listed**. `interruptSeqOf(c)` is the call's sequence with a
+  `dile4` in front (or unchanged, if it already opens with one), and `canInterruptDile` asks whether that
+  sequence can actually be danced from the juncture. A Dame can, because a Dame is defined from the Dile
+  Que No position; an Enchufla cannot, and is not offered. A new formation minting new names gets this
+  for free — which it did not before: `isDame` was `callKey === 'dame' || callKey === 'dame_dos'`, so
+  Dame Grande and Dame Pequeña queued normally and skipped the Dile Que No entirely.
 
 `dileInterruptAt()` answers where a Mujeres Arriba could land, or null. Both halves of the rule are
 refusals, and the second is the one worth having: something queued behind the Dile Que No means the

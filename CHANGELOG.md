@@ -3,6 +3,331 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v144 — she dances her ¾ circle here too, and one heading replaces two
+
+Sam, on Dame Pequeña from the LM Dile Que No position: "the dancers pass the dancer that they're
+partnered with the wrong way. Currently they pass their current partner on the left. This should be on
+the right." And then: "when doing a Dame move where the follower wants to end up back in the same slot,
+she should do her 3/4 circle movement that we've already defined as part of Rueda formation … The same
+should be true for Dame Pequeña in LM formation."
+
+**The pass side, and why nothing caught it.** `declaredPasses(dame_peq, 'linea_dile').partner0` was
+`undefined`, so the planner fell back to the rueda role default `'L,F': 'left'`. Measured: the INTENDED
+path already went right, at 6.49px — the geometry wanted the correct side all along — and the evasion
+**reversed it**, pushing him 38px round her left. Zero side-faults were recorded, because the figure
+achieved exactly the rule it had been given. The rule was the wrong one. That is the second time this
+version of the bug has appeared, and both times the tell was a fault count of zero on a figure that was
+visibly wrong.
+
+**The ¾ circle.** From the Dile Que No position she now dances the same figure the circle Dame already
+gives her, rather than the `to_lane` reverse-Adios that belongs to Casino and Exhibela. Both branches
+share ONE definition (`dile_dame`), which is what §46 had been pointing at.
+
+| Dame Pequeña from LM Dile Que No | before | after |
+|---|---|---|
+| side past own partner | **left** | **right** |
+| clearance | 35.00px | **39.22px** |
+| path ÷ straight | 1.32× | **1.07×** |
+| clearance of the INTENDED path | 6.49px | **22.70px** |
+
+Her ¾ circle keeps her out of his line, so the figure barely needs evasion at all.
+
+**One Progressions heading, not two.** Sam: "Dame is listed in the movements that flip the phase section,
+however if it's called from Dile Que No position, it doesn't flip the phase." Exactly — `dame.flipsPhase`
+is `virtualPos(from) !== 'dile'`. A panel heading has no from-position, so it was filing a movement under
+one of two answers to a question that has several. "Progressions that flip the phase" and "Progressions
+on the same phase" are now one **Progressions** group, matching the calls panel. The distinction stays
+where it can be stated honestly — in `flipsPhase`, which the engine asks per call.
+
+**And a blind spot the change exposed.** Giving Dame Pequeña a `byFrom` dropped §26's traveller count from
+100+ to 54, because `isTravel` did not understand `byFrom` — so the check had been silently skipping
+**every movement that dances differently depending on where it is called from**, which is the Dame family
+entire. §39b had the same hole from the other side: it resolved a `byFrom` only when all branches named
+the same travel, and skipped the movement otherwise. Both fixed, and both now check every branch:
+**invariants 5294 → 5546 checks.** Golden gained the three cases for `dame_peq` danced from the LM Dile
+Que No position, which nothing had been covering either.
+
+## v143 — and the call went with it
+
+Sam: "This also means that Mujeres Arriba Grande is just the same as calling Dame Grande as an interrupt,
+so we should get rid of Mujeres Arriba Grande, leaving only Mujeres Arriba Pequeña and Mujeres Arriba."
+
+The consolidation stopped one level short in v142. Once the movement turned out to be a Dame, the CALL
+was a second word for one the caller already has: both expand to `['dile4', 'dame_grande']`, byte for
+byte. Retired.
+
+**Nothing is lost, and that is measured rather than assumed.** The obvious worry is that
+`mujeres_arriba_grande` declared `from: ['linea_ex']` while the Dame Grande call declares
+`from: ['linea']`, so deleting it looks like it removes the only way to call this figure from LM
+Exhibela. It does not, because **LM Exhibela is a transient position**: `positionDefault('linea_ex')` is
+a Dile Que No, so the wheel never rests there. Every moment the retired call could have been shouted is a
+moment a Dile Que No is pending — which is exactly when Dame Grande can interrupt. Confirmed at 4, 6 and
+8 couples: Dame Grande is offerable at that juncture at every count, producing the identical sequence.
+
+The **pequeña** call stays. It is a different figure — it crosses the woman between the rings, and no
+Dame does that.
+
+§41 now asserts both halves: that the grande call has not come back, and that the pequeña one has not
+gone. Which is the lesson of the last three versions written as a test — **a caller's vocabulary is not a
+list of figures.** Two words can name one movement, and one word can name several; the registry should
+be keyed by the dancing, and the calls should point at it.
+
+## v142 — it was a Dame all along
+
+Sam: "Mujeres Arriba Grande IS the same movement as Dame Grande from Dile Que No position. Firstly,
+let's consolidate on a single name (let's go with Dame Grande) … Secondly, I really want you to drill
+down into why our current system was struggling so much to derive a movement it had already derived
+before."
+
+**Consolidated.** `mujeres_grande` and the `mujeres_shared` travel are gone. `dame_grande` picks its
+figure by where it is danced from: the ordinary Dame from LM Casino and LM Exhibela, the SHARED Dame
+(`dame_shared`) from the LM Dile Que No position. `mujeres_arriba_grande` survives as a call word,
+because callers shout it, and expands to `['dile4', 'dame_grande']`.
+
+Measured against Sam's specification, at 4, 6 and 8 couples alike:
+
+| | before | after |
+|---|---|---|
+| path ÷ straight line | 8.04× (n6) | **1.00×**, every count |
+| minimum clearance | 33.84px | **41.45px** |
+| side-faults | 4 | **0** |
+| couple width on landing | 64.0px | 64.0px |
+| phase | flips | flips |
+
+He asked for "probably less than 1.5". It needs no evasion at all.
+
+---
+
+### Why it took four attempts to re-derive something already in the registry
+
+**1. A movement is keyed by what a caller shouts, and identified by nothing.** `TRAVELS.mujeres_shared`
+was `L dh -1 / F dh +1`. So is `TRAVELS.dame`. Character for character, the same figure, sitting in the
+same registry, and nothing in the system could see it — because the key came from the calling vocabulary
+("Mujeres Arriba Grande") while the identity lives in the arithmetic. **§46 now fingerprints every travel
+by its slots and warns on collisions.** Run today it immediately finds two more pairs nobody had noticed:
+`dame_pequena` ≡ `dile_dame`, and `dame_dos_pequena` ≡ `dile_dame_dos`. Third instance in this project —
+`dame_peq` and `dame_dos_peq` were once byte-identical too, and the whole IN_PLACE de-duplication came
+from measuring frames and finding them equal. Each time it was found by hand.
+
+**2. A composition translated the figure but not the position.** `grandeFrames` correctly maps
+`linea_dile → dile` through `LINEA_SUB` before generating frames. `declaredPasses` and `scriptedRoles`
+recursed with the *Línea* name. So the frame generator and the metadata walkers disagreed about which
+figure was being danced: the generator ran `dile_dame`, the metadata reported the Casino Dame's pass
+sides. Two derivations of the same fact, silently different, and only one of them was ever printed.
+Fixed in v140, asserted by §45.
+
+**3. `byFrom` let the Línea form inherit a choice made for the circle.** `dame.play.byFrom['dile']` is
+`dile_dame` — the leader crosses a whole couple while the follower is scripted through a ¾ circle. That
+is right *in the circle*, because it is the tail of the Dile Que No y Dame compound. The grande form
+inherited it purely by composing `dame`, and on a Línea ring it is the shape that cannot be pathed: one
+dancer doing the whole journey while the other cannot yield. Nobody chose that for Línea; it arrived
+through a `byFrom` key.
+
+**4. The evidence was collected and never compared.** Mujeres Arriba Grande measured 1.00× / 41.45px.
+Dame Grande from the same position, ending in the same position, on the same flipped phase, with the same
+pairing shift, measured 8.04× / 33.84px. Both numbers were in this changelog, two versions apart. The
+suite checks each figure against absolute properties and never checks figures against each other, so an
+8× discrepancy between two descriptions of one movement was not a question anything was asking.
+
+**5. And the code had already said so.** Before any of this was built, the comment read: *"a grande
+Mujeres Arriba would just be a Dile Que No y Dame, so it has no grande form."* That was correct. It was
+deleted to make room for the form that was asked for, and four versions were spent deriving the
+registry's way back to what the sentence had described. A prose statement of a structural fact cannot
+defend itself; §46 is the same claim written so that it can.
+
+The through-line: **every one of these is the system holding two derivations of one thing and having no
+way to compare them.** Two names for one figure, two answers to which position a composition runs from,
+two versions of a Dame chosen by a key nobody revisited, two measurements never put side by side. The
+engine is good at deriving; it had nothing that noticed when it derived the same thing twice.
+
+## v141 — the departure is the thing, and it is not built yet
+
+Sam, on the diagnosis: "That makes sense that it shapes his departure. Please remember this, because most
+other progressive moves involving Dile Que No position will likely involve leaders leaving to the right,
+even when they eventually have to end up travelling to a slot that is clockwise of their starting slot,
+so this is going to become a common thing."
+
+**The diagnosis, which is now solid and measured.** From the Dile Que No position the partners stand *on
+the same spoke*, a step apart, rather than either side of it. The traveller leaves past the one he is
+standing with, and his destination can be the other way round the wheel from the side he must leave on —
+so the straight line from start to landing runs **through where she is standing**. On the outer ring they
+close to **4.5px at t=0.10**, a tenth of the way in, while he is still beside his fixed start. She is
+scripted and cannot yield. The planner therefore has to carry him a whole corridor sideways at a moment
+when he has barely moved, and a via is a smooth bump peaking at one instant: demanding that much that
+early bends everything after it. That bending IS the 8x.
+
+**What is fixed and shipped** (v140): the composition now translates the position, so the figure is
+finally told the right side — `partner0: 'right'` rather than the Casino Dame's `'left'`. Worst detour at
+eight couples fell **2.00x → 1.07x**. Four is unchanged at 3.03x; six improved 10.42x → 8.04x.
+
+**What is not fixed: the departure itself.** Two implementations were built and measured, and both are
+reverted:
+
+| attempt | n=4 | n=6 | n=8 |
+|---|---|---|---|
+| shipped (v140) | 3.03x / 29.2px | 8.04x / 33.8px | 1.07x / 36.5px |
+| departure via, blended across the path | 7.58x / 26.7px | **1.65x** / 23.4px | **1.11x** / 13.9px |
+| departure via, blended locally | 12.64x / 22.6px | 12.54x / 24.8px | 8.40x / 34.4px |
+
+The first genuinely works on the detour — 8.04x → 1.65x at six couples — and pays for it in clearance.
+The second is worse on both. The lesson from the pair: **a departure has to be part of the path the
+figure asks for, generated with it, not blended onto a straight line and then re-planned on top.** The
+planner runs afterwards and fights an offset it did not choose.
+
+Also recorded as dead ends, with numbers, so they are not retried: removing the `io` mirror flip in
+`three_quarter_circle` (clearance 33.8 → 10.4px), suppressing the mirror on this figure (side-faults go to
+zero, which confirms the mirror is what flips the side — but both rings then progress the same way and
+clearance collapses to ~4px), and capping the via solver's growth once it stops improving (detour
+10.42x → 5.16x, clearance 33.8 → 3.1px).
+
+MOVEMENT_SPEC and the skill now carry the departure rule, since Sam expects it to recur across the
+progressive figures from this position.
+
+## v140 — the composition was asking the wrong figure which side to pass on
+
+Sam: "I suspect that this is probably caused by the passing side being wrong for this movement." He was
+right, and the reason was one line.
+
+`declaredPasses` walks a movement's `play` to find the sides it declares. For a **composed** movement it
+recursed into the circle figure — but passed the LÍNEA position name straight through. `grandeFrames`
+runs that figure from the ring's SUB-position (`dile`), and `pequenaFrames` from the mini-wheel's, so the
+circle figure was being asked about a position it has never heard of. Its `byFrom` fell through to the
+default branch, and the planner was handed the wrong figure's pass sides.
+
+Concretely: **`declaredPasses(dame_grande, 'linea_dile')` returned `partner0: 'left'` — the Casino Dame's
+side — where the Dile Que No Dame declares `'right'`.** The planner then spent the entire figure trying to
+hold the leader on a side the figure never wanted him on, and could not. Nothing failed. It just looked
+wild, which is exactly how Sam found it.
+
+- **Fixed**: a composition translates the position before recursing, in `declaredPasses` and in
+  `scriptedRoles` alike.
+- **Measured, Dame Grande from the LM Dile Que No position:** at eight couples the worst detour falls
+  from **2.00× to 1.07×** and the figure is essentially straight. At four it is unchanged at 3.03×, and at
+  six it improves from 10.42× to 8.04×.
+- **§45** asserts the property rather than the instance: for every composed movement, the sides it reports
+  must equal what the underlying figure says about the sub-position the composition will actually run it
+  from. Mutation-tested — removing the translation fails it by name.
+
+**What is still wrong, precisely.** Every remaining side-fault is on the **inner ring**, which is the
+mirrored one, and every one of them wants `right` and gets `left`. The outer ring is correct at every
+couple count. So the residue is not "which side is declared" — that is now right — but that a figure
+generated inside-out achieves the opposite side from the one it is told, and the planner cannot drag it
+back across. The engine's stated doctrine is that pass sides are NOT mirrored, because a dancer's own
+left survives a point reflection; the measurements say that for a couple standing **radially on the
+spoke** — which is what the Dile Que No position is, unlike every other position where they stand either
+side of it — the inside-out generation flips it. That contradiction is the next thing to resolve, and it
+is a choreography question before it is an engine one.
+
+## v139 — measure the detour, and stop guessing pass sides
+
+Sam: "the collision avoidance and pathing for Dame Grande from Dile Que No position is absolutely wild.
+Why didn't you warn me about this? Anything where the path distance is significantly above the straight
+line distance should trigger warnings." And: "How did you come up with the passing directions? Did you
+just make them up?"
+
+Partly, yes. `'F,F': 'left'` and the ring rules came from Sam. `mujeres_shared` took the `PASSES_RUEDA`
+default without asking and happened to measure clean. **Dame Grande from the Dile Que No position was
+never checked at all** — it shipped in v138 with the landing verified, the clearance quoted, and the
+detour never computed. The engine had recorded **eight side-faults** on that figure. Nothing asserted
+them, and Sam found it by watching.
+
+- **§44, a WARNING and deliberately not a failure.** Sam: "This shouldn't be an absolute failure, but it
+  should be a warning indicator that something has gone significantly wrong if this is significantly
+  higher than other moves." So the test is RELATIVE — median and median-absolute-deviation across every
+  figure the sweep can dance — because there is no honest absolute threshold: a figure that returns a
+  dancer to where she started has a straight-line distance of zero. `run.js` prints warnings before the
+  verdict and exits green on them.
+- **Scripted dancers are excluded**, on Sam's correction: "the scripted movements will always be exactly
+  the scripted path." A ¾ circle is ~2.5× its own chord by construction, so including them put four
+  honest figures on the list beside the broken one — which is how a warning list stops being read. With
+  them out, the median sharpens from 1.15× to 1.06× and the list is four entries, three of them the same
+  known-bad figure. `scriptedRoles(mv, from)` resolves through `byFrom` and `compose`, the same walk
+  `declaredPasses` already does.
+- **The cross-ring rule is purely radial now.** Sam: "all outer dancers should pass outside any inner
+  dancers if there is a collision between an outer dancer and an inner dancer in Linea Moderna." The
+  extra `outerL,inner: 'right'` clause came from an earlier report about a Dame Grande from LM *Exhibela*
+  — "so that the leader stays on the outside of the wheel" — where 'right' happened to express the radial
+  intent for that arrangement. Naming a shoulder tied it to one geometry; from the Dile Que No position,
+  where the couple stands *on* the spoke rather than either side of it, the same shoulder points the other
+  way. Measured: removing it costs nothing at LM Exhibela (1.15× before and after).
+- **The skill and MOVEMENT_SPEC now say: ask, never default.** Pass sides are the highest-yield intake
+  question and the easiest to skip, because `PASSES_RUEDA` will always supply an answer and the figure
+  will run — badly. A collision found mid-implementation is a question, not a puzzle to solve.
+- Golden 354 unchanged; invariants 5291 → 5292 plus 4 warnings; visual 15 scenes unchanged.
+
+**Two dead ends, recorded so they are not retried.** Removing the `io` mirror flip in
+`three_quarter_circle` makes it worse (clearance 33.8px → 10.4px). Stopping the via solver's growth once
+it stops improving cuts the detour (10.42× → 5.16×) but at the cost of clearance (33.8px → 3.1px), which
+is the wrong trade.
+
+**Still open.** Dame Grande from the LM Dile Que No position remains the warning list's top entry at
+10.42×. Diagnosis, for whoever picks it up: the *intended* paths — before any evasion — put the leader
+and **the partner he starts with** 4.5–8.2px apart on the outer ring, at every couple count. A pass side
+tells the solver which way to separate two dancers; it cannot stop their intended paths from beginning on
+top of each other. From this position the partners stand on the same spoke, 46px apart radially, and he
+leaves across her. What the figure needs specified is whether he departs *outside* her or *inside* her —
+a radial question, not a left/right one — and that is Sam's to answer, per the rule above.
+
+## v138 — every Dame interrupts a Dile Que No, not just the two the code knew by name
+
+Sam: "Dame Calls, such as Dame, Dame Dos, Dame Grande, Dame Pequena etc, which are called when there is a
+Dile Que No at the end of the queue of movements ready to play, will interrupt that Dile Que No, not by
+directly replacing it with the called dame movement, but by replacing it with a Dile Que No (4) and then
+appending the correct Dame. I noted that when I called Dame Grande in Linea Moderna as an interrupt on an
+active call which ended in a Dile Que No, it skipped the Dile Que No entirely and went straight for a
+Dame Grande from Exhibela position."
+
+**The third instance of one bug.** `const isDame = callKey === 'dame' || callKey === 'dame_dos'` — two
+circle keys — so every name Línea mints fell straight past it. Same shape as `INTERRUPTIBLE` (v135) and
+the golden tables (v137): a hand-written list of circle keys standing in for a question that could be
+asked directly.
+
+**The question it was standing in for:** cut the Dile Que No short to its 4-beat opening, and can this
+call be danced from where that leaves the wheel? A Dame can, because a Dame is defined from the Dile Que
+No position. An Enchufla cannot. Nothing has to remember which is which. Derived, the eligible set is
+exactly right in both formations — Dame, Dame Dos and Mujeres Arriba in the circle; Dame Grande, Dame
+Pequeña and both Mujeres Arriba forms in Línea — with Enchufla and Dame Línea correctly excluded.
+
+This also folded the Dame special case and the Mujeres Arriba special case into one path. Note the
+framing, which is the useful part: the Dile Que No is not **skipped**, it is **cut short** to its own
+opening. A call already written to open that way needs no prefix, so one rule covers both families.
+
+**Two engine bugs surfaced on the way, both invisible until now.**
+
+- `dame_grande` could not be danced from the LM Dile Que No position at all — the grande position map
+  stopped at casino and exhibela, because when it was written there was no `linea_dile` entry in
+  `LINEA_SUB`. v135 added one; the exclusion was stale. That is *why* the call skipped the Dile Que No:
+  there was no figure there to dance.
+- With it reachable, it put two dancers **0.00px apart** at 4, 6 and 8 couples alike. `three_quarter_circle`
+  resolved the scripted follower's landing without mirroring the lane, while `resolveTravel` mirrors the
+  traveller's — so on the inverted inner ring he aimed for the mirrored side of the spoke and she aimed
+  for the unmirrored one, which is the same side. `to_lane` had always mirrored; this one never had, and
+  nothing could reach it: the circle has no afuera Dile Que No position, and Línea's grande map did not
+  carry `dile` across. Every couple now lands at exactly 64.0px.
+- `REST_LANES` gained `linea_dile`. The other Línea positions are absent because their lanes depend on
+  which ring a couple is on; this one's do not, since `FORMATIONS.linea.slot` already flips the sign
+  inside the `outer`/`inner` branch. Without it dancers kept the Exhibela lanes they arrived in.
+
+**Dame Pequeña from the Dile Que No position** (Sam, separately) works and is measured: 35.00px clear at
+4, 6 and 8 couples, every couple landing at 64.0px.
+
+**§43, and a note on how it was written.** The first version asserted that `canInterruptDile` agreed with
+what could be danced. Mutation-testing it — reinstating the old two-key check inside `issueCall` — it
+**passed**, because the query was still right and nothing was asking the code path that uses it. An
+invariant that tests the query instead of the behaviour is the same failure as a golden table that has
+stopped covering anything. Rewritten to shout the call at the juncture and read back what the engine
+decided, the same mutation fails 15 checks.
+
+- Golden 354 unchanged; invariants 5206 → 5291; visual 15 scenes unchanged.
+
+**Still open, and measured rather than assumed:** a Dame Grande from the LM Dile Que No position clears
+36.53px at eight couples but only **33.84px at six and 29.15px at four**, against a 34px floor. The
+landing is correct; the crossing is tight. Sam's own rule predicts exactly this — it is a grande figure
+in which one dancer changes slot around the wheel while the other is scripted in place, which is the
+shape v136 had to abandon for Mujeres Arriba Grande. Whether the same shared-progression treatment should
+apply to a Dame from the Dile Que No position is a choreography decision, not an engine one, so it is
+flagged rather than guessed.
+
 ## v137 — the women pass on the left, and golden had gone blind
 
 Sam, from the running sim: "the followers should be going clockwise around the mini wheels, which would

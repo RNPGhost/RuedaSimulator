@@ -188,14 +188,25 @@ function load(htmlPath) {
       FIGURES, SOLVERS, TRAVELS,
       // Which wheel a figure is danced on — the reference a progression is counted against. Asked of the
       // engine rather than re-derived here: a re-derivation is a second opinion waiting to disagree.
-      refWheels, composeKind, declaredPasses, callDanceableFrom, resolveSets,
+      refWheels, composeKind, declaredPasses, scriptedRoles, callDanceableFrom, resolveSets,
       // The interruption vocabulary, asked of the engine rather than re-derived: §41/§42 assert rules
       // ABOUT these, and a test that computed its own answer would only be checking itself.
       get INTERRUPTIBLE(){ return INTERRUPTIBLE; },
-      positionDefault, dileInterruptAt, mujeresLandsFrom, interruptionPointAhead,
+      positionDefault, dileInterruptAt, interruptLandsFrom, canInterruptDile, interruptSeqOf, interruptionPointAhead,
+      POSITIONS,
+      get LINEA_SUB(){ return LINEA_SUB; }, get LINEA_SUB_PEQ(){ return LINEA_SUB_PEQ; },
       // Put the engine in a chosen mid-sequence state so the interruption rule can be probed directly.
       poseQueue(pos, keys){ posState = pos; queue = keys.slice(); queueCalls = keys.map(() => ({ id: 0, label: 'x' }));
-        engineActive = true; animating = false; awaiting = false; pendingInterrupt = null; pendingCall = null; },
+        engineActive = true; animating = false; awaiting = false; pendingInterrupt = null; pendingCall = null;
+        rawMovement = false; },
+      /* Shout a call at a juncture and report what the ENGINE did with it — which is the thing worth
+       * asserting. Asking canInterruptDile only re-runs the query; a regression that leaves the query
+       * right and reinstates a hard-coded key list in issueCall sails past it, as one did. */
+      shoutAt(pos, keys, callKey){
+        this.poseQueue(pos, keys); mode = 'live';
+        issueCall(callKey);
+        return { pendingInterrupt, queue: queue.slice() };
+      },
       viaTrace(on){ VIA_TRACE = on ? [] : null; return VIA_TRACE; }, getViaTrace(){ return VIA_TRACE; },
       // The winding each traveller's progression declared, from the most recent travel the engine ran.
       lastSweeps(){ return Object.assign({}, LAST_SWEEPS); },

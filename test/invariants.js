@@ -28,6 +28,7 @@ function run() {
   const T = load();
   const GAP = T.GAP;
   const fails = [];
+  const warns = [];   // §44: reported, never fatal — see there for why
   const check = (cond, msg) => { if (!cond) fails.push(msg); };
   let nChecks = 0;
 
@@ -739,13 +740,13 @@ function run() {
       const before = {}; T._snap().forEach(d => before[d.id] = { ...d });
       const pairBeforeG = {}; T._snap().filter(d => d.role === 'L').forEach(L => {
         const F = T._snap().find(o => o.station === L.station && o.role === 'F'); pairBeforeG[L.id] = F.id; });
-      const r3 = T.fireHere('mujeres_grande');
-      nChecks++; check(r3 && r3.endPos === 'linea_ex', `${tag}: mujeres_grande ended ${r3 && r3.endPos}, expected linea_ex`);
+      const r3 = T.fireHere('dame_grande');
+      nChecks++; check(r3 && r3.endPos === 'linea_ex', `${tag}: dame_grande from the Dile Que No position ended ${r3 && r3.endPos}, expected linea_ex`);
       if (r3) {
         let worst3 = Infinity; r3.frames.forEach(f => { worst3 = Math.min(worst3, minPairDist(f)); });
-        nChecks++; check(worst3 >= GAP - 1.0, `${tag}: mujeres_grande collision, minClear ${worst3.toFixed(1)}`);
+        nChecks++; check(worst3 >= GAP - 1.0, `${tag}: dame_grande from the Dile Que No position collision, minClear ${worst3.toFixed(1)}`);
         nChecks++; check(T.state().phase !== phBefore,
-          `${tag}: mujeres_grande did not flip the phase — a grande progression round a ring must`);
+          `${tag}: dame_grande from the Dile Que No position did not flip the phase — a grande progression round a ring must`);
 
         let newPartner = true, stayedOnRing = true, shiftsOk = true, badShift = '';
         T._snap().forEach(d => { if (before[d.id] && ringOf(before[d.id]) !== ringOf(d)) stayedOnRing = false; });
@@ -758,9 +759,9 @@ function run() {
           const d = ((localOf(b) - localOf(a)) % m + m) % m;
           if (!(d === 1 % m || d === ((m - 1) % m))) { shiftsOk = false; badShift = `${L.id}: ${d}`; }
         });
-        nChecks++; check(newPartner, `${tag}: mujeres_grande left someone with the same partner`);
-        nChecks++; check(stayedOnRing, `${tag}: mujeres_grande moved somebody between rings — that is the PEQUEÑA`);
-        nChecks++; check(shiftsOk, `${tag}: mujeres_grande did not advance the pairing one couple round the ring (${badShift})`);
+        nChecks++; check(newPartner, `${tag}: dame_grande from the Dile Que No position left someone with the same partner`);
+        nChecks++; check(stayedOnRing, `${tag}: dame_grande from the Dile Que No position moved somebody between rings — that is the PEQUEÑA`);
+        nChecks++; check(shiftsOk, `${tag}: dame_grande from the Dile Que No position did not advance the pairing one couple round the ring (${badShift})`);
 
         /* BOTH DANCERS TRAVEL. The mechanism, not the outcome: if the men stood still the women would each
          * have to cross a whole couple, which on a ring of two is the near-antipodal chord that could not
@@ -770,7 +771,7 @@ function run() {
           const dist = Math.hypot(d.xy.x - b.xy.x, d.xy.y - b.xy.y);
           if (d.role === 'L') mL += dist; else mF += dist; });
         nChecks++; check(mL > (mL + mF) / 3 && mF > (mL + mF) / 3,
-          `${tag}: mujeres_grande is not shared — leaders moved ${mL.toFixed(0)}px, followers ${mF.toFixed(0)}px`);
+          `${tag}: dame_grande from the Dile Que No position is not shared — leaders moved ${mL.toFixed(0)}px, followers ${mF.toFixed(0)}px`);
       }
       // the pequeña must be the mirror claim: she DOES change ring, and the men DO stay put
       T.captureLineaMovement('dame_peq', n, 0);
@@ -871,8 +872,16 @@ function run() {
       // compared against one phrase's declaration. Their collisions are §33a's business; this is a
       // coverage limit, stated rather than hidden.
       const pl = mv.play || {};
-      const isTravel = x => x && (typeof x.travel === 'string' ||
-        (x.compose && T.MOVEMENTS[x.of] && isTravel(T.MOVEMENTS[x.of].play)));
+      /* `byFrom` counts if any of its branches is a travel — the sweep then asks per position, which is
+       * where a branch is actually chosen. Without this the check silently skipped every movement that
+       * dances differently depending on where it is called from, which is the Dame family entire: the
+       * count fell from 100+ to 54 the moment Dame Pequeña gained a Dile Que No branch, and would have
+       * fallen the same way for the Dame itself had anyone looked. A coverage floor is only a floor if it
+       * is set above what the sweep would find while broken. */
+      const isTravel = (x, d) => { d = d || 0; if (!x || d > 4) return false;      // depth-guarded: a
+        return typeof x.travel === 'string' ||                                       // compose chain can
+          (x.byFrom && Object.values(x.byFrom).some(v => isTravel(v, d + 1))) ||     // otherwise loop
+          (x.compose && T.MOVEMENTS[x.of] && isTravel(T.MOVEMENTS[x.of].play, d + 1)); };
       if (!isTravel(pl)) continue;
       for (const from of POSITIONS){
         if (!T.validFrom(key, from)) continue;
@@ -2247,26 +2256,30 @@ function run() {
     // Every movement that reaches a travel definition — directly, through a compose, or inside a
     // phrase — must declare the count those addresses imply. Following `of` is the point: a composed
     // movement that swaps in a DIFFERENT figure than its name claims is exactly how the count got lost.
-    const travelOf = (mv, depth) => {
-      let pl = mv && mv.play; if (!pl || depth > 3) return null;
-      // A movement may dance differently depending on where it is called from. Each branch is its own
-      // travel with its own addresses, so only a single-branch movement has one progression to check.
-      if (pl.byFrom){ const bs = Object.values(pl.byFrom).filter(Boolean);
-        const ts = bs.map(b => b.travel).filter(x => typeof x === 'string');
-        return ts.length === 1 ? ts[0] : (ts.length && ts.every(x => x === ts[0]) ? ts[0] : null); }
-      if (typeof pl.travel === 'string') return pl.travel;
-      if (pl.compose && T.MOVEMENTS[pl.of]) return travelOf(T.MOVEMENTS[pl.of], depth + 1);
+    /* EVERY branch, not just the ones that agree on a name. This used to return a travel only when all of
+     * a `byFrom`'s branches named the SAME one, and skipped the movement otherwise — so the moment Dame
+     * Pequeña gained a Dile Que No branch with its own definition, both it and the Línea form dropped out
+     * of the check entirely. They should not have: the branches name different travels but imply the same
+     * progression, which is exactly the thing worth asserting. Collect them all and check each. */
+    const travelsOf = (mv, depth) => {
+      let pl = mv && mv.play; if (!pl || depth > 3) return [];
+      if (pl.byFrom) return Object.values(pl.byFrom).filter(Boolean)
+        .flatMap(b => travelsOf({ play: b }, depth + 1));
+      if (typeof pl.travel === 'string') return [pl.travel];
+      if (pl.compose && T.MOVEMENTS[pl.of]) return travelsOf(T.MOVEMENTS[pl.of], depth + 1);
       if (Array.isArray(pl.phrases)){
         const t = pl.phrases.map(f => f && f.travel).filter(x => typeof x === 'string');
-        if (t.length === 1) return t[0];
+        if (t.length === 1) return t;
       }
-      return null;
+      return [];
     };
     const named = [];
     for (const key of T.keys().movements){
-      const mv = T.MOVEMENTS[key], tName = travelOf(mv, 0);
-      if (!tName || !T.TRAVELS[tName]) continue;
-      named.push({ key, want: Math.abs(kOf(T.TRAVELS[tName])), got: mv.progresses || 0, via: tName });
+      const mv = T.MOVEMENTS[key];
+      for (const tName of [...new Set(travelsOf(mv, 0))]){
+        if (!T.TRAVELS[tName]) continue;
+        named.push({ key, want: Math.abs(kOf(T.TRAVELS[tName])), got: mv.progresses || 0, via: tName });
+      }
     }
     const mismatch = named.filter(x => x.want !== x.got);
     nChecks++; check(mismatch.length === 0,
@@ -2347,11 +2360,11 @@ function run() {
     // and the call agrees with the juncture: offerable exactly where one exists and its figures fit
     T.captureLineaMovement('dame_peq', 6, 0);
     T.poseQueue('linea_ex', []);
-    nChecks++; check(T.mujeresLandsFrom(T.CALLS.mujeres_arriba_grande),
-      '§41 Mujeres Arriba Grande should land on a bare LM Exhibela close at 6 couples');
+    nChecks++; check(T.interruptLandsFrom(T.CALLS.dame_grande),
+      '§41 Dame Grande should land on a bare LM Exhibela close at 6 couples');
     T.poseQueue('linea_ex', ['dile', 'enchufla']);
-    nChecks++; check(!T.mujeresLandsFrom(T.CALLS.mujeres_arriba_grande),
-      '§41 Mujeres Arriba Grande must NOT land when a call is queued behind the Dile Que No');
+    nChecks++; check(!T.interruptLandsFrom(T.CALLS.dame_grande),
+      '§41 Dame Grande must NOT land when a call is queued behind the Dile Que No');
     /* BOTH FORMS, AT EVERY COUPLE COUNT. Sam: "There shouldn't be a reason that I can call Mujeres Arriba
      * Pequeña, but not Mujeres Arriba Grande. Because Mujeres Arriba is an interrupt move that simply
      * interrupts the end of a call when it is just about to do the last Dile Que No, it will always be in
@@ -2364,8 +2377,17 @@ function run() {
      * as at six and eight. The asymmetry is gone, so the suite asserts that it stays gone. */
     T.captureLineaMovement('dame_peq', 4, 0);
     T.poseQueue('linea_ex', []);
-    for (const k of ['mujeres_arriba_grande', 'mujeres_arriba_pequena'])
-      { nChecks++; check(T.mujeresLandsFrom(T.CALLS[k]), `§41 ${k} should be offerable at 4 couples`); }
+    for (const k of ['dame_grande', 'mujeres_arriba_pequena'])
+      { nChecks++; check(T.interruptLandsFrom(T.CALLS[k]), `§41 ${k} should be offerable at 4 couples`); }
+    /* AND THE RETIRED CALL MUST STAY RETIRED. It expanded to exactly what Dame Grande expands to, so it
+     * was a second word for one figure. Nothing is lost because LM Exhibela is transient — a Dile Que No
+     * is always pending there — so every moment it could have been shouted is one Dame Grande can
+     * interrupt. Asserted rather than remembered, or it will come back the next time a caller's
+     * vocabulary is mistaken for a list of figures. */
+    nChecks++; check(!T.CALLS.mujeres_arriba_grande,
+      '§41 the Mujeres Arriba Grande call is back — it is Dame Grande under another word');
+    nChecks++; check(!!T.CALLS.mujeres_arriba_pequena,
+      '§41 the Mujeres Arriba Pequeña call must remain — it crosses the woman between rings, which no Dame does');
   }
 
   /* 42: EVERY FORM OF AN INTERRUPTION POINT IS ONE.
@@ -2389,6 +2411,248 @@ function run() {
       { nChecks++; check(T.INTERRUPTIBLE.has(k), `§42 ${k} should be an interruption point`); }
   }
 
+  /* 43: A CALL THAT CAN TAKE A DILE QUE NO'S PLACE MAY DO SO IN EVERY FORMATION IT EXISTS IN.
+   *     This was `callKey === 'dame' || callKey === 'dame_dos'` — two circle keys — so Dame Grande and
+   *     Dame Pequeña fell past it and queued normally. Sam: "when I called Dame Grande in Linea Moderna
+   *     as an interrupt on an active call which ended in a Dile Que No, it skipped the Dile Que No
+   *     entirely and went straight for a Dame Grande from Exhibela position."
+   *
+   *     Third time this exact shape of bug has bitten (the interruption points, the golden tables, this),
+   *     so the check is on the DERIVATION and not on a list of expected names: any call whose figures can
+   *     be danced from the Dile Que No position must be able to interrupt, and any call whose figures
+   *     cannot must not. A new formation minting new names then needs no edit here. */
+  {
+    const CASES = [
+      { pos: 'exhibela', linea: false },
+      { pos: 'linea_ex', linea: true  },
+    ];
+    for (const c of CASES) for (const n of NS) {
+      if (c.linea) T.captureLineaMovement('dame_peq', n, 0); else T.setupRest('casino', n, 0);
+      const eligible = [], wrong = [];
+      for (const [key, call] of Object.entries(T.CALLS)) {
+        const can = T.canInterruptDile(call, c.pos);
+        // The independent question: cut the Dile Que No short, and can this call actually be danced?
+        const danceable = !!call.seq && !!call.seq.length && !call.modifier &&
+          !(call.minCouples && n < call.minCouples) &&
+          T.callDanceableFrom({ seq: T.interruptSeqOf(call) }, c.pos);
+        if (can !== danceable) wrong.push(`${key} (offered ${can}, danceable ${danceable})`);
+        if (can) eligible.push(key);
+      }
+      nChecks++; check(wrong.length === 0,
+        `§43 ${c.pos} n${n}: interrupt eligibility disagrees with what can be danced — ${wrong.join('; ')}`);
+      // The set must not be empty, or the whole mechanism has quietly switched itself off.
+      nChecks++; check(eligible.length >= 3,
+        `§43 ${c.pos} n${n}: only ${eligible.length} call(s) can interrupt a Dile Que No — expected the Dame family and Mujeres Arriba`);
+      // Every Dame-family call available in this formation must be among them — named, because this is
+      // the specific regression Sam reported and a derivation can be right in general and wrong here.
+      for (const key of Object.keys(T.CALLS)) {
+        const call = T.CALLS[key];
+        if (!call.seq || call.seq.length !== 1) continue;
+        const mv = T.MOVEMENTS[call.seq[0]];
+        if (!mv || !mv.progresses || !mv.requires.includes(c.pos === 'linea_ex' ? 'linea_dile' : 'dile')) continue;
+        if (call.minCouples && n < call.minCouples) continue;
+        nChecks++; check(eligible.includes(key),
+          `§43 ${c.pos} n${n}: ${key} is a Dame danceable from the Dile Que No position but cannot interrupt one`);
+      }
+      // An Enchufla cannot: its figure does not exist from the Dile Que No position.
+      nChecks++; check(!eligible.includes('enchufla') && !eligible.includes('enchufla_grande'),
+        `§43 ${c.pos} n${n}: an Enchufla was offered as a Dile Que No interrupt`);
+
+      /* AND THE ENGINE MUST ACTUALLY DO IT. Everything above interrogates the query; this shouts the call
+       * at the juncture and reads back what the engine decided. Written after a mutation — reinstating
+       * the old `callKey === 'dame' || callKey === 'dame_dos'` inside `issueCall` — passed every check
+       * above, because the query was still right and nothing was asking the code path that uses it. */
+      for (const key of eligible) {
+        if (c.linea) T.captureLineaMovement('dame_peq', n, 0); else T.setupRest('casino', n, 0);
+        const got = T.shoutAt(c.pos, [], key);
+        nChecks++; check(got.pendingInterrupt === key,
+          `§43 ${c.pos} n${n}: shouting ${key} at a pending Dile Que No left pendingInterrupt ` +
+          `${got.pendingInterrupt} — it queued behind instead of taking its place`);
+      }
+      // and a call that cannot interrupt must NOT be held as one
+      if (c.linea) T.captureLineaMovement('dame_peq', n, 0); else T.setupRest('casino', n, 0);
+      {
+        const key = c.linea ? 'enchufla_grande' : 'enchufla';
+        if (T.CALLS[key]) {
+          const got = T.shoutAt(c.pos, [], key);
+          nChecks++; check(got.pendingInterrupt !== key,
+            `§43 ${c.pos} n${n}: ${key} was held as a Dile Que No interrupt`);
+        }
+      }
+    }
+    /* The sequence is the Dile Que No CUT SHORT, never skipped — so it always opens with the 4-beat
+     * opening, and a call already written that way is not given a second one. */
+    for (const key of Object.keys(T.CALLS)) {
+      const c = T.CALLS[key]; if (!c.seq || !c.seq.length) continue;
+      const seq = T.interruptSeqOf(c);
+      nChecks++; check(seq[0] === 'dile4' && seq[1] !== 'dile4',
+        `§43 ${key}: interrupt sequence ${JSON.stringify(seq)} should open with exactly one dile4`);
+    }
+  }
+
+  /* 44: PATH LENGTH AGAINST THE STRAIGHT LINE — A WARNING, NOT A FAILURE.
+   *     Sam: "Anything where the path distance is significantly above the straight line distance should
+   *     trigger warnings." And on how to judge it: "This shouldn't be an absolute failure, but it should
+   *     be a warning indicator that something has gone significantly wrong if this is significantly
+   *     higher than other moves."
+   *
+   *     WHY IT EXISTS. A Dame Grande from the Línea Moderna Dile Que No position shipped with a follower
+   *     walking 1210px where her straight line was 116px — a 10.42x detour — and every existing check
+   *     passed it: the landing was grid-exact, the pairing correct, and the clearance was 33.84px against
+   *     a 34px floor, which reads as a rounding error rather than a figure tearing itself apart. Sam found
+   *     it by watching. Nothing was measuring the one number that made it obvious.
+   *
+   *     WHY IT IS NOT FATAL. There is no honest absolute threshold. A figure that returns a dancer to
+   *     where she started has a straight-line distance of zero and an unbounded ratio while being exactly
+   *     right; a Dile Que No is an out-and-back and reads high for the same reason. So the test is
+   *     RELATIVE, as Sam framed it — a figure is flagged when it stands out against the others, judged by
+   *     median and median-absolute-deviation, which a couple of legitimate outliers cannot drag along with
+   *     them. A warning asks a person to look. It does not claim to know. */
+  {
+    const SAMPLES = [];   // { tag, id, ratio }
+    /* SCRIPTED DANCERS ARE EXCLUDED. Sam: "scripted routes like the follower's 3/4 circle shouldn't be
+     * included in the path-vs-straight ratio, only moves that are non-scripted pathings like the Dames,
+     * as the scripted movements will always be exactly the scripted path."
+     *
+     * Exactly so: a scripted path is choreography stated in the dancer's own frame, and she walks it
+     * whatever else is happening. Her ratio measures the shape of the figure, not the quality of the
+     * pathing, and a ¾ circle is ~2.5x its own chord by construction. Including them put four honest
+     * figures on the warning list beside the broken one, which is how a warning list stops being read. */
+    const sweep = (tag, r, mv, from) => {
+      if (!r || !r.frames || r.frames.length < 2) return;
+      const scripted = (mv && T.scriptedRoles(mv, from)) || new Set();
+      const roleOf = {}; r.frames[0].forEach(d => roleOf[d.id] = d.role);
+      const path = {};
+      r.frames.forEach(f => f.forEach(d => { (path[d.id] = path[d.id] || []).push(d.xy); }));
+      for (const [id, ps] of Object.entries(path)) {
+        if (scripted.has(roleOf[id])) continue;
+        let L = 0; for (let i = 1; i < ps.length; i++) L += Math.hypot(ps[i].x - ps[i-1].x, ps[i].y - ps[i-1].y);
+        const straight = Math.hypot(ps[ps.length-1].x - ps[0].x, ps[ps.length-1].y - ps[0].y);
+        // A dancer who barely goes anywhere has no meaningful ratio — the denominator is the noise.
+        if (straight < 20) continue;
+        SAMPLES.push({ tag, id, ratio: L / straight });
+      }
+    };
+    // Every circle figure from every position it declares, and the Línea chains.
+    for (const n of NS) {
+      for (const key of Object.keys(T.MOVEMENTS)) {
+        const m = T.MOVEMENTS[key];
+        if (!m.requires || m.linea) continue;
+        for (const from of m.requires) {
+          if (!T.POSITIONS[from] || T.POSITIONS[from].variant === 'linea') continue;
+          try {
+            if (from === 'dile') { T.setupRest('exhibela', n, 0); if (!T.fireHere('dile4')) continue; }
+            else T.setupRest(from, n, 0);
+            sweep(`${key}|${from}|n${n}`, T.fireHere(key), m, from);
+          } catch (e) { /* a figure that cannot be set up here is not this check's business */ }
+        }
+      }
+      for (const [setup, key] of [[[], 'dame_grande'], [[], 'dame_peq'],
+                                  [['dile4'], 'dame_grande'], [['dile4'], 'dame_peq'],
+                                  [['dile4'], 'dame_grande'], [['dile4'], 'mujeres_peq']]) {
+        try {
+          T.captureLineaMovement('dame_peq', n, 0);
+          let ok = true;
+          for (const k of setup) if (!T.fireHere(k)) ok = false;
+          if (!ok) continue;
+          const lFrom = setup.length ? 'linea_dile' : 'linea_ex';
+          sweep(`${key}|${lFrom}|n${n}`, T.fireHere(key), T.MOVEMENTS[key], lFrom);
+        } catch (e) { /* as above */ }
+      }
+    }
+    nChecks++; check(SAMPLES.length > 100,
+      `§44 only ${SAMPLES.length} path samples — the sweep is not reaching the figures`);
+
+    // Worst ratio per figure, then judge each figure against the spread of all of them.
+    const byTag = {};
+    SAMPLES.forEach(s => { if (!byTag[s.tag] || s.ratio > byTag[s.tag].ratio) byTag[s.tag] = s; });
+    const worst = Object.values(byTag).sort((a, b) => b.ratio - a.ratio);
+    const rs = worst.map(w => w.ratio).slice().sort((a, b) => a - b);
+    const med = rs[Math.floor(rs.length / 2)];
+    const mad = rs.map(r => Math.abs(r - med)).sort((a, b) => a - b)[Math.floor(rs.length / 2)] || 0.01;
+    // Robust outlier bound, with a floor so a suite of uniformly straight figures does not flag noise.
+    const bound = Math.max(med + 6 * mad, 1.8);
+    worst.filter(w => w.ratio > bound).forEach(w => warns.push(
+      `§44 ${w.tag}: ${w.id} walks ${w.ratio.toFixed(2)}x its straight line ` +
+      `(figures here run at a median of ${med.toFixed(2)}x; flagged above ${bound.toFixed(2)}x)`));
+  }
+
+  /* 45: A COMPOSITION ASKS THE FIGURE ABOUT THE POSITION IT IS ACTUALLY DANCED FROM.
+   *     `grandeFrames` runs the circle figure from the ring's sub-position and `pequenaFrames` from the
+   *     mini-wheel's, but `declaredPasses` recursed with the LÍNEA name — so the circle figure was asked
+   *     about a position it has never heard of, `byFrom` fell through to its default branch, and the
+   *     planner was handed the wrong figure's pass sides.
+   *
+   *     Measured: a Dame Grande from the LM Dile Que No position reported `partner0: 'left'`, the Casino
+   *     Dame's side, where the Dile Que No Dame declares `'right'`. Sam had given that side twice. The
+   *     planner spent the whole figure trying to hold the leader somewhere the figure never wanted him,
+   *     and a follower walked 10.42x her straight line. Nothing failed; it just looked wild.
+   *
+   *     The check is the property, not the instance: for every composed movement, the sides it reports
+   *     must match what the underlying figure says about the SUB-position the composition will run it
+   *     from. A future composition cannot reintroduce this by forgetting to translate. */
+  {
+    let checked = 0;
+    for (const [key, m] of Object.entries(T.MOVEMENTS)) {
+      const p = m.play; if (!p || !p.compose || !T.MOVEMENTS[p.of]) continue;
+      const map = p.compose === 'grande' ? T.LINEA_SUB : T.LINEA_SUB_PEQ;
+      for (const from of (m.requires || [])) {
+        const entry = map && map[from]; if (!entry) continue;
+        const sub = p.compose === 'grande' ? entry.outer : entry;
+        const got = T.declaredPasses(m, from) || {};
+        const want = T.declaredPasses(T.MOVEMENTS[p.of], sub) || {};
+        checked++;
+        nChecks++; check(JSON.stringify(got) === JSON.stringify(want),
+          `§45 ${key} from ${from} reports pass sides ${JSON.stringify(got.partner0)} but the figure it ` +
+          `composes says ${JSON.stringify(want.partner0)} from ${sub} — the composition is not translating the position`);
+      }
+    }
+    nChecks++; check(checked >= 4, `§45 only ${checked} composed movement/position pairs probed`);
+    // Named, because this is the one Sam reported: the Dame Grande must carry the Dile Que No Dame's side.
+    nChecks++; check((T.declaredPasses(T.MOVEMENTS.dame_grande, 'linea_dile') || {}).partner0 === 'right',
+      '§45 Dame Grande from the LM Dile Que No position must pass on the side the Dile Que No Dame declares');
+  }
+
+  /* 46: TWO NAMES FOR ONE FIGURE — A WARNING, because it is sometimes legitimate and always worth a look.
+   *
+   *     WHY IT EXISTS. "Mujeres Arriba Grande" was specified, built, corrected across four versions and
+   *     measured clean at 1.00x — and it was the DAME. Its travel, `L dh -1 / F dh +1`, was character for
+   *     character `TRAVELS.dame`, which had been sitting in the registry the whole time. Sam, once the
+   *     two were finally put side by side: "Mujeres Arriba Grande IS the same movement as Dame Grande
+   *     from Dile Que No position."
+   *
+   *     Nothing could have noticed, because a movement is keyed by what a CALLER SHOUTS and identified by
+   *     nothing at all. Two entries can state identical arithmetic, land every dancer in the same slot on
+   *     the same phase, and the registry has no way to see it. This is the third instance in the project:
+   *     `dame_peq` and `dame_dos_peq` were once byte-identical, and the whole IN_PLACE de-duplication came
+   *     from measuring frames and finding them equal.
+   *
+   *     So: fingerprint every travel by its ARITHMETIC — which slots, which lanes, who is scripted — and
+   *     say so when two share one. Not fatal, because two figures may legitimately share slots and differ
+   *     in the sides they pass on or the script the scripted role dances. But a duplicate fingerprint is
+   *     always the question "have I just re-derived something?", asked at the moment it can still be
+   *     answered cheaply. */
+  {
+    const fp = d => ['L', 'F'].map(r => {
+      const x = d[r] || {};
+      return `${r}:${x.scripted ? 'scripted' : 'dh' + x.dh}/${x.lane}`;
+    }).join(' ');
+    const byPrint = {};
+    for (const [key, def] of Object.entries(T.TRAVELS)) {
+      const f = fp(def); (byPrint[f] = byPrint[f] || []).push(key);
+    }
+    const dupes = Object.entries(byPrint).filter(([, ks]) => ks.length > 1);
+    nChecks++; check(Object.keys(byPrint).length >= 4, '§46 travel registry looks empty — the sweep is wrong');
+    dupes.forEach(([f, ks]) => warns.push(
+      `§46 ${ks.join(' and ')} state identical slot arithmetic (${f}) — same figure under two names, ` +
+      `or a difference that lives somewhere other than the slots?`));
+    /* The one this was written for must stay gone: the shared Dame must BE the Dame, not a copy of it.
+     * A self-test too — if `dame` ever stops being a travel, the fingerprinting above is measuring air. */
+    nChecks++; check(!!T.TRAVELS.dame, '§46 self-test: TRAVELS.dame is missing');
+    nChecks++; check(!T.TRAVELS.mujeres_shared,
+      '§46 mujeres_shared is back — it was TRAVELS.dame under another name');
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());
@@ -2396,12 +2660,13 @@ function run() {
   nChecks++;
   check(a === b, 'non-deterministic: generate() differs between runs');
 
-  return { fails, nChecks };
+  return { fails, warns, nChecks };
 }
 
 if (require.main === module) {
-  const { fails, nChecks } = run();
-  if (fails.length === 0) { console.log(`INVARIANTS OK — ${nChecks} checks passed`); process.exit(0); }
+  const { fails, warns, nChecks } = run();
+  warns.forEach(w => console.log('  ! ' + w));
+  if (fails.length === 0) { console.log(`INVARIANTS OK — ${nChecks} checks passed${warns.length ? `, ${warns.length} warning(s)` : ''}`); process.exit(0); }
   console.log(`INVARIANTS FAILED — ${fails.length} of ${nChecks}:`);
   fails.slice(0, 40).forEach(f => console.log('  ' + f));
   if (fails.length > 40) console.log(`  … and ${fails.length - 40} more`);

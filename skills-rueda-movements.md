@@ -46,6 +46,40 @@ a dancer, not a maintainer.
 **Do not ask** what the paths look like, how wide anyone should swing, or where exactly anyone should
 be at beat 3. Those are solved. Asking invites a pixel answer, and a pixel answer is a bug.
 
+### PASS SIDES ARE ALWAYS ASKED. NEVER GUESSED, NEVER DEFAULTED.
+
+> "Please don't just make up passing directions in future … otherwise you spend a long time dealing with
+> collision mathematics which could be easily and quickly solved by asking me or the user." — Sam
+
+This is the single highest-yield question in the list, and the easiest one to skip, because
+`PASSES_RUEDA` will happily supply an answer and the figure will *run*. It will run badly. A wrong pass
+side does not fail — it makes the intended paths cross, and the evasion solver then spends whatever it
+takes to pull them apart. Measured on one figure that shipped this way: a follower walked **1210px where
+her straight line was 116px**, a 10.42x detour, while every existing check passed it.
+
+**The rule.** If a figure has any encounter between two dancers — and a `travel` almost always does —
+ask which side each pass happens on before writing the descriptor. Ask in the user's vocabulary:
+
+> "In this figure the leader goes past his current partner. Does he pass on her **left** or her
+> **right**?" (left = you travel along their left-hand side = you go by each other's right shoulders)
+
+**Ask again when the answer might not carry, and do not bank the answer.** A side that was right in one
+formation is not automatically right in another. Sam, explicitly: *"These are not rules, they're
+heuristics meant to speed up the creation time of the specific moves we're working on. Do not save them
+for future moves, as if they end up being wrong, it will waste a lot of tokens and a lot of time."* So a
+side you were given for one figure belongs to that figure. It is not a rule to generalise, quote back, or
+apply to the next thing that looks similar. Ask again.
+
+**If the collision is discovered mid-implementation, stop and ask.** Do not reach for the solver, do not
+tune amplitudes, do not add an exception to a convention. A collision that appears while you are building
+a path is the model telling you a pass side has not been specified yet. Thirty seconds of asking beats an
+hour of collision mathematics, and the answer is one the user already knows.
+
+**Report the numbers, always.** Two measurements, for every figure, at every couple count, unprompted:
+minimum clearance *and* **path length against the straight line between the endpoints**. Invariants §44
+warns on the second automatically, but say it out loud too — a figure whose ratio stands out against the
+others is a figure whose pass sides are probably wrong.
+
 ---
 
 ## 2. Express it as data
@@ -152,3 +186,49 @@ here hid for a long time because every test happened to run with him on station 
 - **A new invariant** — if the movement asserts a rule the suite cannot currently see, write the test.
   "Nobody walks through the middle of the wheel" was invisible to every collision check, because the
   centre of a rueda is empty.
+
+
+### A declared side shapes the DEPARTURE, not just the pass
+
+> "That makes sense that it shapes his departure. Please remember this, because most other progressive
+> moves involving Dile Que No position will likely involve leaders leaving to the right, even when they
+> eventually have to end up travelling to a slot that is clockwise of their starting slot, so this is
+> going to become a common thing." — Sam
+
+This is the case the planner cannot handle on its own, and it is about to be common.
+
+From the Dile Que No position the partners stand **on the same spoke**, a step apart, rather than either
+side of it. The traveller leaves *past* the one he is standing with — and his destination may be the
+other way round the wheel from the side he must leave on. So the straight line from his start to his
+landing runs **through where she is standing**.
+
+Measured on a Dame Grande from there: the two close to **4.5px at t=0.10** — a tenth of the way in, while
+he is still beside his fixed start. She is scripted and cannot yield, so the planner has to carry him a
+whole corridor sideways at a moment when he has barely moved. A via is a smooth bump peaking at one
+instant; demanding the entire corridor that early distorts everything after it. The result was a
+follower walking **10.42× her straight line** while the figure still failed to reach the declared side.
+
+**So a declared side for a pair that starts adjacent is a statement about the ROUTE, and has to shape the
+intended path.** Repairing it afterwards is too late: by then the straight line has already been drawn
+through the other dancer, and every correction is fighting it.
+
+Two attempts at building this are recorded in CHANGELOG v141 with their measurements — both improved the
+detour and cost clearance. The lesson from them: the deviation has to be part of the path the figure
+asks for, generated with it, not blended onto a straight line afterwards and then re-planned on top.
+
+### Before building a figure, check whether it already exists
+
+A movement is keyed by what a caller shouts. Its identity is its arithmetic — which slots, which lanes,
+who is scripted, does the phase flip. Those are different things, and the registry only knows the first.
+
+"Mujeres Arriba Grande" was specified, built, corrected across four versions and measured clean, and it
+was the **Dame**: `L dh -1 / F dh +1`, character for character `TRAVELS.dame`, which had been there the
+whole time. Two more duplicate pairs exist in the registry today and were found the same way.
+
+So when you write a new travel, look at what you have just written and compare it against the existing
+ones **as arithmetic, not as names**. §46 does this automatically and warns, but read the warning — it is
+asking "have you just re-derived something?", and that question is cheap before the figure is built and
+expensive afterwards.
+
+Two figures may legitimately share slots and differ elsewhere (the sides they pass on, the script the
+scripted role dances). That is a real answer to the question. "They have different names" is not.

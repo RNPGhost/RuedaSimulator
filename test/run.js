@@ -31,7 +31,15 @@ if (!fs.existsSync(baseFile)) {
 }
 
 // --- invariants ---
-const { fails, nChecks } = invariants.run();
+const { fails, warns, nChecks } = invariants.run();
+/* WARNINGS ARE NOT FAILURES, and they are not hidden either. §44 flags figures whose path is far longer
+ * than the straight line between their endpoints — a symptom with no honest absolute threshold, so it
+ * asks a person to look rather than claiming to know. Printed before the verdict so they are read. */
+if (warns && warns.length) {
+  console.log(`WARNINGS   — ${warns.length}, not fatal:`);
+  warns.slice(0, 20).forEach(w => console.log('   ! ' + w));
+  if (warns.length > 20) console.log(`   … and ${warns.length - 20} more`);
+}
 if (fails.length === 0) {
   console.log(`INVARIANTS OK   — ${nChecks} checks`);
 } else {

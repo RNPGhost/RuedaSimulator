@@ -17,6 +17,47 @@ shape, with the measurements), **CALLING.md** (how movements compose into calls)
 ---
 
 
+
+## Pass sides are asked for, never guessed
+
+> "How did you come up with the passing directions? Did you just make them up? … whenever you're creating
+> a movement, or updating a movement, if you come across a collision while doing path creation, you should
+> ask the user what the passing direction should be, rather than guessing. This will save a lot of
+> time." — Sam
+
+`PASSES_RUEDA` is a **default for pairs nobody has thought about yet**, not an answer. It will supply a
+side for any encounter, and the figure will run. A wrong side does not fail: it makes the intended paths
+cross, and the evasion solver then spends whatever it takes to pull them apart.
+
+**What that costs, measured.** A Dame Grande from the Línea Moderna Dile Que No position shipped with a
+follower walking **1210px where her straight line was 116px** — a 10.42x detour — because the inner ring's
+leader passed his partner on the left where he should have passed on the right. Every existing check
+passed it: grid-exact landing, correct pairing, and a clearance of 33.84px against a 34px floor, which
+reads as a rounding error rather than a figure tearing itself apart. The engine had recorded eight
+side-faults on it. Nobody was looking, and it was found by watching the animation.
+
+**So:**
+
+1. **Ask before building.** Any figure with an encounter — which is nearly every `travel` — gets the
+   question, in the user's vocabulary: *"the leader goes past his current partner; does he pass on her
+   left or her right?"*
+2. **Ask again per position and per formation, and do not bank the answer.** A side that is right from
+   Casino need not be right from the Dile Que No position, where the couple stands *on* the spoke rather
+   than either side of it. Sam, explicitly: *"These are not rules, they're heuristics meant to speed up
+   the creation time of the specific moves we're working on. Do not save them for future moves, as if
+   they end up being wrong, it will waste a lot of tokens and a lot of time."* A side you were given
+   belongs to the figure you were given it for.
+3. **A collision found mid-implementation is a question, not a puzzle.** Stop. Do not tune the solver,
+   do not raise an amplitude, do not add an exception to a convention. It means a pass side has not been
+   specified yet, and the person you are building for already knows the answer.
+4. **Report both numbers, unprompted, for every figure at every couple count:** minimum clearance, and
+   **path length against the straight line**. §44 warns on the second automatically — relative to the
+   other figures, because there is no honest absolute threshold — but say it out loud as well.
+
+The last one is the cheap one and it is the one that was skipped. Clearance alone said this figure was
+fine. The ratio said it was not, and nobody computed it.
+
+
 ## A grande progression around a ring is shared, and flips the phase
 
 > "All grande moves where a dancer changes a slot around the outer wheel MUST change the phase, in order
@@ -315,3 +356,49 @@ concept and the couple-midpoint discriminator both arrived.
    path-length weighting for the Dame split, `RISE`, the solved bow — turned out to be wrong.
 5. Update PATHING.md (the figure), CALLING.md (the call), CHANGELOG.md (what changed and what moved in
    the golden), and this file if the model itself grew.
+
+
+### A declared side shapes the DEPARTURE, not just the pass
+
+> "That makes sense that it shapes his departure. Please remember this, because most other progressive
+> moves involving Dile Que No position will likely involve leaders leaving to the right, even when they
+> eventually have to end up travelling to a slot that is clockwise of their starting slot, so this is
+> going to become a common thing." — Sam
+
+This is the case the planner cannot handle on its own, and it is about to be common.
+
+From the Dile Que No position the partners stand **on the same spoke**, a step apart, rather than either
+side of it. The traveller leaves *past* the one he is standing with — and his destination may be the
+other way round the wheel from the side he must leave on. So the straight line from his start to his
+landing runs **through where she is standing**.
+
+Measured on a Dame Grande from there: the two close to **4.5px at t=0.10** — a tenth of the way in, while
+he is still beside his fixed start. She is scripted and cannot yield, so the planner has to carry him a
+whole corridor sideways at a moment when he has barely moved. A via is a smooth bump peaking at one
+instant; demanding the entire corridor that early distorts everything after it. The result was a
+follower walking **10.42× her straight line** while the figure still failed to reach the declared side.
+
+**So a declared side for a pair that starts adjacent is a statement about the ROUTE, and has to shape the
+intended path.** Repairing it afterwards is too late: by then the straight line has already been drawn
+through the other dancer, and every correction is fighting it.
+
+Two attempts at building this are recorded in CHANGELOG v141 with their measurements — both improved the
+detour and cost clearance. The lesson from them: the deviation has to be part of the path the figure
+asks for, generated with it, not blended onto a straight line afterwards and then re-planned on top.
+
+### Before building a figure, check whether it already exists
+
+A movement is keyed by what a caller shouts. Its identity is its arithmetic — which slots, which lanes,
+who is scripted, does the phase flip. Those are different things, and the registry only knows the first.
+
+"Mujeres Arriba Grande" was specified, built, corrected across four versions and measured clean, and it
+was the **Dame**: `L dh -1 / F dh +1`, character for character `TRAVELS.dame`, which had been there the
+whole time. Two more duplicate pairs exist in the registry today and were found the same way.
+
+So when you write a new travel, look at what you have just written and compare it against the existing
+ones **as arithmetic, not as names**. §46 does this automatically and warns, but read the warning — it is
+asking "have you just re-derived something?", and that question is cheap before the figure is built and
+expensive afterwards.
+
+Two figures may legitimately share slots and differ elsewhere (the sides they pass on, the script the
+scripted role dances). That is a real answer to the question. "They have different names" is not.
