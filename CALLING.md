@@ -340,7 +340,68 @@ There are two **modes** for how decision points are resolved:
 Note the first movement of a call you have just issued runs immediately (you already made that
 call); the pausing/diverting applies to the interruption points that follow.
 
+### What the caller sees
+
+The engine's queue is a list of **movements**, because movements are what it runs. The display is
+a list of **calls**, because calls are what was shouted. These are not the same list and the
+difference is not cosmetic: one Dame over a pending Dile Que No is two movements and one call, and
+showing the caller two lines would be telling them they had called something they had not.
+
+The stage's top-left corner reads top to bottom in time order — the call being danced now, then a
+gap, then the calls waiting. A call reaches the top of the waiting list, leaves it, and reappears
+in the now-playing line directly above while everything behind it shuffles up one place.
+
+So the display owes the caller three things:
+
+- **Calls, never movements.** `queueCalls` runs parallel to `queue` and holds, per queued movement,
+  a reference to the call *instance* that put it there. Collapsing by instance turns N movements
+  back into one call. By *instance* and not by label, because two Dames shouted in a row are two
+  entries and must stay two.
+- **Nothing implicit.** The Dile Que No the rules supply after an Exhibela, and the one folded into
+  a Dame, were never called by anybody. They are danced, so they appear in the now-playing line;
+  they are not calls, so they appear in neither the queue nor the log.
+- **One log line per call, written where the call is issued.** The log used to be written per
+  movement inside `runMovement`, which is why it read back as a mixture of what the caller had done
+  and what the engine had done on their behalf.
+
+A movement fired from the Movements tab is **atomic**: it is not queued, not chained, and no call
+may be lined up behind one. The movement panel already refused to fire mid-figure; `rawMovement`
+now closes the other direction too. Before it existed, a call clicked during a raw movement joined
+the queue and stayed there forever, because a raw movement deliberately ends without re-entering
+the engine — a promise the engine had no path to keep.
+
 ## Interruption points
+
+An **interruption point** is a juncture where a call already in flight can still be diverted: right
+before a Dame, or right before a Dile Que No. Which movements those are is **derived, not listed**. The
+three base figures declare `interrupt: true` and the Línea builder carries the flag onto every form it
+mints, so `INTERRUPTIBLE` is one filter over `MOVEMENTS` rather than a set of keys somebody has to
+remember to extend.
+
+It used to be a hand-written set of three circle keys, and Línea Moderna dances the same figures under
+derived names. `dame_grande` was not in it, so the engine could not see the juncture before an Adios
+Grande's closing Dame and *con Exhibela* greyed out for the whole figure. §42 asserts that every derived
+form of an interruption figure is one, so a future formation cannot lose them the same way.
+
+Two calls use these junctures, and they use them differently:
+
+- ***con Exhibela*** is a **modifier**: it needs *any* juncture ahead, and when it lands it replaces
+  whatever the current call had planned with an Exhibela movement. The rest of the interrupted call is
+  forgotten.
+- ***Mujeres Arriba*** declares `interruptsDile`: it needs specifically a **Dile Que No** juncture with
+  **nothing queued behind it**, and it takes that Dile Que No's place rather than displacing it — its own
+  sequence opens with a 4-beat Dile Que No, so the movement is cut short rather than skipped.
+
+`dileInterruptAt()` answers where a Mujeres Arriba could land, or null. Both halves of the rule are
+refusals, and the second is the one worth having: something queued behind the Dile Que No means the
+caller has already said what happens next, and swallowing their close would leave that follow-on
+starting from a position nobody asked for. A Dame reached first means the next juncture is a Dame, and
+there is no Dile Que No to replace.
+
+The close is not lost when Mujeres Arriba takes it, only deferred. The figure lands in Exhibela, and a
+transient Exhibela with nothing queued defaults to a Dile Que No — so the wheel still comes home, and
+nothing in the call has to say so.
+
 
 Interrupting calls don't happen just anywhere in the middle of a movement chain. They take
 effect only at **interruption points**: the junctures right **before a Dame** or right

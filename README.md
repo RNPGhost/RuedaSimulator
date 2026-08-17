@@ -10,9 +10,13 @@ classic circular wheel and more complex figures.
 
 It's a single self-contained HTML file — no build, no dependencies.
 
-- **Locally:** open `index.html` in any modern browser.
-- **On the web:** enable GitHub Pages for this repo (Settings → Pages → deploy from
-  `main`), and it will be served at your Pages URL.
+- **On the web:** <https://rnpghost.github.io/RuedaSimulator/>
+- **Locally:** open `index.html` in any modern browser. No server needed — it works
+  straight off the filesystem.
+
+The Pages deployment serves `index.html` from the root of `main`, with a `.nojekyll`
+marker so the file ships exactly as committed. There is nothing to build: no external
+scripts, no network calls, no storage APIs, so what runs locally is what runs online.
 
 ## What it does
 
@@ -56,6 +60,11 @@ Two modes:
 - **Step** — the sequence pauses at every decision point; you make a call or stay **silent**
   (which takes the default). Good for seeing each branch.
 
+The stage's top-left corner shows the call being danced, then a gap, then the calls queued behind
+it — calls only. The movements a call expands to, and the Dile Que No the rules supply on your
+behalf, appear in neither the queue nor the call log; you did not call them. Movements fired from
+the Movements tab are atomic: they run alone and nothing queues behind them.
+
 *con Exhibela* is a modifier call: issued before the dancers reach Exhibela, it diverts them to
 an Exhibela movement there, forgetting the rest of the interrupted call; afterwards they default
 to a Dile Que No.
@@ -82,6 +91,7 @@ how to add new movements and calls — are written up in [`CALLING.md`](CALLING.
 | Dile Que No y Dame Dos | Exhibela → Exhibela | As Dile Que No y Dame but the leader progresses two couples anti-clockwise |
 | Dile Que No (4) | Exhibela → Dile Que No position | The 4-beat opening danced on its own: out and back along the Exhibela line, onto the couple's midpoint spoke, pause |
 | Mujeres Arriba | Dile Que No position → Exhibela | The women advance: each follower progresses one couple clockwise while each leader retraces his 4 beats back to his own spot. Leaders don't progress; no phase change |
+| Mujeres Arriba Grande / Pequeña | LM Dile Que No position → LM Exhibela | Línea Moderna. **Grande**: the pairing advances one couple around each ring, with both dancers crossing one half-spacing to meet in between — so it flips the phase, and nobody has to cross a whole ring. **Pequeña**: the woman crosses her mini 2-couple wheel alone, swapping her between the rings; the men stay put. Both available at every couple count |
 | Leader's Right Turn | Casino/Exhibela → unchanged | Danced in place: the follower stays put and doesn't rotate while the leader turns a full 360° to his right, ending exactly where and how he began |
 | Afuera / Adentro | Casino ↔ Afuera Exhibela, Exhibela ↔ Afuera Casino | 0-beat frame flips: nobody moves, but every figure afterwards is danced point-reflected |
 
@@ -98,7 +108,8 @@ how to add new movements and calls — are written up in [`CALLING.md`](CALLING.
 | La Familia | Adios → Leader's Enchufla → Enchufla → Adios → Adios → Dame → (default) Dile Que No | Progresses one couple |
 | Enchufla Afuera | Enchufla → Leader's Right Turn → Afuera | Enters **Afuera Casino** (inside-out Casino); wheel stays afuera |
 | Enchufla Adentro | Enchufla → Leader's Right Turn → Adentro | From Afuera Casino only; un-flips back to normal Casino |
-| Mujeres Arriba | Dile Que No (4) → Mujeres Arriba → (default) Dile Que No | From Exhibela; the pairing shifts by one but the leaders stay put |
+| Mujeres Arriba | Dile Que No (4) → Mujeres Arriba → (default) Dile Que No | From Exhibela, **or shouted over a Dile Que No that has nothing queued behind it** — it takes that Dile Que No's place, since its own opening is one. The pairing shifts by one; the leaders stay put |
+| Mujeres Arriba Grande / Pequeña | Dile Que No (4) → Mujeres Arriba Grande/Pequeña → (default) Dile Que No | The Línea Moderna forms; the caller has to pick one |
 | con Exhibela | inserts an Exhibela movement at the next Exhibela | Modifier |
 
 While afuera, all the normal Casino calls are available too and dance inside-out (progressing clockwise). **Afuera** / **Adentro** are 0-beat frame flips (Casino ↔ Afuera Exhibela, Exhibela ↔ Afuera Casino).

@@ -16,6 +16,39 @@ shape, with the measurements), **CALLING.md** (how movements compose into calls)
 
 ---
 
+
+## A grande progression around a ring is shared, and flips the phase
+
+> "All grande moves where a dancer changes a slot around the outer wheel MUST change the phase, in order
+> for the outer wheel couples to have a chance to make it in a 4 couple Línea Moderna. The leader does not
+> stay in the same slot, they must progress to one slot anti-clockwise, as if they were doing a Dame
+> Grande from Exhibela in those 4 beats." — Sam
+
+This is a rule about what fits, not a stylistic preference, and it is why the phase flip and the shared
+travel are the same fact stated twice.
+
+A Línea Moderna ring holds *m = N/2* couples, so at four couples a ring is **two**. A figure that sends
+one dancer a whole couple round a ring of two sends her the near-antipodal chord — and when her opposite
+number makes the same progression, the two of them are travelling the same chord in opposite senses.
+There is no side to pass on, because there is no room either side; measured, the planner could not clear
+them (12.2px against a 35px corridor).
+
+Split the progression and the problem dissolves. Each dancer crosses **one odd half-spacing** — she
+clockwise, he anti-clockwise — and they meet on the between-spoke. The pairing still advances one whole
+couple. Both journeys are half as long, in opposite directions, from opposite ends. Measured: 41.45px
+clear at four, six and eight couples alike, every path exactly 1.00× its straight line, no evasion
+needed at any size.
+
+The odd half-spacing is also *why* the phase flips: the two `dh` values are each odd, so the wheel lands
+on the other config. Nothing declares the flip separately — it is the arithmetic, exactly as it is for a
+Dame.
+
+**So: a grande figure in which somebody changes slot around a ring is built as a shared progression.** If
+it does not flip the phase, one dancer is doing all the travelling, and it will not fit on a ring of two.
+Invariant §24 asserts the mechanism directly — neither role may do less than a third of the total
+distance — because an outcome-only check (the right pairing, no collision) passes the version that
+cannot path at four couples.
+
 ## 1. The model, in one page
 
 ### A movement is per-dancer intent, not per-dancer path

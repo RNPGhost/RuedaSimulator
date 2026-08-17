@@ -231,44 +231,51 @@ The Dame and Mujeres families keep distinct keys because from LM Casino **both**
 Pequeña form are callable, so the position alone cannot disambiguate them. That is the honest test of
 whether a suffix is earning its place.
 
-## 4. Mujeres Arriba gets both forms
+## 4. Mujeres Arriba gets both forms — DONE
 
 > "Mujeres Arriba as a movement should have both a Pequeña version and a Grande version, as they cause
 > the follower to change slots, indicating that they will be necessary." — Sam
 
-The rule cuts the other way here from §1, and the code comment that currently justifies the absence of a
-Grande form — *"a grande Mujeres Arriba would just be a Dile Que No y Dame, so it has no grande form"* —
-is about the **call's net effect**, not about the movement. The dancing is different: in a Dile Que No y
+The rule cuts the other way here from §1, and the code comment that justified the absence of a Grande
+form — *"a grande Mujeres Arriba would just be a Dile Que No y Dame, so it has no grande form"* — was
+about the **call's net effect**, not about the movement. The dancing is different: in a Dile Que No y
 Dame the **leader** travels and the follower dances her ¾ circle; in Mujeres Arriba the **followers**
-travel and the leaders retrace their opening. They are not the same movement and should not have been
-collapsed on the strength of where the wheel ends up.
+travel and the leaders retrace their opening.
 
-**Mujeres Arriba Pequeña** — inside each mini 2-couple wheel, the follower progresses to the other slot.
+**Mujeres Arriba Pequeña** — she crosses her mini 2-couple wheel, which swaps her between the rings.
+**Mujeres Arriba Grande** — she advances one couple around the ring she is already on, and stays on it.
 
-**Mujeres Arriba Grande**, in Sam's words:
+Which ring she ends on is the honest discriminator, and it is what the suite now asserts (§24). "She got
+a new partner" is true of both and proves nothing.
 
-> "The followers will progress to a different couple in the outer/inner wheel depending on which they're
-> currently in: if it's an outer wheel couple, they act like a normal rueda wheel, so the followers will
-> progress one slot clockwise around the outer wheel. If the couple is in the inner wheel, the wheel acts
-> like an afuera rueda wheel, and so the follower will progress one slot anti-clockwise within the inner
-> wheel."
+The three missing pieces named here were all real, and all built:
 
-**That is already the engine's model of Línea Moderna**, which is worth knowing before building it —
-`LINEA_SUB` maps the outer ring to `casino` / `exhibela` and the inner ring to `afuera` /
-`afuera_exhibela`, and every Grande figure is run per ring through `runOnWheel` with those readings. The
-inner ring's anti-clockwise progression is the `mirror` flag doing what it already does for afuera, not
-new geometry.
+- **`LINEA_SUB` gained a `linea_dile` entry**, mapping the outer ring to `dile` and the inner to
+  `afuera_dile`.
+- **`afuera_dile` exists** — the Dile Que No position with the wheel inside out, so the roles' lanes
+  swap and the leader's step "out from the ring" points at the main centre.
+- **`mujeres` carries `mirror: true`**, so the inner ring progresses the other way round, which is the
+  same flag doing the same job it already does for afuera.
 
-**Three things are nonetheless missing**, and none of them falls out for free:
+**One thing this plan got wrong, and the measurement that corrected it.** It assumed the grande and
+pequeña Línea Moderna Dile Que No positions were different places needing separate entries. They are
+**the same place — 0.00px apart, at 4, 6 and 8 couples, on both rings** — because `mcR ± mid2` is exactly
+`R_MID` of the ring: the mini wheel is constructed so its couples sit on the rings. So there is one
+`linea_dile`, exactly as there turned out to be one `linea_ex` in §5, and for the same reason.
 
-- `LINEA_SUB` has entries for `linea` and `linea_ex` only. There is **no `linea_dile` entry**, so
-  `grandeFrames` cannot start from the Línea Dile Que No position at all. (`LINEA_SUB_PEQ` does have
-  one, which is why only the Pequeña form exists today.)
-- There is **no afuera Dile Que No position**. `POSITIONS` has `dile` with `inverted: false` and no
-  inverted twin, so the inner ring has nothing to map to.
-- `mujeres` carries **no `mirror: true`** in its `play` descriptor (unlike `dame`, `dame_dos` and
-  `dame_pequena`), and it is `entryOnly: true`, which `validFrom` uses to refuse it from any afuera
-  position outright. Both have to change for the inner ring to dance it.
+That also settles the 4-beat Dile Que No, which needs **no** Grande form: it progresses nobody, and both
+senses of a figure that progresses nobody describe one figure. The Grande/Pequeña marker says *which slot
+to progress to*; where nobody progresses there is nothing for it to say.
+
+**`minCouples: 6` on the Grande form is real** — a one-couple progression on a ring of two is a swap
+straight across it (measured: 19.8px against a 34px floor at four couples, 35.4px at six, 39.4px at
+eight). The same gate on the **Pequeña** form and on the LM 4-beat Dile Que No was **stale** and has been
+removed: re-measured on the current engine those clear 33.2px and 36.4px respectively, *identically at
+every couple count*, because a mini 2-couple wheel is the same size whatever the rueda around it is
+doing. A clearance that does not vary with N cannot have a floor in N. The invariant that asserted the
+gate has been rewritten to assert the property instead — a characterisation test outliving the
+measurement that justified it is worse than no test, and this one made a working figure look
+unimplemented.
 
 ## 5. One Línea Moderna Exhibela position
 
@@ -291,27 +298,34 @@ default is unambiguous.
 `'linea_pex'` → `dile_peq`; there are two more copies of the same branch further down. All collapse to
 the single Dile Que No.
 
-## 6. Mujeres Arriba is an interruption call
+## 6. Mujeres Arriba is an interruption call — DONE
 
 > "A call of Mujeres Arriba when there's an upcoming Dile Que No will convert the impending Dile Que No
 > movement into a Dile Que No (4 beat) plus Mujeres Arriba movement. If in Línea Moderna, the caller will
 > need to specify if it's a Mujeres Arriba Pequeña or a Mujeres Arriba Grande." — Sam
 
-Today `mujeres_arriba` is `from: ['exhibela']` with `seq: ['dile4', 'mujeres']` — a call you can only
-make from rest. It becomes an **interrupt**, in the family `con Exhibela` already belongs to: whenever a
-Dile Que No is the next movement — **4-beat or 8-beat, in any formation we have defined** — calling
-Mujeres Arriba replaces that movement with `dile4` + `mujeres`, and the usual default follows.
+And later, sharpening the condition:
 
-This is the same shape as the existing Dame merge (calling Dame when a Dile Que No is already next
-merges the two into a Dile Que No y Dame), so the machinery to recognise "a Dile Que No is pending" is
-already there in `nextMovement()` / the queue.
+> "It should be possible to be called in Línea Moderna when a Dile Que No movement is next in the queue
+> of movements, and there's no other movements queued after it." — Sam
 
-In Línea Moderna the caller must pick a form, so it is **two calls**, not one: Mujeres Arriba Pequeña
-and Mujeres Arriba Grande, each substituting its own final movement. In the circle there is only one
-Mujeres Arriba and no choice to make.
+A call declares `interruptsDile: true`. `dileInterruptAt()` answers where such a call could land, or
+null, and enforces **both** halves of the rule:
 
-**Availability follows from §5**: with the two LM Exhibela positions merged, Mujeres Arriba becomes
-reachable after a Dame Grande as well as a Dame Pequeña. That is intended, not a side effect.
+- A **Dame reached first** means the next juncture is a Dame, not a Dile Que No, and there is nothing to
+  replace.
+- **Anything queued behind** the Dile Que No means the caller has already said what happens next, and
+  swallowing their Dile Que No would leave that follow-on starting from a position nobody asked for.
+
+The second is the half worth having. An interruption rule that only ever says yes will one day eat a
+call the caller had already made, and §41 asserts the refusals by name.
+
+The close is not lost, only deferred: Mujeres Arriba lands in Exhibela, and a transient Exhibela with
+nothing queued defaults to a Dile Que No. Nothing in the call says so — that is the rule of rueda doing
+its job, which is exactly why the call should not restate it.
+
+Three calls carry the flag: `mujeres_arriba` in the circle, `mujeres_arriba_pequena` and
+`mujeres_arriba_grande` in Línea Moderna, where the caller must pick a form.
 
 ## 7. UI
 

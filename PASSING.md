@@ -220,3 +220,28 @@ dancers in a group share a share and a pass side, so they would offset together.
 twice rather than once, and the single crossing already clears unaided by 44.8px against a 35px
 corridor. It is the figure to watch, not a known blocker. The convention itself needs no change: the
 leaders pass on each other's right, exactly as they already do once in a Dame Pequeña.
+
+
+## Same role, same direction: Mujeres Arriba's women
+
+The rueda default for a same-role pair is **right** (`'F,F': 'right'`, `'L,L': 'right'`), and it earns
+that: two leaders crossing the wheel in opposite directions meet head-on, and the wheel's handedness
+settles which shoulder. `TRAVELS.mujeres` overrides it to **left**.
+
+> "The followers should be going clockwise around the mini wheels, which would mean that they would pass
+> to the left of the other follower (over the right shoulder)." — Sam
+
+The override is not a bend of the convention, it is a case the convention does not describe. The two
+women are **not meeting head-on** — they are going the same way round their mini wheel, half a turn
+apart, following each other round. The side that keeps each of them on that circle is the opposite one
+from the side that separates two dancers coming at each other.
+
+This is the shape of exception a movement's own `passes` block exists for, and the test of whether an
+override is honest: it should name a situation the default genuinely does not cover, not disagree with
+the default about a situation it does.
+
+**Where it bites, measured.** Only on the pequeña. In the circle, every follower travels the same
+direction one couple apart and no two come within 90px, so there is no follower/follower encounter to
+judge at all; the grande form was already passing left, and now says so. Clearance on the pequeña
+improved 35px → 39px, so the declared side is also the roomier one — usually a sign the declaration
+matches what the geometry wanted anyway.
