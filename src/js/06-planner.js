@@ -45,9 +45,6 @@ function planCrossings(o){
   const NSMP = o.samples || 40, smpT = [];
   for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
   const CLEAR = o.clearance, ENGAGE = (o.engage != null) ? o.engage : CLEAR;
-  const R_MIN = 0.34, R_MAX = 0.35;                        // ramp spans as fractions of the move
-  const ss5 = x => { x = Math.max(0, Math.min(1, x)); return x * x * x * (x * (6 * x - 15) + 10); };
-  const endEnvAt = t => _smooth(Math.min(1, Math.min(t, 1 - t) / 0.08));   // 0 at both ends: landings stay exact
   const gap = (a, b, t) => { const p = o.base(a, t), q = o.base(b, t); return Math.hypot(p.x - q.x, p.y - q.y); };
   // Keep only the pairs that really crowd, and plan each one's EPISODE — the interval its intended paths
   // sit within the engagement distance. Smoothness lives in TIME: a reactive spatial trigger is crossed in
@@ -155,76 +152,11 @@ function planCrossings(o){
    * midpoint" means arithmetically — the winding survives the evasion instead of being spent on it. */
   const RFLOOR = CLEAR / 2;
 
-  /* ==================== VIA POINTS ==================================================================
-   * A dancer's path is their intended path, pinned to pass through a list of VIA POINTS. Sam's model:
-   * where two dancers would collide they go round each other shoulder to shoulder, so at the moment they
-   * meet they stand exactly one corridor apart, symmetrically about the point they would have hit, and
-   * the movement's declared side says which of them is on which end of that axis.
-   *
-   * A via is a POSITION, not an offset, and that is the whole reason for this rewrite. An offset along a
-   * dancer's own normal separates a pair by the sum of the two offsets only when their paths are
-   * anti-parallel; at any other crossing angle the offsets partly cancel and the corridor never opens.
-   * Placing both dancers a fixed distance either side of a shared point separates them by that distance
-   * doubled at ANY angle. See PATHING.md.
-   *
-   * Between vias the path returns smoothly to its intended line: each via contributes a displacement that
-   * is full at its own moment and fades to nothing at the neighbouring vias and at both ends, so landings
-   * stay exact and a dancer with two encounters deals with them one after the other. */
-  /* Vias belong to a UNIT, and hold a DISPLACEMENT rather than a position. A bonded couple is one free
-   * variable — both partners take the same sidestep so the pair moves as a body instead of being sheared
-   * — and a position can only ever describe one of them. Measured when this was per dancer: a couple
-   * travelling to Línea was stretched by 32.02px, which is a couple pulled apart rather than moved. */
-  const members = {}; o.ids.forEach(id => { const u = unit(id); (members[u] = members[u] || []).push(id); });
-  const vias = {}; Object.keys(members).forEach(u => vias[u] = []);
-  // C2 (smootherstep), not C1: the renderer blends circles through neighbouring keyframes, so a via that
-  // arrives with a discontinuous curvature makes the DRAWN path bulge away from the keyframes it
-  // interpolates — measured at 3.13px, and enough to open gaps between keyframes that are closed at them.
-  const ss3 = x => { x = Math.max(0, Math.min(1, x)); return x * x * x * (x * (6 * x - 15) + 10); };
-  const viaWeight = (list, i, t) => {
-    const ti = list[i].t;
-    const lo = i > 0 ? list[i - 1].t : 0, hi = i < list.length - 1 ? list[i + 1].t : 1;
-    if (t <= lo || t >= hi) return 0;
-    return t <= ti ? ss3((t - lo) / Math.max(1e-6, ti - lo))
-                   : ss3((hi - t) / Math.max(1e-6, hi - ti));
-  };
-  const at = (id, t) => {
-    const p = o.base(id, t), vs = vias[unit(id)];
-    if (NAT_NOEVADE || !vs.length) return p;
-    let x = p.x, y = p.y;
-    for (let i = 0; i < vs.length; i++){
-      const w = viaWeight(vs, i, t); if (!w) continue;
-      x += vs[i].d.x * w; y += vs[i].d.y * w;
-    }
-    const q = { x, y };
-    if (!o.orbit) return q;
-    const dx = q.x - o.orbit.x, dy = q.y - o.orbit.y, r = Math.hypot(dx, dy);
-    if (r >= RFLOOR || r < 1e-9) return q;
-    return { x: o.orbit.x + dx / r * RFLOOR, y: o.orbit.y + dy / r * RFLOOR };
-  };
-  // `P` is where THIS dancer should be at `t`; what is stored is the displacement that puts them there,
-  // which every member of their unit then shares.
-  /* ONE VIA PER MOMENT, and the solve is told when one collision overwrites another's answer.
-   *
-   * A via within t ± 0.06 is replaced, whoever placed it — two collisions a few samples apart therefore
-   * take turns owning the same moment. That used to be invisible AND unbounded: resolve A–B at t=0.45,
-   * then A–C at t=0.47 and A–B's answer is gone; next pass re-fixes A–B and loses A–C; both grow every
-   * pass and run to the cap while neither is ever held. It is the thrash the 10.42x detour came out of.
-   *
-   * Keying vias by PAIR instead was tried and is wrong: two deviations at nearly the same instant then
-   * SUM, and a dancer avoiding two people a few samples apart is thrown twice as far as either needs
-   * (measured — it drove `dame_dos` from the Dile Que No position from clearing to 24.75px against a 35px
-   * corridor). One dancer, one deviation, at any given moment.
-   *
-   * What is fixed is the unboundedness, and it is fixed in the SOLVER rather than here: a pair whose via
-   * keeps being clobbered never improves its gap, so the growth rule freezes it after two futile
-   * placements and reports it. The alternation still happens; it now terminates and says so. */
-  const addVia = (id, t, P) => {
-    const b = o.base(id, t);
-    const d = { x: P.x - b.x, y: P.y - b.y };
-    const vs = vias[unit(id)];
-    for (const v of vs) if (Math.abs(v.t - t) < 0.06){ v.d = d; return; }
-    vs.push({ t, d }); vs.sort((u, v) => u.t - v.t);
-  };
+  /* THE VIA MACHINERY IS GONE — replaced whole by the space-time elastic below (PATHING_V2.md).
+   * A via was a remembered displacement: placed at a conflict's original moment, it kept displacing
+   * the dancer after the conflict had moved or dissolved, which is the stickiness Sam diagnosed from
+   * the drawing ("this collision then stuck through subsequent collision detections"). The elastic
+   * carries no memory between passes, so that failure mode is structurally unexpressible. */
   /* GATHERING IS A LANDING, NOT A LICENCE. Two dancers a figure is bringing into one couple must be
    * allowed to close at the end — that is the figure's whole point, and judging them against the corridor
    * there would condemn every Dame ever written. What it must not mean is that they are invisible for the
@@ -236,11 +168,11 @@ function planCrossings(o){
   const GATHER_GATE = 0.75;
   const gatherSkip = new Set();
   (o.gathering || []).forEach(pr => { gatherSkip.add(PAIRKEY0(pr[0], pr[1])); });
-  const pairClosest = (a, b) => { let m = Infinity, tc = 0.5;
+  const pairClosestOn = (AT) => (a, b) => { let m = Infinity, tc = 0.5;
     const gate = gatherSkip.has(PAIRKEY0(a, b)) ? GATHER_GATE : 1.0;
     for (let s = 0; s < NSMP; s++){ const t = smpT[s];
       if (t > gate) break;
-      const A = at(a, t), B = at(b, t);
+      const A = AT(a, t), B = AT(b, t);
       const d = Math.hypot(A.x - B.x, A.y - B.y);
       if (d < m){ m = d; tc = t; } }
     return { gap: m, tc }; };
@@ -248,10 +180,10 @@ function planCrossings(o){
   const PAIRKEY = PAIRKEY0;
   /* The side a takes against b, as a unit vector in the world: perpendicular to a's own travel, pointing
    * to whichever hand the movement declared. This is where a declared side becomes geometry. */
-  const sideVec = (a, b, t) => {
+  const sideVecOn = (AT) => (a, b, t) => {
     const h = 1 / (2 * NSMP);
-    const A0 = at(a, Math.max(0, t - h)), A1 = at(a, Math.min(1, t + h));
-    const B0 = at(b, Math.max(0, t - h)), B1 = at(b, Math.min(1, t + h));
+    const A0 = AT(a, Math.max(0, t - h)), A1 = AT(a, Math.min(1, t + h));
+    const B0 = AT(b, Math.max(0, t - h)), B1 = AT(b, Math.min(1, t + h));
     /* The axis they separate along is perpendicular to their RELATIVE motion, not to one dancer's own
      * travel. Standing them either side of a line drawn across his path only holds them apart at the
      * instant he is there; standing them either side of the line they are closing along holds them apart
@@ -294,62 +226,461 @@ function planCrossings(o){
     let x = 0, y = 0, n = 0;
     o.ids.forEach(id => { const p = o.base(id, 0.5); x += p.x; y += p.y; n++; });
     return { x: x / n, y: y / n }; })();
-  /* Resolve one collision: put both dancers a half-corridor either side of the point they would have hit,
-   * along the axis the declared side names. Where one of them cannot move - a scripted dancer is an
-   * immutable obstacle - the traveller alone goes a whole corridor clear of her, since half from one side
-   * clears nothing. */
-  const resolveAt = (a, b, t, k) => {
-    const g = k || 1;
-    const A = at(a, t), B = at(b, t);
-    const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
-    const ax = sideVec(a, b, t);
-    const ya = yields2(a), yb = yields2(b);
-    /* Against a dancer who cannot move, the traveller never needs to be more than ONE corridor away at
-     * the moment they meet — going further buys nothing, because she is not coming after him. Growth is
-     * for the case where the closest approach moves after the paths bend, and against an immutable
-     * obstacle the answer to that is a via at the new moment, not a wider berth at the old one. Left
-     * uncapped it sent a leader 210px off his line to clear a woman standing still. */
-    const half = (CLEAR / 2) * g, full = CLEAR * Math.min(g, 1.25);
-    if (ya && yb){
-      /* EACH DANCER GOES WHERE THEIR OWN BOOK ENTRY SAYS, and a disagreement is REPORTED rather than
-       * resolved by fiat. This used to negate a's direction to place b whenever the two declarations were
-       * not geometrically opposed — silently discarding b's declaration, which is the one place in the
-       * engine that overwrote an explicit pass side. Two sides that genuinely cannot both be honoured is
-       * real information (the figure has asked for something impossible); substituting one for the other
-       * hides it and draws something nobody asked for.
-       *
-       * Placing both on their own side when they are NOT opposed puts them on the same side of the
-       * meeting point, which does not separate them — so the pair is left for the solver to grow and,
-       * failing that, to report. That is the honest outcome. */
-      const bx = sideVec(b, a, t);
-      const opposed = (ax.x * bx.x + ax.y * bx.y) < 0;
-      if (!opposed) SIDE_CONFLICTS.push({ a, b, t: +t.toFixed(3),
-        aSide: BOOK.lookup(a, b).side, bSide: BOOK.lookup(b, a).side,
-        aSource: BOOK.lookup(a, b).source, bSource: BOOK.lookup(b, a).source });
-      const bDir = opposed ? bx : { x: -ax.x, y: -ax.y };
-      addVia(a, t, { x: C.x + ax.x * half, y: C.y + ax.y * half });
-      addVia(b, t, { x: C.x + bDir.x * half, y: C.y + bDir.y * half });
-    } else if (ya){
-      addVia(a, t, { x: B.x + ax.x * full, y: B.y + ax.y * full });
-    } else if (yb){
-      const bx = sideVec(b, a, t);
-      addVia(b, t, { x: A.x + bx.x * full, y: A.y + bx.y * full });
-    } else return false;
-    return true;
-  };
-  const MAXIT = 60;
-  /* Resolve EVERY collision on each pass, innermost first, then recompute. Taking only the worst one per
-   * pass cannot converge: a pair pinned at its via can still come closest a sample or two later, so the
-   * loop re-picks the same pair forever and never reaches the others. Measured on a Dame from Exhibela at
-   * 4 couples: L0/F0 fixed to 34.83px at t=0.45 against a 35px corridor, re-chosen sixty times, while the
-   * other three couples sat untouched at 0.7px.
+  /* Free variables are UNITS: a bonded couple shares one deviation and moves as a body. */
+  const members = {}; o.ids.forEach(id => { const u = unit(id); (members[u] = members[u] || []).push(id); });
+  /* ==================== THE ELASTIC — PATHING V2 ====================================================
+   * The via model's replacement (PATHING_V2.md). The path itself is the variable: each yielding UNIT
+   * carries a DEVIATION from its intended path, sampled at K fixed eased-time waypoints with the
+   * endpoints pinned at zero, and the solve is a relaxation over those waypoints:
    *
-   * And a pair that is still short after being placed has its radius GROWN. Standing a half-corridor
-   * either side of the point they would have hit is exactly right at that instant, but the moment of
-   * closest approach moves once the paths bend; growing until the measured approach clears is what makes
-   * the placement answer the path rather than the instant. */
-  const GROW_STEP = 1.12, GROW_CAP = 6;
-  const grow = {};
+   *   separation — for every checked pair inside the corridor AT THE SAME MOMENT, push each yielding
+   *                dancer toward the position the declared side names (half a corridor either side of
+   *                their midpoint; a full corridor clear of an immutable dancer). Zero force the moment
+   *                the pair holds the corridor — THIS IS THE NAIL DROPPING OUT. Nothing is remembered
+   *                between passes, so a constraint can only bind while the geometry it describes is
+   *                actually violated. The via model's stickiness (a via placed at a conflict's original
+   *                moment, displacing a dancer forever after the conflict has moved or dissolved) is
+   *                structurally impossible here, not merely discouraged.
+   *   tension    — each interior waypoint relaxes toward its neighbours (a discrete heat step on the
+   *                deviation), plus a gentle decay toward zero. Together they pull out any detour whose
+   *                nail has released, which is what makes paths taut instead of wandering.
+   *   floor      — the RFLOOR radial clamp (an evasion may not turn an orbit inside out), unchanged.
+   *   budget     — the detour budget as a projection: a unit carried past `detourMax` has this pass's
+   *                deviation scaled back, rather than a snapshot/restore dance.
+   *
+   * Convergence: pass 0 measures the untouched paths (so "do nothing" is always on the table), the best
+   * arrangement seen is kept, and the loop ends when the corridor holds everywhere or nothing moved more
+   * than EPS. Termination argument: displacement per pass is bounded by bounded targets and damped by
+   * tension + decay; MAXPASS is the backstop, not the mechanism. */
+  /* COARSE NODES, FINE SAMPLING. The deviation lives on K_E+1 nodes at KEYFRAME scale, blended with the
+   * C2 smootherstep; collisions are DETECTED at 2·NSMP fine samples and their pushes distributed onto
+   * the flanking nodes. The two scales are deliberate and the coarse one is renderer-driven: the shipped
+   * frames are circle-blended through ~16 keyframes, and a deviation field wigglier than that scale reads
+   * as kinks the blend then overshoots — measured 6.5px of drawn-path bulge under a field with 40 nodes,
+   * on a plan whose keyframes all held 37.6. A field that cannot vary faster than the renderer samples
+   * cannot be mis-drawn by it. */
+  const K_E = 12;
+  const dev = {}; Object.keys(members).forEach(u => { dev[u] = Array.from({ length: K_E + 1 }, () => ({ x: 0, y: 0 })); });
+  /* `devLive` is both a fast path and a semantic one. Fast: a unit with no deviation reads pure base, so
+   * the sweeps over dormant dancers cost what v1's did. Semantic: the RFLOOR orbit clamp applies exactly
+   * where v1 applied it — to units the solve has actually touched — so an untouched path that legally
+   * cuts inside the floor radius (a near-diameter chord) ships byte-identical to v1's. */
+  const devLive = {}; Object.keys(members).forEach(u => { devLive[u] = false; });
+  const devAt = (u, t) => {
+    const x = Math.max(0, Math.min(1, t)) * K_E;
+    const i = Math.max(0, Math.min(K_E - 1, Math.floor(x))), f = x - i;
+    const w = f * f * f * (f * (6 * f - 15) + 10);
+    const D = dev[u];
+    return { x: D[i].x + (D[i + 1].x - D[i].x) * w, y: D[i].y + (D[i + 1].y - D[i].y) * w };
+  };
+  const atE = (id, t) => {
+    const p = o.base(id, t);
+    if (NAT_NOEVADE) return p;
+    const u = unit(id);
+    if (!devLive[u]) return p;
+    const d = devAt(u, t);
+    const q = { x: p.x + d.x, y: p.y + d.y };
+    if (!o.orbit) return q;
+    const dx = q.x - o.orbit.x, dy = q.y - o.orbit.y, r = Math.hypot(dx, dy);
+    if (r >= RFLOOR || r < 1e-9) return q;
+    return { x: o.orbit.x + dx / r * RFLOOR, y: o.orbit.y + dy / r * RFLOOR };
+  };
+  const markLive = (u) => { devLive[u] = true; };
+  const refreshLive = () => { for (const u in dev) devLive[u] = dev[u].some(d => d.x !== 0 || d.y !== 0); };
+  const sideVecE = sideVecOn(atE);
+  const solveElastic = () => {
+    Object.keys(dev).forEach(u => { dev[u].forEach(d => { d.x = 0; d.y = 0; }); devLive[u] = false; });
+    const unitYields = {}; Object.keys(members).forEach(u => unitYields[u] = members[u].some(id => yields2(id)));
+    const conflictNoted = new Set();
+    /* GAIN under 1 plus the mean over simultaneous pushes is what keeps the Jacobi update stable when two
+     * conflicts want the same waypoint; MARGIN puts the equilibrium a hair outside the corridor so the
+     * decay term cannot drag a resolved pair back under it. */
+    /* DECAY IS FOR RELEASED NAILS ONLY. Applied everywhere it fights the active pushes and the solve
+     * stalls a few px under the corridor (measured: 31.9 vs 35 at equilibrium); applied only where no
+     * push landed this pass, it does exactly its job — pulls out detours whose conflict has dissolved —
+     * without taxing the ones still working. MARGIN overshoots the corridor because the smoothing step
+     * legitimately erodes each bump's peak per pass; the equilibrium then sits ON the corridor. */
+    const GAIN = 0.85, LAMBDA = 0.28, DECAY = 0.12, EPS = 0.06, MAXPASS = 60;
+    /* Three distances, not one. The corridor (CLEAR) is the contract. HOLD adds the sag allowance: the
+     * deviation is smoothstep-blended BETWEEN waypoints, so a pair that sits exactly on the corridor at
+     * every waypoint can dip a fraction of a pixel under it between two — pushing until waypoint gaps
+     * reach HOLD leaves the whole continuous path clear (measured sag at K=40: under 0.5px). TGT is where
+     * a push aims, above HOLD because the smoothing step erodes each bump's peak every pass and the
+     * equilibrium settles below the aim point. */
+    const HOLD = CLEAR + 1.0, TGT = CLEAR + 3.0;
+    const DENSE = HOLD + 30;                              // densify the sweep under this coarse-scan gap
+    const gateOf = (a, b) => gatherSkip.has(PAIRKEY0(a, b)) ? GATHER_GATE : 1.0;
+    const snap = () => { const c = {}; for (const u in dev) c[u] = dev[u].map(d => ({ x: d.x, y: d.y })); return c; };
+    const load = (c) => { for (const u in dev){ const D = dev[u]; c[u].forEach((d, i) => { D[i].x = d.x; D[i].y = d.y; }); } refreshLive(); };
+    const detourOKE = () => o.ids.every(id => straightOf[id] < 20 || pathLenOfOn(atE, id) <= DETOUR_MAX * straightOf[id]);
+    /* A push lands on its node at full weight and on the flanking nodes at half. A conflict with a
+     * standing obstacle occupies a very narrow window in t, and a one-node bump is exactly what the
+     * smoothing step erodes fastest — the solve then stalls a fraction under the corridor at the
+     * push/erosion equilibrium. Spreading the shoulders keeps the bump's curvature low enough that the
+     * peak actually reaches where it is aimed. */
+    const addPush = (push, id2, k, dx2, dy2) => { const P = push[unit(id2)]; if (!P) return;
+      P[k].x += dx2; P[k].y += dy2; P[k].n++;
+      if (k > 1){ P[k - 1].x += dx2 * 0.5; P[k - 1].y += dy2 * 0.5; P[k - 1].n += 0.5; }
+      if (k < P.length - 2){ P[k + 1].x += dx2 * 0.5; P[k + 1].y += dy2 * 0.5; P[k + 1].n += 0.5; } };
+    /* SEEDING — the homotopy class is fixed BEFORE the relaxation runs (PATHING_V2 §3c). The relax loop
+     * is a local optimizer: its capped, deficit-proportional pushes tighten a path WITHIN a class, and
+     * that is a feature — but they cannot carry a dancer across another dancer to reach the declared
+     * side, because the two conflicts' pushes cancel at the barrier. Measured on the four-couple
+     * cross-wheel figure: a looper threading between two standing followers oscillated 6→18→6 for thirty
+     * passes, mean-push pinned by symmetry, while the via solver — which places dancers decisively one
+     * conflict at a time — walked straight to 36.5px. So the seed IS one round of decisive placement:
+     * innermost conflict first, each placed on its declared side as a windowed bump, positions re-read
+     * after each (the literature's guidance trajectory; the funnel's sleeve). The elastic then does what
+     * elastics do: pull it taut and drop every nail the tightened path no longer touches. */
+    const seedClass = () => {
+      const pc = (a2, b2) => { const gate = gateOf(a2, b2);
+        const mMax = Math.min(SMP2, Math.floor(gate * SMP2));
+        let m2 = Infinity, tc = 0.5;
+        for (let m = 0; m <= mMax; m += 2){
+          const A2 = atESmp(a2, m), B2 = atESmp(b2, m);
+          const d2 = Math.hypot(A2.x - B2.x, A2.y - B2.y);
+          if (d2 < m2){ m2 = d2; tc = m / SMP2; } }
+        return { gap: m2, tc }; };
+      const conf = [];
+      for (const pr of checkPairs){
+        const r = pc(pr[0], pr[1]);
+        if (r.gap >= HOLD) continue;
+        const A = atE(pr[0], r.tc), B = atE(pr[1], r.tc);
+        const mid = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+        conf.push({ a: pr[0], b: pr[1],
+          depth: Math.hypot(mid.x - centreOfFormation.x, mid.y - centreOfFormation.y) });
+      }
+      conf.sort((x, y) => x.depth - y.depth);
+      const W = 2;                                       // bump half-width, in coarse nodes
+      const bump = (id2, t, dx2, dy2) => { const u = unit(id2); if (!unitYields[u]) return;
+        markLive(u);
+        const kc = Math.max(1, Math.min(K_E - 1, Math.round(t * K_E)));
+        for (let j = Math.max(1, kc - W); j <= Math.min(K_E - 1, kc + W); j++){
+          const f2 = 1 - Math.abs(j - kc) / (W + 1), w = f2 * f2 * (3 - 2 * f2);
+          dev[u][j].x += dx2 * w; dev[u][j].y += dy2 * w; } };
+      for (const c of conf){
+        const r = pc(c.a, c.b);                          // re-measured: earlier placements moved things
+        if (r.gap >= HOLD) continue;
+        const t = r.tc;
+        const A = atE(c.a, t), B = atE(c.b, t);
+        const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+        const ya = yields2(c.a) && unitYields[unit(c.a)], yb = yields2(c.b) && unitYields[unit(c.b)];
+        if (!ya && !yb) continue;
+        const axA = sideVecE(c.a, c.b, t);
+        if (ya && yb){
+          const axB = sideVecE(c.b, c.a, t);
+          const opposed = (axA.x * axB.x + axA.y * axB.y) < 0;
+          const bDir = opposed ? axB : { x: -axA.x, y: -axA.y };
+          /* The seed places at the bare corridor; the loop tops up to its buffered hold only where the
+           * measured path is genuinely short. Seeding at the buffered target instead ships the whole
+           * figure a berth wider than it needs (measured: a Dame Grande at 1.40x its line where 1.16x
+           * clears). */
+          bump(c.a, t, C.x + axA.x * (CLEAR / 2) - A.x, C.y + axA.y * (CLEAR / 2) - A.y);
+          bump(c.b, t, C.x + bDir.x * (CLEAR / 2) - B.x, C.y + bDir.y * (CLEAR / 2) - B.y);
+        } else if (ya){
+          bump(c.a, t, B.x + axA.x * CLEAR - A.x, B.y + axA.y * CLEAR - A.y);
+        } else {
+          const axB = sideVecE(c.b, c.a, t);
+          bump(c.b, t, A.x + axB.x * CLEAR - B.x, A.y + axB.y * CLEAR - B.y);
+        }
+      }
+    };
+    /* DOING NOTHING IS ALWAYS ON THE TABLE. The baseline is measured on the UNTOUCHED paths before the
+     * seed runs — a decisive seed on unsatisfiable geometry scrambles paths it can never clear (measured:
+     * the six-dancer ring went from an honest 26.0px standstill to 1.2px of scrambled thrash when the
+     * baseline was taken after seeding), and best-iterate can only protect against that if the zero
+     * arrangement is in the book. */
+    /* The base path is FIXED for the whole solve, so it is sampled once onto the fine grid; every sweep
+     * after that pays only the deviation blend, and dormant units pay nothing at all. `o.base` is the
+     * expensive half of a sample (polar arcs, loops, scripted figures). */
+    const SMP2 = 2 * NSMP;
+    const baseGrid = {};
+    const baseAtSmp = (id, m) => { let g = baseGrid[id];
+      if (!g){ g = baseGrid[id] = new Array(SMP2 + 1);
+        for (let i2 = 0; i2 <= SMP2; i2++) g[i2] = o.base(id, i2 / SMP2); }
+      return g[m]; };
+    const atESmp = (id, m) => {
+      const p = baseAtSmp(id, m);
+      const u = unit(id);
+      if (!devLive[u]) return p;
+      const d = devAt(u, m / SMP2);
+      const q = { x: p.x + d.x, y: p.y + d.y };
+      if (!o.orbit) return q;
+      const dx = q.x - o.orbit.x, dy = q.y - o.orbit.y, r = Math.hypot(dx, dy);
+      if (r >= RFLOOR || r < 1e-9) return q;
+      return { x: o.orbit.x + dx / r * RFLOOR, y: o.orbit.y + dy / r * RFLOOR };
+    };
+    const measureWorst = () => { let w = Infinity;
+      for (const pr of checkPairs){ const gate = gateOf(pr[0], pr[1]);
+        const mMax = Math.min(SMP2, Math.floor(gate * SMP2));
+        for (let m0 = 0; m0 <= mMax; m0 += 4){
+          const A0 = atESmp(pr[0], m0), B0 = atESmp(pr[1], m0);
+          const d0 = Math.hypot(A0.x - B0.x, A0.y - B0.y);
+          if (d0 >= DENSE){ if (d0 < w) w = d0; continue; }
+          const mEnd = Math.min(mMax, m0 + 3);
+          for (let m = Math.max(0, m0 - 3); m <= mEnd; m++){
+            const A = atESmp(pr[0], m), B = atESmp(pr[1], m);
+            const d = Math.hypot(A.x - B.x, A.y - B.y); if (d < w) w = d; } } }
+      return w; };
+    const baseWorst = measureWorst();
+    let best = { worst: baseWorst, dev: snap(), ok: baseWorst >= CLEAR - 0.05 };
+    seedClass();
+    let iters = 0, plateau = { worst: -Infinity, n: 0 };
+    for (let pass = 0; pass < MAXPASS; pass++){
+      iters = pass + 1;
+      const push = {}; for (const u in dev) if (unitYields[u]) push[u] = dev[u].map(() => ({ x: 0, y: 0, n: 0 }));
+      const prot = {};                                     // unit -> nodes where deviation is load-bearing
+      let worst = Infinity, violated = 0;
+      const axCache = new Map();
+      for (const pr of checkPairs){
+        const a = pr[0], b = pr[1], gate = gateOf(a, b);
+        const prKey = PAIRKEY0(a, b);
+        /* HALF-WAYPOINT SAMPLING. A crossing pair's gap is V-shaped in time and its true minimum can sit
+         * between two waypoints — at these speeds a node either side of the meeting straddles it by up to
+         * 10px of along-track motion, so node-only sampling reads a 34px approach as 35.4 and calls it
+         * clear. Sam: "it seems to be finding collisions between dancers' paths, rather than where the
+         * dancers will be at particular points in time" — this is the sampling half of the cure (the
+         * other half is that constraints are re-derived from the CURRENT paths every pass). A half-step's
+         * push lands on both flanking nodes. */
+        const mMax = Math.min(SMP2 - 1, Math.floor(gate * SMP2));
+        /* Coarse-to-fine: scan every fourth fine sample and densify only where a pair is anywhere near
+         * trouble. A pair's gap changes by at most its relative speed times the stride, and DENSE was
+         * chosen above the fastest relative step the suite measures — so nothing under HOLD can hide
+         * between coarse samples. Most pairs are far apart at most moments; this is where the sweep's
+         * time was going. */
+        for (let m0 = 1; m0 <= mMax; m0 += 4){
+         const A0 = atESmp(a, m0), B0 = atESmp(b, m0);
+         const d0 = Math.hypot(A0.x - B0.x, A0.y - B0.y);
+         if (d0 >= DENSE){ if (d0 < worst) worst = d0; continue; }
+         const mEnd = Math.min(mMax, m0 + 3);
+         for (let m = Math.max(1, m0 - 3); m <= mEnd; m++){
+          const t = m / SMP2, k = Math.round(t * K_E);
+          if (k < 1 || k > K_E - 1) continue;
+          const A = atESmp(a, m), B = atESmp(b, m);
+          const d = Math.hypot(A.x - B.x, A.y - B.y);
+          if (d < worst){ worst = d; if (PATH_DEBUG) PATH_DEBUG.worstPair = a + '/' + b + '@' + t.toFixed(2); }
+          /* LOAD-BEARING DEVIATION IS PROTECTED. A resolved conflict releases its push the moment the
+           * pair holds the corridor — but the deviation HOLDING it there is not slack, and letting decay
+           * eat it just re-opens the conflict a few passes later. Measured: a limit cycle swinging the
+           * worst gap 6→18→6 for thirty passes. So nodes where the pair is still within ENGAGEMENT are
+           * shielded from decay; only a nail whose dancers have genuinely left each other's neighbourhood
+           * decays away. (This is also §52's attribution window: deviation is justified exactly where an
+           * encounter is within ENGAGE.) */
+          if (d < ENGAGE){ const kk = Math.max(1, Math.min(K_E - 1, k));
+            if (unitYields[unit(a)]) (prot[unit(a)] = prot[unit(a)] || new Set()).add(kk - 1).add(kk).add(kk + 1);
+            if (unitYields[unit(b)]) (prot[unit(b)] = prot[unit(b)] || new Set()).add(kk - 1).add(kk).add(kk + 1); }
+          if (d >= HOLD) continue;
+          if (d < CLEAR) violated++;                       // the verdict is the corridor, not the buffer
+          const ya = yields2(a) && unitYields[unit(a)], yb = yields2(b) && unitYields[unit(b)];
+          if (!ya && !yb) continue;
+          const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+          /* PUSH THE ALONG-AXIS DEFICIT, NEVER THE VECTOR TO A TARGET POINT. At the moment of closest
+           * approach the separation is perpendicular to the relative motion — the axis and the separation
+           * agree, and "move to C ± axis·half" is a small, correct step. At every OTHER sample inside the
+           * window they do not agree, and the same formula throws the dancer sideways toward a point that
+           * is far away tangentially even when the gap is 1px short. Measured: a Dame Dos leader whose v1
+           * path was 1.01x his line was slung into a 30px S-swing (1.43x) by exactly that. Projecting the
+           * current offset onto the declared axis and pushing only the missing distance leaves the
+           * tangential component alone — the push is proportional to the shortfall, everywhere. */
+          /* One axis evaluation per (pair, node) per pass: the axis turns with the paths, and the paths
+           * do not change within a pass. sideVec is four path reads and a book lookup, and it was being
+           * paid per fine sample. */
+          let cA = axCache.get(prKey + ':' + k);
+          if (!cA){ cA = { a: sideVecE(a, b, t), b: null }; axCache.set(prKey + ':' + k, cA); }
+          const axA = cA.a;
+          if (ya && yb){
+            /* Each goes where their own book entry says; a non-opposed pair of declarations is reported
+             * (§47c) and resolved by mirroring a's axis, exactly as the via solver did. */
+            if (!cA.b) cA.b = sideVecE(b, a, t);
+            const axB = cA.b;
+            const opposed = (axA.x * axB.x + axA.y * axB.y) < 0;
+            if (!opposed && !conflictNoted.has(PAIRKEY0(a, b))){
+              conflictNoted.add(PAIRKEY0(a, b));
+              SIDE_CONFLICTS.push({ a, b, t: +t.toFixed(3),
+                aSide: BOOK.lookup(a, b).side, bSide: BOOK.lookup(b, a).side,
+                aSource: BOOK.lookup(a, b).source, bSource: BOOK.lookup(b, a).source });
+            }
+            const bDir = opposed ? axB : { x: -axA.x, y: -axA.y };
+            const defA = TGT / 2 - ((A.x - C.x) * axA.x + (A.y - C.y) * axA.y);
+            const defB = TGT / 2 - ((B.x - C.x) * bDir.x + (B.y - C.y) * bDir.y);
+            if (defA > 0) addPush(push, a, k, axA.x * defA, axA.y * defA);
+            if (defB > 0) addPush(push, b, k, bDir.x * defB, bDir.y * defB);
+          } else if (ya){
+            const def = TGT - ((A.x - B.x) * axA.x + (A.y - B.y) * axA.y);
+            if (def > 0) addPush(push, a, k, axA.x * def, axA.y * def);
+          } else {
+            if (!cA.b) cA.b = sideVecE(b, a, t);
+            const axB = cA.b;
+            const def = TGT - ((B.x - A.x) * axB.x + (B.y - A.y) * axB.y);
+            if (def > 0) addPush(push, b, k, axB.x * def, axB.y * def);
+          }
+         }
+        }
+      }
+      if (PATH_DEBUG) PATH_DEBUG.push({ pass, worst: +worst.toFixed(2), violated,
+        pair: PATH_DEBUG.worstPair, detourOK: detourOKE(), n: o.ids.length });
+      if (worst > best.worst && detourOKE()) best = { worst, dev: snap(), ok: violated === 0 };
+      if (worst >= CLEAR + 0.6) break;                    // holds with the sag allowance: done
+      let moved = 0;
+      const active = {};                                  // unit -> Set of waypoints a push landed on
+      /* THE STEP IS CAPPED. A first pass can measure a 30px deficit, and applying it in one go slings the
+       * dancer across the conflict, flips the axes the next pass reads, and the solve oscillates
+       * (measured: worst gap 5.5 -> 29.1 -> 9.7 across three passes on the four-couple cross-wheel case).
+       * A few px per pass reaches the same equilibrium in a handful of passes with the geometry — and the
+       * side axes — evolving smoothly under it. */
+      const STEP_CAP = CLEAR * 0.18;
+      for (const u in push){
+        const D = dev[u], P = push[u], act = active[u] = new Set();
+        for (let k = 1; k < K_E; k++){ const f2 = P[k]; if (!f2.n) continue;
+          let dx2 = (f2.x / f2.n) * GAIN, dy2 = (f2.y / f2.n) * GAIN;
+          const mag = Math.hypot(dx2, dy2);
+          if (mag > STEP_CAP){ dx2 *= STEP_CAP / mag; dy2 *= STEP_CAP / mag; }
+          D[k].x += dx2; D[k].y += dy2; markLive(u);
+          act.add(k - 1); act.add(k); act.add(k + 1);     // a bump's shoulders are part of the bump
+          const m2 = Math.hypot(dx2, dy2); if (m2 > moved) moved = m2; }
+      }
+      for (const u in dev){
+        if (!unitYields[u]) continue;
+        const D = dev[u], act = active[u] || new Set();
+        const pt = prot[u] || new Set();
+        const N2 = D.map((d0, k) => {
+          if (k === 0 || k === K_E) return { x: 0, y: 0 };
+          /* Three tension zones: pushed nodes hold firm; PROTECTED nodes (their pair still inside the
+           * engagement) shrink at a whisper — enough to pull an over-generous seed taut over a few
+           * passes, not enough to reopen a resolved conflict before its push can answer; released nodes
+           * decay in earnest. Measured before the whisper: seeded berths held at the full target and
+           * shipped a Dame Grande at 1.40x its line where 1.16x cleared. */
+          const decay = (act.has(k) || pt.has(k)) ? 1 : (1 - DECAY);
+          /* Tension is quartered where a push is actively holding a node: full-strength smoothing erodes
+           * a working bump's peak as fast as the push rebuilds it and the solve stalls a couple of px
+           * under the corridor (measured: 33.5 stable against a 35px demand). Released nodes get the
+           * full pull — tautness is for slack, not for load. */
+          const lam = act.has(k) ? LAMBDA * 0.25 : LAMBDA;
+          return { x: (d0.x + lam * (D[k - 1].x + D[k + 1].x - 2 * d0.x)) * decay,
+                   y: (d0.y + lam * (D[k - 1].y + D[k + 1].y - 2 * d0.y)) * decay };
+        });
+        for (let k = 1; k < K_E; k++){
+          const m2 = Math.hypot(N2[k].x - D[k].x, N2[k].y - D[k].y); if (m2 > moved) moved = m2;
+          D[k].x = N2[k].x; D[k].y = N2[k].y; }
+      }
+      /* The detour budget's ENFORCEMENT is the best-iterate gate (an arrangement over budget can never
+       * become the answer, because doing nothing is in the book from pass 0) — mutation-tested: removing
+       * this projection alone fails nothing. The projection is for solution QUALITY on budget-brushing
+       * cases: it steers the search back inside the budget instead of letting passes explore
+       * arrangements the gate will only discard. */
+      if (pass % 2 === 1 || pass < 3) for (const u in dev){  // detour budget, as a projection
+        if (!unitYields[u]) continue;
+        let over = 1;
+        for (const id of members[u]){
+          if (straightOf[id] < 20) continue;
+          const L = pathLenOfOn(atE, id), cap = DETOUR_MAX * straightOf[id];
+          if (L > cap && L / cap > over) over = L / cap;
+        }
+        // Project to a hair UNDER the cap: landing exactly on it leaves detourOK false to floating point,
+        // which silently vetoes every best-iterate update from then on.
+        if (over > 1){ const f2 = Math.max(0.7, 0.97 / over); dev[u].forEach(d0 => { d0.x *= f2; d0.y *= f2; }); }
+      }
+      /* TERMINATION FOR THE UNSATISFIABLE. Either nothing is moving (equilibrium), or the worst gap has
+       * stopped improving for a stretch (a demand the geometry cannot meet, being pushed round in
+       * circles). Both mean: stop, keep the best arrangement seen, report. A floor of a dozen passes
+       * first, because early passes legitimately move slowly while conflicts hand displacement around. */
+      if (moved < EPS && pass > 12) break;
+      if (worst <= plateau.worst + 0.05){ if (++plateau.n >= 8) break; }
+      else plateau = { worst, n: 0 };
+    }
+    load(best.dev);
+    /* A FINAL POLISH PASS. The loop's bumps are as taut as the push/tension equilibrium leaves them,
+     * which can still change a dancer's speed sharply at the scale the renderer samples — measured as a
+     * 3.55px stray between the drawn curve and its own keyframes (§34d holds the line at 3.0). Two gentle
+     * Laplacian passes round the shoulders off; if that costs the corridor anything real, it is undone —
+     * clearance outranks polish. */
+    if (Object.keys(dev).some(u => devLive[u])) {
+      const beforeDev = snap(), wBefore = measureWorst();
+      for (let r2 = 0; r2 < 2; r2++) for (const u in dev){
+        if (!unitYields[u]) continue;
+        const D = dev[u];
+        const N2 = D.map((d0, k) => (k === 0 || k === K_E) ? { x: 0, y: 0 }
+          : { x: d0.x + 0.22 * (D[k - 1].x + D[k + 1].x - 2 * d0.x),
+              y: d0.y + 0.22 * (D[k - 1].y + D[k + 1].y - 2 * d0.y) });
+        for (let k = 1; k < K_E; k++){ D[k].x = N2[k].x; D[k].y = N2[k].y; }
+      }
+      refreshLive();
+      const wAfter = measureWorst();
+      if (wAfter < Math.min(wBefore, CLEAR) - 0.05) load(beforeDev);
+    }
+    /* THE DRAIN. The loop exits the moment the corridor holds, which can leave a released nail's tail
+     * still decaying — deviation with no encounter near it, on its way out but not gone (§52 catches
+     * exactly this: 24px of it, 88px from anybody). So released slack is drained to zero before
+     * shipping: a node is LOAD-BEARING if some checked pair is inside 1.25x engagement near its moment,
+     * and every node that is not gets decayed hard until nothing meaningful remains. Draining only
+     * touches path regions further than the engagement from everyone, so it cannot create a conflict;
+     * the corridor is re-measured and the drain undone if that ever stops being true. */
+    if (Object.keys(dev).some(u => devLive[u])) {
+      const beforeDrain = snap(), wBefore = measureWorst();
+      const nodeNeeded = (u) => {
+        const need = new Array(K_E + 1).fill(false);
+        for (const id of members[u]){
+          for (const pr of checkPairs){
+            const other = pr[0] === id ? pr[1] : pr[1] === id ? pr[0] : null;
+            if (!other) continue;
+            for (let m = 0; m <= SMP2; m += 2){
+              const A = atESmp(id, m), B = atESmp(other, m);
+              if (Math.hypot(A.x - B.x, A.y - B.y) < ENGAGE * 1.25){
+                // One node of slack either side, no more: at K=12 a ±3 margin shields a quarter of the
+                // whole path and the tail this drain exists to remove sits inside it.
+                const kc = Math.round((m / SMP2) * K_E);
+                for (let k = Math.max(0, kc - 1); k <= Math.min(K_E, kc + 1); k++) need[k] = true;
+              }
+            }
+          }
+        }
+        return need;
+      };
+      for (let r2 = 0; r2 < 40; r2++){
+        let residual = 0;
+        for (const u in dev){
+          if (!unitYields[u] || !devLive[u]) continue;
+          const need = nodeNeeded(u), D = dev[u];
+          for (let k = 1; k < K_E; k++){
+            if (need[k]) continue;
+            D[k].x *= 0.7; D[k].y *= 0.7;
+            const m2 = Math.hypot(D[k].x, D[k].y); if (m2 > residual) residual = m2;
+          }
+        }
+        refreshLive();
+        if (residual < 1.5) break;
+      }
+      if (measureWorst() < Math.min(wBefore, CLEAR) - 0.05) load(beforeDrain);
+    }
+    const worst = measureWorst();
+    /* The §52 orphan measure, taken here because the base grid and the live flags make it nearly free:
+     * dormant units are skipped whole, and every sample read is a cached lookup. */
+    let orphanDev = 0, orphanWorst = 0;
+    {
+      const neighbours = {};
+      checkPairs.forEach(pr => { (neighbours[pr[0]] = neighbours[pr[0]] || []).push(pr[1]);
+        (neighbours[pr[1]] = neighbours[pr[1]] || []).push(pr[0]); });
+      const WIN = Math.max(1, Math.round(0.18 * SMP2));    // attribution window, in fine samples
+      for (const id of o.ids){
+        if (!devLive[unit(id)]) continue;
+        for (let m = 2; m < SMP2 - 1; m += 2){
+          const p0 = baseAtSmp(id, m), p1 = atESmp(id, m);
+          const dmag = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+          if (dmag <= 6) continue;                         // sub-corridor wobble is not a detour
+          let justified = false;
+          for (const nb of (neighbours[id] || [])){
+            for (let m2 = Math.max(0, m - WIN); m2 <= Math.min(SMP2, m + WIN) && !justified; m2 += 3){
+              const A = atESmp(id, m2), B = atESmp(nb, m2);
+              if (Math.hypot(A.x - B.x, A.y - B.y) < ENGAGE * 1.25) justified = true;
+            }
+            if (justified) break;
+          }
+          if (!justified){ orphanDev++; if (dmag > orphanWorst) orphanWorst = dmag; }
+        }
+      }
+    }
+    return { ok: worst >= CLEAR - 0.05, worst, iterations: iters, orphanDev, orphanWorst };
+  };
   /* HOW FAR A DANCER MAY BE CARRIED OFF THEIR LINE. §44 measures healthy figures at a median of 1.05x
    * their straight-line distance, and the honest outliers (a ¾ circle, an out-and-back) at ~2.5x. A via
    * set that pushes a traveller past this is not a solution that costs a lot — it is a wrong answer that
@@ -364,80 +695,16 @@ function planCrossings(o){
   const straightOf = {};
   o.ids.forEach(id => { const A = o.base(id, 0), B = o.base(id, 1);
     straightOf[id] = Math.hypot(B.x - A.x, B.y - A.y); });
-  const pathLenOf = (id) => { let L = 0, prev = at(id, 0);
-    for (let s = 0; s < NSMP; s++){ const p = at(id, smpT[s]); L += Math.hypot(p.x - prev.x, p.y - prev.y); prev = p; }
+  const pathLenOfOn = (AT, id) => { let L = 0, prev = AT(id, 0);
+    for (let s = 0; s < NSMP; s++){ const p = AT(id, smpT[s]); L += Math.hypot(p.x - prev.x, p.y - prev.y); prev = p; }
     return L; };
-  const detourOK = () => o.ids.every(id => straightOf[id] < 20 || pathLenOf(id) <= DETOUR_MAX * straightOf[id]);
-  const snapshotVias = () => { const c = {}; Object.keys(vias).forEach(u => c[u] = vias[u].map(v => ({ ...v }))); return c; };
-  const restoreVias = (c) => { Object.keys(vias).forEach(u => { vias[u].length = 0;
-    (c[u] || []).forEach(v => vias[u].push(v)); }); };
-
-  const solveVias = () => {
-    Object.keys(vias).forEach(u => { vias[u].length = 0; });
-    /* BEST-ITERATE MEMORY. Every exit used to return whatever the LAST iteration happened to leave in the
-     * via set — including the widest, most distorted placement a pair reached just before it hit the cap
-     * and was abandoned. So a solve that failed returned its worst attempt rather than its best. The best
-     * arrangement seen is now kept and restored on any exit, successful or not. */
-    let best = { worst: -Infinity, vias: snapshotVias(), ok: false };
-    let worstGap = Infinity, iters = 0;
-    const lastGap = {};                    // per pair: the gap its previous placement achieved
-    const stale = {};                      // per pair: consecutive placements that did not improve it
-    for (let it = 0; it < MAXIT; it++){
-      iters = it + 1;
-      const shorts = [];
-      worstGap = Infinity;
-      checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1]);
-        if (r.gap < worstGap) worstGap = r.gap;
-        if (r.gap < CLEAR - 0.01){
-          const A = at(pr[0], r.tc), B = at(pr[1], r.tc);
-          const mid = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
-          shorts.push({ a: pr[0], b: pr[1], t: r.tc, gap: r.gap,
-            depth: Math.hypot(mid.x - centreOfFormation.x, mid.y - centreOfFormation.y) }); } });
-      if (worstGap > best.worst && detourOK()){ best = { worst: worstGap, vias: snapshotVias(), ok: !shorts.length }; }
-      if (!shorts.length){ restoreVias(best.vias); return { ok: true, worst: Math.max(best.worst, worstGap), iterations: iters }; }
-      /* Innermost first (Sam): a collision near the middle pushes its dancers outward, which is what makes
-       * the couples further out have to move. Resolve from the centre out, so each outer pair answers the
-       * arrangement it will actually meet rather than one about to change under it. */
-      shorts.sort((x, y) => x.depth - y.depth);
-      let any = false;
-      for (const sh of shorts){
-        const k = PAIRKEY(sh.a, sh.b);
-        /* GROWTH HAS TO EARN ITS KEEP. This compounded on every appearance, including a pair's FIRST
-         * placement — the comment above it claimed otherwise and the code did not — so a pair 0.17px
-         * short was thrown several corridors wide, and two pairs whose vias overwrite each other both ran
-         * to the cap. Now: a pair grows only while growing is still closing its gap. Two placements that
-         * fail to improve it and it is frozen at its best and reported, which is the honest answer and
-         * the one the authoring loop needs.
-         *
-         * That also makes the loop terminate on ARGUMENT rather than on the iteration count: finitely
-         * many pairs, each of which can fail to improve at most twice before it stops being grown, so the
-         * set of pairs still being grown is strictly decreasing. MAXIT is a backstop, not the mechanism. */
-        const prev = lastGap[k];
-        if (prev !== undefined && sh.gap <= prev + 0.05) stale[k] = (stale[k] || 0) + 1;
-        else stale[k] = 0;
-        lastGap[k] = sh.gap;
-        if (stale[k] >= 2) continue;                     // wider is not helping this pair; leave it placed
-        grow[k] = (grow[k] || 1) * GROW_STEP;
-        if (grow[k] > GROW_CAP) continue;                // cannot be placed; report rather than thrash
-        const before = snapshotVias();
-        if (resolveAt(sh.a, sh.b, sh.t, grow[k])){
-          // A placement that breaches the detour budget is worse than not placing: undo it and stop
-          // growing this pair. The dancer keeps a path someone could actually dance.
-          if (!detourOK()){ restoreVias(before); stale[k] = 2; }
-          else any = true;
-        }
-      }
-      if (!any) break;
-    }
-    restoreVias(best.vias);
-    return { ok: best.ok, worst: best.worst === -Infinity ? worstGap : best.worst, iterations: iters };
-  };
   const share = 0.5, scale = 1;
-  /* NOTHING TO DO WHEN EVASION IS SUPPRESSED. `at()` ignores vias entirely under NAT_NOEVADE, so this
-   * whole solve was provably without effect — and it ran anyway, twice inside every grande composition
-   * (once per ring, both of which generate their intents with evasion off). Sixty iterations of an
-   * O(pairs x samples) search whose output was discarded by construction. */
-  const solved = (checkPairs.length && !NAT_NOEVADE) ? solveVias() : { ok: true, worst: Infinity, skipped: true, iterations: 0 };
+  /* NOTHING TO DO WHEN EVASION IS SUPPRESSED (the paths are MEANT to collide — NAT_NOEVADE generates
+   * the intended-path baseline), and nothing to do when there are no pairs to hold apart. `atE` reads
+   * pure base wherever no deviation is live, so the skipped case ships the intents untouched. */
+  const solved = (checkPairs.length && !NAT_NOEVADE) ? solveElastic()
+    : { ok: true, worst: Infinity, skipped: true, iterations: 0 };
+  const AT_SHIP = atE;
   // POSTCONDITION — say so when the corridor could not be held. The per-encounter solve reports whether
   // it converged; it can fail to, when two encounters demand opposite things of the same dancer at the
   // same moment. Returning that quietly is exactly how two dancers end up sharing a spot with nothing in
@@ -464,7 +731,7 @@ function planCrossings(o){
     if (unit(a) === unit(b)) return;                   // one rigid body: the plan cannot change their gap
     let was = Infinity, now = Infinity;
     for (let s = 0; s < NSMP; s++){ const t = smpT[s];
-      const A0 = o.base(a, t), B0 = o.base(b, t), A1 = at(a, t), B1 = at(b, t);
+      const A0 = o.base(a, t), B0 = o.base(b, t), A1 = AT_SHIP(a, t), B1 = AT_SHIP(b, t);
       was = Math.min(was, Math.hypot(A0.x - B0.x, A0.y - B0.y));
       now = Math.min(now, Math.hypot(A1.x - B1.x, A1.y - B1.y)); }
     /* CLOSER *AND* TOO CLOSE. Merely closer is not damage: a gathering pair is meant to converge, and
@@ -474,7 +741,9 @@ function planCrossings(o){
      * would have been held to had anyone been looking. */
     if (now < was - 0.5 && now < CLEAR){ blind++; if (!blindWorst) blindWorst = { a, b, was: +was.toFixed(2), now: +now.toFixed(2) }; }
   });
-  PLAN_LOG.push({ n: o.ids.length, checked: checkPairs.length, excluded: (o.exclude || []).length,
+  // §52's orphan measure rides on the solve result — see the note at its computation in solveElastic.
+  PLAN_LOG.push({ orphanDev: solved.orphanDev || 0, orphanWorst: solved.orphanWorst || 0,
+    n: o.ids.length, checked: checkPairs.length, excluded: (o.exclude || []).length,
     blind, blindWorst, units: o.ids.map(id => unit(id)),
     // Wall-clock for THIS plan, so slowness is a measured, attributable number rather than a feel.
     // PATHING_V2 Phase A: the baseline is committed; the rebuild is judged against it.
@@ -496,14 +765,14 @@ function planCrossings(o){
     const want = PASS_SIGN[BOOK.lookup(L.a, L.b).side];
     if (want === undefined || want === null) return;
     const h = 1 / (2 * NSMP), t = L.tc;
-    const A0 = at(L.a, Math.max(0, t - h)), A1 = at(L.a, Math.min(1, t + h));
+    const A0 = AT_SHIP(L.a, Math.max(0, t - h)), A1 = AT_SHIP(L.a, Math.min(1, t + h));
     const d = _unit(A1.x - A0.x, A1.y - A0.y); if (!d) return;
-    const p = at(L.a, t), q = at(L.b, t);
+    const p = AT_SHIP(L.a, t), q = AT_SHIP(L.b, t);
     const got = Math.sign(d.x * (q.y - p.y) - d.y * (q.x - p.x));
     if (got !== 0 && got !== want) SIDE_FAULTS.push({ a: L.a, b: L.b, want, got });
   });
-  const worstNow = () => { let m = Infinity;
-    checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1]); if (r.gap < m) m = r.gap; });
+  const worstNow = () => { const pc = pairClosestOn(AT_SHIP); let m = Infinity;
+    checkPairs.forEach(pr => { const r = pc(pr[0], pr[1]); if (r.gap < m) m = r.gap; });
     return m; };
   const clear = (checkPairs.length && !NAT_NOEVADE) ? worstNow() : Infinity;
   /* THE RESULT IS REPORTED, AND THE CALLER CAN READ IT. This used to be gated on `live.length`, a
@@ -514,9 +783,9 @@ function planCrossings(o){
    * `faults` and `detour` ride on the return value because until now `planCrossings`' own verdict was
    * computed and thrown away — `solved` was assigned and never read by anything. A caller that wants to
    * know whether the plan it just applied actually worked can finally ask. */
-  const detour = o.ids.map(id => ({ id, straight: +straightOf[id].toFixed(1),
-      path: +pathLenOf(id).toFixed(1),
-      ratio: straightOf[id] < 20 ? null : +(pathLenOf(id) / straightOf[id]).toFixed(2) }))
+  const detour = o.ids.map(id => { const L = pathLenOfOn(AT_SHIP, id);
+      return { id, straight: +straightOf[id].toFixed(1), path: +L.toFixed(1),
+        ratio: straightOf[id] < 20 ? null : +(L / straightOf[id]).toFixed(2) }; })
     .filter(d => d.ratio !== null);
   const faults = [];
   if (checkPairs.length && !NAT_NOEVADE && clear < CLEAR - 0.05){
@@ -526,7 +795,7 @@ function planCrossings(o){
     if (typeof console !== 'undefined' && console.warn)
       console.warn(`planCrossings could not clear: closest ${clear.toFixed(2)}px, needs ${CLEAR.toFixed(2)}px [${o.ids.join(",")}] pairs=${checkPairs.length}`);
   }
-  return { at: (id, t) => at(id, t, share, scale), share, scale, clear,
+  return { at: (id, t) => AT_SHIP(id, t), share, scale, clear,
            ok: !faults.length, faults, detour, solved };
 }
 

@@ -1,6 +1,6 @@
 {
   "plans": 166,
-  "totalMs": 739,
-  "worstMs": 15.1,
-  "note": "v1 via solver baseline"
+  "totalMs": 1164,
+  "worstMs": 24.7,
+  "note": "v2 elastic baseline (v1 via solver measured 739ms on this sweep; the elastic buys correctness and tautness, not raw speed \u2014 see PATHING_V2.md)"
 }

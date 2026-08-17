@@ -265,6 +265,7 @@ function load(htmlPath) {
       // Run a figure definition straight from data, as if it had come out of a file.
       playFigureFrom(def, from, n, ph, params){ setupRest(from, n, ph); return playFigure(def, dancers, params); },
       setNoEvade(v){ NAT_NOEVADE = !!v; },
+      setPathDebug(v){ PATH_DEBUG = v; }, get PATH_DEBUG(){ return PATH_DEBUG; },
       setDameWL(v){ DAME_WL_FORCE = v; },
       circleAt(station, lane, n, ph){ return FORMATIONS.circle.slot(station, lane, n, ph); },
       lineaGeom(){ return Object.assign({}, LM); },

@@ -2931,22 +2931,22 @@ function run() {
       const r = boxed.detour[0].ratio;
       nChecks++; check(r <= 3.0 + 1e-6,
         `§48a a boxed-in dancer (walls ±${wall}px) was carried ${r}x their straight line — the budget did not hold`);
-      nChecks++; check(boxed.solved.iterations <= 6,
-        `§48d the boxed-in solve ran ${boxed.solved.iterations} iterations — growth is not being frozen ` +
-        'when it stops helping, so the loop is bounded only by MAXIT');
+      /* The elastic's bound on a hopeless demand is the PLATEAU BREAK: eight passes without the worst
+       * gap improving and the solve stops and reports, keeping the best arrangement seen. The via
+       * solver's growth freeze cut this to 2; the elastic legitimately spends a few more passes finding
+       * the equilibrium before the plateau counter can see it — what is asserted is that the bound is the
+       * plateau, not the 60-pass backstop. */
+      nChecks++; check(boxed.solved.iterations <= 25,
+        `§48d the boxed-in solve ran ${boxed.solved.iterations} iterations — the plateau break is not ` +
+        'biting, so the loop is bounded only by its backstop');
     }
 
-    /* (d) again, on the case that isolates the FREEZE from the budget. The boxed dancer above is stopped
-     * by the detour budget — remove the freeze and he still runs 2 iterations, because the budget rejects
-     * his placement first. So the freeze needs a case where growing is futile and the detour is nowhere
-     * near binding: two dancers walking the SAME long line, 8px apart, whose declared sides do not oppose.
-     * Placing them cannot separate them (both ease the same way, together), and their journey is 600px, so
-     * every placement costs ~0% detour and the budget never speaks.
-     *
-     * Measured: **5 iterations with the freeze, 16 without** — and 16 is exactly ceil(ln 6 / ln 1.12), the
-     * growth cap, which is to say that with the freeze gone the ONLY thing bounding the loop is a pair
-     * being widened until it is six corridors across. Worst detour 1.00x in both, which is the proof that
-     * the budget is not what stopped it. */
+    /* (d) again, on a case where the detour budget is nowhere near binding, so the PLATEAU BREAK is the
+     * only thing that can stop the loop early: two dancers walking the SAME long line, 8px apart, whose
+     * declared sides do not oppose. The elastic separates what it can, the rest cannot improve, and the
+     * plateau counter must be what ends it — their journey is 600px, so every arrangement costs ~0%
+     * detour and the budget never speaks. (Under the via solver this was the growth-freeze case; the
+     * mechanism changed at the PATHING_V2 cutover, the bound stayed.) */
     T.SIDE_CONFLICTS.length = 0;
     const futile = T.planCrossings({
       ids: ['A', 'B'],
@@ -2958,9 +2958,9 @@ function run() {
     nChecks++; check(futileRatio <= 1.05,
       `§48d the futile-growth case detoured ${futileRatio.toFixed(2)}x — it is no longer isolating the ` +
       'growth freeze, because the detour budget can now be what stops it');
-    nChecks++; check(futile.solved.iterations <= 6,
-      `§48d a solve that cannot improve ran ${futile.solved.iterations} iterations — growth is not frozen ` +
-      'when it stops helping, so a hopeless pair is widened to the cap instead of being reported');
+    nChecks++; check(futile.solved.iterations <= 25,
+      `§48d a solve that cannot improve ran ${futile.solved.iterations} iterations — the plateau break ` +
+      'is not biting, so a hopeless pair costs the full backstop instead of an early report');
     nChecks++; check(futile.ok === false && futile.faults.length > 0,
       '§48d the futile-growth case reported success — a pair it never separated was not reported');
     T.SIDE_CONFLICTS.length = 0;
@@ -3149,6 +3149,57 @@ function run() {
         '§50 a clause that declared no turn was given one — silence must stay silent, or `dh` stops ' +
         'being what decides the winding');
     }
+  }
+
+  /* 52: THE RUBBER BAND LEAVES THE NAIL — no deviation without a live encounter.
+   *
+   *     The via solver's defining failure was REMEMBERED constraints: a via placed at a conflict's
+   *     original moment kept displacing the dancer after the conflict had moved or dissolved. Sam read it
+   *     straight off a drawing: "this collision then stuck through subsequent collision detections,
+   *     causing L1 to be pulled off a more efficient path in order to maintain the coordinates of the
+   *     original collision." The elastic re-derives every force from the current paths each pass, so a
+   *     released nail cannot pull — and this asserts the SHIPPED OUTPUT shows it: every point where a
+   *     final path deviates more than 6px from its intent must have some checked partner within 1.25x
+   *     the engagement distance nearby in time. The planner measures it per solve (`orphanDev`); the
+   *     sweep just ran in §49/§50 covers every movement and Línea call at 4/6/8 and both phases, and
+   *     PLAN_LOG still holds those entries.
+   *
+   *     Verified against a resurrection: disable the decay term (nails never release) and drive the
+   *     dissolving-conflict case below — the orphan count must light up, or this check could not catch
+   *     the very failure it exists to prevent. */
+  {
+    const log = T.PLAN_LOG.filter(e => e.orphanDev !== undefined);
+    nChecks++; check(log.length > 200, `§52 only ${log.length} solves carried an orphan measurement — the probe is not wired in`);
+    const bad = log.filter(e => e.orphanDev > 0);
+    nChecks++; check(bad.length === 0,
+      `§52 ${bad.length} solve(s) shipped deviation no live encounter justifies` +
+      (bad.length ? ` (worst ${Math.max(...bad.map(e => e.orphanWorst))}px off intent with nobody near)` : '') +
+      ' — a constraint outlived the conflict that created it');
+
+    /* THE DISSOLVING CONFLICT, directly. A crosses left to right. M's intended path crosses A's mid-way —
+     * a genuine seed conflict — but M's own declared duty to clear the standing W carries M away from A
+     * entirely, so the A/M conflict DISSOLVES once M is placed. A's own bow must then be released: his
+     * final path may deviate only where the (still live) W encounter justifies it, and his detour must be
+     * near-straight. A sticky solver ships A still bowed around where M USED to be. */
+    T.clearFaults();
+    const ids = ['A', 'M', 'W'];
+    const base = (id, t) => id === 'A' ? { x: 100 + 400 * t, y: 300 }
+               : id === 'M' ? { x: 300 + 60 * Math.cos(Math.PI * (1.5 - t)), y: 240 + 90 * t }
+               : { x: 320, y: 330 };
+    const plan = T.planCrossings({ ids, base, yields: id => id !== 'W',
+      roleOf: () => 'L', passes: { 'L,L': 'right' }, relation: () => null,
+      group: id => id, groups: ids, clearance: 35, engage: 45 });
+    const e = T.PLAN_LOG[T.PLAN_LOG.length - 1];
+    nChecks++; check(e && e.orphanDev === 0,
+      `§52 the dissolving-conflict case shipped ${e && e.orphanDev} orphaned deviation sample(s) — the ` +
+      'released nail is still pulling');
+    let L = 0, prev = plan.at('A', 0);
+    for (let s2 = 1; s2 <= 40; s2++){ const p2 = plan.at('A', s2 / 40);
+      L += Math.hypot(p2.x - prev.x, p2.y - prev.y); prev = p2; }
+    nChecks++; check(L / 400 < 1.12,
+      `§52 A walks ${(L / 400).toFixed(2)}x his straight line in the dissolving-conflict case — the bow ` +
+      'around a conflict that no longer exists was never pulled out');
+    T.clearFaults();
   }
 
   // 8: determinism — the golden generator produces identical output twice.

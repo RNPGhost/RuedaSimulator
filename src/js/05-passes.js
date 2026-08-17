@@ -138,6 +138,7 @@ const SIDE_CONFLICTS = [];
  * probe (§33e) with exactly the small-but-real steps it exists to distinguish from noise. */
 function _unit(vx, vy){ const L = Math.hypot(vx, vy); return L < 1e-9 ? null : { x: vx / L, y: vy / L }; }
 const PLAN_FAULTS = [];
+let PATH_DEBUG = null;    // set to [] to trace the elastic's passes
 let LAST_SWEEPS = {};
 /* …and the point each of those sweeps was measured about. One centre per movement was an invariant of
  * the engine until a clause could name its own; §26 has to ask each dancer about the right point or it
