@@ -49,7 +49,8 @@ const PASS_SIGN = { left: +1, right: -1 };     // the side of the OTHER dancer t
  * always override by naming the pair. */
 function passSide(roleA, roleB, passes, rel){
   if (!passes) return null;
-  if (rel && passes[rel]) return passes[rel];
+  const rels = rel == null ? [] : (Array.isArray(rel) ? rel.filter(Boolean) : [rel]);
+  for (const r of rels) if (passes[r]) return passes[r];   // most specific first — see buildSideBook
   return passes[roleA + ',' + roleB] || null;
 }
 
@@ -95,7 +96,22 @@ function buildSideBook(o){
   const seen = [];                       // every distinct pair the book was asked about, with provenance
   const book = {
     lookup(a, b){
-      const rel = relOf && relOf(a, b);
+      /* RELATIONS NEST, AND THE LOOKUP WALKS THE WHOLE CHAIN. `relation` answers with every relation that
+       * holds between two dancers, most specific first — your partner is ALSO someone in your starting
+       * wheel; the woman you arrive beside is ALSO someone in the wheel you are going to. Trying only the
+       * most specific one and then dropping to roles is how a figure that declared the GENERAL rule got
+       * the engine's default for the specific case inside it.
+       *
+       * Sam, on Dame Eñe from the Dile Que No position: "the outer leaders should start their path
+       * passing to the right of their current follower partner, but then instead pass to their left …
+       * didn't I define the outer leaders as passing all other dancers in their starting inner wheel
+       * (which includes their current follower) on the right?" He did. `wheel0: 'right'` was declared,
+       * his partner is in that wheel, and the book resolved the pair as `partner0`, found nothing
+       * declared under that name, skipped `wheel0` entirely and defaulted to 'left' — the exact side he
+       * had ruled against. Walking the chain is the fix: `partner0` first because it is the more precise
+       * statement, then `wheel0`, and a figure that names either is honoured. */
+      const relRaw = relOf && relOf(a, b);
+      const rels = relRaw == null ? [] : (Array.isArray(relRaw) ? relRaw.filter(Boolean) : [relRaw]);
       const rk = (roleOf ? roleOf(a) : null) + ',' + (roleOf ? roleOf(b) : null);
       /* A RELATION MAY BE QUALIFIED BY THE ROLES IN IT, and that key wins over the bare relation. A
        * relation that names a GROUP — `wheel0`, `wheel1` — covers four dancers of two roles, and a figure
@@ -105,13 +121,15 @@ function buildSideBook(o){
        * only a bare `wheel1` there is no way to say it: the relation beats the role key, so `'L,L'` never
        * gets a hearing. `'wheel1:L,L'` is that sentence, and it is strictly more specific than `wheel1`,
        * which is why it is tried first rather than being another thing with an opinion. */
-      const qk = rel ? rel + ':' + rk : null;
-      if (declared && qk && declared[qk]) return { side: declared[qk], source: 'declared', key: qk };
-      if (declared && rel && declared[rel]) return { side: declared[rel], source: 'declared', key: rel };
-      if (declared && declared[rk]) return { side: declared[rk], source: 'declared', key: rk };
-      if (formation && qk && formation[qk]) return { side: formation[qk], source: 'formation', key: qk };
-      if (formation && rel && formation[rel]) return { side: formation[rel], source: 'formation', key: rel };
-      if (formation && formation[rk]) return { side: formation[rk], source: 'formation', key: rk };
+      for (const src of [[declared, 'declared'], [formation, 'formation']]){
+        const map = src[0]; if (!map) continue;
+        for (const rel of rels){
+          const qk = rel + ':' + rk;
+          if (map[qk]) return { side: map[qk], source: src[1], key: qk };
+          if (map[rel]) return { side: map[rel], source: src[1], key: rel };
+        }
+        if (map[rk]) return { side: map[rk], source: src[1], key: rk };
+      }
       /* NOT SILENT. Same behaviour the engine has always had where nothing resolved — everyone yields to
        * their own left, which keeps simultaneous passes reinforcing rather than cancelling — but it is
        * now an ANSWER WITH A NAME rather than a `+1` returned from four places. */

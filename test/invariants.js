@@ -2859,6 +2859,58 @@ function run() {
     nChecks++; check(T.SIDE_CONFLICTS.length > 0,
       '§47c two declarations that cannot both be honoured were reconciled silently instead of reported');
     T.SIDE_CONFLICTS.length = 0;
+
+    /* 47d: A GENERAL RULE GOVERNS THE SPECIFIC CASES INSIDE IT. Relations nest — your partner is also
+     * someone in your starting wheel — and the book must walk the whole chain rather than trying the most
+     * specific name and dropping to roles when the figure did not use that name.
+     *
+     * Sam declared "outer leaders pass on the right of all the dancers in their starting mini wheel" and
+     * watched his leaders pass their own partners on the LEFT: the pair resolved as `partner0`, nothing
+     * was declared under that name, and `wheel0` — which covers her — was never consulted. A figure that
+     * states the wheel-wide rule and not the individual one must still be obeyed. */
+    {
+      const chain = T.buildSideBook({ passes: { wheel0: 'right', partner1: 'left' }, roleOf: id => id[0],
+        relation: () => ['partner0', 'wheel0'] });
+      const e1 = chain.lookup('L1', 'F1');
+      nChecks++; check(e1.side === 'right' && e1.source === 'declared',
+        `§47d a pair inside a declared wheel-wide rule resolved as ${e1.side}/${e1.source} — the general ` +
+        'rule was skipped because the specific relation was not the one named');
+      // …and the specific statement still WINS where the figure makes one.
+      const both = T.buildSideBook({ passes: { partner0: 'left', wheel0: 'right' }, roleOf: id => id[0],
+        relation: () => ['partner0', 'wheel0'] });
+      nChecks++; check(both.lookup('L1', 'F1').key === 'partner0',
+        "§47d the wheel-wide rule beat the figure's own statement about one dancer — chain order is wrong");
+      // …and roles remain the last resort, not a competitor to a declared relation.
+      const roled = T.buildSideBook({ passes: { wheel0: 'right', 'L,F': 'left' }, roleOf: id => id[0],
+        relation: () => ['partner0', 'wheel0'] });
+      nChecks++; check(roled.lookup('L1', 'F1').key === 'wheel0',
+        '§47d a role key beat a declared relation — relations must be tried first, whole chain');
+    }
+
+    /* 47e: A PAIR CONTESTED ONLY BY THE EVASIONS IS STILL A QUESTION. `DEFAULTED_PASSES` read the
+     * INTENDED paths, so a pair nobody named whose corridor is breached purely by everyone else's
+     * evasions was resolved by the engine's default and never surfaced — the one case the authoring
+     * loop most needs to hear about, since it is invisible in the figure's own declarations. */
+    {
+      T.clearFaults(); T.DEFAULTED_PASSES.length = 0;
+      /* A and B walk parallel, 36px apart — clear of each other on their intents, so the old
+       * intents-only sweep never looked at them. C stands below A's lane; A's declared side against C
+       * carries him upward, into B. The A/B corridor is breached purely by that evasion, and nobody ever
+       * said which side those two pass on. */
+      const ids = ['A', 'B', 'C'];
+      T.planCrossings({ ids,
+        base: (id, t) => id === 'A' ? { x: 100 + 300 * t, y: 310 }
+                       : id === 'B' ? { x: 100 + 300 * t, y: 274 }
+                                    : { x: 250, y: 344 },
+        yields: id => id === 'A',
+        roleOf: id => id === 'B' ? 'F' : 'L', passes: { 'L,L': 'left' }, relation: () => null,
+        group: id => id, groups: ids, clearance: 35, engage: 45 });
+      const hit = T.DEFAULTED_PASSES.some(e => (e.a === 'A' && e.b === 'B') || (e.a === 'B' && e.b === 'A'));
+      nChecks++; check(hit,
+        '§47e a pair driven into contention BY the evasions, with no declared side, was resolved from ' +
+        'the default and never reported — the authoring loop cannot ask about what it cannot see');
+      T.clearFaults(); T.DEFAULTED_PASSES.length = 0;
+    }
   }
 
   /* 48: THE SOLVER CANNOT SPIRAL, AND SAYS SO WHEN IT CANNOT WIN.

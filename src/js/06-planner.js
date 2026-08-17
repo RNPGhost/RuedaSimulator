@@ -114,7 +114,11 @@ function planCrossings(o){
     // "The movement named THIS PAIR" — by relation, which is what makes a couple's own handedness
     // checkable. Asked of the book so there is one definition of 'named'.
     const bk = BOOK.lookup(a, b);
-    const named = bk.source === 'declared' && o.relation && bk.key === o.relation(a, b);
+    /* "The movement named THIS PAIR" — by any relation in their chain, since the book may legitimately
+     * have answered on the wheel-wide rule rather than the individual one. */
+    const relsHere = o.relation ? o.relation(a, b) : null;
+    const relList = relsHere == null ? [] : (Array.isArray(relsHere) ? relsHere : [relsHere]);
+    const named = bk.source === 'declared' && relList.some(r => bk.key === r || bk.key.startsWith(r + ':'));
     if (!named && o.bonded && o.bonded(a, b)) return;
     /* Judge a side only where there was a COLLISION to resolve. A declared side exists to settle which
      * way two dancers get out of each other's way; where their intended paths already hold the corridor
@@ -755,6 +759,27 @@ function planCrossings(o){
      * would have been held to had anyone been looking. */
     if (now < was - 0.5 && now < CLEAR){ blind++; if (!blindWorst) blindWorst = { a, b, was: +was.toFixed(2), now: +now.toFixed(2) }; }
   });
+  /* A PAIR THAT ONLY BECOMES CONTESTED BECAUSE OF THE EVASIONS IS STILL A QUESTION. `DEFAULTED_PASSES`
+   * was filled from the INTENDED paths only, so a pair the figure never named and whose corridor is
+   * breached solely by everyone else's evasions was resolved by the engine's default and never reported.
+   * That is precisely the case the authoring loop must not swallow — Sam: "if there are ANY other
+   * collisions which are not defined by this definition, DO NOT GUESS … always ask me." So the FINAL
+   * paths are swept too, and any contested pair whose side came from nowhere is added to the list. */
+  if (!NAT_NOEVADE && checkPairs.length){
+    const already = new Set(DEFAULTED_PASSES.map(e => PAIRKEY0(e.a, e.b)));
+    const pcShip = pairClosestOn(AT_SHIP);
+    checkPairs.forEach(pr => {
+      const key = PAIRKEY0(pr[0], pr[1]);
+      if (already.has(key)) return;
+      const bk = BOOK.lookup(pr[0], pr[1]);
+      if (bk.source !== 'default') return;
+      const r = pcShip(pr[0], pr[1]);
+      if (r.gap > CLEAR) return;
+      already.add(key);
+      DEFAULTED_PASSES.push({ a: pr[0], b: pr[1], t: r.tc, gap: +r.gap.toFixed(2),
+        key: bk.key, tag: o.tag || null, viaEvasion: true });
+    });
+  }
   // §52's orphan measure rides on the solve result — see the note at its computation in solveElastic.
   PLAN_LOG.push({ orphanDev: solved.orphanDev || 0, orphanWorst: solved.orphanWorst || 0,
     n: o.ids.length, checked: checkPairs.length, excluded: (o.exclude || []).length,
@@ -980,19 +1005,18 @@ function playTravel(ds, N, o){
      *
      * `partner0` and `partner1` still win where they apply: they name ONE dancer inside a wheel of four,
      * so they are the more specific thing to have said. A formation with no sub-wheels answers neither. */
-    relation: (a, b) => (startStation[a] === startStation[b] ? 'partner0'
-                       : newPartner[a] === b ? 'partner1'
-                       /* The dancer LEAVING the slot you are arriving at, which is a different person from
-                        * the partner you are arriving to and a different encounter: you meet him at the
-                        * very end of your journey and the very start of his. Sam, on Dame Eñe: "that
-                        * crossing is late in the outer leader's path and early in the inner leader's path,
-                        * so they should not actually collide … for completeness, they will pass on the
-                        * left if it matters." Named so the figure can say it whether or not it bites. */
-                       : startStation[b] === newSt[a] ? 'vacating'
-                       : wheelOfStation(startStation[a]) !== null
-                         && wheelOfStation(startStation[a]) === wheelOfStation(startStation[b]) ? 'wheel0'
-                       : wheelOfStation(newSt[a]) !== null
-                         && wheelOfStation(newSt[a]) === wheelOfStation(startStation[b]) ? 'wheel1' : null),
+    /* EVERY relation that holds, most specific first — the book walks the chain (see buildSideBook).
+     * `partner0` sits inside `wheel0`, and `partner1` and `vacating` inside `wheel1`, so a figure that
+     * states only the wheel-wide rule still governs the individuals inside it. */
+    relation: (a, b) => [
+      startStation[a] === startStation[b] ? 'partner0' : null,
+      newPartner[a] === b ? 'partner1' : null,
+      startStation[b] === newSt[a] ? 'vacating' : null,
+      (wheelOfStation(startStation[a]) !== null
+        && wheelOfStation(startStation[a]) === wheelOfStation(startStation[b])) ? 'wheel0' : null,
+      (wheelOfStation(newSt[a]) !== null
+        && wheelOfStation(newSt[a]) === wheelOfStation(startStation[b])) ? 'wheel1' : null,
+    ].filter(Boolean),
     bonded: (a, b) => startStation[a] === startStation[b] || newPartner[a] === b,
     group: o.group, groups: o.groups, unit: o.unit, yields: o.yields,
     clearance: o.clearance, engage: o.engage, forceShare: o.forceShare });
