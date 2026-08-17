@@ -1734,6 +1734,7 @@ const PLAN_LOG = [];
  * ------------------------------------------------------------------ */
 
 function planCrossings(o){
+  const __t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   /* ONE BOOK PER PLAN, built before anything reads a side, and the only thing that answers "which side".
    * `sideVec`, which aims the vias, is now the ONLY thing that asks it — `sideFor` went with the episode
    * machinery below. One book, one reader. They used to be two, and they could disagree, because one
@@ -2172,7 +2173,11 @@ function planCrossings(o){
     if (now < was - 0.5 && now < CLEAR){ blind++; if (!blindWorst) blindWorst = { a, b, was: +was.toFixed(2), now: +now.toFixed(2) }; }
   });
   PLAN_LOG.push({ n: o.ids.length, checked: checkPairs.length, excluded: (o.exclude || []).length,
-    blind, blindWorst, units: o.ids.map(id => unit(id)) });
+    blind, blindWorst, units: o.ids.map(id => unit(id)),
+    // Wall-clock for THIS plan, so slowness is a measured, attributable number rather than a feel.
+    // PATHING_V2 Phase A: the baseline is committed; the rebuild is judged against it.
+    ms: +(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - __t0).toFixed(2),
+    iters: solved.iterations, tag: o.tag || null });
   // Did each pass happen on the side the movement asked for? Checked on the FINAL paths, not the intended
   // ones: easing two dancers apart can legitimately carry a pass onto the other shoulder when they start
   // close enough — measured, two dancers 6px apart end up correctly separated on the declared side — so

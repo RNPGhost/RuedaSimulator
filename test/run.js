@@ -61,5 +61,42 @@ if (fails.length === 0) {
   if (fails.length > 30) console.log(`   … and ${fails.length - 30} more`);
 }
 
+/* --- planner performance (PATHING_V2 Phase A) ---
+ * Every plan the suite drove self-timed into PLAN_LOG. The baseline is a committed file, so a rebuild is
+ * judged against a number rather than an impression — and a regression is a printed diff, not a feel. */
+{
+  const T = require('./harness').load();
+  // The invariants/golden runs above used their own sandboxes; re-drive a representative sweep here so
+  // the timing sample is deterministic and self-contained.
+  T.clearFaults();
+  for (const key of T.keys().movements) for (const from of ['casino', 'exhibela', 'dile']){
+    if (!T.validFrom(key, from)) continue;
+    for (const n of [4, 8]) { try { T.captureMovement(key, from, n, 0); } catch (e) {} }
+  }
+  for (const [ck, c] of Object.entries(T.CALLS)){
+    if (!c.from || !c.from.includes('linea') || !c.seq) continue;
+    for (const n of [4, 8]){ let first = true;
+      for (const mv of c.seq){ try { first ? T.captureLineaMovement(mv, n, 0) : T.fireHere(mv); } catch (e) { break; } first = false; } }
+  }
+  const log = T.PLAN_LOG.filter(e => e.ms !== undefined);
+  const total = log.reduce((s2, e) => s2 + e.ms, 0);
+  const solves = log.filter(e => e.iters > 0);
+  const worst = log.slice().sort((a, b) => b.ms - a.ms)[0];
+  const line = `${log.length} plans, ${total.toFixed(0)}ms total, worst ${worst ? worst.ms.toFixed(1) : '-'}ms` +
+    ` (${solves.length} active solves)`;
+  const baseFile2 = path.join(__dirname, 'golden', 'perf-baseline.json');
+  if (!fs.existsSync(baseFile2)){
+    fs.writeFileSync(baseFile2, JSON.stringify({ plans: log.length, totalMs: +total.toFixed(0),
+      worstMs: worst ? +worst.ms.toFixed(1) : 0, note: 'v1 via solver baseline' }, null, 2));
+    console.log(`PERF       BASELINED — ${line}`);
+  } else {
+    const base2 = JSON.parse(fs.readFileSync(baseFile2, 'utf8'));
+    // Machines vary; the gate is a generous multiple of the committed baseline, not an exact figure.
+    const okPerf = total <= base2.totalMs * 2.0;
+    if (!okPerf) ok = false;
+    console.log(`PERF       ${okPerf ? 'OK  ' : 'FAIL'} — ${line} (baseline ${base2.totalMs}ms)`);
+  }
+}
+
 console.log(ok ? '\n✅ ALL GREEN' : '\n❌ REGRESSION');
 process.exit(ok ? 0 : 1);
