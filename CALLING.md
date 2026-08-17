@@ -314,7 +314,7 @@ which is closer to changing formation than to an ordinary figure.
   from). `projectedEndPos()` walks the remaining queue plus the default that follows it to work that out.
   Offering anything else invites a click that silently does nothing.
 
-The side panel is **one surface with three tabs** — Calls, Movements, Call log — plus a **hide
+The side panel is **one surface with three tabs** — Calls, Movements, Instructions — plus a **hide
 unavailable** checkbox (default off, so unavailable entries grey out rather than vanish). Hiding is
 applied per button *and* per group, so an empty group takes its heading with it. Buttons live in a fixed
 **grid**, not a wrapping flex row: a hover or a state change can alter a button's ink but never its
@@ -363,10 +363,23 @@ setting you choose once, not something you reach for between calls. Hiding it do
 mode — in Step the decision prompt still appears on the stage, so the row can be put away and Step still
 works.
 
-Two things are gone outright. The **beat pips** under the stage said exactly what the big number in the
-stage's corner already says. The **Undo** button was the least earned thing in the toolbar, which is the
-scarcest row on a phone; the machinery stays (every movement still records its state) so restoring the
-control is one line of wiring, and the Position picker covers the case it was mostly used for.
+Several things are gone outright, all of them height on a screen that has none to spare:
+
+- The **beat pips** under the stage said exactly what the number in the stage's corner already says.
+  That number is no longer 72px either — it is a count a dancer glances at, not a headline.
+- The **Undo** button was the least earned thing in the toolbar; the machinery stays (every movement
+  still records its state) so restoring the control is one line of wiring, and the Position picker
+  covers the case it was mostly used for.
+- The **page header** — title and strapline — cost a band on every screen to say what the browser tab
+  already says. The document `<title>` still carries the name.
+- The **Call log** gave its tab to the **Instructions**. What the log showed is on the stage while it
+  matters (the now-playing line and the queue); what a newcomer needs instead is to be told what the
+  buttons do. `logLine` still runs and still numbers the calls, guarded against having no element to
+  write into, so giving the log a home again is markup rather than logic.
+
+The stage's two overlays — the now-playing/queue corner and the beat count — are `position:absolute`,
+so they are painted over the dancers and take no space from them. Verified rather than assumed: a
+12-deep queue 346px tall in a 306px stage leaves the SVG's size and scale byte-identical.
 
 ## Decision points, queue, and the two modes
 
@@ -549,7 +562,7 @@ Beat counts so far:
 ## Measure placement (start beats)
 
 As well as how long a movement lasts, the engine tracks **where in the 8-beat measure we are**
-— a beat cursor, shown large over the stage (with an 8-pip strip). It **free-runs like a
+— a beat cursor, shown in the stage's top-right corner. It **free-runs like a
 metronome**: the beat keeps advancing in real time even when idle, and movements sync to it. So
 a call issued mid-beat waits (holding on the spot) until its start beat comes around. (The base
 tempo is 400 ms/beat at the 1× slider position; the slider scales it 0.2×…2×.)
@@ -572,6 +585,15 @@ real timed hold in `playFrames`, and the beat cursor is rounded to whole beats e
 
 The **Stop beat / Start beat** button freezes or restarts the metronome; restarting resets the
 count to beat 1 (useful for lining the simulator up with a track).
+
+**With the beat stopped there is no grid, so nothing waits for one.** Snapping exists to land a
+figure on the musical count; with the metronome off there is no count to land on, and the lead-in
+becomes a hold of up to seven beats — 2.8s at the base tempo — with nothing behind it. Measured
+before this rule existed, the lead-in was *identical* whether the beat was running or not, which
+made **Stop beat** far less useful than it looks: it is exactly the control you reach for when you
+want to step through a figure and see it now. So `proceed()` clears the snap when `beatRunning` is
+false, and a call pressed with the beat stopped is danced immediately. The tests are unaffected —
+`beatRunning` starts true and the harness never toggles it.
 
 ## Data shapes (in `index.html`)
 

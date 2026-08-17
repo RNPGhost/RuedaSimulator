@@ -3,6 +3,61 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v146 — the beat stops meaning wait, and the log makes way for instructions
+
+**The title is gone.** Header, strapline and all: a band of height on every screen to say what the
+browser tab already says. With it and v145's work together, the stage on a 375×812 phone has gone from
+**256px (32% of the screen) to 345px (42%)**, and the toolbar from 154px to 104px.
+
+**The beat count is 22px, not 72px.** It is a count a dancer glances at, not a headline, and it was
+sized for a room on a stage that has to share its space with the wheel.
+
+**The overlays never touched the dancers, and that is now on the record.** Sam: "the size of the dancers
+dancing should also not be impacted by the call queue or the current call writing in the corner, the
+dancers should just render behind that text." They already do — both the corner and the beat count are
+`position:absolute`, and both come after the `<svg>` in the DOM, so they paint over it. Measured rather
+than asserted: stuffing the corner with a 12-deep queue **346px tall inside a 306px stage** leaves the
+stage, the SVG and its scale byte-identical. Nothing to change. What changed under it is that v145's
+fitted window means the wheel now reaches where that text sits, so it reads as an overlap where before
+there was empty margin to hide in.
+
+### Stopping the beat now means "dance it now"
+
+Sam's instructions were to say "that if you pause the beat, then the calls will be executed
+immediately". They were not, so writing that down would have documented a behaviour the app did not
+have. Measured first — the lead-in hold a call asks for, at every position of the beat cursor:
+
+| beat cursor | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| Dame, beat running | 6 | 5 | 4 | 3 | 2 | 1 | 0 | 7 |
+| Dame, beat **stopped** (before) | 6 | 5 | 4 | 3 | 2 | 1 | 0 | 7 |
+| Dame, beat **stopped** (now) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Identical, in other words: stopping the metronome froze the counter but changed nothing about the wait,
+so a call could still hold on the spot for seven beats — 2.8s at base tempo — against a count that was
+not running. Snapping exists so a figure lands on the music (a Dame from Casino starts on 7 so it ends
+on 8 and the Dile Que No behind it lands on 1); with no music there is nothing to land on. `proceed()`
+clears the snap when `beatRunning` is false, which makes **Stop beat** the control it looks like — the
+one you reach for to step through a figure and see it now. The suite is untouched: `beatRunning` starts
+true and the harness never toggles it.
+
+While in there, the default-Dile-Que-No test was written `(nk === 'dile' || nk === 'dile' || nk ===
+'dile')` — the same disjunct three times. It is now `nk === positionDefault(posState)`, which is what it
+was standing in for: with `!fromQueue`, `nk` came from `positionDefault` by construction.
+
+### An Instructions tab, where the Call log was
+
+The log recorded what you had called; the stage's corner already shows that while it matters, and what a
+newcomer needs instead is to be told what any of these buttons do. So the tab now explains: that a Call
+joins the queue and that calls stack up behind one another, that stopping the beat dances them
+immediately, that a call expands into movements which the Movements tab can fire one at a time, what the
+Couples / Formation / Position / Reset controls at the top do, and that Step mode exists behind the Mode
+button and is still under development.
+
+`logLine` survives its panel the way Undo survived its button — still running, still numbering the
+calls, guarded against having no element to write into — so giving the log a home again is markup rather
+than logic.
+
 ## v145 — the window is fitted to the wheel, and the phone gets its height back
 
 Sam, on small screens: "I want to remove a lot of the things taking up vertical room." Six changes, all

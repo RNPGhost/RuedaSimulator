@@ -23,7 +23,7 @@ scripts, no network calls, no storage APIs, so what runs locally is what runs on
 - A wheel of **4, 6, or 8 couples**. Dancer spacing is fixed; the wheel resizes to fit, and
   the stage's window is sized to the formation so the wheel fills it at any couple count.
 - Leaders (orange) and followers (teal) shown as dots with a facing arrow and their
-  couple number. A **call log** (its own tab in the side panel) records what was called.
+  couple number. The side panel has three tabs: **Calls**, **Movements** and **Instructions**.
 - A **Position** picker beside the Formation picker both reports where the wheel is and puts
   it there — pick Exhibela and the dancers stand in Exhibela, keeping their current partners.
   Calls are gated so you can only perform ones valid from where the dancers actually are.
