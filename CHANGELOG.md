@@ -3,6 +3,38 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v150 — one order for both panels, and a button that cannot be stranded
+
+**Both panels are grouped in the same order**, and it is now literally the same list: `GROUP_ORDER`,
+read by `MOVE_GROUPS` and `CALL_GROUPS` alike, running **Interruptions, Standard, Progressions,
+Formation & frame** — most reached-for to least. An interruption is shouted over something already
+running; the standard figures are the body of the dance; a progression moves people between couples; a
+formation change resets the floor plan.
+
+`interrupt` is in the movements list although nothing lands there: a movement is a figure, and only a
+*call* can be a `modifier`. It costs nothing to state — `.grp.empty` takes an empty group's heading with
+it, verified — and the day a movement does become an interruption it appears in the right place rather
+than at the bottom under "Standard".
+
+**The Mode button moves between Reset and BPM.**
+
+**The tempo picker and the metronome button became one flex item** (`.tempo`, `flex-wrap:nowrap`). Sam:
+"the pause/play button should always be on the same line as the BPM dropdown, even if it means putting
+the BPM on a new line." Exactly the right instinct — a wrap falling between them would leave a ⏸
+stranded on a line by itself with nothing to say what it governs. Squeezed through **41 container widths
+from 200px to 1000px**: never separated, never overflowing.
+
+**BPM is now 50 to 250 in twenty-fives.** The choices are generated from `BPM_MIN`/`BPM_MAX`/`BPM_STEP`
+rather than written out, and `BASE_BPM` is forced onto the list if the arithmetic ever stops landing on
+it — a picker showing a tempo that is not exactly 1× would be a silent disagreement between what it says
+and what the engine does. All nine options verified to produce exactly the milliseconds-per-beat they
+claim, and 150 is still the default at exactly 1×, so the golden's beat timings do not move.
+
+Also corrected a documentation drift found on the way: `CALLING.md` still described the Movements panel
+as splitting "Progressions that flip the phase" from "Progressions on the same phase". v144 merged those
+into one group, for the good reason that whether a figure flips the phase depends on where it is danced
+from — and the doc never caught up.
+
 ## v149 — tempo in the unit a caller thinks in
 
 **The metronome button is a glyph**, ⏸ or ▶, with no word beside it. The word was the widest thing in

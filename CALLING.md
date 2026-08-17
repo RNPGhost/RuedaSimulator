@@ -294,15 +294,27 @@ therefore lands in the right group without anyone maintaining a list, and the tw
 
 | Movements | rule |
 |---|---|
-| Formation & frame | changes formation (`play.formation`), or is a relabel (Afuera / Adentro) |
-| Progressions that flip the phase | `progresses` and `flipsPhase` |
-| Progressions on the same phase | `progresses`, no flip |
+| Interruptions | nothing, today — only a *call* can be a `modifier`. Stated so the two panels share an order; an empty group takes its heading with it |
 | Standard | everything else |
+| Progressions | `progresses` |
+| Formation & frame | changes formation (`play.formation`), or is a relabel (Afuera / Adentro) |
 
 Calls take the group of the strongest thing in their sequence: formation, then progression, then
 standard; a `modifier` is an Interruption. Afuera and Adentro sit with **Formation & frame** (agreed with
 Sam): they keep the same partner in the same slot, but every figure afterwards is danced point-reflected,
 which is closer to changing formation than to an ordinary figure.
+
+There is **one Progressions group, not two**. It used to split "that flip the phase" from "on the same
+phase" — a real distinction in the arithmetic and a false one on a button, because whether a figure flips
+the phase can depend on where it is danced *from* (`dame.flipsPhase` is `virtualPos(from) !== 'dile'`). A
+heading has no from-position, so it was filing a movement under one of two answers to a question that
+has several. The distinction lives in `flipsPhase`, which the engine asks per call.
+
+**The display order is shared** — one `GROUP_ORDER`, read by both panels — and runs from what you reach
+for most to what you reach for least: **Interruptions, Standard, Progressions, Formation & frame**. An
+interruption is shouted over something already running; the standard figures are the body of the dance;
+a progression moves people between couples; a formation change resets the floor plan. A reader who has
+learnt one panel's order has learnt the other's.
 
 **Availability.**
 
@@ -587,11 +599,17 @@ metronome**: the beat keeps advancing in real time even when idle, and movements
 a call issued mid-beat waits (holding on the spot) until its start beat comes around. (The base
 tempo is 400 ms/beat, which *is* 150bpm — see below.)
 
-**Tempo is picked in BPM**, from 140 to 230 in tens: real salsa tempos, rather than a slider offering a
+**Tempo is picked in BPM**, from 50 to 250 in twenty-fives: real tempos, rather than a slider offering a
 continuum of speeds nobody dances at and no way to say which one you were on. `BASE_BPM` is derived
 from `BASE_MS_PER_BEAT` (60000/400 = 150) rather than written down beside it, so the two cannot drift
-and the base tempo is on the list — and is exactly 1× — by construction. The engine still divides by
-`speedMul`, which is simply `bpm / BASE_BPM`.
+and the base tempo is on the list — and is exactly 1× — by construction. The choices are generated from
+`BPM_MIN`/`BPM_MAX`/`BPM_STEP`, and `BASE_BPM` is forced onto the list if the arithmetic ever stops
+landing on it: a picker showing a tempo that is not exactly 1× would be a silent disagreement between
+what it says and what the engine does. The engine still divides by `speedMul`, which is `bpm/BASE_BPM`.
+
+The tempo picker and the metronome button are **one flex item** (`.tempo`, `flex-wrap:nowrap`). The
+toolbar wraps, and a wrap falling between them would strand a ⏸ on a line of its own with nothing to say
+what it governs. Grouped, BPM goes to the next line and takes its button with it.
 
 - **Almost all calls start their first movement on beat 1.** After a call the dancers finish
   their current movement (or keep holding on the spot) until the next 1, then begin.

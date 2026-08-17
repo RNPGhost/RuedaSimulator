@@ -59,6 +59,7 @@
     .toolbar select{padding:5px 7px;border-radius:8px}
     .toolbar label.ctl{gap:4px}
     #beatToggle{width:40px}
+    .tempo{gap:7px}
   }
   /* Short landscape screens (e.g. phone held sideways): trim vertical chrome so everything still fits. */
   @media (orientation:landscape) and (max-height:560px){
@@ -67,10 +68,14 @@
     .side{flex-basis:340px}
   }
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  /* One flex item holding the tempo and its transport, so a wrap can never fall between them and strand
+     the ⏸ on a line by itself. `flex-wrap:nowrap` says that outright rather than relying on the two
+     happening to fit. */
+  .tempo{display:flex;flex-wrap:nowrap;align-items:center;gap:8px}
   /* A fixed cell, so swapping ⏸ for ▶ cannot change the button's width and shuffle the row — the same
      reason the call buttons live in a grid rather than a wrapping flex row. `width`, not `min-width`:
      the two glyphs are not the same width (⏸ measured 1.6px wider), so a minimum still let it twitch. */
-  #beatToggle{width:48px;padding-left:0;padding-right:0;text-align:center;line-height:1}
+  #beatToggle{width:48px;padding-left:0;padding-right:0;text-align:center;line-height:1;flex:0 0 auto}
   .calls{display:flex;flex-wrap:wrap;gap:8px}
   /* Buttons live in a fixed GRID, not a wrapping flex row: a hover or a state change can alter a
      button's ink but never its cell, so nothing reflows and a button can't slide out from under the
@@ -193,17 +198,24 @@
         <select id="position" autocomplete="off"></select>
       </label>
       <button id="reset" class="ghost">Reset</button>
-      <!-- Tempo in the unit a caller actually thinks in. A slider offered a continuum of speeds nobody
-           dances at and no way to say which one you were on; these are real salsa tempos, and the
-           options are generated from BASE_BPM so the base tempo is on the list by construction. -->
-      <label class="ctl">BPM
-        <select id="bpm" autocomplete="off"></select>
-      </label>
-      <!-- Glyph only. The word was the widest thing in the row and said what the icon already says. -->
-      <button id="beatToggle" class="ghost" title="Stop the beat" aria-label="Stop the beat">⏸</button>
       <!-- Mode is a practice setting, not a per-call control: you choose Live or Step once and then
            leave it. So the row is off by default and this brings it back when you want it. -->
       <button id="modeToggle" class="ghost">Mode</button>
+      <!-- THE TEMPO AND ITS TRANSPORT ARE ONE CONTROL, so they are one flex item. The toolbar wraps,
+           and a wrap that fell between these two would leave a ⏸ stranded on a line of its own with
+           nothing to say what it governs. Grouped, they wrap together — BPM goes to the next line and
+           takes its button with it.
+
+           Tempo in the unit a caller actually thinks in: a slider offered a continuum of speeds nobody
+           dances at and no way to say which one you were on. These are real salsa tempos, generated
+           from the range below so the base tempo is on the list by construction. -->
+      <div class="tempo">
+        <label class="ctl">BPM
+          <select id="bpm" autocomplete="off"></select>
+        </label>
+        <!-- Glyph only. The word was the widest thing in the row and said what the icon already says. -->
+        <button id="beatToggle" class="ghost" title="Stop the beat" aria-label="Stop the beat">⏸</button>
+      </div>
     </div>
 
     <div class="stage">
@@ -940,7 +952,15 @@ const BASE_MS_PER_BEAT = 400; // base musical tempo; a movement lasts (its beats
  * real salsa tempos and `speedMul` (which is what the engine actually divides by) falls out as
  * bpm/BASE_BPM, making the base tempo 1× by construction. */
 const BASE_BPM = Math.round(60000 / BASE_MS_PER_BEAT);      // 150
-const BPM_CHOICES = [140, 150, 160, 170, 180, 190, 200, 210, 220, 230];
+/* The tempos on offer, generated from the range rather than written out, so widening it is one number.
+ * BASE_BPM is forced onto the list if the arithmetic ever misses it: the picker showing a tempo that
+ * is not exactly 1× would be a silent disagreement between what it says and what the engine does. */
+const BPM_MIN = 50, BPM_MAX = 250, BPM_STEP = 25;
+const BPM_CHOICES = (() => {
+  const out = [];
+  for (let b = BPM_MIN; b <= BPM_MAX; b += BPM_STEP) out.push(b);
+  return out.includes(BASE_BPM) ? out : out.concat(BASE_BPM).sort((a, b) => a - b);
+})();
 let beatCursor = 0;           // total beats danced so far; (beatCursor % 8) is the current beat of the measure
 let justIssued = false;       // the next movement is the first of a freshly-issued call → snap to its start beat
 let beatRunning = true;       // is the metronome ticking?
@@ -4178,17 +4198,23 @@ function logLine(move, note, undo=false){
  * it was filing a movement under one of two answers to a question that has several. The distinction is
  * still there where it belongs — in `flipsPhase`, which the engine asks per call — and off the label,
  * which cannot state it honestly. */
-const MOVE_GROUPS = [
-  ['formation',  'Formation & frame'],
-  ['progressive','Progressions'],
-  ['standard',   'Standard'],
-];
-const CALL_GROUPS = [
-  ['formation',  'Formation & frame'],
-  ['progressive','Progressions'],
+/* ORDER IS THE SAME IN BOTH PANELS, and it runs from what you reach for most to what you reach for
+ * least: an interruption is shouted over something already running, the standard figures are the body
+ * of the dance, a progression moves people between couples, and a formation change resets the floor
+ * plan. The two lists are stated separately because they are read by two panels, but they say the same
+ * thing in the same order — a reader who has learnt one has learnt the other.
+ *
+ * `interrupt` is in the movements list although nothing lands there today: a movement is a figure, and
+ * only a CALL can be a modifier. An empty group takes its heading with it (`.grp.empty`), so it costs
+ * nothing to state, and the day a movement does become an interruption it appears in the right place. */
+const GROUP_ORDER = [
   ['interrupt',  'Interruptions'],
   ['standard',   'Standard'],
+  ['progressive','Progressions'],
+  ['formation',  'Formation & frame'],
 ];
+const MOVE_GROUPS = GROUP_ORDER;
+const CALL_GROUPS = GROUP_ORDER;
 function moveGroup(key){
   const m = MOVEMENTS[key]; if (!m) return 'standard';
   // A formation change replaces the slot set; a relabel (Afuera/Adentro) turns the whole wheel
