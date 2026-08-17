@@ -3,6 +3,51 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v151 — two rows, and three overrides that were never running
+
+Sam: "if we put Couples after Position in the ordering, can we fit all the buttons at the top into 2
+lines?" Measured first, and the answer was **no — by 1.3 pixels**. Which turned out to be the
+interesting part.
+
+The reorder alone changed nothing: three rows at every width from 300px to 414px. Simulating it by
+restyling the container gave contradictory answers twice, so the measurement was redone properly —
+each control's intrinsic width taken once, then the wrapping computed directly. That gave a stable
+number: with Couples after Position, the second line needs **356.3px** and had **355px**.
+
+The missing pixels were in a rule that was never running. **The `@media` blocks sat in the middle of
+the stylesheet, above rules they override**, and CSS breaks specificity ties on source order — so at
+equal specificity the later rule won and three portrait overrides were dead letters that read as though
+they worked:
+
+| override | asks for | actually got |
+|---|---|---|
+| `.toolbar` gap | `5px 7px` | 8px |
+| `.tempo` gap | `7px` | 8px |
+| `.modebar` margin | `2px 0` | `6px 0 2px` |
+
+The toolbar gap is the one that mattered: three gaps of one pixel each is precisely the 1.3px shortfall.
+Moving both blocks to the end of the sheet — where overrides belong — makes all three live, and the
+row fits.
+
+One further pixel-lever was worth having: taking 2px of *horizontal* padding off the toolbar selects
+(the only term that affects wrapping) is worth 8px a line, which is the difference between fitting on a
+375px phone and fitting on a 360px one. Horizontal only, so the selects stay the same height as the
+buttons beside them — measured at 29.2px against 29.6px.
+
+A lever that was **not** worth having, recorded so it is not tried again: shortening the Formation
+option labels. The select is sized by its widest option, so trimming "Rueda (circle)" leaves "Línea
+Moderna" holding the width — and once Formation shrinks, the second row becomes the binding constraint
+anyway. Measured gain: 365px → 364px. One pixel.
+
+| on a 375px phone | before | after |
+|---|---|---|
+| toolbar | 104px, 3 rows | **64px, 2 rows** |
+| stage | 345px (42%) | **385px (47%)** |
+| two rows from | — | **357px of viewport** |
+
+For the record of where this ends up: the stage began this branch at 256px on the same phone, 32% of
+the screen. It is now 385px and 47%.
+
 ## v150 — one order for both panels, and a button that cannot be stranded
 
 **Both panels are grouped in the same order**, and it is now literally the same list: `GROUP_ORDER`,

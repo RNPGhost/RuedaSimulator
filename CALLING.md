@@ -338,6 +338,17 @@ Only the **tab row is pinned**; everything below it scrolls. The lists used to s
 which is why on a short screen the last few calls were below the bottom of the panel with no way to
 reach them.
 
+**The toolbar reads Formation, Position, Couples, Reset, Mode, BPM+⏸** — which floor plan, where on it,
+how many of you, then the controls. That ordering is also the one that wraps best: the two wide pickers
+pair off on the first line and the four narrow controls fit on the second, so on a phone the row is two
+lines rather than three (64px rather than 104px, from 357px of viewport upwards).
+
+**Media queries live at the END of the stylesheet.** They used to sit in the middle, above rules they
+were meant to override — and CSS breaks specificity ties on source order, so three of them were dead
+letters that read as though they worked: the portrait `.toolbar` gap, the portrait `.tempo` gap, and the
+portrait `.modebar` margin. The toolbar gap was the one that mattered; three gaps of one pixel each was
+exactly what stood between the controls and fitting on two rows.
+
 **The toolbar is a view of engine state, and the engine wins whenever they disagree.** `updateUI` syncs
 Formation, Couples and Position from the engine rather than trusting what the controls say. That matters
 for two quite different reasons: a movement can change the formation under the picker, and a *browser*

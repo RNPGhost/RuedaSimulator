@@ -42,31 +42,6 @@
   #unavail{padding:4px 6px;border-radius:8px;font-size:12px}
   .calls-pin{flex:0 0 auto;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
   .side-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
-  @media (orientation:portrait){
-    #app{flex-direction:column}
-    .side{flex:0 0 auto;max-height:42vh;border-left:none;border-top:1px solid var(--line)}
-    .calls-pin{border-bottom:1px solid var(--line)}
-    /* Trim vertical chrome so the wheel keeps as much height as possible. */
-    .stagewrap{padding:8px 10px;gap:6px}
-    .toolbar{gap:5px 7px}
-    .toolbar label.ctl,.toolbar button,.toolbar select{font-size:12px}
-    .toolbar button{padding:6px 10px}
-    .modebar{margin:2px 0}
-    /* THE TOOLBAR IS THE BIGGEST CONSUMER OF HEIGHT ON A PHONE. At 375px it wrapped to five rows — 154px,
-       well over half of what the wheel itself got — because each control is a flex item that will not
-       split. Nothing here removes information: the controls simply stop reserving room they were not
-       using. The slider does not need 120px to be draggable, and the selects were padded for a mouse. */
-    .toolbar select{padding:5px 7px;border-radius:8px}
-    .toolbar label.ctl{gap:4px}
-    #beatToggle{width:40px}
-    .tempo{gap:7px}
-  }
-  /* Short landscape screens (e.g. phone held sideways): trim vertical chrome so everything still fits. */
-  @media (orientation:landscape) and (max-height:560px){
-    .stagewrap{padding:8px 10px;gap:6px}
-    .toolbar button{padding:6px 10px}
-    .side{flex-basis:340px}
-  }
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   /* One flex item holding the tempo and its transport, so a wrap can never fall between them and strand
      the ⏸ on a line by itself. `flex-wrap:nowrap` says that outright rather than relying on the two
@@ -171,6 +146,43 @@
   /* The row of light-up beat pips that used to sit under the stage is gone. It said exactly what the
      big number in the stage's top-right corner already says, and on a short screen the wheel needs
      that band of height far more than the count needs saying twice. */
+
+  /* ================= SCREEN OVERRIDES — LAST, so that they win =================
+     These blocks used to sit in the middle of the sheet, above the rules they override. CSS breaks
+     ties on source order, so at equal specificity the LATER rule wins and three of these were dead
+     letters: the portrait `.toolbar` gap (8px, not the 7 it asks for), the portrait `.tempo` gap, and
+     the portrait `.modebar` margin. All three read as though they worked. The toolbar gap was the one
+     that mattered — three gaps of one pixel each is exactly what stood between the controls and
+     fitting on two rows at 375px. Overrides belong at the end of a stylesheet; here they are. */
+  @media (orientation:portrait){
+    #app{flex-direction:column}
+    .side{flex:0 0 auto;max-height:42vh;border-left:none;border-top:1px solid var(--line)}
+    .calls-pin{border-bottom:1px solid var(--line)}
+    /* Trim vertical chrome so the wheel keeps as much height as possible. */
+    .stagewrap{padding:8px 10px;gap:6px}
+    .modebar{margin:2px 0}
+    /* THE TOOLBAR IS THE BIGGEST CONSUMER OF HEIGHT ON A PHONE. At 375px it wrapped to five rows — 154px,
+       well over half of what the wheel itself got — because each control is a flex item that will not
+       split. Nothing here removes information: the controls simply stop reserving room they were not
+       using; the selects were padded for a mouse. */
+    .toolbar{gap:5px 7px}
+    .toolbar label.ctl,.toolbar button,.toolbar select{font-size:12px}
+    .toolbar button{padding:6px 10px}
+    /* Horizontal padding only — it is the sole term that affects how the row wraps, and taking it off
+       the sides rather than the top keeps the selects the same height as the buttons beside them.
+       Worth 8px across the two selects on each line, which is the difference between wrapping at a
+       375px phone and wrapping at a 360px one. */
+    .toolbar select{padding:5px 5px;border-radius:8px}
+    .toolbar label.ctl{gap:4px}
+    #beatToggle{width:40px}
+    .tempo{gap:7px}
+  }
+  /* Short landscape screens (e.g. phone held sideways): trim vertical chrome so everything still fits. */
+  @media (orientation:landscape) and (max-height:560px){
+    .stagewrap{padding:8px 10px;gap:6px}
+    .toolbar button{padding:6px 10px}
+    .side{flex-basis:340px}
+  }
 </style>
 </head>
 <body>
@@ -180,11 +192,6 @@
       <!-- `autocomplete="off"` throughout: browsers restore form-control state across a reload, and
            these controls are not a form — they are a view of engine state that `reset()` re-derives on
            load. Left to itself, a reloaded page could show Couples 8 over a wheel of 4. -->
-      <label class="ctl">Couples
-        <select id="couples" autocomplete="off">
-          <option>4</option><option>6</option><option>8</option>
-        </select>
-      </label>
       <label class="ctl">Formation
         <select id="layout" autocomplete="off">
           <option value="circle">Rueda (circle)</option>
@@ -196,6 +203,14 @@
            where within it — and because a line of its own was a band of height a phone cannot spare. -->
       <label class="ctl">Position
         <select id="position" autocomplete="off"></select>
+      </label>
+      <!-- Couples comes after Position: the two wide pickers pair off on the first line, and the three
+           narrow controls plus the tempo group fit on the second. Ordering the row by what it says —
+           which floor plan, where on it, how many of you — happens to be the ordering that wraps. -->
+      <label class="ctl">Couples
+        <select id="couples" autocomplete="off">
+          <option>4</option><option>6</option><option>8</option>
+        </select>
       </label>
       <button id="reset" class="ghost">Reset</button>
       <!-- Mode is a practice setting, not a per-call control: you choose Live or Step once and then
