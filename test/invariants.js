@@ -2745,6 +2745,83 @@ function run() {
         `— STAGE_MARGIN is nearly spent, and the next figure that swings wider will fail this section`);
   }
 
+  /* 48: A DANCER'S `lane` NAMES THE SLOT THEY ARE STANDING ON.
+   *
+   * `lane` is not decoration: `placeOf` hands it to the declarative vocabulary, and `resolvePlace`
+   * addresses landings by it. A dancer whose lane disagrees with their position is a dancer the next
+   * figure will reason about wrongly.
+   *
+   * This is the check that was missing. Every dancer arriving in `linea_ex` carried the exact opposite
+   * of the lane they stood on — 12 of 12 — and nothing here saw it, because `pos()` prefers the live
+   * `xy` (so nobody was drawn in the wrong place) and the next figure's `swap` reference inverts a
+   * consistently-inverted lane back to the right answer. Both of those are luck. The same fault in
+   * `linea_dile` was caught only because it happened to put two dancers 0.00px apart.
+   *
+   * Asserted geometrically: after a movement lands, the slot the dancer's OWN (station, lane) names
+   * must be where the dancer actually is. */
+  {
+    let checked = 0, worst = 0;
+    const judge = (ds, slotAt, tag) => {
+      for (const d of ds) {
+        const s = slotAt(d.station, d.lane);
+        const err = Math.hypot(s.x - d.xy.x, s.y - d.xy.y);
+        if (err > worst) worst = err;
+        checked++;
+        nChecks++;
+        check(err <= 0.05, `§48 ${tag}: ${d.id} says lane '${d.lane}' at station ${d.station}, but that ` +
+          `slot is ${err.toFixed(1)}px from where they are standing`);
+      }
+    };
+    for (const n of NS) {
+      for (const key of T.keys().movements) {
+        for (const from of POSITIONS) {
+          if (!T.validFrom(key, from)) continue;
+          for (const ph of PHASES) {
+            const cap = T.captureMovement(key, from, n, ph);
+            if (!cap || !cap.frames) continue;
+            // A movement may land the wheel in Línea (the entries): read the slots off the formation
+            // it ended in, not the one it started in.
+            const linea = (T.POSITIONS[cap.endPos] || {}).variant === 'linea';
+            judge(T._snap(), linea ? ((s, l) => T.lineaSlot(s, l, n))
+                                   : ((s, l) => T.circleAt(s, l, n, cap.endPhase)), `${key}|${from}|n${n}|ph${ph}`);
+          }
+        }
+      }
+      for (const key of T.keys().movements) {
+        for (const ph of PHASES) {
+          let cap; try { cap = T.captureLineaMovement(key, n, ph); } catch (e) { continue; }
+          if (!cap || !cap.frames) continue;
+          const linea = (T.POSITIONS[cap.endPos] || {}).variant === 'linea';
+          judge(cap.dancers, linea ? ((s, l) => T.lineaSlot(s, l, n))
+                                   : ((s, l) => T.circleAt(s, l, n, cap.endPhase)), `linea ${key}|n${n}|ph${ph}`);
+        }
+      }
+      // Whole Línea calls, so the check also sees positions only a chain arrives at.
+      for (const key of T.keys().calls) {
+        const c = T.CALLS[key];
+        if (!c.seq || !(c.from || []).includes('linea')) continue;
+        let r; try { r = T.runLineaCall(key, n); } catch (e) { continue; }
+        if (!r) continue;
+        const linea = (T.POSITIONS[r.endPos] || {}).variant === 'linea';
+        judge(r.dancers, linea ? ((s, l) => T.lineaSlot(s, l, n))
+                               : ((s, l) => T.circleAt(s, l, n, r.endPhase)), `linea call ${key}|n${n}`);
+      }
+    }
+    nChecks++; check(checked >= 2000, `§48 only ${checked} dancers examined — the sweep is not reaching the figures`);
+    /* Self-test: the comparison has to be able to tell a wrong lane from a right one. Put a dancer on
+     * the couple's OTHER lane and the residual must be large — otherwise this section is comparing a
+     * slot to itself and would pass whatever the engine did with `lane`, which is precisely how the
+     * fault it was written for survived. */
+    {
+      const SWAP = { cw: 'ccw', ccw: 'cw', inner: 'outer', outer: 'inner' };
+      const cap = T.captureMovement('adios', 'casino', 6, 0);
+      const d = T._snap()[0];
+      const wrong = T.circleAt(d.station, SWAP[d.lane], 6, cap.endPhase);
+      nChecks++; check(Math.hypot(wrong.x - d.xy.x, wrong.y - d.xy.y) > 1,
+        '§48 self-test: a couple\'s two lanes are indistinguishable here — the check cannot fail');
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

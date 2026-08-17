@@ -38,6 +38,8 @@
   .tab:hover{color:var(--ink)}
   .tab.active{background:var(--chip);border-color:var(--line);color:var(--ink)}
   .movehint{font-size:11.5px}
+  /* Sits in the tab row, so it is sized to sit beside a tab rather than tower over one. */
+  #unavail{padding:4px 6px;border-radius:8px;font-size:12px}
   .calls-pin{flex:0 0 auto;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
   .side-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
   @media (orientation:portrait){
@@ -168,13 +170,16 @@
 <div id="app">
   <main class="stagewrap">
     <div class="toolbar">
+      <!-- `autocomplete="off"` throughout: browsers restore form-control state across a reload, and
+           these controls are not a form — they are a view of engine state that `reset()` re-derives on
+           load. Left to itself, a reloaded page could show Couples 8 over a wheel of 4. -->
       <label class="ctl">Couples
-        <select id="couples">
+        <select id="couples" autocomplete="off">
           <option>4</option><option>6</option><option>8</option>
         </select>
       </label>
       <label class="ctl">Formation
-        <select id="layout">
+        <select id="layout" autocomplete="off">
           <option value="circle">Rueda (circle)</option>
           <option value="linea">Línea Moderna</option>
         </select>
@@ -183,12 +188,12 @@
            next to Formation because the two are the same kind of statement — which floor plan, and
            where within it — and because a line of its own was a band of height a phone cannot spare. -->
       <label class="ctl">Position
-        <select id="position"></select>
+        <select id="position" autocomplete="off"></select>
       </label>
       <label class="ctl">Speed
         <!-- Width lives in the stylesheet, not here: inline styles beat the media query that needs to
              shrink this on a phone, which is exactly the kind of thing that silently does nothing. -->
-        <input type="range" id="speed" min="0" max="1" step="0.01" value="0.5" style="vertical-align:middle">
+        <input type="range" id="speed" min="0" max="1" step="0.01" value="0.5" autocomplete="off" style="vertical-align:middle">
         <span id="speedval" class="muted">1.0×</span>
       </label>
       <button id="beatToggle" class="ghost">⏸ Stop beat</button>
@@ -237,7 +242,14 @@
         <button class="tab active" id="tabCalls" role="tab" aria-selected="true">Calls</button>
         <button class="tab" id="tabMoves" role="tab" aria-selected="false">Movements</button>
         <button class="tab" id="tabHelp" role="tab" aria-selected="false">Instructions</button>
-        <label class="ctl" id="hideUnavailLabel" style="margin-left:auto"><input type="checkbox" id="hideUnavail"> Hide/Grey</label>
+        <!-- What to do with a call you cannot make right now. A checkbox had to name one of the two
+             states and leave the other implied; a picker names both, and says which you are in. -->
+        <label class="ctl" id="unavailLabel" style="margin-left:auto">
+          <select id="unavail" autocomplete="off">
+            <option value="grey" selected>Greyout</option>
+            <option value="hide">Hide</option>
+          </select>
+        </label>
       </div>
     </div>
 
@@ -1093,13 +1105,32 @@ const REST_LANES = {
    * longer described where they were. A Dame Grande danced from here put two dancers 0.00px apart. */
   linea_dile:      { L: 'outer', F: 'inner' },
 };
+/* THE TWO Línea POSITIONS WHOSE LANES DEPEND ON THE RING. Its rings are mirror images — the inner one
+ * dances afuera — so the inner ring's Casino is the outer ring's Exhibela, and one entry per role cannot
+ * say that. (`linea_dile` above can, because `FORMATIONS.linea.slot` already flips the radial sign for
+ * the inner ring, so both rings name the same two lanes.)
+ *
+ * These used to be left to the generators, on the reasoning that "Línea positions set `lane`
+ * themselves". They did not. Every dancer arriving in `linea_ex` carried the OPPOSITE of the lane they
+ * stood on — 12 of 12, at 0.00px geometric certainty, by every route in: a Dame Grande, a Dame Pequeña,
+ * or a chained sequence, where the lane was stale from two positions back. It is exactly the fault
+ * described above `linea_dile`, which is the one that got noticed because it put two dancers 0.00px
+ * apart; this one went unseen because `pos()` prefers the live `xy` and the next figure's `swap`
+ * reference cancels a CONSISTENTLY inverted lane. That is luck, not design, and §48 now asserts it. */
+const LINEA_REST_LANES = {
+  linea:    { inner: { L: 'cw',  F: 'ccw' }, outer: { L: 'ccw', F: 'cw'  } },
+  linea_ex: { inner: { L: 'ccw', F: 'cw'  }, outer: { L: 'cw',  F: 'ccw' } },
+};
 /* `lane` must be AUTHORITATIVE after a movement, not a souvenir of where the dancer started. Most circle
  * generators carry `lane` through untouched — harmless while `pos()` prefers the live `xy`, but wrong the
  * moment anything addresses a slot by (spoke, lane), which is exactly what the declarative vocabulary
  * does. Every movement lands in a RESTING position whose lanes are defined, so snap them from it. */
 function snapRestLanes(frame){
-  const t = REST_LANES[posState]; if (!t) return;                  // Línea positions set `lane` themselves
-  (frame || dancers).forEach(d => { d.lane = t[d.role]; });
+  const ds = frame || dancers;
+  const byRing = LINEA_REST_LANES[posState];
+  if (byRing){ ds.forEach(d => { d.lane = byRing[d.station < N / 2 ? 'inner' : 'outer'][d.role]; }); return; }
+  const t = REST_LANES[posState]; if (!t) return;
+  ds.forEach(d => { d.lane = t[d.role]; });
 }
 
 /* A dancer's PLACE, in the coordinates the engine actually reasons in.
@@ -3653,14 +3684,9 @@ const FORMATION_POSITIONS = {
   circle: ['casino', 'exhibela', 'dile', 'afuera', 'afuera_exhibela'],
   linea:  ['linea', 'linea_ex', 'linea_dile'],
 };
-/* Línea's two rings are mirror images — the inner one dances afuera — so its resting lanes are stated
- * per ring, which is why they are here rather than in REST_LANES (whose entries are per role alone).
- * `linea_dile` is the exception that proves it: FORMATIONS.linea.slot already flips the radial sign for
- * the inner ring, so both rings name the same two lanes and REST_LANES can hold it. */
-const LINEA_REST_LANES = {
-  linea:    { inner: { L: 'cw',  F: 'ccw' }, outer: { L: 'ccw', F: 'cw'  } },
-  linea_ex: { inner: { L: 'ccw', F: 'cw'  }, outer: { L: 'cw',  F: 'ccw' } },
-};
+/* Both lane tables live with the engine's resting positions (see REST_LANES / LINEA_REST_LANES): the
+ * picker and `snapRestLanes` have to agree about where a position stands people, and the way to
+ * guarantee that is for there to be one answer rather than two that match today. */
 function restLaneOf(p, d){
   const byRing = LINEA_REST_LANES[p];
   if (byRing) return byRing[d.station < N / 2 ? 'inner' : 'outer'][d.role];
@@ -3722,7 +3748,7 @@ function applyModeVisibility(){
  * disappear. Hiding is applied per BUTTON and per GROUP, so an empty group takes its heading with it. */
 let panelTab = 'calls';                                  // which list the one panel is showing
 function applyPanelPrefs(){
-  const hiding = !!(document.getElementById('hideUnavail') || {}).checked;
+  const hiding = ((document.getElementById('unavail') || {}).value === 'hide');
   const showing = { calls: panelTab === 'calls', moves: panelTab === 'moves', help: panelTab === 'help' };
   [['tabCalls', 'calls'], ['tabMoves', 'moves'], ['tabHelp', 'help']].forEach(([id, which]) => {
     const t = document.getElementById(id); if (!t) return;
@@ -3733,7 +3759,7 @@ function applyPanelPrefs(){
   const help = document.getElementById('helpCard'); if (help) help.hidden = !showing.help;
   // "Hide Unavailable" is a statement about a list of buttons; on the Instructions there is no such
   // list to make it about, so the control goes with them rather than sitting there doing nothing.
-  const hu = document.getElementById('hideUnavailLabel'); if (hu) hu.hidden = showing.help;
+  const hu = document.getElementById('unavailLabel'); if (hu) hu.hidden = showing.help;
   [['callButtons', callBtns, showing.calls], ['moveButtons', moveBtns, showing.moves]].forEach(([hostId, btns, on]) => {
     const host = document.getElementById(hostId); if (!host) return;
     host.hidden = !on;
@@ -3774,8 +3800,14 @@ function callOfferableFrom(c, pos){
 
 function updateUI(){
   const idle = !engineActive && !animating && !awaiting;
-  const ls = document.getElementById('layout');            // a movement can change formation — keep the picker honest
+  /* THE TOOLBAR IS A VIEW OF ENGINE STATE, so the engine wins every time it disagrees. A movement can
+   * change the formation under the picker; a browser can restore a control's value across a reload
+   * (`autocomplete="off"` asks it not to, and it is not always obeyed) and leave Couples reading 8 over
+   * a wheel of four. Both are the same bug, and this is the same fix. */
+  const ls = document.getElementById('layout');
   if (ls && ls.value !== layoutName) ls.value = layoutName;
+  const cs = document.getElementById('couples');
+  if (cs && cs.value !== String(N)) cs.value = String(N);   // compared as strings, never coerced — see below
   // The Position picker is a readout as much as a control: a figure moves the wheel, and the picker has
   // to say so. Its option list belongs to the formation, so it is rebuilt when the formation changes.
   const ps = document.getElementById('position');
@@ -4303,17 +4335,22 @@ document.getElementById('reset').onclick = reset;
 document.getElementById('position').onchange = e => setPosition(e.target.value);
 document.getElementById('beatToggle').onclick = toggleBeat;
 document.getElementById('modeToggle').onclick = () => { modeShown = !modeShown; applyModeVisibility(); };
-document.getElementById('speed').oninput = e => {
-  const p = +e.target.value;                         // 0..1, 0.5 = current speed
+/* p is 0..1 with 0.5 = the base tempo. A named function rather than an inline handler so the slider's
+ * position can be APPLIED at startup as well as on input: whatever it is showing — its own default, or
+ * a value the browser restored across a reload — is what the engine should be running at. */
+function applySpeed(p){
   speedMul = p < 0.5 ? 0.2 + 1.6 * p : 1 + 2 * (p - 0.5);   // 0.2× … 1× … 2×
-  document.getElementById('speedval').textContent = speedMul.toFixed(2) + '×';
-};
+  const out = document.getElementById('speedval'); if (out) out.textContent = speedMul.toFixed(2) + '×';
+}
+document.getElementById('speed').oninput = e => applySpeed(+e.target.value);
 document.getElementById('modeLive').onclick = () => setMode('live');
 document.getElementById('modeStep').onclick = () => setMode('step');
 document.getElementById('silenceBtn').onclick = takeDefault;
 
-{ const h = document.getElementById('hideUnavail');
-  if (h) h.addEventListener('change', applyPanelPrefs);
+{ const h = document.getElementById('unavail');
+  // Greyout is the stated default, so it is asserted rather than left to the markup alone — a reloading
+  // browser will happily hand back the value you had last time, which is not what "default" means.
+  if (h){ h.value = 'grey'; h.addEventListener('change', applyPanelPrefs); }
   const tabs = { tabCalls: 'calls', tabMoves: 'moves', tabHelp: 'help' };
   for (const id in tabs){ const t = document.getElementById(id); if (t) t.onclick = () => setPanelTab(tabs[id]); } }
 /* The stage's pixel size can change without the viewBox changing at all — a window resize, an
@@ -4326,6 +4363,13 @@ if (typeof ResizeObserver !== 'undefined'){
 } else if (window.addEventListener) window.addEventListener('resize', scaleBeat);
 buildButtons();
 applyModeVisibility();
+// Take the slider at its word, so the tempo and the control cannot start out disagreeing. The type test
+// is not defensive padding: headless, `value` is a DOM stub, and coercing one is a TypeError rather than
+// a NaN — so anything but a real string or number falls back to the base tempo, which is what a
+// no-slider environment should run at anyway.
+{ const raw = (document.getElementById('speed') || {}).value;
+  const v = (typeof raw === 'string' || typeof raw === 'number') ? parseFloat(raw) : NaN;
+  applySpeed(isFinite(v) ? v : 0.5); }
 reset();
 requestAnimationFrame(metronome);
 </script>

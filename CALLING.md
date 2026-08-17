@@ -314,9 +314,10 @@ which is closer to changing formation than to an ordinary figure.
   from). `projectedEndPos()` walks the remaining queue plus the default that follows it to work that out.
   Offering anything else invites a click that silently does nothing.
 
-The side panel is **one surface with three tabs** — Calls, Movements, Instructions — plus a **Hide/Grey**
-checkbox (default off, so unavailable entries grey out rather than vanish; the name says which of the
-two you are choosing between, where "Hide Unavailable" only named one of them). Hiding is
+The side panel is **one surface with three tabs** — Calls, Movements, Instructions — plus a picker for
+what to do with a call you cannot make right now: **Greyout** (the default — the entry stays put and
+goes unclickable) or **Hide**. A checkbox had to name one of those two states and leave the other
+implied; a picker names both, and says which one you are in. Hiding is
 applied per button *and* per group, so an empty group takes its heading with it. Buttons live in a fixed
 **grid**, not a wrapping flex row: a hover or a state change can alter a button's ink but never its
 cell, so nothing reflows and a button can no longer slide out from under the pointer mid-click.
@@ -324,6 +325,14 @@ cell, so nothing reflows and a button can no longer slide out from under the poi
 Only the **tab row is pinned**; everything below it scrolls. The lists used to sit in the fixed block,
 which is why on a short screen the last few calls were below the bottom of the panel with no way to
 reach them.
+
+**The toolbar is a view of engine state, and the engine wins whenever they disagree.** `updateUI` syncs
+Formation, Couples and Position from the engine rather than trusting what the controls say. That matters
+for two quite different reasons: a movement can change the formation under the picker, and a *browser*
+restores form-control values across a reload — `autocomplete="off"` asks it not to and is not reliably
+obeyed — which could otherwise leave Couples reading 8 over a wheel of four. The speed slider is
+squared off the other way, by applying whatever it shows at load (`applySpeed`), and the Greyout/Hide
+picker simply asserts its stated default on startup.
 
 ### The Position picker
 

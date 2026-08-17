@@ -3,6 +3,66 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v148 — the lane a dancer says they are in is the lane they are in
+
+### `linea_ex` had every lane backwards
+
+Found while measuring the resting positions for v145's Position picker, and fixed now. Every dancer
+arriving in the Línea Moderna Exhibela position carried a `lane` that was the **exact opposite** of the
+slot they stood on — 12 of 12 at six couples, at 0.00px geometric certainty, by every route in:
+
+| route | before | after |
+|---|---|---|
+| `dame_grande` from rest → `linea_ex` | 12/12 wrong | **0/12** |
+| `dame_peq` from rest → `linea_ex` | 12/12 wrong | **0/12** |
+| `dame_grande` → `dile4` → `dame_grande` | 12/12 wrong (lanes stale from *two* positions back) | **0/12** |
+
+`snapRestLanes` returned early for `linea` and `linea_ex` on the reasoning that "Línea positions set
+`lane` themselves". They did not. This is the same fault the comment above `linea_dile` already
+describes — the one that got noticed because it put two dancers 0.00px apart — and it went unseen here
+for two reasons that are both luck rather than design: `pos()` prefers the live `xy`, so nobody was ever
+*drawn* in the wrong place, and the next figure's `swap` lane reference inverts a **consistently**
+inverted lane back to the right answer.
+
+That luck is measurable: **the golden did not move by a pixel.** A correctness repair with no
+behavioural change, which is exactly what you would expect if the wrong value was being cancelled
+downstream every time — and exactly why nothing caught it.
+
+The fix is `LINEA_REST_LANES`, stated per *ring* because Línea's rings are mirror images (the inner one
+dances afuera, so its Casino is the outer ring's Exhibela). It already existed — v145 added it for the
+Position picker, having measured it off the engine — so this moves it next to `REST_LANES` where the
+engine can share it. One answer rather than two that happen to match.
+
+**§48 is the check that was missing**: after every movement, the slot a dancer's own `(station, lane)`
+names must be where that dancer actually is. ~4,700 assertions, and it self-tests by putting a dancer on
+the couple's other lane and confirming the residual is large — because a comparison that cannot tell the
+two lanes apart would have passed whatever the engine did, which is precisely how this survived.
+Invariants: **5,941 → 10,659**.
+
+### Greyout / Hide, and controls that tell the truth on reload
+
+The **Hide/Grey** checkbox is now a picker with **Greyout** (default; the entry stays put and goes
+unclickable) and **Hide**. A checkbox had to name one state and leave the other implied.
+
+Testing the default turned up something else: browsers restore form-control values across a reload, so
+the picker came back on Hide, and — worse — **Couples could read 8 over a wheel of four**, because
+nothing re-derived the engine from the controls or the controls from the engine at startup.
+`autocomplete="off"` asks the browser not to, and was not obeyed here. So the rule is stated properly
+instead: the toolbar is a *view* of engine state, and `updateUI` now syncs Couples as well as Formation
+and Position. The speed slider is squared off the other way — `applySpeed` applies whatever it shows at
+load — and the Greyout/Hide picker asserts its stated default.
+
+### And a note for whoever breaks the harness next
+
+Three separate TypeErrors while doing the above, all the same root cause: the headless DOM stub is a
+Proxy that answers any unknown property with **another stub**, so a missing member is an object rather
+than `undefined`. `if (!el.getAttribute)` guards nothing; `+el.value` and `parseFloat(el.value)` throw
+rather than yielding `NaN`, because `toString` is a stub too; and `el.dispatchEvent(new Event(...))`
+fails twice over. Written up in `test/README.md` under Gotchas. The fixes were all better than the
+guards would have been — `fitStage` hands the beat its radius rather than the beat re-reading the
+`viewBox` out of the DOM, and the speed handler became the named `applySpeed` that startup can call
+directly.
+
 ## v147 — the count is drawn to the same scale as the dancers
 
 Sam: "rather than the beat indicator number being always small, it should scale with the scale of the
