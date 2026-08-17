@@ -3,6 +3,43 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v149 — tempo in the unit a caller thinks in
+
+**The metronome button is a glyph**, ⏸ or ▶, with no word beside it. The word was the widest thing in
+the toolbar and said what the icon already says. Its `title` and `aria-label` are updated alongside the
+glyph, so what it means survives for anyone who cannot see which icon is showing — and it has a fixed
+`width` rather than a `min-width`, because ⏸ measures **1.6px wider** than ▶ and a minimum still let the
+whole row twitch on every press. Measured after: 48px across four toggles, and no other control moves.
+
+**"Reset to base" is "Reset"**, and sits to the left of the tempo control.
+
+**The speed slider is a BPM picker** — 140 to 230 in tens. A slider offered a continuum of speeds nobody
+dances at and no way to say which one you were on; these are real salsa tempos. `BASE_BPM` is *derived*
+from `BASE_MS_PER_BEAT` (60000/400 = 150) rather than written down beside it, so the two cannot drift
+and the base tempo is on the list — and is exactly 1× — by construction. The engine still divides by
+`speedMul`, which is now simply `bpm / BASE_BPM`.
+
+Checked against what the engine actually does, rather than assumed: every option produces the
+milliseconds-per-beat it claims, exactly.
+
+| BPM | 140 | 150 | 160 | 170 | 180 | 190 | 200 | 210 | 220 | 230 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ms/beat | 428.57 | 400 | 375 | 352.94 | 333.33 | 315.79 | 300 | 285.71 | 272.73 | 260.87 |
+| implied BPM | 140 | 150 | 160 | 170 | 180 | 190 | 200 | 210 | 220 | 230 |
+
+The golden is unaffected because `speedMul` still starts at exactly 1 — which is worth stating, since
+the beat timings it records are in milliseconds and would have moved had the default landed anywhere
+else on the new scale.
+
+`test/visual.js` needed both controls too, and would have gone quietly wrong rather than failing: it
+drove the tempo by setting a 0..1 slider to `'1'`, and it stopped the metronome by testing the button's
+text for `/Stop/`. Neither exists now — the first would have left the scenes running at the base tempo,
+the second would have left the beat *running* through every capture, which is exactly the
+non-determinism that hiding the beat readout was there to prevent.
+
+**On a phone the toolbar is still 104px over three rows** — narrower controls, but not fewer rows. The
+gain is on wider screens, where the row now fits in one.
+
 ## v148 — the lane a dancer says they are in is the lane they are in
 
 ### `linea_ex` had every lane backwards

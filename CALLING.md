@@ -330,8 +330,8 @@ reach them.
 Formation, Couples and Position from the engine rather than trusting what the controls say. That matters
 for two quite different reasons: a movement can change the formation under the picker, and a *browser*
 restores form-control values across a reload — `autocomplete="off"` asks it not to and is not reliably
-obeyed — which could otherwise leave Couples reading 8 over a wheel of four. The speed slider is
-squared off the other way, by applying whatever it shows at load (`applySpeed`), and the Greyout/Hide
+obeyed — which could otherwise leave Couples reading 8 over a wheel of four. The tempo picker is
+squared off the other way, by applying whatever it shows at load (`applyTempo`), and the Greyout/Hide
 picker simply asserts its stated default on startup.
 
 ### The Position picker
@@ -347,7 +347,7 @@ you did not mean to start.
 
 **Who is partnered with whom is preserved.** Every dancer keeps their station; only their lane and
 facing change. So "put them back in Casino from here" works after a Dame has progressed the wheel, which
-is the point of having it — *Reset to base* already covers starting over.
+is the point of having it — *Reset* already covers starting over.
 
 Two rules it encodes, both measured off the positions the engine actually reaches rather than read out
 of the figures that land in them:
@@ -539,8 +539,8 @@ Dile Que No. (So during an Enchufla — `enchufla → dame → dile` — a Dame 
 
 Movements are timed in **beats** (salsa is counted in 8-beat measures). Each movement declares a
 `beats` value — a number, or a function of the starting position. A movement plays over
-`beats × ms-per-beat`; the tempo (ms-per-beat) is set by the speed slider (0.2× … 1× … 2× of a
-base tempo). So beats give the *relative* timing between movements and the slider sets the
+`beats × ms-per-beat`; the tempo (ms-per-beat) is set by the **BPM** picker. So beats give the
+*relative* timing between movements and the tempo sets the
 absolute tempo.
 
 Most movements distribute their beats internally in proportion to how far each part moves
@@ -585,7 +585,13 @@ As well as how long a movement lasts, the engine tracks **where in the 8-beat me
 — a beat cursor, shown in the stage's top-right corner. It **free-runs like a
 metronome**: the beat keeps advancing in real time even when idle, and movements sync to it. So
 a call issued mid-beat waits (holding on the spot) until its start beat comes around. (The base
-tempo is 400 ms/beat at the 1× slider position; the slider scales it 0.2×…2×.)
+tempo is 400 ms/beat, which *is* 150bpm — see below.)
+
+**Tempo is picked in BPM**, from 140 to 230 in tens: real salsa tempos, rather than a slider offering a
+continuum of speeds nobody dances at and no way to say which one you were on. `BASE_BPM` is derived
+from `BASE_MS_PER_BEAT` (60000/400 = 150) rather than written down beside it, so the two cannot drift
+and the base tempo is on the list — and is exactly 1× — by construction. The engine still divides by
+`speedMul`, which is simply `bpm / BASE_BPM`.
 
 - **Almost all calls start their first movement on beat 1.** After a call the dancers finish
   their current movement (or keep holding on the spot) until the next 1, then begin.
@@ -603,8 +609,12 @@ tempo is 400 ms/beat at the 1× slider position; the slider scales it 0.2×…2�
 Start beats come from `startBeatOf(key, from)`; the lead-in hold before a snapped movement is a
 real timed hold in `playFrames`, and the beat cursor is rounded to whole beats each movement.
 
-The **Stop beat / Start beat** button freezes or restarts the metronome; restarting resets the
-count to beat 1 (useful for lining the simulator up with a track).
+The metronome button (**⏸** / **▶**, a glyph — the word was the widest thing in the toolbar and said
+what the icon already says) freezes or restarts the count; restarting resets it to beat 1, which is
+useful for lining the simulator up with a track. Its `title` and `aria-label` are updated with the
+glyph, so what it means is still available to anyone who cannot see which icon is showing. The button
+has a fixed width rather than a minimum, because ⏸ measures 1.6px wider than ▶ and a minimum still let
+the toolbar twitch on every press.
 
 **With the beat stopped there is no grid, so nothing waits for one.** Snapping exists to land a
 figure on the musical count; with the metronome off there is no count to land on, and the lead-in

@@ -58,8 +58,7 @@
        using. The slider does not need 120px to be draggable, and the selects were padded for a mouse. */
     .toolbar select{padding:5px 7px;border-radius:8px}
     .toolbar label.ctl{gap:4px}
-    .toolbar #speed{width:74px}
-    .toolbar #speedval{font-size:11px}
+    #beatToggle{width:40px}
   }
   /* Short landscape screens (e.g. phone held sideways): trim vertical chrome so everything still fits. */
   @media (orientation:landscape) and (max-height:560px){
@@ -68,7 +67,10 @@
     .side{flex-basis:340px}
   }
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  #speed{width:120px}
+  /* A fixed cell, so swapping ⏸ for ▶ cannot change the button's width and shuffle the row — the same
+     reason the call buttons live in a grid rather than a wrapping flex row. `width`, not `min-width`:
+     the two glyphs are not the same width (⏸ measured 1.6px wider), so a minimum still let it twitch. */
+  #beatToggle{width:48px;padding-left:0;padding-right:0;text-align:center;line-height:1}
   .calls{display:flex;flex-wrap:wrap;gap:8px}
   /* Buttons live in a fixed GRID, not a wrapping flex row: a hover or a state change can alter a
      button's ink but never its cell, so nothing reflows and a button can't slide out from under the
@@ -190,14 +192,15 @@
       <label class="ctl">Position
         <select id="position" autocomplete="off"></select>
       </label>
-      <label class="ctl">Speed
-        <!-- Width lives in the stylesheet, not here: inline styles beat the media query that needs to
-             shrink this on a phone, which is exactly the kind of thing that silently does nothing. -->
-        <input type="range" id="speed" min="0" max="1" step="0.01" value="0.5" autocomplete="off" style="vertical-align:middle">
-        <span id="speedval" class="muted">1.0×</span>
+      <button id="reset" class="ghost">Reset</button>
+      <!-- Tempo in the unit a caller actually thinks in. A slider offered a continuum of speeds nobody
+           dances at and no way to say which one you were on; these are real salsa tempos, and the
+           options are generated from BASE_BPM so the base tempo is on the list by construction. -->
+      <label class="ctl">BPM
+        <select id="bpm" autocomplete="off"></select>
       </label>
-      <button id="beatToggle" class="ghost">⏸ Stop beat</button>
-      <button id="reset" class="ghost">Reset to base</button>
+      <!-- Glyph only. The word was the widest thing in the row and said what the icon already says. -->
+      <button id="beatToggle" class="ghost" title="Stop the beat" aria-label="Stop the beat">⏸</button>
       <!-- Mode is a practice setting, not a per-call control: you choose Live or Step once and then
            leave it. So the row is off by default and this brings it back when you want it. -->
       <button id="modeToggle" class="ghost">Mode</button>
@@ -266,8 +269,8 @@
            they line up behind it, danced in the order you called them — which is the point: a caller
            shouts the next call while the current one is still being danced.</p>
         <p>Calls are timed to the music, so a call waits for its place in the measure before it starts.
-           Press <b>⏸ Stop beat</b> and there is no measure to wait for — calls are then danced the
-           moment you press them.</p>
+           Press <b>⏸</b> to stop the beat and there is no measure to wait for — calls are then danced
+           the moment you press them. <b>BPM</b> sets the tempo everything is danced at.</p>
 
         <h3>Calls are made of movements</h3>
         <p>A <b>call</b> is a word the caller shouts. Each one expands into a series of
@@ -279,7 +282,7 @@
         <h3>Setting the floor</h3>
         <p>Along the top: how many <b>Couples</b> are in the wheel, the <b>Formation</b> they are in, and
            the <b>Position</b> they are standing in — pick one and the dancers go there, keeping their
-           current partners. <b>Reset to base</b> puts everyone back to the start.</p>
+           current partners. <b>Reset</b> puts everyone back to the start.</p>
 
         <h3>Step mode <span class="wip">under development</span></h3>
         <p>Behind the <b>Mode</b> button is a second mode that pauses at each decision point and asks you
@@ -932,6 +935,12 @@ let N = 4, layoutName = 'circle', dancers = [], history = [], stepCount = 0, ani
 let logCount = 0;             // the call log numbers CALLS; stepCount counts movements (undo bookkeeping)
 let speedMul = 1;             // tempo multiplier from the slider (0.2×…1×…2×, 1 = base tempo)
 const BASE_MS_PER_BEAT = 400; // base musical tempo; a movement lasts (its beats) × ms-per-beat
+/* THE SAME TEMPO, SAID IN THE UNIT A CALLER THINKS IN. 400ms a beat *is* 150bpm — this is a restatement
+ * of BASE_MS_PER_BEAT, not a second opinion about it, so the two cannot drift. The tempo picker offers
+ * real salsa tempos and `speedMul` (which is what the engine actually divides by) falls out as
+ * bpm/BASE_BPM, making the base tempo 1× by construction. */
+const BASE_BPM = Math.round(60000 / BASE_MS_PER_BEAT);      // 150
+const BPM_CHOICES = [140, 150, 160, 170, 180, 190, 200, 210, 220, 230];
 let beatCursor = 0;           // total beats danced so far; (beatCursor % 8) is the current beat of the measure
 let justIssued = false;       // the next movement is the first of a freshly-issued call → snap to its start beat
 let beatRunning = true;       // is the metronome ticking?
@@ -4323,10 +4332,15 @@ function metronome(now){
   } else metroLast = null;
   requestAnimationFrame(metronome);
 }
+/* The button is a glyph now, so what it MEANS lives in the tooltip and the accessible name — which have
+ * to be kept in step with it, or a screen reader is told the opposite of what the icon shows. */
 function toggleBeat(){
   beatRunning = !beatRunning;
   if (beatRunning){ beatCursor = 0; showBeat(0); }        // (re)start the count on beat 1
-  document.getElementById('beatToggle').textContent = beatRunning ? '⏸ Stop beat' : '▶ Start beat';
+  const b = document.getElementById('beatToggle'); if (!b) return;
+  b.textContent = beatRunning ? '⏸' : '▶';
+  const label = beatRunning ? 'Stop the beat' : 'Start the beat';
+  b.title = label; if (b.setAttribute) b.setAttribute('aria-label', label);
 }
 
 document.getElementById('couples').onchange = e=>{ N = +e.target.value; if (layoutName === 'linea' && N % 2) N++; reset(); };
@@ -4335,14 +4349,21 @@ document.getElementById('reset').onclick = reset;
 document.getElementById('position').onchange = e => setPosition(e.target.value);
 document.getElementById('beatToggle').onclick = toggleBeat;
 document.getElementById('modeToggle').onclick = () => { modeShown = !modeShown; applyModeVisibility(); };
-/* p is 0..1 with 0.5 = the base tempo. A named function rather than an inline handler so the slider's
- * position can be APPLIED at startup as well as on input: whatever it is showing — its own default, or
- * a value the browser restored across a reload — is what the engine should be running at. */
-function applySpeed(p){
-  speedMul = p < 0.5 ? 0.2 + 1.6 * p : 1 + 2 * (p - 0.5);   // 0.2× … 1× … 2×
-  const out = document.getElementById('speedval'); if (out) out.textContent = speedMul.toFixed(2) + '×';
+/* A named function rather than an inline handler so the picker's value can be APPLIED at startup as
+ * well as on change: whatever it is showing — its own default, or a value the browser restored across a
+ * reload — is what the engine should be running at. */
+function applyTempo(bpm){ speedMul = bpm / BASE_BPM; }
+function buildTempoOptions(){
+  const sel = document.getElementById('bpm'); if (!sel) return;
+  sel.innerHTML = '';
+  BPM_CHOICES.forEach(b => {
+    const o = document.createElement('option');
+    o.value = String(b); o.textContent = String(b);
+    sel.appendChild(o);
+  });
+  sel.value = String(BASE_BPM);
 }
-document.getElementById('speed').oninput = e => applySpeed(+e.target.value);
+document.getElementById('bpm').onchange = e => applyTempo(+e.target.value);
 document.getElementById('modeLive').onclick = () => setMode('live');
 document.getElementById('modeStep').onclick = () => setMode('step');
 document.getElementById('silenceBtn').onclick = takeDefault;
@@ -4363,13 +4384,14 @@ if (typeof ResizeObserver !== 'undefined'){
 } else if (window.addEventListener) window.addEventListener('resize', scaleBeat);
 buildButtons();
 applyModeVisibility();
-// Take the slider at its word, so the tempo and the control cannot start out disagreeing. The type test
+// Take the picker at its word, so the tempo and the control cannot start out disagreeing. The type test
 // is not defensive padding: headless, `value` is a DOM stub, and coercing one is a TypeError rather than
 // a NaN — so anything but a real string or number falls back to the base tempo, which is what a
-// no-slider environment should run at anyway.
-{ const raw = (document.getElementById('speed') || {}).value;
+// no-picker environment should run at anyway.
+buildTempoOptions();
+{ const raw = (document.getElementById('bpm') || {}).value;
   const v = (typeof raw === 'string' || typeof raw === 'number') ? parseFloat(raw) : NaN;
-  applySpeed(isFinite(v) ? v : 0.5); }
+  applyTempo(isFinite(v) && BPM_CHOICES.includes(v) ? v : BASE_BPM); }
 reset();
 requestAnimationFrame(metronome);
 </script>
