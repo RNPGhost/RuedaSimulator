@@ -117,6 +117,12 @@ const eneOuterL = dh => ({ dh, ring: 'inner', lane: 'ccw' });
 const ENE_PASSES_ACW = Object.assign({}, PASSES_RUEDA, {
   partner0: 'right', wheel0: 'right',
   partner1: 'right', wheel1: 'right',
+  /* …except the man stepping OUT of the slot he is arriving at. Sam: they meet at the very end of one
+   * journey and the very start of the other, "so they should not actually collide … for completeness,
+   * they will pass on the left if it matters." Measured, it does not bite at any couple count — which is
+   * the reason to state it rather than a reason not to: an unstated side that happens not to be reached
+   * is a guess waiting for a geometry that reaches it. */
+  vacating: 'left',
   'wheel0:L,L': 'right', 'wheel1:L,L': 'right',
 });
 const TRAVELS = {

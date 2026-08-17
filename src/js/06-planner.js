@@ -694,6 +694,13 @@ function playTravel(ds, N, o){
      * so they are the more specific thing to have said. A formation with no sub-wheels answers neither. */
     relation: (a, b) => (startStation[a] === startStation[b] ? 'partner0'
                        : newPartner[a] === b ? 'partner1'
+                       /* The dancer LEAVING the slot you are arriving at, which is a different person from
+                        * the partner you are arriving to and a different encounter: you meet him at the
+                        * very end of your journey and the very start of his. Sam, on Dame Eñe: "that
+                        * crossing is late in the outer leader's path and early in the inner leader's path,
+                        * so they should not actually collide … for completeness, they will pass on the
+                        * left if it matters." Named so the figure can say it whether or not it bites. */
+                       : startStation[b] === newSt[a] ? 'vacating'
                        : wheelOfStation(startStation[a]) !== null
                          && wheelOfStation(startStation[a]) === wheelOfStation(startStation[b]) ? 'wheel0'
                        : wheelOfStation(newSt[a]) !== null

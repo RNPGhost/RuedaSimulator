@@ -2392,6 +2392,13 @@ function playTravel(ds, N, o){
      * so they are the more specific thing to have said. A formation with no sub-wheels answers neither. */
     relation: (a, b) => (startStation[a] === startStation[b] ? 'partner0'
                        : newPartner[a] === b ? 'partner1'
+                       /* The dancer LEAVING the slot you are arriving at, which is a different person from
+                        * the partner you are arriving to and a different encounter: you meet him at the
+                        * very end of your journey and the very start of his. Sam, on Dame Eñe: "that
+                        * crossing is late in the outer leader's path and early in the inner leader's path,
+                        * so they should not actually collide … for completeness, they will pass on the
+                        * left if it matters." Named so the figure can say it whether or not it bites. */
+                       : startStation[b] === newSt[a] ? 'vacating'
                        : wheelOfStation(startStation[a]) !== null
                          && wheelOfStation(startStation[a]) === wheelOfStation(startStation[b]) ? 'wheel0'
                        : wheelOfStation(newSt[a]) !== null
@@ -2868,6 +2875,12 @@ const eneOuterL = dh => ({ dh, ring: 'inner', lane: 'ccw' });
 const ENE_PASSES_ACW = Object.assign({}, PASSES_RUEDA, {
   partner0: 'right', wheel0: 'right',
   partner1: 'right', wheel1: 'right',
+  /* …except the man stepping OUT of the slot he is arriving at. Sam: they meet at the very end of one
+   * journey and the very start of the other, "so they should not actually collide … for completeness,
+   * they will pass on the left if it matters." Measured, it does not bite at any couple count — which is
+   * the reason to state it rather than a reason not to: an unstated side that happens not to be reached
+   * is a guess waiting for a geometry that reaches it. */
+  vacating: 'left',
   'wheel0:L,L': 'right', 'wheel1:L,L': 'right',
 });
 const TRAVELS = {
