@@ -314,8 +314,9 @@ which is closer to changing formation than to an ordinary figure.
   from). `projectedEndPos()` walks the remaining queue plus the default that follows it to work that out.
   Offering anything else invites a click that silently does nothing.
 
-The side panel is **one surface with three tabs** — Calls, Movements, Instructions — plus a **hide
-unavailable** checkbox (default off, so unavailable entries grey out rather than vanish). Hiding is
+The side panel is **one surface with three tabs** — Calls, Movements, Instructions — plus a **Hide/Grey**
+checkbox (default off, so unavailable entries grey out rather than vanish; the name says which of the
+two you are choosing between, where "Hide Unavailable" only named one of them). Hiding is
 applied per button *and* per group, so an empty group takes its heading with it. Buttons live in a fixed
 **grid**, not a wrapping flex row: a hover or a state change can alter a button's ink but never its
 cell, so nothing reflows and a button can no longer slide out from under the pointer mid-click.
@@ -380,6 +381,16 @@ Several things are gone outright, all of them height on a screen that has none t
 The stage's two overlays — the now-playing/queue corner and the beat count — are `position:absolute`,
 so they are painted over the dancers and take no space from them. Verified rather than assumed: a
 12-deep queue 346px tall in a 306px stage leaves the SVG's size and scale byte-identical.
+
+**The beat count is sized like part of the picture.** It stays HTML, in the corner where a dancer looks
+for it, but a fixed pixel size meant it stayed put while the wheel grew and shrank underneath — a
+headline at eight couples on a phone, a footnote at four on a desktop. So it is stated in **engine
+units** (`BEAT_UNITS`, 15 — the same nominal size as the couple number on a dancer's dot, which works
+out at just under half a dancer's width) and `scaleBeat()` converts: with `preserveAspectRatio` set to
+`xMidYMid meet` and a square window, one engine unit is the stage's shorter side over `2·stageR`, which
+is exactly the factor every dancer is drawn at. Measured across both formations at 4/6/8 couples, the
+ratio of the digit to a dancer's diameter is constant at 0.469. A `ResizeObserver` on the stage keeps it
+true through window resizes and reflows that never change the `viewBox` at all.
 
 ## Decision points, queue, and the two modes
 

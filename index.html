@@ -137,7 +137,8 @@
   .decision .dtext{font-size:13px;color:var(--ink)}
   button.silence{background:#2a3150}
   /* The count, not a headline. It was 72px — sized for a room, on a stage that has to share its space
-     with the wheel. A dancer glances at it; it does not need to shout. */
+     with the wheel. A dancer glances at it; it does not need to shout.
+     `font-size` is set by `scaleBeat()`, in proportion to the wheel: see there for why. */
   .beatbig{position:absolute;top:10px;right:16px;font-size:22px;line-height:1;font-weight:700;
            color:var(--accent);opacity:.92;font-variant-numeric:tabular-nums;pointer-events:none;
            text-shadow:0 2px 10px rgba(0,0,0,.6)}
@@ -236,7 +237,7 @@
         <button class="tab active" id="tabCalls" role="tab" aria-selected="true">Calls</button>
         <button class="tab" id="tabMoves" role="tab" aria-selected="false">Movements</button>
         <button class="tab" id="tabHelp" role="tab" aria-selected="false">Instructions</button>
-        <label class="ctl" id="hideUnavailLabel" style="margin-left:auto"><input type="checkbox" id="hideUnavail"> Hide Unavailable</label>
+        <label class="ctl" id="hideUnavailLabel" style="margin-left:auto"><input type="checkbox" id="hideUnavail"> Hide/Grey</label>
       </div>
     </div>
 
@@ -2946,6 +2947,26 @@ function fitStage(alsoCover){
   let r = stageExtent();
   if (alsoCover && alsoCover !== layoutName) r = Math.max(r, extentOf(alsoCover));
   svg.setAttribute('viewBox', `${CX - r} ${CY - r} ${2 * r} ${2 * r}`);
+  stageR = r;
+  scaleBeat();
+}
+/* THE BEAT COUNT IS PART OF THE PICTURE, so it is sized like part of the picture. It stays HTML, over
+ * the stage, because the corner is where a dancer looks for it — but a fixed pixel size meant it stayed
+ * put while the wheel grew and shrank underneath it, reading as a headline at eight couples on a phone
+ * and as a footnote at four on a desktop.
+ *
+ * So it is stated in ENGINE UNITS and converted here. The wheel's scale is the SVG's own: with
+ * `preserveAspectRatio="xMidYMid meet"` one engine unit becomes min(width/viewBox, height/viewBox)
+ * screen pixels, which is exactly the factor every dancer is drawn at. */
+const BEAT_UNITS = 15;      // the same size as the couple number on a dancer's dot
+let stageR = 0;             // half the current window, in engine units — set by fitStage
+function scaleBeat(){
+  const big = document.getElementById('beatbig');
+  if (!big || !big.style || !stageR || typeof svg.getBoundingClientRect !== 'function') return;
+  const box = svg.getBoundingClientRect();
+  if (!box.width || !box.height) return;                         // not laid out yet (or headless)
+  // The window is square (2·stageR), so `meet` scales by the stage's shorter side over that.
+  big.style.fontSize = (BEAT_UNITS * Math.min(box.width, box.height) / (2 * stageR)).toFixed(1) + 'px';
 }
 
 function drawGuide(){
@@ -4295,6 +4316,14 @@ document.getElementById('silenceBtn').onclick = takeDefault;
   if (h) h.addEventListener('change', applyPanelPrefs);
   const tabs = { tabCalls: 'calls', tabMoves: 'moves', tabHelp: 'help' };
   for (const id in tabs){ const t = document.getElementById(id); if (t) t.onclick = () => setPanelTab(tabs[id]); } }
+/* The stage's pixel size can change without the viewBox changing at all — a window resize, an
+ * orientation flip, the toolbar wrapping to one fewer row — and the beat count is sized from the ratio
+ * of the two. Observed on the stage itself rather than on the window, so a reflow that the window never
+ * hears about still re-scales it. */
+if (typeof ResizeObserver !== 'undefined'){
+  const stageBox = document.querySelector('.stage');
+  if (stageBox) new ResizeObserver(scaleBeat).observe(stageBox);
+} else if (window.addEventListener) window.addEventListener('resize', scaleBeat);
 buildButtons();
 applyModeVisibility();
 reset();

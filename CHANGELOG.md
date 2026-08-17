@@ -3,6 +3,40 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v147 — the count is drawn to the same scale as the dancers
+
+Sam: "rather than the beat indicator number being always small, it should scale with the scale of the
+dancers. This is a good size for the current layout."
+
+v146 traded one fixed size for another — 72px for 22px — which is right for one layout and wrong for
+every other, because v145 made the wheel's scale depend on the couple count and the window. So the
+count is now stated in **engine units** rather than pixels: `BEAT_UNITS = 15`, the same nominal size as
+the couple number on a dancer's dot, converted by `scaleBeat()` through the factor the SVG itself uses
+(`xMidYMid meet` over a square window: the stage's shorter side over `2·stageR`). It stays HTML in the
+corner — the position was never the problem.
+
+Measured across both formations at every couple count, the digit's size as a fraction of a dancer's
+diameter is constant at **0.469**:
+
+| | circle 4 | 6 | 8 | línea 4 | 6 | 8 |
+|---|---|---|---|---|---|---|
+| dancer diameter | 140px | 107 | 87 | 111 | 99 | 89 |
+| beat count | 65.5px | 50.2 | 40.8 | 52.1 | 46.4 | 41.9 |
+| ratio | .468 | .469 | .469 | .469 | .469 | .469 |
+
+A `ResizeObserver` on the stage — not the window — keeps it honest through reflows the `viewBox` never
+hears about: shrinking the stage alone took the count 16px → 5px → 16px. It watches the stage because
+the toolbar wrapping to one fewer row resizes the stage without the window moving at all.
+
+The first attempt broke the headless suite, which is worth recording: the harness's DOM stub is a Proxy
+returning a fresh stub for any unknown property, so `svg.getAttribute` was an *object* rather than
+undefined and the usual `if (!svg.getAttribute)` guard sailed straight through it into a TypeError. The
+fix was better than the guard — `fitStage` already knows the radius, so it hands it over (`stageR`)
+instead of the beat re-reading its own `viewBox` attribute back out of the DOM.
+
+**"Hide Unavailable" is now "Hide/Grey"**, which names both of the things the checkbox chooses between
+rather than only one of them.
+
 ## v146 — the beat stops meaning wait, and the log makes way for instructions
 
 **The title is gone.** Header, strapline and all: a band of height on every screen to say what the
