@@ -1570,6 +1570,52 @@ function run() {
       }
       nChecks++; check(short === 0,
         `§33f ${short} solve(s) checked fewer pairs than exist — dancers invisible to the planner (e.g. ${worstTag})`);
+      /* AND THE EXCLUSIONS THEMSELVES. The count above forgives every excluded pair, which is right — a
+       * figure gathering two dancers together must be allowed to say so — but it means an exclusion is a
+       * hole in the coverage, and a hole nothing measured. The planner now measures each one: an excluded
+       * pair may be as close as the figure wants, but the SOLVE may not make it closer than the intended
+       * paths already had it. Anything else is the grande merge's fault again (two leaders driven to
+       * 3.4px, excluded and therefore unjudged), one figure along. */
+      const blind = log.filter(e => e.blind > 0);
+      nChecks++; check(blind.length === 0,
+        `§33f ${blind.length} solve(s) drove an EXCLUDED pair closer than the intended paths had it` +
+        (blind.length ? ` (e.g. ${blind[0].blindWorst.a}/${blind[0].blindWorst.b} ` +
+          `${blind[0].blindWorst.was}px → ${blind[0].blindWorst.now}px)` : '') +
+        ' — the exclusion is hiding damage the plan itself did');
+      /* Self-test: the probe must be able to SEE such a pair, or "0 blind spots" is vacuous. P and Q walk
+       * 40px apart and are excluded from the check; R stands just past Q, close enough that clearing him
+       * pushes Q up into P. The solve reports success — every pair it was ASKED about clears — while
+       * having closed the excluded pair to 20.8px against a 35px corridor. That is the whole failure mode
+       * in four lines: a plan that is honestly green about the wrong question. */
+      {
+        const before = T.PLAN_LOG.length;
+        const sq = T.planCrossings({
+          ids: ['P', 'Q', 'R'], exclude: [['P', 'Q']],
+          base: (id, t) => id === 'P' ? { x: 200 + 200 * t, y: 270 }
+                         : id === 'Q' ? { x: 200 + 200 * t, y: 310 }
+                                      : { x: 300, y: 330 },
+          yields: id => id === 'Q',
+          roleOf: () => 'L', passes: { 'L,L': 'left' }, relation: () => null,
+          group: id => id, groups: ['P', 'Q', 'R'], clearance: 35, engage: 45 });
+        const e = T.PLAN_LOG[before];
+        nChecks++; check(e && e.blind > 0,
+          '§33f self-test: an excluded pair the solve provably squeezed was reported as no blind spot');
+        nChecks++; check(sq.ok === true,
+          '§33f self-test: the squeeze case is meant to be a plan that reports SUCCESS — if it now fails ' +
+          'for another reason it is no longer testing that an exclusion can hide damage');
+      }
+      /* 33g: THE GRANDE MERGE REACHES A FIXED POINT. Its re-plan loop exists because writing offsets
+       * back changes the keyframes, and the curve drawn through the NEW keyframes is not the one the
+       * planner just looked at — so it plans again until a pass changes nothing. Three passes is the
+       * budget; running out means the shipped frames were planned against a curve that is not the one
+       * drawn, which is the exact class of fault the loop was added to close (25.8px against a 34px
+       * floor, in a figure whose keyframes were all clean). It always settles today, on the sweep just
+       * run — this is what makes that a measurement rather than a belief. */
+      nChecks++; check(T.REPLAN_UNSETTLED.length === 0,
+        `§33g ${T.REPLAN_UNSETTLED.length} grande merge(s) used all 3 re-plan passes without settling ` +
+        (T.REPLAN_UNSETTLED.length ? `(e.g. ${T.REPLAN_UNSETTLED[0].mv} from ${T.REPLAN_UNSETTLED[0].from} ` +
+          `at ${T.REPLAN_UNSETTLED[0].n} couples) ` : '') +
+        '— those frames were planned against a curve that is not the one drawn');
       T.clearFaults();
     }
 
@@ -2788,6 +2834,144 @@ function run() {
     nChecks++; check(T.SIDE_CONFLICTS.length > 0,
       '§47c two declarations that cannot both be honoured were reconciled silently instead of reported');
     T.SIDE_CONFLICTS.length = 0;
+  }
+
+  /* 48: THE SOLVER CANNOT SPIRAL, AND SAYS SO WHEN IT CANNOT WIN.
+   *
+   *     Three guarantees, each written because the engine violated it in a shipped figure:
+   *       (a) a DETOUR BUDGET — no dancer is carried past `detourMax` times their straight line, ever.
+   *           A follower once walked 1210px where her line was 116px (10.42x) buying the last 0.2px of a
+   *           corridor she never reached. §44 warns about that afterwards; this makes it unreachable.
+   *       (b) BEST-ITERATE MEMORY — an unsatisfiable plan returns its BEST arrangement, not whatever the
+   *           last iteration left behind, which used to be the widest placement a pair reached just
+   *           before it hit the growth cap and was abandoned.
+   *       (c) THE VERDICT IS AVAILABLE — `planCrossings` used to compute whether it had succeeded and
+   *           throw it away (`solved` was assigned and never read). A caller can now ask.
+   *
+   *     Driven with a deliberately unsatisfiable plan: dancers packed so tightly that no arrangement can
+   *     hold the corridor. The point is not that it fails — it is that it fails BOUNDED, and reports. */
+  {
+    const N_D = 6, R = 26;                       // six dancers on a small ring, all crossing to the far side
+    const ang = i => (i / N_D) * 2 * Math.PI;
+    const ids = Array.from({ length: N_D }, (_, i) => 'D' + i);
+    const base = (id, t) => { const i = +id.slice(1);
+      const a0 = ang(i), a1 = ang(i) + Math.PI;
+      return { x: 300 + R * Math.cos(a0 + (a1 - a0) * t), y: 300 + R * Math.sin(a0 + (a1 - a0) * t) }; };
+    const t0 = Date.now();
+    const plan = T.planCrossings({ ids, base, roleOf: () => 'L',
+      passes: { 'L,L': 'right' }, relation: () => null,
+      group: id => id, groups: ids, clearance: 35, engage: 45 });
+    const ms = Date.now() - t0;
+
+    nChecks++; check(ms < 4000, `§48 an unsatisfiable plan took ${ms}ms — the solve is not bounded`);
+    nChecks++; check(plan.ok === false && plan.faults.length > 0,
+      '§48c an unsatisfiable plan reported success — the verdict is not being surfaced');
+    nChecks++; check(Array.isArray(plan.detour) && plan.detour.length > 0,
+      '§48c the plan did not report per-dancer detours');
+    const worstRatio = plan.detour.reduce((m, d) => Math.max(m, d.ratio), 0);
+    nChecks++; check(worstRatio <= 3.0 + 1e-6,
+      `§48a a dancer was carried ${worstRatio}x their straight line — the detour budget did not hold`);
+
+    /* (b) The returned arrangement must be the BEST seen, not the last. Re-measure the plan's own output:
+     * its worst pair gap has to be at least as good as the untouched straight-line paths, because doing
+     * nothing is always an available answer and a solve that returns something worse has returned the
+     * wrong iterate. */
+    const worstOf = (fn) => { let m = Infinity;
+      for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++)
+        for (let s = 0; s <= 20; s++){ const t = s / 20;
+          const p = fn(ids[i], t), q = fn(ids[j], t);
+          m = Math.min(m, Math.hypot(p.x - q.x, p.y - q.y)); }
+      return m; };
+    const doNothing = worstOf(base), returned = worstOf((id, t) => plan.at(id, t));
+    nChecks++; check(returned >= doNothing - 0.5,
+      `§48b the solve returned an arrangement WORSE than the untouched paths ` +
+      `(${returned.toFixed(2)}px vs ${doNothing.toFixed(2)}px) — it kept its last iterate, not its best`);
+
+    /* (a) and (d) on the shape that actually tempts a spiral: a dancer with a SHORT line who is boxed in
+     * by two dancers who cannot move. Clearing both means swinging far relative to how far he is going,
+     * which is exactly the trade the engine used to take without limit.
+     *
+     * Measured with the budget removed: **5.61x the straight line, 14–16 iterations**. With it: **1.0x
+     * and 2 iterations** — the placement is rejected, growth is frozen, and the pair is reported. That is
+     * the intended trade and it is Sam's: a path nobody could dance is worse than an honest failure. */
+    for (const wall of [12, 30]) {
+      const boxed = T.planCrossings({
+        ids: ['A', 'W1', 'W2'],
+        base: (id, t) => id === 'A' ? { x: 300 + 40 * t, y: 300 }
+                       : id === 'W1' ? { x: 318, y: 300 - wall }
+                                     : { x: 318, y: 300 + wall },
+        yields: id => id === 'A',
+        roleOf: () => 'L', passes: { 'L,L': 'right' }, relation: () => null,
+        group: id => id, groups: ['A', 'W1', 'W2'], clearance: 35, engage: 45 });
+      const r = boxed.detour[0].ratio;
+      nChecks++; check(r <= 3.0 + 1e-6,
+        `§48a a boxed-in dancer (walls ±${wall}px) was carried ${r}x their straight line — the budget did not hold`);
+      nChecks++; check(boxed.solved.iterations <= 6,
+        `§48d the boxed-in solve ran ${boxed.solved.iterations} iterations — growth is not being frozen ` +
+        'when it stops helping, so the loop is bounded only by MAXIT');
+    }
+
+    /* (d) again, on the case that isolates the FREEZE from the budget. The boxed dancer above is stopped
+     * by the detour budget — remove the freeze and he still runs 2 iterations, because the budget rejects
+     * his placement first. So the freeze needs a case where growing is futile and the detour is nowhere
+     * near binding: two dancers walking the SAME long line, 8px apart, whose declared sides do not oppose.
+     * Placing them cannot separate them (both ease the same way, together), and their journey is 600px, so
+     * every placement costs ~0% detour and the budget never speaks.
+     *
+     * Measured: **5 iterations with the freeze, 16 without** — and 16 is exactly ceil(ln 6 / ln 1.12), the
+     * growth cap, which is to say that with the freeze gone the ONLY thing bounding the loop is a pair
+     * being widened until it is six corridors across. Worst detour 1.00x in both, which is the proof that
+     * the budget is not what stopped it. */
+    T.SIDE_CONFLICTS.length = 0;
+    const futile = T.planCrossings({
+      ids: ['A', 'B'],
+      base: (id, t) => id === 'A' ? { x: 600 * t, y: 300 } : { x: 8 + 600 * t, y: 300 },
+      roleOf: () => 'L', relation: (a, b) => a + '>' + b,
+      passes: { 'A>B': 'left', 'B>A': 'left' },
+      group: id => id, groups: ['A', 'B'], clearance: 35, engage: 45 });
+    const futileRatio = futile.detour.reduce((m, d) => Math.max(m, d.ratio), 0);
+    nChecks++; check(futileRatio <= 1.05,
+      `§48d the futile-growth case detoured ${futileRatio.toFixed(2)}x — it is no longer isolating the ` +
+      'growth freeze, because the detour budget can now be what stops it');
+    nChecks++; check(futile.solved.iterations <= 6,
+      `§48d a solve that cannot improve ran ${futile.solved.iterations} iterations — growth is not frozen ` +
+      'when it stops helping, so a hopeless pair is widened to the cap instead of being reported');
+    nChecks++; check(futile.ok === false && futile.faults.length > 0,
+      '§48d the futile-growth case reported success — a pair it never separated was not reported');
+    T.SIDE_CONFLICTS.length = 0;
+
+    /* (e) THE SUPPRESSED SOLVE IS NOT RUN, and skipping it is provably free. `at()` ignores vias entirely
+     * under NAT_NOEVADE — that mode exists to capture the INTENDED paths, collisions and all — so the
+     * solve was pure waste, and it ran twice inside every grande composition. Nothing about the frames
+     * can show this: the output is identical either way, which is exactly why it went unnoticed. So it is
+     * asserted structurally (the solve reports that it skipped) AND behaviourally (the returned paths are
+     * the base paths, to the pixel — the guarantee that makes skipping legitimate rather than a shortcut). */
+    const noEvadeCase = (ids) => ({ ids,
+      base: (id, t) => { const i = +id.slice(1), a0 = (i / 6) * 2 * Math.PI, a1 = a0 + Math.PI;
+        return { x: 300 + 26 * Math.cos(a0 + (a1 - a0) * t), y: 300 + 26 * Math.sin(a0 + (a1 - a0) * t) }; },
+      roleOf: () => 'L', passes: { 'L,L': 'right' }, relation: () => null,
+      group: id => id, groups: ids, clearance: 35, engage: 45 });
+    T.setNoEvade(true);
+    const suppressed = T.planCrossings(noEvadeCase(ids));
+    T.setNoEvade(false);
+    nChecks++; check(suppressed.solved && suppressed.solved.skipped === true && suppressed.solved.iterations === 0,
+      '§48e the solve ran with evasion suppressed — its whole output is discarded by construction');
+    let noEvadeDrift = 0;
+    ids.forEach(id => { for (let s = 0; s <= 20; s++){ const t = s / 20;
+      const p = suppressed.at(id, t), q = base(id, t);
+      noEvadeDrift = Math.max(noEvadeDrift, Math.hypot(p.x - q.x, p.y - q.y)); } });
+    nChecks++; check(noEvadeDrift < 1e-9,
+      `§48e a suppressed plan moved a dancer ${noEvadeDrift.toFixed(3)}px off her intended path — the ` +
+      'skipped solve was not without effect after all, so intended-path capture is being distorted');
+
+    // And a satisfiable plan must still be reported as a success, or (a)-(c) are just always-fail.
+    const okPlan = T.planCrossings({
+      ids: ['A', 'B'],
+      base: (id, t) => id === 'A' ? { x: 100 * t, y: -60 + 120 * t } : { x: 300 - 100 * t, y: 60 - 120 * t },
+      roleOf: () => 'L', passes: { 'L,L': 'right' }, relation: () => null,
+      group: id => id, groups: ['A', 'B'], clearance: 35, engage: 45 });
+    nChecks++; check(okPlan.ok === true && okPlan.faults.length === 0,
+      '§48 self-test: a plan with room to spare was reported as a failure');
   }
 
   // 8: determinism — the golden generator produces identical output twice.

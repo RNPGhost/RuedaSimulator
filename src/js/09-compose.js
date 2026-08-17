@@ -7,6 +7,9 @@
  *  1:1. Endpoints land on the Línea grid (the ring context's circle.slot
  *  reproduces linea.slot exactly), so nothing drifts.
  * ------------------------------------------------------------------ */
+/* Grande merges whose re-plan loop ran out of passes without reaching a fixed point. Empty is the
+ * contract — see the note at the loop. */
+const REPLAN_UNSETTLED = [];
 // Each Línea resting/transient state maps to the circle sub-position of the two rings.
 const LINEA_SUB = {
   linea:      { outer: 'casino',   inner: 'afuera' },           // rest
@@ -160,6 +163,7 @@ function grandeFrames(circleKey, from){
      * point, not a single calculation. Two passes settle it; a third is there so "settled" is measured
      * rather than assumed. Pairs that clear at every keyframe were crossing between them at 25.8px
      * against a 34px floor until this loop closed. */
+    let settled = false;
     for (let pass = 0; pass < 3; pass++){
       frames[0].forEach(d => track[d.id] = []);
       frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
@@ -194,8 +198,14 @@ function grandeFrames(circleKey, from){
       frames.forEach((fr, i) => fr.forEach(d => { const q = plan.at(d.id, i / (F1 - 1));
         if (Math.hypot(q.x - d.xy.x, q.y - d.xy.y) > 0.01) moved = true;
         d.xy = q; }));
-      if (!moved) break;
+      if (!moved){ settled = true; break; }
     }
+    /* SETTLED, OR SAID SO. "Two passes settle it; a third is there so settled is measured rather than
+     * assumed" is only true while the third pass keeps finding nothing — and if a figure ever needs a
+     * fourth, the loop silently ships the third pass's output, which is one solve short of a fixed point
+     * and therefore planned against a curve that is not the one drawn. Measured across every Línea call
+     * in the suite it always settles, so this records rather than warns; §33g asserts it stays that way. */
+    if (!settled) REPLAN_UNSETTLED.push({ mv: circleKey, from, n: m * 2, passes: 3 });
   }
   const segBeats = inO.segBeats || outO.segBeats || null;
   return segBeats ? { frames, segBeats } : frames;
@@ -240,8 +250,7 @@ function pequenaFrames(circleKey, from){
    * today (measured: 60.2px against a 35px corridor, tightest at 4 couples where the wheels sit closest),
    * so this pass finds nothing to do and the frames come out unchanged. That is the point: it is the
    * safety net a tighter formation or an overlapping movement will need, wired now rather than after
-   * someone notices two dancers sharing a spot. Same-wheel pairs are excluded because their spacing was
-   * already solved — re-solving pairs that sit exactly ON the corridor would let float noise reopen them. */
+   * someone notices two dancers sharing a spot. NOTHING IS EXCLUDED — see the note at the plan below. */
   const xIds = frames[0].map(d => d.id), F1 = frames.length;
   if (F1 > 1){
     const track = {}; frames[0].forEach(d => track[d.id] = []);
@@ -252,9 +261,6 @@ function pequenaFrames(circleKey, from){
     // Which ring a dancer is on, for the radial relation. Stations 0..m-1 are inner, m..2m-1 outer.
     const ringAt = {}; frames[0].forEach(d => ringAt[d.id] = d.station < m ? 'inner' : 'outer');
     const ringOfStation = id => ringAt[id];
-    const sameWheel = [];
-    for (let i = 0; i < xIds.length; i++) for (let j = i + 1; j < xIds.length; j++)
-      if (wheelOf[xIds[i]] === wheelOf[xIds[j]]) sameWheel.push([xIds[i], xIds[j]]);
     /* Sample the path the way it will be DRAWN, not as a polyline. The renderer blends circles through
      * neighbouring keyframes, so a linear reading of the same keyframes is a different curve — and
      * planning against the wrong one leaves pairs that clear at every keyframe and cross between them
@@ -274,7 +280,16 @@ function pequenaFrames(circleKey, from){
      * clause the grande merge uses, and gap-filling rather than overriding, so a figure that names an
      * inter-wheel pair still wins. */
     const st0p = {}; dancers.forEach(d => st0p[d.id] = d.station);
-    const plan = planCrossings({ ids: xIds, exclude: sameWheel, base: sample,
+    /* SAME-WHEEL PAIRS ARE NOT EXCLUDED, for the reason the grande merge already learned the hard way:
+     * excluding a pair from the CHECK while still moving both of them is how a pass makes things worse
+     * than it found them. It looked safe here because `bonded` names the whole mini-wheel — but `bonded`
+     * only tells SIDE_FAULTS not to judge the pair; it is `unit` that makes dancers share one offset, and
+     * this plan does not set one. So every dancer here has their own via, four of them could be pushed
+     * into each other by cross-wheel evasion, and nothing would have asked. §33f now refuses any
+     * exclusion that is not a same-`unit` pair, so this class of blindness cannot be reintroduced.
+     * Removing the exclusion moved no frame and no golden case: the wheels clear each other by 60.2px,
+     * so the pass still finds nothing to do — it is now merely honest about what it looked at. */
+    const plan = planCrossings({ ids: xIds, base: sample,
       roleOf: id => roleOf[id], bonded: (a, b) => wheelOf[a] === wheelOf[b],
       passes: declaredPasses(mv, LINEA_SUB_PEQ[from] || from) || {},
       relation: (a, b) => {

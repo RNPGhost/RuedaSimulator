@@ -1620,15 +1620,15 @@ const PLAN_LOG = [];
  *    o.group(id)    effort-sharing group key; o.groups names the two groups being balanced.
  *    o.clearance    centre-distance to hold between a crossing pair
  *    o.engage       how near two intended paths must come to count as one engagement
- *    o.forceShare   pin the first group's share instead of balancing (A/B testing)
  *
  *  Returns { at(id,t), share, scale }.
  * ------------------------------------------------------------------ */
 
 function planCrossings(o){
   /* ONE BOOK PER PLAN, built before anything reads a side, and the only thing that answers "which side".
-   * Both resolvers (`sideFor`, which signs the episode swell, and `sideVec`, which aims the vias) consult
-   * it, so they cannot disagree — they used to, because one gated on `o.roleOf` and the other did not. */
+   * `sideVec`, which aims the vias, is now the ONLY thing that asks it — `sideFor` went with the episode
+   * machinery below. One book, one reader. They used to be two, and they could disagree, because one
+   * gated on `o.roleOf` and the other did not. */
   const BOOK = buildSideBook(o);
   const NSMP = o.samples || 40, smpT = [];
   for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
@@ -1647,13 +1647,11 @@ function planCrossings(o){
   // share a single offset, so it deviates as a rigid body instead of being pulled apart. Partners inside
   // a unit are skipped as a candidate pair — they are held together by the figure, not by the planner.
   const unit = o.unit || (id => id);
-  const mates = {}; o.ids.forEach(id => mates[unit(id)] = mates[unit(id)] || []);
-  const live = [];
   // Every pair the solve must hold apart: all candidates except partners inside one rigid unit, whose
-  // spacing the figure fixes. `live` (below) is the subset that crowds on the INTENDED paths and so earns
-  // a swell — but the amplitude is solved against ALL of these, because an evasion can push a pair
-  // together that was never in trouble to begin with. Two couples passing head-on are the clean example:
-  // each sidesteps away from the partner it was going to hit and straight toward the other one.
+  // spacing the figure fixes. Every one of these is solved against, not just the ones that crowd on the
+  // INTENDED paths, because an evasion can push together a pair that was never in trouble. Two couples
+  // passing head-on are the clean example: each sidesteps away from the partner it was going to hit and
+  // straight toward the other one.
   const skip = new Set();
   (o.exclude || []).forEach(pr => { skip.add(pr[0] + '\u0000' + pr[1]); skip.add(pr[1] + '\u0000' + pr[0]); });
   const checkPairs = [];
@@ -1663,82 +1661,32 @@ function planCrossings(o){
     if (skip.has(a + '\u0000' + b)) continue;          // declared as gathering into one couple
     checkPairs.push([a, b]);
   }
-  /* Encounters are built on demand, not once up front. A collision resolved by moving two dancers can
-   * push a third pair together — Sam's loop: "as those collisions are resolved, new collisions may occur,
-   * which need to be added dynamically to the list of collisions... until there are no more collisions on
-   * any dancer's path". `engagePair` is therefore callable at any point in the solve, and remembers what
-   * it has already built. */
-  const epByPair = {}, episodes = [];
-  const pairKey = (a, b) => (a < b ? a + '\u0000' + b : b + '\u0000' + a);
-  function engagePair(a, b, force){
-    const key = pairKey(a, b);
-    // A pair recorded as "no collision" on the first pass MUST still be engageable later: that is the
-    // whole point of the loop, since resolving one collision is what pushes a new pair together. Only a
-    // built episode is remembered; a negative answer is not cached against a later `force`.
-    if (epByPair[key]) return epByPair[key];
-    let crowd = false;
-    for (let s = 0; s < NSMP && !crowd; s++) if (gap(a, b, smpT[s]) < CLEAR) crowd = true;
-    if (!crowd && !force) return null;
-    let t0 = null, t1 = null;
-    for (let s = 0; s < NSMP; s++){ const t = smpT[s];
-      if (gap(a, b, t) < ENGAGE){ if (t0 === null) t0 = t; t1 = t; } }
-    if (t0 === null){                                     // forced open late: no window on the BASE paths,
-      let tc0 = 0.5, g0 = Infinity;                       // so centre it where they actually come closest
-      for (let s = 0; s < NSMP; s++){ const g = gap(a, b, smpT[s]); if (g < g0){ g0 = g; tc0 = smpT[s]; } }
-      t0 = Math.max(0, tc0 - 0.1); t1 = Math.min(1, tc0 + 0.1);
-    }
-    const upEnd = Math.max(t0, R_MIN), upStart = Math.max(0, upEnd - R_MAX);
-    const dnStart = Math.min(t1, 1 - R_MIN), dnEnd = Math.min(1, dnStart + R_MAX);
-    const ep = { upStart, upEnd, dnStart, dnEnd };
-    // WHICH WAY each of them eases, per encounter rather than per movement. A dancer moves AWAY from the
-    // dancer she is passing — the side he is actually on at their closest approach — so two dancers in the
-    // same role separate instead of sliding sideways together, and one dancer can pass one person on her
-    // left and another on her right in the same figure. It used to be a single `pass:'in'|'out'` declared
-    // once per role for a whole movement, which could express neither.
-    let tc = t0, gc = Infinity;
-    for (let s = 0; s < NSMP; s++){ const t = smpT[s], g = gap(a, b, t); if (g < gc){ gc = g; tc = t; } }
-    const sideAB = sideOfBase(a, b, tc);
-    // The CONVENTION decides the side, not the instantaneous geometry. It has to: "move away from where
-    // he actually is" reads well for one encounter and falls apart for several, because a dancer with
-    // passers on both sides nets out to no evasion at all and walks straight through them (measured: a
-    // Dame from Exhibela closing to 2.86px). A convention gives every dancer of a role the same answer,
-    // so simultaneous passes reinforce instead of cancelling — which is what the old per-role
-    // `pass:'in'|'out'` was really encoding, minus the ability to vary it per encounter.
-    // Geometry is the fallback where roles are meaningless — a unit that is a whole couple has no role —
-    // and elsewhere it is the check, below.
-    const sideFor = (x, y) => {
-      const nm = BOOK.lookup(x, y).side;                      // one owner — see buildSideBook
-      /* A RADIAL side, for dancers whose relationship to each other is which ring they are on rather than
-       * which way they are heading. 'out' means you go round the OUTSIDE of them, 'in' the inside. It is
-       * still a rule and not instantaneous geometry-chasing — the formation fixes which way is outward,
-       * not where the other dancer happens to be — so simultaneous passes reinforce exactly as the
-       * left/right conventions do. Sam: an outer-ring dancer "passes on the inner dancer's outward side",
-       * so the two rings never interleave. */
-      if ((nm === 'out' || nm === 'in') && o.orbit){
-        // x's own left normal at the moment of closest approach. Taken from `o.base` directly rather
-        // than from `normalOf`, which is defined further down and which averages over a unit — there are
-        // no units in a formation-wide pass, and this has to be answerable here.
-        const h = 1 / (2 * NSMP);
-        const A = o.base(x, Math.max(0, tc - h)), B = o.base(x, Math.min(1, tc + h));
-        const d = _unit(B.x - A.x, B.y - A.y), P = o.base(x, tc);
-        const away = _unit(P.x - o.orbit.x, P.y - o.orbit.y);
-        if (!d || !away) return +1;
-        const alongLeft = (d.y * away.x + -d.x * away.y) >= 0 ? +1 : -1;
-        return alongLeft * (nm === 'out' ? +1 : -1);
-      }
-      /* The book always answers, so there is no "nothing resolved" branch here any more — a unit that is
-       * a whole couple, or a synthetic planner case with no roles, gets `source: 'default'` and the same
-       * yield-to-your-own-left the engine has always used. The difference is that it is now recorded. */
-      const c = PASS_SIGN[nm];
-      return (c === undefined || c === null) ? +1 : c;
-    };
-    mates[unit(a)].push({ ep, sign: sideFor(a, b) });
-    mates[unit(b)].push({ ep, sign: sideFor(b, a) });
-    live.push({ a, b, tc, headOn: headOnAt(a, b, tc) });
-    epByPair[key] = ep; episodes.push(ep);
-    return ep;
+  /* THE EPISODE MACHINERY IS GONE. It used to live here: `engagePair` built a smooth swell window for
+   * every crowding pair, `mates`/`normalOf`/`bumpOf`/`proxOf`/`shareOf` turned those into a per-unit
+   * lateral offset, and a share was balanced between the two groups. It was the planner's original
+   * design, and the via model replaced it — but only the OUTPUT was replaced. The machinery kept running:
+   * an O(pairs x samples) sweep on every plan whose every product (`proxOf`, `bumpOf`, `normalOf`,
+   * `shareOf`, `ep.amp`) was computed and read by nothing, surviving only because `live.length` happened
+   * to gate the failure warning. `share` and `scale` were frozen at 0.5 and 1, and `forceShare` was inert.
+   *
+   * Deleting it also collapses the last of the two side readers. `sideFor` existed solely to sign an
+   * episode's swell, so with the swell gone there is exactly ONE thing in the engine that asks the Side
+   * Book which way a dancer goes: `sideVec`, which aims the vias. That is the separation of concerns the
+   * Side Book was built for, arriving in full.
+   *
+   * `share` and `scale` remain in the return value because callers read them (`pequenaFrames` gates on
+   * `plan.scale > 0`); they are constants and documented as such. */
+  /* Do these two MEET, or are they going the same way? Only a head-on pass has a mutual side to judge
+   * (PASSING.md) — two dancers travelling roughly together are not passing each other at all. Kept from
+   * the machinery above because the judging sweep needs it; nothing else there does. */
+  function headOnAt(a, b, t){
+    const h = 1 / (2 * NSMP);
+    const da = _unit(o.base(a, Math.min(1, t + h)).x - o.base(a, Math.max(0, t - h)).x,
+                     o.base(a, Math.min(1, t + h)).y - o.base(a, Math.max(0, t - h)).y);
+    const db = _unit(o.base(b, Math.min(1, t + h)).x - o.base(b, Math.max(0, t - h)).x,
+                     o.base(b, Math.min(1, t + h)).y - o.base(b, Math.max(0, t - h)).y);
+    return !!(da && db && (da.x * db.x + da.y * db.y) < -0.3);
   }
-  checkPairs.forEach(pr => engagePair(pr[0], pr[1], false));
   // A pass is judged on its SIDE whenever the two come near enough to be passing each other at all —
   // which is a wider net than the pairs that crowd. Two dancers who go by comfortably still go by on a
   // side, and a figure that sends them past the wrong shoulder is wrong however much room it leaves.
@@ -1781,62 +1729,6 @@ function planCrossings(o){
   const centroid = (u, t) => { const ms = memberIds[u]; let x = 0, y = 0;
     ms.forEach(id => { const p = o.base(id, t); x += p.x; y += p.y; });
     return { x: x / ms.length, y: y / ms.length }; };
-  const normalOf = (u, t) => {
-    const h = 1 / (2 * NSMP);
-    const A = centroid(u, Math.max(0, t - h)), B = centroid(u, Math.min(1, t + h));
-    const d = _unit(B.x - A.x, B.y - A.y);
-    return d ? { x: d.y, y: -d.x } : { x: 0, y: 0 };        // left of travel; a standing unit has none
-  };
-  // Which side of `a` is `b` on at time t, along a's own travel? +1 = b is on a's right.
-  function sideOfBase(a, b, t){
-    const h = 1 / (2 * NSMP);
-    const A = o.base(a, Math.max(0, t - h)), B = o.base(a, Math.min(1, t + h));
-    const d = _unit(B.x - A.x, B.y - A.y);
-    if (!d) return 0;                                        // a is standing: no side to speak of
-    const p = o.base(a, t), q = o.base(b, t);
-    return Math.sign(d.x * (q.y - p.y) - d.y * (q.x - p.x));
-  }
-  function headOnAt(a, b, t){
-    const h = 1 / (2 * NSMP);
-    const da = _unit(o.base(a, Math.min(1, t + h)).x - o.base(a, Math.max(0, t - h)).x,
-                     o.base(a, Math.min(1, t + h)).y - o.base(a, Math.max(0, t - h)).y);
-    const db = _unit(o.base(b, Math.min(1, t + h)).x - o.base(b, Math.max(0, t - h)).x,
-                     o.base(b, Math.min(1, t + h)).y - o.base(b, Math.max(0, t - h)).y);
-    return !!(da && db && (da.x * db.x + da.y * db.y) < -0.3);
-  }
-  const bumpOf = (ep, t) => {
-    const rise = ss5((t - ep.upStart) / Math.max(1e-6, ep.upEnd - ep.upStart));
-    const fall = 1 - ss5((t - ep.dnStart) / Math.max(1e-6, ep.dnEnd - ep.dnStart));
-    return Math.min(rise, fall);
-  };
-  // A unit's profile is the smooth union of its swells: overlapping passes merge into one wider crest
-  // rather than needing a special case. A couple takes the union of BOTH partners' engagements, which is
-  // what makes it ease as one body — if either of them would be brushed, the couple moves.
-  // Within one direction the swells still MERGE — overlapping passes become one wider crest rather than
-  // stacking into a double-width lurch. Across directions they SUM, which is the whole point: a dancer
-  // easing left for one passer and right for another nets out correctly wherever the two overlap, and if
-  // they overlap so much that neither can be satisfied the amplitude solve fails and says so.
-  /* Each encounter carries its OWN amplitude, in pixels — the corridor that collision needs and no more.
-   * A single amplitude for the whole movement meant one tight pair made every dancer swing wide, which is
-   * what made the evasion read as searching rather than dancing. Within a direction the swells still
-   * merge rather than stack (the widest crest wins, so two overlapping passes become one wider one); across
-   * directions they still sum, which is what lets a dancer ease left for one passer and right for another. */
-  const proxOf = (u, t) => {
-    const ms = mates[u]; if (!ms.length) return 0;
-    let accR = 0, accL = 0;
-    ms.forEach(m => { const b = bumpOf(m.ep, t) * (m.ep.amp || 0);
-      if (m.sign >= 0) accR = Math.max(accR, b); else accL = Math.max(accL, b); });
-    return accR - accL;
-  };
-  const gA = (o.groups || [])[0], gB = (o.groups || [])[1];
-  const yields = o.yields || (() => true);
-  const shareOf = (id, w) => yields(id) ? (o.group(id) === gA ? w : 1 - w) : 0;
-  // If one whole group is scripted it can't take any of the corridor, so the other takes all of it —
-  // balancing against a group that never deviates would otherwise drive the movers' share to zero.
-  const moves = g => o.ids.some(id => o.group(id) === g && yields(id) && mates[unit(id)].length);
-  const movesA = moves(gA), movesB = moves(gB);
-  const fixedShare = (movesA && movesB) ? null : (movesA ? 1 : (movesB ? 0 : 0.5));
-  // Clearance depends only on the TOTAL corridor, so the amplitude is solved once (at an even split) and
   // the share only rebalances who yields.
   /* AN EVASION MAY NOT TURN AN ORBIT INSIDE OUT. A unit eases along the normal to its own travel, and on
    * a path that goes round a centre that normal is radial — so an offset comparable to the radius does
@@ -1898,6 +1790,21 @@ function planCrossings(o){
   };
   // `P` is where THIS dancer should be at `t`; what is stored is the displacement that puts them there,
   // which every member of their unit then shares.
+  /* ONE VIA PER MOMENT, and the solve is told when one collision overwrites another's answer.
+   *
+   * A via within t ± 0.06 is replaced, whoever placed it — two collisions a few samples apart therefore
+   * take turns owning the same moment. That used to be invisible AND unbounded: resolve A–B at t=0.45,
+   * then A–C at t=0.47 and A–B's answer is gone; next pass re-fixes A–B and loses A–C; both grow every
+   * pass and run to the cap while neither is ever held. It is the thrash the 10.42x detour came out of.
+   *
+   * Keying vias by PAIR instead was tried and is wrong: two deviations at nearly the same instant then
+   * SUM, and a dancer avoiding two people a few samples apart is thrown twice as far as either needs
+   * (measured — it drove `dame_dos` from the Dile Que No position from clearing to 24.75px against a 35px
+   * corridor). One dancer, one deviation, at any given moment.
+   *
+   * What is fixed is the unboundedness, and it is fixed in the SOLVER rather than here: a pair whose via
+   * keeps being clobbered never improves its gap, so the growth rule freezes it after two futile
+   * placements and reports it. The alternation still happens; it now terminates and says so. */
   const addVia = (id, t, P) => {
     const b = o.base(id, t);
     const d = { x: P.x - b.x, y: P.y - b.y };
@@ -2017,10 +1924,40 @@ function planCrossings(o){
    * the placement answer the path rather than the instant. */
   const GROW_STEP = 1.12, GROW_CAP = 6;
   const grow = {};
+  /* HOW FAR A DANCER MAY BE CARRIED OFF THEIR LINE. §44 measures healthy figures at a median of 1.05x
+   * their straight-line distance, and the honest outliers (a ¾ circle, an out-and-back) at ~2.5x. A via
+   * set that pushes a traveller past this is not a solution that costs a lot — it is a wrong answer that
+   * happens to clear, and the engine has drawn several: a follower walking 1210px where her straight line
+   * was 116px, a 10.42x detour bought to gain the last 0.2px of a corridor she never reached.
+   *
+   * A detour budget makes that OUTCOME UNREACHABLE rather than merely warned about afterwards. A pair
+   * whose placement would breach it is not placed further; the solve keeps its best honest answer and
+   * reports the pair. Applied only to travellers with a real journey — a dancer going almost nowhere has
+   * a meaningless ratio (§44 excludes them for the same reason). */
+  const DETOUR_MAX = o.detourMax || 3.0;
+  const straightOf = {};
+  o.ids.forEach(id => { const A = o.base(id, 0), B = o.base(id, 1);
+    straightOf[id] = Math.hypot(B.x - A.x, B.y - A.y); });
+  const pathLenOf = (id) => { let L = 0, prev = at(id, 0);
+    for (let s = 0; s < NSMP; s++){ const p = at(id, smpT[s]); L += Math.hypot(p.x - prev.x, p.y - prev.y); prev = p; }
+    return L; };
+  const detourOK = () => o.ids.every(id => straightOf[id] < 20 || pathLenOf(id) <= DETOUR_MAX * straightOf[id]);
+  const snapshotVias = () => { const c = {}; Object.keys(vias).forEach(u => c[u] = vias[u].map(v => ({ ...v }))); return c; };
+  const restoreVias = (c) => { Object.keys(vias).forEach(u => { vias[u].length = 0;
+    (c[u] || []).forEach(v => vias[u].push(v)); }); };
+
   const solveVias = () => {
     Object.keys(vias).forEach(u => { vias[u].length = 0; });
-    let worstGap = Infinity;
+    /* BEST-ITERATE MEMORY. Every exit used to return whatever the LAST iteration happened to leave in the
+     * via set — including the widest, most distorted placement a pair reached just before it hit the cap
+     * and was abandoned. So a solve that failed returned its worst attempt rather than its best. The best
+     * arrangement seen is now kept and restored on any exit, successful or not. */
+    let best = { worst: -Infinity, vias: snapshotVias(), ok: false };
+    let worstGap = Infinity, iters = 0;
+    const lastGap = {};                    // per pair: the gap its previous placement achieved
+    const stale = {};                      // per pair: consecutive placements that did not improve it
     for (let it = 0; it < MAXIT; it++){
+      iters = it + 1;
       const shorts = [];
       worstGap = Infinity;
       checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1]);
@@ -2030,7 +1967,8 @@ function planCrossings(o){
           const mid = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
           shorts.push({ a: pr[0], b: pr[1], t: r.tc, gap: r.gap,
             depth: Math.hypot(mid.x - centreOfFormation.x, mid.y - centreOfFormation.y) }); } });
-      if (!shorts.length) return { ok: true, worst: worstGap };
+      if (worstGap > best.worst && detourOK()){ best = { worst: worstGap, vias: snapshotVias(), ok: !shorts.length }; }
+      if (!shorts.length){ restoreVias(best.vias); return { ok: true, worst: Math.max(best.worst, worstGap), iterations: iters }; }
       /* Innermost first (Sam): a collision near the middle pushes its dancers outward, which is what makes
        * the couples further out have to move. Resolve from the centre out, so each outer pair answers the
        * arrangement it will actually meet rather than one about to change under it. */
@@ -2038,19 +1976,42 @@ function planCrossings(o){
       let any = false;
       for (const sh of shorts){
         const k = PAIRKEY(sh.a, sh.b);
-        /* Grow by how short the pair ACTUALLY is, and only once it has already been placed. Compounding a
-         * fixed factor on every pass — including the first placement — is how a pair that needed 0.17px
-         * more ended up thrown several corridors wide; the correction has to be the size of the error. */
+        /* GROWTH HAS TO EARN ITS KEEP. This compounded on every appearance, including a pair's FIRST
+         * placement — the comment above it claimed otherwise and the code did not — so a pair 0.17px
+         * short was thrown several corridors wide, and two pairs whose vias overwrite each other both ran
+         * to the cap. Now: a pair grows only while growing is still closing its gap. Two placements that
+         * fail to improve it and it is frozen at its best and reported, which is the honest answer and
+         * the one the authoring loop needs.
+         *
+         * That also makes the loop terminate on ARGUMENT rather than on the iteration count: finitely
+         * many pairs, each of which can fail to improve at most twice before it stops being grown, so the
+         * set of pairs still being grown is strictly decreasing. MAXIT is a backstop, not the mechanism. */
+        const prev = lastGap[k];
+        if (prev !== undefined && sh.gap <= prev + 0.05) stale[k] = (stale[k] || 0) + 1;
+        else stale[k] = 0;
+        lastGap[k] = sh.gap;
+        if (stale[k] >= 2) continue;                     // wider is not helping this pair; leave it placed
         grow[k] = (grow[k] || 1) * GROW_STEP;
         if (grow[k] > GROW_CAP) continue;                // cannot be placed; report rather than thrash
-        if (resolveAt(sh.a, sh.b, sh.t, grow[k])) any = true;
+        const before = snapshotVias();
+        if (resolveAt(sh.a, sh.b, sh.t, grow[k])){
+          // A placement that breaches the detour budget is worse than not placing: undo it and stop
+          // growing this pair. The dancer keeps a path someone could actually dance.
+          if (!detourOK()){ restoreVias(before); stale[k] = 2; }
+          else any = true;
+        }
       }
-      if (!any) return { ok: false, worst: worstGap };
+      if (!any) break;
     }
-    return { ok: false, worst: worstGap };
+    restoreVias(best.vias);
+    return { ok: best.ok, worst: best.worst === -Infinity ? worstGap : best.worst, iterations: iters };
   };
   const share = 0.5, scale = 1;
-  const solved = checkPairs.length ? solveVias() : { ok: true, worst: Infinity };
+  /* NOTHING TO DO WHEN EVASION IS SUPPRESSED. `at()` ignores vias entirely under NAT_NOEVADE, so this
+   * whole solve was provably without effect — and it ran anyway, twice inside every grande composition
+   * (once per ring, both of which generate their intents with evasion off). Sixty iterations of an
+   * O(pairs x samples) search whose output was discarded by construction. */
+  const solved = (checkPairs.length && !NAT_NOEVADE) ? solveVias() : { ok: true, worst: Infinity, skipped: true, iterations: 0 };
   // POSTCONDITION — say so when the corridor could not be held. The per-encounter solve reports whether
   // it converged; it can fail to, when two encounters demand opposite things of the same dancer at the
   // same moment. Returning that quietly is exactly how two dancers end up sharing a spot with nothing in
@@ -2059,8 +2020,36 @@ function planCrossings(o){
   // invariants §33 asserts no shipped movement ever records a fault.
   // …except with evasion switched off, where the paths are MEANT to collide: NAT_NOEVADE generates the
   // no-evade baseline the naturalness metric measures against, so a shortfall there is the point.
+  /* AN EXCLUSION MUST NOT BE A BLIND SPOT. Excluding a pair says "the figure wants these two close, do
+   * not try to separate them" — a Dame's traveller gathering onto his new partner, a couple walking out
+   * of the rueda side by side. What it must never mean is "and therefore nobody looks at them", because
+   * the plan still MOVES both of them for other reasons and can drive them together while doing it.
+   * That is precisely the fault the grande merge shipped (two leaders at 3.4px, excluded and so unjudged)
+   * and the shape the pequeña merge still had.
+   *
+   * So the exclusion is verified rather than trusted: an excluded pair may be as close as the figure
+   * likes, but the plan may not make them CLOSER than its own input already had them. Measured here on
+   * base vs solved paths, counted, and asserted zero across every solve the suite drives (§33f). A figure
+   * that genuinely needs to close a gap it excluded still can — it does so in its intended paths, which
+   * is where that intent belongs and where this comparison starts from. */
+  let blind = 0, blindWorst = null;
+  if (!NAT_NOEVADE) (o.exclude || []).forEach(pr => {
+    const a = pr[0], b = pr[1];
+    if (unit(a) === unit(b)) return;                   // one rigid body: the plan cannot change their gap
+    let was = Infinity, now = Infinity;
+    for (let s = 0; s < NSMP; s++){ const t = smpT[s];
+      const A0 = o.base(a, t), B0 = o.base(b, t), A1 = at(a, t), B1 = at(b, t);
+      was = Math.min(was, Math.hypot(A0.x - B0.x, A0.y - B0.y));
+      now = Math.min(now, Math.hypot(A1.x - B1.x, A1.y - B1.y)); }
+    /* CLOSER *AND* TOO CLOSE. Merely closer is not damage: a gathering pair is meant to converge, and
+     * evading someone else legitimately shortens the gap on the way (measured across the suite: 160
+     * solves move an excluded pair, the worst by 4.5px, from 53.8px to 49.3px — every one of them still
+     * a corridor and a half apart). The fault is an excluded pair the solve pushed BELOW the corridor it
+     * would have been held to had anyone been looking. */
+    if (now < was - 0.5 && now < CLEAR){ blind++; if (!blindWorst) blindWorst = { a, b, was: +was.toFixed(2), now: +now.toFixed(2) }; }
+  });
   PLAN_LOG.push({ n: o.ids.length, checked: checkPairs.length, excluded: (o.exclude || []).length,
-    units: o.ids.map(id => unit(id)) });
+    blind, blindWorst, units: o.ids.map(id => unit(id)) });
   // Did each pass happen on the side the movement asked for? Checked on the FINAL paths, not the intended
   // ones: easing two dancers apart can legitimately carry a pass onto the other shoulder when they start
   // close enough — measured, two dancers 6px apart end up correctly separated on the declared side — so
@@ -2087,12 +2076,28 @@ function planCrossings(o){
     checkPairs.forEach(pr => { const r = pairClosest(pr[0], pr[1]); if (r.gap < m) m = r.gap; });
     return m; };
   const clear = (checkPairs.length && !NAT_NOEVADE) ? worstNow() : Infinity;
-  if (live.length && clear < CLEAR - 0.05){
-    PLAN_FAULTS.push({ clear, need: CLEAR, ids: o.ids.slice(), pairs: checkPairs.length });
+  /* THE RESULT IS REPORTED, AND THE CALLER CAN READ IT. This used to be gated on `live.length`, a
+   * by-product of the episode machinery, which is the only reason deleting that machinery was visible
+   * here at all — the failure reporting had come to depend on scaffolding nobody knew was load-bearing.
+   * It now gates on the thing it means: there were pairs to hold apart, and they were not held.
+   *
+   * `faults` and `detour` ride on the return value because until now `planCrossings`' own verdict was
+   * computed and thrown away — `solved` was assigned and never read by anything. A caller that wants to
+   * know whether the plan it just applied actually worked can finally ask. */
+  const detour = o.ids.map(id => ({ id, straight: +straightOf[id].toFixed(1),
+      path: +pathLenOf(id).toFixed(1),
+      ratio: straightOf[id] < 20 ? null : +(pathLenOf(id) / straightOf[id]).toFixed(2) }))
+    .filter(d => d.ratio !== null);
+  const faults = [];
+  if (checkPairs.length && !NAT_NOEVADE && clear < CLEAR - 0.05){
+    const f = { clear, need: CLEAR, ids: o.ids.slice(), pairs: checkPairs.length, tag: o.tag || null };
+    faults.push(f);
+    PLAN_FAULTS.push(f);
     if (typeof console !== 'undefined' && console.warn)
-      console.warn(`planCrossings could not clear: closest ${clear.toFixed(2)}px, needs ${CLEAR.toFixed(2)}px [${o.ids.join(",")}] share=${share.toFixed(3)} amps=${episodes.length}`);
+      console.warn(`planCrossings could not clear: closest ${clear.toFixed(2)}px, needs ${CLEAR.toFixed(2)}px [${o.ids.join(",")}] pairs=${checkPairs.length}`);
   }
-  return { at: (id, t) => at(id, t, share, scale), share, scale, clear };
+  return { at: (id, t) => at(id, t, share, scale), share, scale, clear,
+           ok: !faults.length, faults, detour, solved };
 }
 
 /* ------------------------------------------------------------------ *
@@ -3122,6 +3127,9 @@ function afueraFrames(mv, dsReal, N, from){
  *  1:1. Endpoints land on the Línea grid (the ring context's circle.slot
  *  reproduces linea.slot exactly), so nothing drifts.
  * ------------------------------------------------------------------ */
+/* Grande merges whose re-plan loop ran out of passes without reaching a fixed point. Empty is the
+ * contract — see the note at the loop. */
+const REPLAN_UNSETTLED = [];
 // Each Línea resting/transient state maps to the circle sub-position of the two rings.
 const LINEA_SUB = {
   linea:      { outer: 'casino',   inner: 'afuera' },           // rest
@@ -3275,6 +3283,7 @@ function grandeFrames(circleKey, from){
      * point, not a single calculation. Two passes settle it; a third is there so "settled" is measured
      * rather than assumed. Pairs that clear at every keyframe were crossing between them at 25.8px
      * against a 34px floor until this loop closed. */
+    let settled = false;
     for (let pass = 0; pass < 3; pass++){
       frames[0].forEach(d => track[d.id] = []);
       frames.forEach(fr => fr.forEach(d => track[d.id].push(d.xy || pos(d))));
@@ -3309,8 +3318,14 @@ function grandeFrames(circleKey, from){
       frames.forEach((fr, i) => fr.forEach(d => { const q = plan.at(d.id, i / (F1 - 1));
         if (Math.hypot(q.x - d.xy.x, q.y - d.xy.y) > 0.01) moved = true;
         d.xy = q; }));
-      if (!moved) break;
+      if (!moved){ settled = true; break; }
     }
+    /* SETTLED, OR SAID SO. "Two passes settle it; a third is there so settled is measured rather than
+     * assumed" is only true while the third pass keeps finding nothing — and if a figure ever needs a
+     * fourth, the loop silently ships the third pass's output, which is one solve short of a fixed point
+     * and therefore planned against a curve that is not the one drawn. Measured across every Línea call
+     * in the suite it always settles, so this records rather than warns; §33g asserts it stays that way. */
+    if (!settled) REPLAN_UNSETTLED.push({ mv: circleKey, from, n: m * 2, passes: 3 });
   }
   const segBeats = inO.segBeats || outO.segBeats || null;
   return segBeats ? { frames, segBeats } : frames;
@@ -3355,8 +3370,7 @@ function pequenaFrames(circleKey, from){
    * today (measured: 60.2px against a 35px corridor, tightest at 4 couples where the wheels sit closest),
    * so this pass finds nothing to do and the frames come out unchanged. That is the point: it is the
    * safety net a tighter formation or an overlapping movement will need, wired now rather than after
-   * someone notices two dancers sharing a spot. Same-wheel pairs are excluded because their spacing was
-   * already solved — re-solving pairs that sit exactly ON the corridor would let float noise reopen them. */
+   * someone notices two dancers sharing a spot. NOTHING IS EXCLUDED — see the note at the plan below. */
   const xIds = frames[0].map(d => d.id), F1 = frames.length;
   if (F1 > 1){
     const track = {}; frames[0].forEach(d => track[d.id] = []);
@@ -3367,9 +3381,6 @@ function pequenaFrames(circleKey, from){
     // Which ring a dancer is on, for the radial relation. Stations 0..m-1 are inner, m..2m-1 outer.
     const ringAt = {}; frames[0].forEach(d => ringAt[d.id] = d.station < m ? 'inner' : 'outer');
     const ringOfStation = id => ringAt[id];
-    const sameWheel = [];
-    for (let i = 0; i < xIds.length; i++) for (let j = i + 1; j < xIds.length; j++)
-      if (wheelOf[xIds[i]] === wheelOf[xIds[j]]) sameWheel.push([xIds[i], xIds[j]]);
     /* Sample the path the way it will be DRAWN, not as a polyline. The renderer blends circles through
      * neighbouring keyframes, so a linear reading of the same keyframes is a different curve — and
      * planning against the wrong one leaves pairs that clear at every keyframe and cross between them
@@ -3389,7 +3400,16 @@ function pequenaFrames(circleKey, from){
      * clause the grande merge uses, and gap-filling rather than overriding, so a figure that names an
      * inter-wheel pair still wins. */
     const st0p = {}; dancers.forEach(d => st0p[d.id] = d.station);
-    const plan = planCrossings({ ids: xIds, exclude: sameWheel, base: sample,
+    /* SAME-WHEEL PAIRS ARE NOT EXCLUDED, for the reason the grande merge already learned the hard way:
+     * excluding a pair from the CHECK while still moving both of them is how a pass makes things worse
+     * than it found them. It looked safe here because `bonded` names the whole mini-wheel — but `bonded`
+     * only tells SIDE_FAULTS not to judge the pair; it is `unit` that makes dancers share one offset, and
+     * this plan does not set one. So every dancer here has their own via, four of them could be pushed
+     * into each other by cross-wheel evasion, and nothing would have asked. §33f now refuses any
+     * exclusion that is not a same-`unit` pair, so this class of blindness cannot be reintroduced.
+     * Removing the exclusion moved no frame and no golden case: the wheels clear each other by 60.2px,
+     * so the pass still finds nothing to do — it is now merely honest about what it looked at. */
+    const plan = planCrossings({ ids: xIds, base: sample,
       roleOf: id => roleOf[id], bonded: (a, b) => wheelOf[a] === wheelOf[b],
       passes: declaredPasses(mv, LINEA_SUB_PEQ[from] || from) || {},
       relation: (a, b) => {

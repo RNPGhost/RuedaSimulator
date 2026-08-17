@@ -190,7 +190,8 @@ function load(htmlPath) {
       // The renderer's own sub-keyframe interpolation, so test/render.js samples what the
       // screen actually draws rather than a re-implementation of it.
       samplePath, get CORNER_DEG(){ return CORNER_DEG; },
-      get PLAN_FAULTS(){ return PLAN_FAULTS; }, clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; SIDE_FAULTS.length = 0; },
+      get PLAN_FAULTS(){ return PLAN_FAULTS; }, get REPLAN_UNSETTLED(){ return REPLAN_UNSETTLED; },
+      clearFaults(){ PLAN_FAULTS.length = 0; PLAN_LOG.length = 0; SIDE_FAULTS.length = 0; REPLAN_UNSETTLED.length = 0; },
       get PLAN_LOG(){ return PLAN_LOG; },
       lastTiming(){ return { seg: cap.seg, rot: cap.rot, path: cap.segPath, rotStart: cap.rotStart }; },
       seedRot(m){ cap.nodeRot = Object.assign({}, m); },
