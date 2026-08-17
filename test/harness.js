@@ -106,9 +106,9 @@ function load(htmlPath) {
     };
     // runMovement -> stash the key + pre-flip phase for the playMovement hook.
     const _origRM = runMovement;
-    runMovement = function(key, fromQueue, note, leadBeats){
+    runMovement = function(key, fromQueue, leadBeats){
       cap.curKey = key; cap.curPhaseBefore = phase;
-      return _origRM(key, fromQueue, note, leadBeats);
+      return _origRM(key, fromQueue, leadBeats);
     };
 
     function gridOf(){
@@ -152,8 +152,9 @@ function load(htmlPath) {
     }
     function resetEngine(){
       queue = []; queueCalls = []; engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null;
+      pendingCall = null; rawMovement = false;
       animating = false; justIssued = false; beatCursor = 0;
-      currentCallLabel = null; currentMoveLabel = null;
+      currentCall = null; currentMoveLabel = null;
       history = []; histPos.length = 0; histPhase.length = 0; histQueue.length = 0; histQueueCalls.length = 0;
       mode = 'live'; cap.transcript = []; cap.nodeRot = {};   // a reset clears the DOM nodes too
     }
@@ -188,6 +189,13 @@ function load(htmlPath) {
       // Which wheel a figure is danced on — the reference a progression is counted against. Asked of the
       // engine rather than re-derived here: a re-derivation is a second opinion waiting to disagree.
       refWheels, composeKind, declaredPasses, callDanceableFrom, resolveSets,
+      // The interruption vocabulary, asked of the engine rather than re-derived: §41/§42 assert rules
+      // ABOUT these, and a test that computed its own answer would only be checking itself.
+      get INTERRUPTIBLE(){ return INTERRUPTIBLE; },
+      positionDefault, dileInterruptAt, mujeresLandsFrom, interruptionPointAhead,
+      // Put the engine in a chosen mid-sequence state so the interruption rule can be probed directly.
+      poseQueue(pos, keys){ posState = pos; queue = keys.slice(); queueCalls = keys.map(() => ({ id: 0, label: 'x' }));
+        engineActive = true; animating = false; awaiting = false; pendingInterrupt = null; pendingCall = null; },
       viaTrace(on){ VIA_TRACE = on ? [] : null; return VIA_TRACE; }, getViaTrace(){ return VIA_TRACE; },
       // The winding each traveller's progression declared, from the most recent travel the engine ran.
       lastSweeps(){ return Object.assign({}, LAST_SWEEPS); },
@@ -226,8 +234,10 @@ function load(htmlPath) {
         dancers = lineaBaseState(n);
         for (const k of setupKeys) doMovement(k);
         cap.frames = null; cap.segBeats = null;
+        const fromPos = posState;                       // the position the captured movement is danced FROM
         doMovement(key);
-        const r = { frames: cap.frames, start: cap.start, segBeats: cap.segBeats, endPos: posState, endPhase: phase, dancers: this._snap() };
+        const r = { frames: cap.frames, start: cap.start, segBeats: cap.segBeats, fromPos,
+          endPos: posState, endPhase: phase, dancers: this._snap() };
         layoutName = 'circle';
         return r;
       },

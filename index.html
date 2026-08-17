@@ -122,13 +122,23 @@
   .beatbig{position:absolute;top:6px;right:18px;font-size:72px;line-height:1;font-weight:800;
            color:var(--accent);opacity:.92;font-variant-numeric:tabular-nums;pointer-events:none;
            text-shadow:0 2px 14px rgba(0,0,0,.55)}
-  .nowplaying{position:absolute;top:12px;left:18px;font-size:15px;font-weight:600;color:var(--ink);
-              pointer-events:none;max-width:60%;text-shadow:0 2px 12px rgba(0,0,0,.55)}
+  /* The corner stack: now-playing, a gap, the queue. `min-height` on the now-playing line keeps the
+     queue from jumping up and down as calls start and stop — the queue is a list you read, and a list
+     that moves when nothing about it changed is a list you stop trusting. */
+  .corner{position:absolute;top:12px;left:18px;pointer-events:none;max-width:60%}
+  .nowplaying{font-size:15px;font-weight:600;color:var(--ink);min-height:20px;
+              text-shadow:0 2px 12px rgba(0,0,0,.55)}
   .nowplaying .np-call{color:var(--accent)}
   .nowplaying .np-move{color:var(--ink)}
-  #queueList .qmove{color:var(--ink);font-size:13px;line-height:1.7}
-  #queueList .qnum{color:var(--muted);font-size:12px}
-  #queueList .qempty{color:var(--muted);font-size:12px;font-style:italic}
+  /* 22px of nothing. Not a border, not a rule — the queue is the same kind of thing as the line above it
+     and a divider would imply otherwise; it is simply not happening yet, and distance says that. */
+  .queuelist{margin-top:22px;text-shadow:0 2px 12px rgba(0,0,0,.55)}
+  .queuelist .qhead{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);
+                    margin-bottom:4px;font-weight:600}
+  .queuelist .qcall{font-size:13.5px;line-height:1.65;color:var(--ink);opacity:.72}
+  .queuelist .qcall .qnum{color:var(--muted);font-size:12px;margin-right:4px}
+  /* The next call up is the one about to be danced — it reads brighter than the ones behind it. */
+  .queuelist .qcall.qnext{opacity:1;font-weight:600}
   .beatstrip{display:flex;justify-content:center;margin-top:2px}
   .beatpips{display:flex;gap:8px}
   .beatpips span{width:30px;height:9px;border-radius:5px;background:var(--line);transition:background .06s}
@@ -166,7 +176,13 @@
 
     <div class="stage">
       <svg id="stage" viewBox="85 5 510 510" preserveAspectRatio="xMidYMid meet"></svg>
-      <div id="nowplaying" class="nowplaying"></div>
+      <!-- Top-left corner: what is happening NOW, then a deliberate gap, then what is coming. The gap is
+           the whole point — it is what tells a dancer at a glance which line is the call being danced and
+           which lines are merely promised. -->
+      <div class="corner">
+        <div id="nowplaying" class="nowplaying"></div>
+        <div id="queueList" class="queuelist"></div>
+      </div>
       <div id="beatbig" class="beatbig">1</div>
     </div>
 
@@ -202,11 +218,6 @@
 
     <div class="side-scroll">
       <div class="card" style="margin-top:0">
-        <h2>Queue <span class="hint">— called, not yet executed</span></h2>
-        <div id="queueList"></div>
-      </div>
-
-      <div class="card">
         <h2>Call log</h2>
         <div id="log"></div>
       </div>
@@ -232,7 +243,7 @@ const MOVEMENTS = {
   dame: {
     label: 'Dame',
     desc: 'Progresses the leader one couple, ending in Exhibela facing the new partner. Leader and follower now travel toward each other and meet at the spoke midway between their two old couples — so the wheel flips to the other of its two spoke configs and lands exactly on the grid (no drift). The follower progresses clockwise (anti-clockwise afuera) to the meeting spoke.',
-    requires: ['casino', 'exhibela', 'dile'], sets: 'exhibela', progresses: 1, afueraReady: true,
+    requires: ['casino', 'exhibela', 'dile'], sets: 'exhibela', progresses: 1, afueraReady: true, interrupt: true,
     // Odd from Casino and Exhibela (dh −1/+1), even from the Dile Que No position (−2/0, the follower
     // scripted): the flip is the arithmetic, not a flag that happens to travel with the name.
     flipsPhase: (from) => virtualPos(from) !== 'dile',
@@ -254,7 +265,7 @@ const MOVEMENTS = {
     // NOT afuera. Holding the pass sides — which afuera does not change — sends the leaders round an
     // enormous arc, which is why it is almost never called that way on a floor. Sam: ban it rather than
     // draw it. The same reasoning retires its Línea forms below.
-    requires: ['casino', 'exhibela', 'dile'], sets: 'exhibela', progresses: 2,
+    requires: ['casino', 'exhibela', 'dile'], sets: 'exhibela', progresses: 2, interrupt: true,
     flipsPhase: (from) => virtualPos(from) !== 'dile',
     anim: { duration: 820 },
     beats: 4,
@@ -335,7 +346,7 @@ const MOVEMENTS = {
   dile: {
     label: 'Dile Que No',
     desc: "From Exhibela: both open with the first three Exhibela stages along their Exhibela lines (leader dips in/back/out facing the follower throughout; follower steps out turning 90° right to the centre, back, then in turning 90° left to the tangent), then a 180° anti-clockwise orbit settles them into Casino — the follower turning a further 180° left to face her leader.",
-    requires: ['exhibela'], sets: 'casino',
+    requires: ['exhibela'], sets: 'casino', interrupt: true,
     beats: 8,
     play: { figure: 'dile_full' },
     anim: { speed: 0.092, rotSpeed: 0.40 }
@@ -353,10 +364,25 @@ const MOVEMENTS = {
     desc: 'From the Dile Que No position: the women advance. Each follower progresses one partnership clockwise to the next couple’s Exhibela spot (doing all the travelling, staying inside the ring), while each leader retraces his 4-beat Dile Que No in reverse back to his own Exhibela spot, facing the centre then turning right to meet his new follower. Ends in Exhibela — leaders not progressed, the pairing shifted by one, no phase change.',
     requires: ['dile'], sets: 'exhibela', progresses: 1, entryOnly: true,
     beats: 4,
-    play: { travel: 'mujeres', opts: { steps: 24, settle: 0.3, beats: 4 },
+    // `mirror` so the figure can be danced inside out. Línea Moderna's inner ring is an inverted rueda,
+    // so a grande Mujeres Arriba needs the women progressing the other way round there; without this the
+    // inner ring danced it the outer ring's way and the two halves disagreed about which way is forward.
+    play: { travel: 'mujeres', mirror: true, opts: { steps: 24, settle: 0.3, beats: 4 },
       script: { L: { kind: 'to_lane', ease: 'smooth' } },
       // He holds facing the centre, then turns to his RIGHT onto the woman arriving beside him.
       face: { L: { from: 'centre', to: 'partnerEnd', after: 0.62, dir: 'cw' } } },
+    anim: { speed: 0.10, rotSpeed: 0.42 }
+  },
+  /* The per-ring figure the grande Mujeres Arriba composes. `requires: []` so nothing offers it directly
+   * — it is not a circle figure and there is no circle position it belongs to; `grandeFrames` reaches it
+   * by name, which does not go through `validFrom`. It exists as a movement rather than as an inline
+   * special case so the grande form is built the same way every other grande form is. */
+  mujeres_shared: {
+    label: 'Mujeres Arriba (shared)',
+    desc: 'From the Dile Que No position: the women advance one couple, but the men advance to meet them rather than standing. Each dancer crosses one half-spacing — she clockwise, he anti-clockwise — so they meet on the between-spoke and the wheel lands on the other config. Same pairing result as a Mujeres Arriba, half the distance each.',
+    requires: [], sets: 'exhibela', progresses: 1, flipsPhase: true, entryOnly: true,
+    beats: 4,
+    play: { travel: 'mujeres_shared', mirror: true, opts: { steps: 24, settle: 0.3, beats: 4 } },
     anim: { speed: 0.10, rotSpeed: 0.42 }
   },
   enchufla: {
@@ -474,19 +500,26 @@ const MOVEMENTS = {
    *
    * The Dame family keeps its two forms, because there the marker is the whole point: from LM Casino a
    * Dame Grande and a Dame Pequeña are both callable and land the dancers somewhere different. */
-  const IN_PLACE = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'dile', 'dile4'];
+  /* `exhibela` is in this list so that CON EXHIBELA CAN DIVERT IN LÍNEA. The divert sets the queue to
+   * the Exhibela movement, and that movement only accepted the circle Exhibela position — so from LM
+   * Exhibela `nextMovement` dropped it as invalid and the divert silently did nothing. It is danced
+   * inside the couple and changes nobody's slot, so it belongs here with the rest of the in-place
+   * family and needs no second name. */
+  const IN_PLACE = ['enchufla', 'vacilala', 'adios', 'leaders_enchufla', 'exhibela', 'dile', 'dile4'];
   const PROGRESSING = ['dame'];
   for (const key of IN_PLACE){
     const m = MOVEMENTS[key];
     const circlePlay = m.play, circleSets = m.sets, circleBeats = m.beats;
     const lineaFrom = m.requires.filter(v => pMap(v) !== v).map(pMap);
     m.requires = m.requires.concat(lineaFrom);
-    m.linea = true;
-    /* The 4-beat Dile Que No keeps its Línea floor and gains none in the circle: on a mini wheel its step
-     * runs along a spoke that points at the MAIN centre, and at four couples the inner couples sit only
-     * ~38px out, so a true-to-life step lands their leaders on top of each other (29.6px apart). A real
-     * physical limit — people do not shrink with the wheel — and one that only exists on the small wheel. */
-    if (key === 'dile4') m.minCouples = (from) => (LINEA_SUB_PEQ[from] ? 6 : 0);
+    m.linea = true;   // `interrupt` rides along on the movement itself: same figure, same junctures
+    /* THE 4-BEAT DILE QUE NO IS NOT GATED IN LÍNEA, and the gate that used to be here is why Sam found it
+     * missing. It carried `minCouples: 6` against a measurement of "29.6px apart at four couples", taken
+     * before the via-point pathing landed. Re-measured on the current engine: the closest any two dancers
+     * come during the figure is **36.42px at four couples — identical to six and eight** — against a 34px
+     * floor, landing 46px apart. The wheel it is danced on does not change the step; only the endpoints
+     * moved, and they moved far enough. A stale number was hiding a working figure, so it is gone rather
+     * than adjusted: there is nothing left for it to protect. */
     // From a Línea position, resolve the underlying circle answer and map it back into Línea's names.
     m.sets = (from) => {
       if (!LINEA_SUB_PEQ[from]) return (typeof circleSets === 'function') ? circleSets(from) : circleSets;
@@ -513,7 +546,7 @@ const MOVEMENTS = {
      * geometric limit rather than a preference: the figure does not fit. */
     const grandeMin = (key === 'dame_dos') ? 8 : m.minCouples;
     MOVEMENTS[key + '_grande'] = {
-      label: m.label + ' Grande', linea: true, minCouples: grandeMin,
+      label: m.label + ' Grande', linea: true, minCouples: grandeMin, interrupt: m.interrupt,
       requires: m.requires.filter(v => gMap(v) !== v).map(gMap), sets: mapSets(m.sets, gMap, gUn),
       progresses: m.progresses, flipsPhase: m.flipsPhase,
       beats: mapBeats(m.beats, gUn), anim: m.anim,
@@ -526,29 +559,52 @@ const MOVEMENTS = {
     const pKey = key === 'dame' ? 'dame_pequena' : key === 'dame_dos' ? 'dame_dos_pequena' : key;
     const pm = MOVEMENTS[pKey];
     MOVEMENTS[key + '_peq'] = {
-      label: m.label + ' Pequeña', linea: true,
+      label: m.label + ' Pequeña', linea: true, interrupt: m.interrupt,
       requires: m.requires.filter(v => pMap(v) !== v).map(pMap), sets: mapSets(m.sets, pMap, pUn),
       progresses: m.progresses,                                   // never flips phase
       beats: mapBeats(pm.beats, pUn), anim: pm.anim,
       play: { compose: 'pequena', of: pKey },
     };
   }
-  // Pequeña-only figures. The 4-beat Dile Que No and Mujeres Arriba are defined against the couple's own
-  // little wheel, so they only read in the pequeña sense — each mini 2-couple wheel dances them as its own
-  // rueda. (A grande Mujeres Arriba would just be a Dile Que No y Dame, so it has no grande form.)
+  /* MUJERES ARRIBA HAS BOTH FORMS, because it PROGRESSES — and a progression is exactly where grande and
+   * pequeña stop meaning the same thing. Grande: each woman advances one couple around her own RING.
+   * Pequeña: she crosses to the other couple of her mini 2-couple wheel, which swaps her between the
+   * rings. Two different figures, both real, both reachable from the same LM Dile Que No position.
+   *
+   * The 4-beat Dile Que No that gets you there does NOT need two forms, and that is measured rather than
+   * assumed: it progresses nobody, and the grande and pequeña Dile Que No positions are the same place to
+   * 0.00px, so both senses describe one figure. It stays in IN_PLACE with the rest of the in-place
+   * family. This is the same rule as before — Grande and Pequeña are markers for which slot to progress
+   * to, so a figure that progresses nobody has one form — now applied one level further in. */
   for (const key of ['mujeres']){
     const m = MOVEMENTS[key];
+    const shared = MOVEMENTS[key + '_shared'];
+    MOVEMENTS[key + '_grande'] = {
+      label: m.label + ' Grande', linea: true,
+      requires: m.requires.map(pMap), sets: mapSets(m.sets, gMap, gUn),
+      // A grande progression around a ring FLIPS THE PHASE, because both dancers cross an odd half-spacing
+      // to meet in between. Read off the figure it composes rather than off `mujeres`, which does not.
+      progresses: shared.progresses, flipsPhase: shared.flipsPhase,
+      beats: mapBeats(m.beats, pUn), anim: m.anim,
+      /* NO GATE, AND THE REASON IS THE FIGURE, NOT THE COUPLE COUNT. Built the obvious way — she advances
+       * a whole couple while he stands — this needed six: on a ring of two a whole couple IS the ring, so
+       * both women travelled the same near-antipodal chord in opposite senses and the planner reported it
+       * could not clear them (12.2px against a 35px corridor at four couples). Sam's rule dissolved it
+       * rather than gating it: a grande progression flips the phase, so each dancer crosses one odd
+       * half-spacing and they meet on the between-spoke. Measured on the shared form: **41.45px clear at
+       * four, six and eight couples alike, with every path exactly 1.00× its straight line** — the figure
+       * now needs no evasion at all, at any size. The gate was a symptom of getting the dance wrong. */
+      play: { compose: 'grande', of: key + '_shared' },
+    };
     MOVEMENTS[key + '_peq'] = {
       label: m.label + ' Pequeña', linea: true,
       requires: m.requires.map(pMap), sets: mapSets(m.sets, pMap, pUn),
       progresses: m.progresses,
       beats: mapBeats(m.beats, pUn), anim: m.anim,
-      // The Dile Que No step runs along each couple's mini-wheel spoke, and for the inner ring that
-      // points at the MAIN centre. At 4 couples the inner couples sit only ~38px out, so a true-to-life
-      // step lands their leaders on top of each other at the middle (29.6px apart). A real physical
-      // limit — people don't shrink with the wheel — so the figure is offered from 6 couples up, where
-      // there is room (37.5px clear at 6 and 8).
-      minCouples: 6,
+      /* No gate. It carried the same stale `minCouples: 6` the 4-beat Dile Que No did, from the same
+       * pre-via-point measurement. Re-measured: the closest approach is **33.15px at four, six AND eight
+       * couples** — the identical number, because a mini 2-couple wheel is the same size whatever the
+       * rueda around it is doing. A figure whose clearance does not vary with N cannot have a floor in N. */
       play: { compose: 'pequena', of: key },
     };
   }
@@ -574,13 +630,22 @@ const CALLS = {
   la_familia: { label: 'La Familia', desc: "Call from Casino: Adios, Leader's Enchufla, Enchufla, Adios, Adios, Dame, then (by default) a Dile Que No. Progresses the leader one couple.", from: ['casino', 'afuera'], seq: ['adios', 'leaders_enchufla', 'enchufla', 'adios', 'adios', 'dame'] },
   enchufla_afuera: { label: 'Enchufla Afuera', desc: "Call from Casino: an Enchufla, a Leader's Right Turn, then Afuera — leaving the wheel in the new Afuera Casino position (it looks like Exhibela but behaves like an inside-out Casino). No default Dile Que No: the wheel stays afuera.", from: ['casino'], seq: ['enchufla', 'leaders_right_turn', 'afuera'] },
   enchufla_adentro: { label: 'Enchufla Adentro', desc: "Call from Afuera Casino only: an (afuera) Enchufla, a Leader's Right Turn, then Adentro — un-flipping the wheel back to normal Casino position.", from: ['afuera'], seq: ['enchufla', 'leaders_right_turn', 'adentro'] },
-  mujeres_arriba: { label: 'Mujeres Arriba', desc: 'Call from Exhibela: a 4-beat Dile Que No into the Dile Que No position, then Mujeres Arriba — the women each progress one couple clockwise to a new partner while the men return to their own spots. Ends in Exhibela (a default Dile Que No then closes back to Casino).', from: ['exhibela'], seq: ['dile4', 'mujeres'] },
+  /* MUJERES ARRIBA INTERRUPTS A DILE QUE NO. `interruptsDile` says: this call may also be shouted while
+   * the wheel is moving, and when the next juncture is a Dile Que No with nothing queued behind it, it
+   * takes that Dile Que No's place — its own 4-beat Dile Que No opens instead, and the women go up from
+   * there. The close is not lost, it is deferred: Mujeres Arriba lands in Exhibela, and a transient
+   * Exhibela with nothing queued defaults to a Dile Que No, so the wheel still comes home. Nothing here
+   * says so; that is just the rule of rueda doing its job.
+   *
+   * Same declaration on all three forms, because it is the same figure on three different wheels. */
+  mujeres_arriba: { label: 'Mujeres Arriba', interruptsDile: true, desc: 'Call from Exhibela, or shouted over a Dile Que No that has nothing queued behind it: a 4-beat Dile Que No into the Dile Que No position, then Mujeres Arriba — the women each progress one couple clockwise to a new partner while the men return to their own spots. Ends in Exhibela (a default Dile Que No then closes back to Casino).', from: ['exhibela'], seq: ['dile4', 'mujeres'] },
   // --- Rueda Línea Moderna calls (all from the resting 'linea' state) ---
   // Progressing figures get a GRANDE (whole rings, standard Dame, phase as usual) and a PEQUEÑA (mini
   // wheels, Dame → Dame Pequeña, no phase change). Each closes with a default Dile Que No (grande/peq).
   linea_moderna: { label: 'Línea Moderna', desc: 'Call from Casino: the rueda opens into the Rueda Línea Moderna formation — primeros (the cantante’s couple and every other one clockwise) to the inner ring, turning anti-clockwise into place; segundos out to the outer ring on their own spokes. Even couple counts only.', from: ['casino'], seq: ['linea_moderna'] },
   dame_linea:    { label: 'Dame Línea',    desc: 'Call from Casino: a Dame that lands the wheel in Rueda Línea Moderna — segundo leaders Dame out to the outer ring with the primero followers, primero leaders and segundo followers walk in to the inner ring, all in Exhibela. Closes with a Dile Que No Grande. Even couple counts only.', from: ['casino'], seq: ['dame_linea'] },
-  mujeres_arriba_pequena: { label: 'Mujeres Arriba Pequeña', lm: true, minCouples: 6, desc: 'Call from Línea Moderna Exhibela: a 4-beat Dile Que No Pequeña into the Línea Moderna Dile Que No position, then Mujeres Arriba — inside every mini 2-couple wheel the women progress to the other couple while the men return to their own spots. Ends in Línea Moderna Exhibela (a Dile Que No Pequeña then closes back to LM Casino).', from: ['linea_ex'], seq: ['dile4', 'mujeres_peq'] },
+  mujeres_arriba_pequena: { label: 'Mujeres Arriba Pequeña', lm: true, interruptsDile: true, desc: 'Call from Línea Moderna Exhibela, or over a Dile Que No with nothing queued behind it: a 4-beat Dile Que No into the Línea Moderna Dile Que No position, then Mujeres Arriba Pequeña — inside every mini 2-couple wheel the woman crosses to the other couple, swapping her between the rings, while the men return to their own spots. Ends in Línea Moderna Exhibela (a Dile Que No then closes back to LM Casino).', from: ['linea_ex'], seq: ['dile4', 'mujeres_peq'] },
+  mujeres_arriba_grande:  { label: 'Mujeres Arriba Grande',  lm: true, interruptsDile: true, desc: 'Call from Línea Moderna Exhibela, or over a Dile Que No with nothing queued behind it: a 4-beat Dile Que No into the Línea Moderna Dile Que No position, then Mujeres Arriba Grande — the pairing advances one couple around each RING, and each dancer crosses one half-spacing to meet in between, so the wheel lands on the other config. The pequeña crosses the woman between rings instead. Ends in Línea Moderna Exhibela. Available at every couple count, exactly as the pequeña is.', from: ['linea_ex'], seq: ['dile4', 'mujeres_grande'] },
   rueda:         { label: 'Rueda',         lm: true, desc: 'Call from Línea Moderna: fold the two rings back into a single rueda — outer couples walk straight in on their own spokes, inner couples come out one place clockwise of them, turning anti-clockwise into place.', from: ['linea'], seq: ['rueda'] },
   adios_rueda:   { label: 'Adios Rueda',   lm: true, desc: 'Call from Línea Moderna: the same fold back to the rueda, but the inner couples sweep clockwise the long way round into their new orientation.', from: ['linea'], seq: ['adios_rueda'] },
   adios_linea:   { label: 'Adios Línea',   desc: 'Call from Casino: the same opening into Rueda Línea Moderna, but the primeros sweep clockwise the long way round into the inner ring — the Adios-flavoured entry. Even couple counts only.', from: ['casino'], seq: ['adios_linea'] },
@@ -754,6 +819,7 @@ let LM_ROT_SPAN = 0.75;
 
 /* ------------------------------ state ------------------------------ */
 let N = 4, layoutName = 'circle', dancers = [], history = [], stepCount = 0, animating = false;
+let logCount = 0;             // the call log numbers CALLS; stepCount counts movements (undo bookkeeping)
 let speedMul = 1;             // tempo multiplier from the slider (0.2×…1×…2×, 1 = base tempo)
 const BASE_MS_PER_BEAT = 400; // base musical tempo; a movement lasts (its beats) × ms-per-beat
 let beatCursor = 0;           // total beats danced so far; (beatCursor % 8) is the current beat of the measure
@@ -781,6 +847,12 @@ const POSITIONS = {
   // (outside the ring) facing the centre, follower on the INNER lane (inside the ring) facing
   // perpendicular to the spoke (clockwise). Reached by the 4-beat Dile Que No; a resting state.
   dile:            { variant: 'dile',     inverted: false, virtual: 'dile',     name: 'Dile Que No position' },
+  /* The same place with the wheel inside out — the roles' lanes swap, so the leader stands a step
+   * TOWARD the centre and the follower a step away. It exists for the same reason `afuera` does: Línea
+   * Moderna's inner ring is a rueda dancing inverted, and a grande figure composed from the LM Dile Que
+   * No position has to be able to say where that ring stands. Without it there was no grande Mujeres
+   * Arriba, because there was no grande Dile Que No position to dance one from. */
+  afuera_dile:     { variant: 'dile',     inverted: true,  virtual: 'dile',     name: 'Afuera Dile Que No position' },
   // Rueda Línea Moderna resting state (two rings). Its own variant so no circle default (Dile Que No)
   // fires and circle-only calls/movements gate off from it.
   linea:           { variant: 'linea',    inverted: false, virtual: 'linea',    name: 'Línea Moderna Casino position' },
@@ -798,22 +870,46 @@ const POSITIONS = {
   // reached by the 4-beat Dile Que No Pequeña from LM Exhibela.
   linea_dile:      { variant: 'linea',    inverted: false, virtual: 'linea_dile', name: 'Línea Moderna Dile Que No position' },
 };
-const INVERTED_OF = { casino: 'afuera', exhibela: 'afuera_exhibela' };   // entering afuera from a non-inverted position
+const INVERTED_OF = { casino: 'afuera', exhibela: 'afuera_exhibela', dile: 'afuera_dile' };   // entering afuera from a non-inverted position
 let callBtns = {}, moveBtns = {};
 // call engine state
 let mode = 'live';            // 'live' (queue calls freely) | 'step' (pause at each decision point)
 let queue = [];               // pending movement keys for the current call + its continuations
-let queueCalls = [];          // parallel to queue: the call label that owns each queued movement (kept in lockstep)
+/* A CALL IS THE UNIT, A MOVEMENT IS NOT. `queue` holds movement keys because that is what the engine
+ * runs, but the caller shouted CALLS and the display owes them calls back. `queueCalls` is parallel to
+ * `queue` and holds, for each queued movement, a reference to the CALL INSTANCE that put it there.
+ *
+ * An instance, not a label. Two Dames chained back to back are two entries in the queue and must stay
+ * two — collapsing the movement list by label would silently merge them into one, and a caller watching
+ * their second Dame vanish would be right to distrust the whole panel. Identity by `id` cannot merge
+ * two separate shouts of the same call, and shares freely across the several movements of one call. */
+let callSeq = 0;
+const mkCall = label => ({ id: ++callSeq, label });
+let queueCalls = [];          // parallel to queue: the call INSTANCE that owns each queued movement
 let engineActive = false;     // a call sequence (including the auto Dile Que No) is underway
 let awaiting = false;         // step mode: paused at a decision point waiting for a call / silence
 let pendingDefault = null;    // the movement 'silence' would run at the current pause
 let pendingInterrupt = null;  // a diverting call (con Exhibela) waiting to apply at the next interruption point
-let currentCallLabel = null;  // the call whose movement is running NOW (null = a raw movement / idle)
+/* A pending interrupt is a QUEUED CALL that happens not to live in `queue` — it waits for an
+ * interruption point rather than a slot. The caller shouted it and expects to see it, so it shows at the
+ * BOTTOM of the queue: `nextMovement` drains `queue` first, so the interrupt really does run last. */
+let pendingCall = null;       // the call instance behind pendingInterrupt, for display
+let currentCall = null;       // the call INSTANCE whose movement is running NOW (null = a raw movement / idle)
 let currentMoveLabel = null;  // the movement currently animating (null = idle) — shown top-left as "Call: Movement"
 const histQueue = [];         // parallel undo stack for the queue
 const histQueueCalls = [];    // parallel undo stack for queueCalls
-// Interruption points: a call only takes effect right before a Dame or before a Dile Que No.
-const INTERRUPTIBLE = new Set(['dame', 'dame_dos', 'dile']);
+/* INTERRUPTION POINTS ARE DERIVED, NOT LISTED. A call only takes effect right before a Dame or before a
+ * Dile Que No — but this was a hand-written set of three CIRCLE keys, and Línea Moderna dances the same
+ * figures under derived names. `dame_grande` was not in it, so `interruptionPointAhead()` could not see
+ * the juncture before an Adios Grande's closing Dame and con Exhibela greyed out for the whole figure.
+ * Sam: "I don't seem to be able to call 'con Exhibela' as an interruption move in Linea Moderna. I tried
+ * doing it during an Adios Grande."
+ *
+ * So the three base figures declare `interrupt: true` and the Línea builder carries the flag onto every
+ * form it mints. A future formation that derives new names gets its interruption points for free, and
+ * cannot quietly lose them the way this one did. Every form the Línea builder mints is already in
+ * MOVEMENTS by the time this line runs, so the whole family falls out of one filter. */
+const INTERRUPTIBLE = new Set(Object.keys(MOVEMENTS).filter(k => MOVEMENTS[k].interrupt));
 
 function baseState(n){
   if (layoutName === 'linea') return lineaBaseState(n);
@@ -888,6 +984,7 @@ const REST_LANES = {
   afuera:          { L: 'cw',    F: 'ccw'   },   // Afuera Casino looks like Exhibela
   afuera_exhibela: { L: 'ccw',   F: 'cw'    },   // Afuera Exhibela looks like Casino
   dile:            { L: 'outer', F: 'inner' },
+  afuera_dile:     { L: 'inner', F: 'outer' },   // inside out: his step out from the ring points inward
 };
 /* `lane` must be AUTHORITATIVE after a movement, not a souvenir of where the dancer started. Most circle
  * generators carry `lane` through untouched — harmless while `pos()` prefers the live `xy`, but wrong the
@@ -2409,8 +2506,38 @@ const TRAVELS = {
                                        F: { scripted: true, lane: 'ccw' } },
   dile_dame_dos: { groups: ['L', 'F'], passes: Object.assign({}, PASSES_RUEDA, { partner0: 'right' }), L: { dh: -4, lane: 'cw' },
                                        F: { scripted: true, lane: 'ccw' } },
-  mujeres:      { groups: ['F', 'L'], passes: PASSES_RUEDA, F: { dh:  2, lane: 'ccw' },
+  /* THE WOMEN PASS EACH OTHER ON THE LEFT — over each other's right shoulders. Sam: "the followers should
+   * be going clockwise around the mini wheels, which would mean that they would pass to the left of the
+   * other follower (over the right shoulder)."
+   *
+   * The rueda default for a same-role pair is 'right', and it is the right default: two leaders crossing
+   * the wheel in opposite directions meet head-on, and the wheel's handedness settles it. That is not this
+   * pair. Both women are going the SAME way round their mini wheel, half a turn apart — they are not
+   * meeting head-on, they are following each other round — and the side that keeps them on that circle is
+   * the other one. This only bites on the pequeña: in the circle every follower travels the same direction
+   * one couple apart and no two of them ever come within 90px, so there is no F/F encounter to judge.
+   *
+   * The declaration overrides the convention rather than bending the convention, which is the point of
+   * letting a movement name its own sides at all. */
+  mujeres:      { groups: ['F', 'L'], passes: Object.assign({}, PASSES_RUEDA, { 'F,F': 'left' }),
+                                      F: { dh:  2, lane: 'ccw' },
                                       L: { scripted: true, lane: 'cw' } },
+  /* MUJERES ARRIBA, SHARED — the grande form, and the difference is the whole point. Sam: "All grande
+   * moves where a dancer changes a slot around the outer wheel MUST change the phase, in order for the
+   * outer wheel couples to have a chance to make it in a 4 couple Línea Moderna. The leader does not stay
+   * in the same slot, they must progress to one slot anti-clockwise, as if they were doing a Dame Grande
+   * from Exhibela in those 4 beats."
+   *
+   * So it is the Dame's arithmetic — an odd half-spacing each, the other way, meeting on the between-spoke
+   * — carrying the Mujeres Arriba's pairing result: the women still advance one couple, but they no longer
+   * do the whole of it alone. That is what makes it fit. Measured on a ring of two (four couples in the
+   * wheel), the old form sent each woman 167° across her own ring while her partner stood still, the two
+   * of them travelling the same chord in opposite senses; the planner reported it could not clear them,
+   * 12.2px against a 35px corridor. Half the journey each, from opposite ends, is not a smaller version of
+   * that problem — it is a different one, and it has an answer. */
+  mujeres_shared: { groups: ['F', 'L'], passes: Object.assign({}, PASSES_RUEDA, { 'F,F': 'left' }),
+                                        F: { dh:  1, lane: 'ccw' },
+                                        L: { dh: -1, lane: 'cw'  } },
 };
 /* Turn a travel definition into the options `playTravel` takes. `o` supplies the engine-side wiring a
  * definition cannot state: the scripted roles' paths, any facing rules, and the beat/step budget. */
@@ -2832,8 +2959,14 @@ function afueraFrames(mv, dsReal, N, from){
  * ------------------------------------------------------------------ */
 // Each Línea resting/transient state maps to the circle sub-position of the two rings.
 const LINEA_SUB = {
-  linea:    { outer: 'casino',   inner: 'afuera' },           // rest
-  linea_ex: { outer: 'exhibela', inner: 'afuera_exhibela' },  // both rings exhibela-like
+  linea:      { outer: 'casino',   inner: 'afuera' },           // rest
+  linea_ex:   { outer: 'exhibela', inner: 'afuera_exhibela' },  // both rings exhibela-like
+  /* MEASURED, NOT ASSUMED: the grande and pequeña Línea Moderna Dile Que No positions are the SAME
+   * PLACE. Every dancer's radius agrees to 0.00px at 4, 6 and 8 couples on both rings, because
+   * `mcR ± mid2` is exactly `R_MID` of the ring — the mini wheel is built so its couples sit on the
+   * rings. So there is one `linea_dile`, reached either way, and a figure danced from it may be either
+   * sense. Same argument, same measurement, as the merge of linea_ex and linea_pex before it. */
+  linea_dile: { outer: 'dile',     inner: 'afuera_dile' },
 };
 
 /* WHICH WHEEL A FIGURE IS DANCED ON — the reference for counting a progression.
@@ -3101,11 +3234,11 @@ function playMovement(mv, from, onDone, leadBeats = 0){
 }
 
 // Run one movement (a physical figure), then continue the engine at the next decision point.
-function runMovement(key, fromQueue, note, leadBeats){
+function runMovement(key, fromQueue, leadBeats){
   if (fromQueue && queue[0] === key){                // consume this movement — and adopt its owning call
     queue.shift();
     const c = queueCalls.shift();
-    if (c !== undefined) currentCallLabel = c;        // a queued default (empty queueCalls) keeps the current call
+    if (c !== undefined) currentCall = c;             // a queued default (empty queueCalls) keeps the current call
   }
   const mv = MOVEMENTS[key], from = posState;
   history.push(dancers.map(d => ({ ...d }))); histPos.push(from);
@@ -3113,7 +3246,13 @@ function runMovement(key, fromQueue, note, leadBeats){
   histLayout.push({ layoutName, LM_BASE, BASE_ANG });        // a formation-changing movement must be undoable too
   stepCount++;
   currentMoveLabel = mv.label;                     // top-left "now playing"
-  logLine(mv.label, note);
+  /* NO LOG LINE HERE. This used to write one per MOVEMENT, so a single "Dame" arrived in the log as
+   * "Dile Que No (default)" then "Dame", and a caller reading it back could not tell what had actually
+   * been shouted from what the rules of rueda had supplied on its behalf. Sam: "just list the actual
+   * calls, not their individual movements, and not anything that is done implicitly."
+   *
+   * The log is written where calls are ISSUED (issueCall) and nowhere else. The movement currently
+   * running is not lost — it is the top-left now-playing line, which is where a dancer looks for it. */
   posState = resolveSets(mv, from);
   // Lock in resting positions BEFORE flipping the config: a phase flip changes what pos() returns for
   // any dancer without a live xy (e.g. the first move right after a reset), which would otherwise move
@@ -3127,20 +3266,18 @@ function runMovement(key, fromQueue, note, leadBeats){
 function nextMovement(){
   while (queue.length && !validFrom(queue[0], posState)){ queue.shift(); queueCalls.shift(); }
   if (queue.length) return queue[0];
-  if (POSITIONS[posState].variant === 'exhibela') return 'dile';   // transient (Afuera) Exhibela -> default Dile Que No
-  if (posState === 'linea_ex') return 'dile';   // Línea exhibela-like -> default grande Dile Que No back to rest
-  return null;                                         // Casino / Línea rest, nothing queued -> rest
+  return positionDefault(posState);          // a transient Exhibela closes with a Dile Que No; rest otherwise
 }
 // Decision point reached after a movement. Calls only take effect at interruption points
 // (right before a Dame or before a Dile Que No); other junctures just run through.
 function step(){
   if (animating) return;
   const nk = nextMovement();
-  if (nk === null){ engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null; currentCallLabel = null; currentMoveLabel = null; updateUI(); return; }
+  if (nk === null){ engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null; pendingCall = null; currentCall = null; currentMoveLabel = null; updateUI(); return; }
   if (!INTERRUPTIBLE.has(nk)){ proceed(); return; }         // committed juncture — run through
   if (mode === 'step'){ awaiting = true; pendingDefault = nk; engineActive = true; updateUI(); return; }
   if (pendingInterrupt === 'con_exhibela'){                 // live: apply a called divert here
-    pendingInterrupt = null; queue = ['exhibela']; queueCalls = ['con Exhibela']; justIssued = true; logLine('con Exhibela', 'divert'); proceed(); return;
+    pendingInterrupt = null; queue = ['exhibela']; queueCalls = [pendingCall || mkCall('con Exhibela')]; pendingCall = null; justIssued = true; proceed(); return;
   }
   if ((pendingInterrupt === 'dame' || pendingInterrupt === 'dame_dos') && nk === 'dile'){
     // Dame over a pending Dile Que No -> the compound figure. Afuera compounds aren't built yet, so
@@ -3148,9 +3285,24 @@ function step(){
     // The compound is not a movement, it is two: the 4-beat Dile Que No, then a Dame danced FROM the
     // Dile Que No position. Expressing it as a sequence rather than a third movement is what stops the
     // engine having a private definition of a figure it already knows.
-    const dameKey = pendingInterrupt, dameLabel = CALLS[dameKey].label;
-    pendingInterrupt = null; queue = ['dile4', dameKey]; queueCalls = [dameLabel, dameLabel];
-    justIssued = true; logLine('Dile Que No y ' + dameLabel, 'merged'); proceed(); return;
+    // The Dile Que No half of this is IMPLICIT — the rules of rueda put it there, no caller asked for
+    // it — so both movements are owned by the Dame instance and the log says nothing new. Sam: "don't
+    // mention the implicitly done Dile Que No or Dames that are actually part of the calls."
+    const dameKey = pendingInterrupt, owner = pendingCall || mkCall(CALLS[dameKey].label);
+    pendingInterrupt = null; pendingCall = null; queue = ['dile4', dameKey]; queueCalls = [owner, owner];
+    justIssued = true; proceed(); return;
+  }
+  // Mujeres Arriba over a Dile Que No: its own sequence opens with a 4-beat Dile Que No, so the one it
+  // replaces is not skipped so much as cut short. Only lands where the rule allows — the juncture has to
+  // still BE a Dile Que No with nothing behind it by the time we get here, which a call queued in the
+  // meantime could have changed.
+  const mi = pendingInterrupt && CALLS[pendingInterrupt] && CALLS[pendingInterrupt].interruptsDile
+    ? CALLS[pendingInterrupt] : null;
+  if (mi && nk === positionDefault(posState) && dileInterruptAt() === posState && callOfferableFrom(mi, posState)){
+    const owner = pendingCall || mkCall(mi.label);
+    pendingInterrupt = null; pendingCall = null;
+    queue = mi.seq.slice(); queueCalls = mi.seq.map(() => owner);
+    justIssued = true; proceed(); return;
   }
   proceed();
 }
@@ -3158,7 +3310,7 @@ function step(){
 function proceed(){
   if (animating) return;
   const nk = nextMovement();
-  if (nk === null){ engineActive = false; awaiting = false; pendingDefault = null; currentCallLabel = null; currentMoveLabel = null; updateUI(); return; }
+  if (nk === null){ engineActive = false; awaiting = false; pendingDefault = null; currentCall = null; currentMoveLabel = null; updateUI(); return; }
   const fromQueue = queue.length > 0;
   // Grid snapping: the first move of a call snaps to its start beat; the auto-default Dile Que No
   // snaps to beat 1; mid-chain explicit moves run contiguously (no lead-in hold).
@@ -3171,53 +3323,81 @@ function proceed(){
     while ((((t % 8) + 8) % 8) !== ((snap - 1) % 8)) t++;
     leadBeats = t - beatCursor;
   }
-  runMovement(nk, fromQueue, fromQueue ? null : 'default', leadBeats);
+  runMovement(nk, fromQueue, leadBeats);
 }
 // 'Silence' in step mode — do the default the dancers would do on their own.
 function takeDefault(){ if (!awaiting) return; awaiting = false; proceed(); }
 
 // A caller shouts a call -> expand into a sequence of movements (position-dependent).
 function issueCall(callKey){
+  if (rawMovement) return;                                // a movement is atomic — nothing queues behind it
   const call = CALLS[callKey];
   if (call.placeholder){ logLine(call.label, 'movements not yet defined'); return; }
 
   const isDame = callKey === 'dame' || callKey === 'dame_dos';
 
+  // ONE instance per shout. Every movement this call expands to points at the same object, so the queue
+  // can show "Dame" once however many movements it takes, and twice when it was shouted twice.
+  const owner = mkCall(call.label);
+
   if (mode === 'step' && awaiting){                       // choosing a call at a pause
-    if (call.modifier){ queue = ['exhibela']; queueCalls = [call.label]; }              // diverts: the current call is forgotten
-    else if (isDame && pendingDefault === 'dile'){ queue = ['dile4', callKey]; queueCalls = [call.label, call.label]; }   // Dame over a pending Dile Que No -> 4-beat Dile Que No, then a Dame from it
-    else { if (!callOfferableFrom(call, posState)) return; queue = call.seq.concat(queue); queueCalls = call.seq.map(() => call.label).concat(queueCalls); }
+    if (call.modifier){ queue = ['exhibela']; queueCalls = [owner]; }              // diverts: the current call is forgotten
+    else if (isDame && pendingDefault === 'dile'){ queue = ['dile4', callKey]; queueCalls = [owner, owner]; }   // Dame over a pending Dile Que No -> 4-beat Dile Que No, then a Dame from it
+    // Mujeres Arriba at a paused Dile Que No: it replaces the pause's default outright, rather than being
+    // pushed in front of it, because its own opening IS a Dile Que No.
+    else if (call.interruptsDile && pendingDefault === positionDefault(posState) && dileInterruptAt() === posState){
+      if (!callOfferableFrom(call, posState)) return;
+      queue = call.seq.slice(); queueCalls = call.seq.map(() => owner);
+    }
+    else { if (!callOfferableFrom(call, posState)) return; queue = call.seq.concat(queue); queueCalls = call.seq.map(() => owner).concat(queueCalls); }
     justIssued = true; logLine(call.label, 'call'); awaiting = false; proceed(); return;
   }
   if (call.modifier){                                     // con Exhibela (live): remember to divert at the next
     if (engineActive || animating){                       // interruption point (before the Dame / Dile Que No)
-      pendingInterrupt = 'con_exhibela'; logLine(call.label, 'queued');
+      pendingInterrupt = 'con_exhibela'; pendingCall = owner; logLine(call.label, 'queued'); updateUI();
     }
     return;
   }
   if (isDame && (engineActive || animating)){             // live: merge with an upcoming Dile Que No
-    pendingInterrupt = callKey; logLine(call.label, 'queued'); return;
+    pendingInterrupt = callKey; pendingCall = owner; logLine(call.label, 'queued'); updateUI(); return;
+  }
+  // Mujeres Arriba (live): wait for the Dile Que No it is going to replace. If there is no such juncture
+  // it falls through and queues normally, which is what a caller shouting it at rest means.
+  if (call.interruptsDile && (engineActive || animating) && mujeresLandsFrom(call)){
+    pendingInterrupt = callKey; pendingCall = owner; logLine(call.label, 'queued'); updateUI(); return;
   }
   if (!engineActive && !animating){                       // start a fresh call from rest
     if (call.from && !call.from.includes(posState)) return;
-    queue = call.seq.slice(); queueCalls = call.seq.map(() => call.label); engineActive = true; justIssued = true; logLine(call.label, 'call'); proceed();
+    queue = call.seq.slice(); queueCalls = call.seq.map(() => owner); engineActive = true; justIssued = true; logLine(call.label, 'call'); proceed();
   } else {                                                // live: queue for after the current figure
-    queue.push(...call.seq); queueCalls.push(...call.seq.map(() => call.label)); logLine(call.label, 'queued');
+    queue.push(...call.seq); queueCalls.push(...call.seq.map(() => owner)); logLine(call.label, 'queued');
   }
-}
+  updateUI();   // the queue is on screen now, so it has to redraw the moment a call joins it —
+}               // not at the next movement boundary, which is a whole figure too late
 
-// Fire a raw movement on its own (Movements panel) — no auto-continuation.
+/* Fire a raw movement on its own (Movements panel) — no auto-continuation.
+ *
+ * A MOVEMENT IS ATOMIC: it is not queued, not chained, and nothing may be lined up behind it. Sam:
+ * "the call queue should be limited to calls, not to movements. Movements are atomic units, and are not
+ * queued or chained." The movement panel already refused to fire while anything else ran; what it did
+ * not do was stop a CALL being made while a movement was playing. That call went into the queue, and
+ * because a raw movement ends without re-entering the engine (no `step()` on completion, by design —
+ * that is what makes it a one-shot test) it sat there forever: a call the queue promised and the engine
+ * would never dance. Invisible while the queue was a movement list in the side panel; obvious now that
+ * it is on the stage. `rawMovement` closes the door for as long as the figure runs. */
+let rawMovement = false;
 function doMovement(key){
   if (animating || engineActive || awaiting) return;
   if (!validFrom(key, posState)) return;
+  rawMovement = true;
   const mv = MOVEMENTS[key], from = posState;
   history.push(dancers.map(d => ({ ...d }))); histPos.push(from); histQueue.push([]); histQueueCalls.push([]); histPhase.push(phase);
   stepCount++;
-  currentCallLabel = null; currentMoveLabel = mv.label;   // a raw movement has no owning call
+  currentCall = null; currentMoveLabel = mv.label;   // a raw movement has no owning call
   logLine(mv.label);
   posState = resolveSets(mv, from);
   if (flipsPhaseOf(mv, from)){ dancers.forEach(d => { if (!d.xy) d.xy = pos(d); }); phase ^= 1; }   // see runMovement
-  playMovement(mv, from, () => { currentMoveLabel = null; renderTable(); updateUI(); });
+  playMovement(mv, from, () => { rawMovement = false; currentMoveLabel = null; renderTable(); updateUI(); });
 }
 
 function setMode(m){
@@ -3295,12 +3475,17 @@ function updateUI(){
     const b = callBtns[key]; if (!b) return;
     const fits = !(c.minCouples && N < c.minCouples);
     let en;
-    if (c.placeholder) en = idle && okHere(c);
+    if (rawMovement) en = false;                 // nothing chains onto an atomic movement
+    else if (c.placeholder) en = idle && okHere(c);
     else if (idle) en = !c.modifier && okHere(c);
     else if (mode === 'step' && awaiting)
       en = c.modifier ? posState === 'exhibela'
          : (okHere(c) || ((key === 'dame' || key === 'dame_dos') && pendingDefault === 'dile'));
-    else en = c.modifier ? (fits && interruptionPointAhead()) : canFollow(c);
+    // Mid-sequence: a modifier needs any juncture ahead; a Mujeres Arriba needs specifically a Dile Que No
+    // juncture with nothing behind it; everything else needs the wheel to finish somewhere it can start.
+    else if (c.modifier) en = fits && interruptionPointAhead();
+    else if (c.interruptsDile) en = fits && (mujeresLandsFrom(c) || canFollow(c));
+    else en = canFollow(c);
     b.disabled = !en;
   });
   // A movement runs to completion — it cannot be interrupted — so the whole panel is dead while one plays.
@@ -3322,19 +3507,43 @@ function updateUI(){
   // At rest in Casino with nothing running, the dancers Guapea (the basic step) — show that.
   const np = document.getElementById('nowplaying');
   if (np){
-    let call = currentCallLabel, move = currentMoveLabel;
+    let call = currentCall, move = currentMoveLabel;
     if (!move && idle && posState === 'casino'){ call = null; move = 'Guapea'; }
     if (move){
-      np.innerHTML = (call ? `<span class="np-call">${call}</span>: ` : '') + `<span class="np-move">${move}</span>`;
+      np.innerHTML = (call ? `<span class="np-call">${call.label}</span>: ` : '') + `<span class="np-move">${move}</span>`;
     } else np.textContent = '';
   }
-  // Queue: the movements that have been called but not yet executed (the one now running is shown above).
+  // Queue: the CALLS shouted but not yet started, in the order they will be danced.
   const ql = document.getElementById('queueList');
   if (ql){
-    if (queue.length){
-      ql.innerHTML = queue.map((k, i) => `<div class="qmove"><span class="qnum">${i + 1}.</span> ${(MOVEMENTS[k] || {}).label || k}</div>`).join('');
-    } else ql.innerHTML = '<div class="qempty">— nothing queued —</div>';
+    const pend = queuedCalls();
+    ql.innerHTML = pend.length
+      ? '<div class="qhead">Up next</div>' + pend.map((c, i) =>
+          `<div class="qcall${i ? '' : ' qnext'}"><span class="qnum">${i + 1}.</span>${c.label}</div>`).join('')
+      : '';
   }
+}
+/* THE QUEUE, AS CALLS. `queueCalls` runs parallel to `queue` and so has one entry per MOVEMENT; a Dame
+ * over a pending Dile Que No occupies two slots and would be listed twice. Collapse by call instance:
+ * adjacent slots sharing an `id` are one call, and two separate shouts of the same call keep separate
+ * ids and so stay two entries.
+ *
+ * The head of `queueCalls` is normally the call already running — its remaining movements — and that one
+ * belongs in the now-playing line above, not in the queue. Drop it. Whatever is waiting on an
+ * interruption point goes last, because `nextMovement` drains `queue` before an interrupt can apply.
+ *
+ * Oldest first, so a call reaches the top of the list, leaves it, and appears in the now-playing line
+ * directly above while everything behind it shuffles up one place. */
+function queuedCalls(){
+  const out = [];
+  for (const c of queueCalls){
+    if (!c) continue;
+    if (out.length && out[out.length - 1].id === c.id) continue;
+    out.push(c);
+  }
+  if (out.length && currentCall && out[0].id === currentCall.id) out.shift();
+  if (pendingCall) out.push(pendingCall);
+  return out;
 }
 /* ------------------------------------------------------------------ *
  *  Sub-keyframe interpolation — how the renderer gets BETWEEN keyframes.
@@ -3553,8 +3762,8 @@ function undo(){
       layoutName = L.layoutName; LM_BASE = L.LM_BASE; BASE_ANG = L.BASE_ANG; computeWheel(N); buildNodes(); } }
   if (histQueue.length) histQueue.pop();
   if (histQueueCalls.length) histQueueCalls.pop();
-  queue = []; queueCalls = []; engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null;   // cancel any running sequence
-  currentCallLabel = null; currentMoveLabel = null;
+  queue = []; queueCalls = []; engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null; pendingCall = null; rawMovement = false;   // cancel any running sequence
+  currentCall = null; currentMoveLabel = null;
   stepCount = Math.max(0, stepCount-1);
   logLine('Undo', null, true);
   render(); updateUI();
@@ -3564,9 +3773,9 @@ function reset(){
   LM_BASE = -90; BASE_ANG = -90;                // rest orientation (the entry/exit movements re-aim these)
   computeWheel(N);
   dancers = baseState(N);
-  history = []; histPos.length = 0; histQueue.length = 0; histQueueCalls.length = 0; histPhase.length = 0; histLayout.length = 0; stepCount = 0; posState = layoutName === 'linea' ? 'linea' : 'casino'; phase = 0;
-  queue = []; queueCalls = []; engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null;
-  currentCallLabel = null; currentMoveLabel = null;
+  history = []; histPos.length = 0; histQueue.length = 0; histQueueCalls.length = 0; histPhase.length = 0; histLayout.length = 0; stepCount = 0; logCount = 0; posState = layoutName === 'linea' ? 'linea' : 'casino'; phase = 0;
+  queue = []; queueCalls = []; engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null; pendingCall = null; rawMovement = false;
+  currentCall = null; currentMoveLabel = null;
   beatCursor = 0; justIssued = false; showBeat(0);
   document.getElementById('log').innerHTML = '';
   buildNodes(); render(); updateUI();
@@ -3574,7 +3783,7 @@ function reset(){
 function logLine(move, note, undo=false){
   const log = document.getElementById('log');
   const div = document.createElement('div');
-  const n = undo ? '' : `<span class="step">${stepCount}.</span> `;
+  const n = undo ? '' : `<span class="step">${++logCount}.</span> `;
   div.innerHTML = `${n}<span class="move">${move}</span>` + (note?` <span class="note">(${note})</span>`:'');
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
@@ -3619,16 +3828,22 @@ function callGroup(key){
 /* Where the wheel will be RESTING once everything currently queued — and the default that follows it —
  * has run. This is what decides which calls may be lined up behind the one playing: a call can follow
  * if the wheel will be somewhere it can start from. */
+/* WHAT THE DANCERS DO AT p WITH NOTHING CALLED. A transient Exhibela — in the circle, afuera, or Línea
+ * Moderna — closes with a Dile Que No; everywhere else they rest. This was written out identically in
+ * four places (nextMovement, projectedEndPos, interruptionPointAhead, and the step-mode default), which
+ * is the same shape of duplication that let the interruption points drift out of step with Línea. One
+ * copy, so a formation that gains a transient Exhibela gains its default everywhere at once. */
+function positionDefault(p){
+  if ((POSITIONS[p] || {}).variant === 'exhibela') return 'dile';
+  if (p === 'linea_ex') return 'dile';
+  return null;
+}
 function projectedEndPos(){
   let p = posState; const q = queue.slice();
   for (let guard = 0; guard < 40; guard++){
     while (q.length && !validFrom(q[0], p)) q.shift();
-    let k = null;
-    if (q.length) k = q.shift();
-    else if ((POSITIONS[p] || {}).variant === 'exhibela') k = 'dile';
-    else if (p === 'linea_ex') k = 'dile';
-    else break;
-    if (!MOVEMENTS[k]) break;
+    const k = q.length ? q.shift() : positionDefault(p);
+    if (!k || !MOVEMENTS[k]) break;
     p = resolveSets(MOVEMENTS[k], p) || p;
   }
   return p;
@@ -3638,17 +3853,42 @@ function interruptionPointAhead(){
   let p = posState; const q = queue.slice();
   for (let guard = 0; guard < 40; guard++){
     while (q.length && !validFrom(q[0], p)) q.shift();
-    let k = null;
-    if (q.length) k = q[0];
-    else if ((POSITIONS[p] || {}).variant === 'exhibela') k = 'dile';
-    else if (p === 'linea_ex') k = 'dile';
-    else break;
+    const k = q.length ? q[0] : positionDefault(p);
+    if (!k) break;
     if (INTERRUPTIBLE.has(k)) return true;
     if (q.length) q.shift(); else return false;
     if (!MOVEMENTS[k]) break;
     p = resolveSets(MOVEMENTS[k], p) || p;
   }
   return false;
+}
+/* WHERE A MUJERES ARRIBA COULD LAND, or null. Sam's rule: it may be called "when a Dile Que No movement
+ * is next in the queue of movements, and there's no other movements queued after it. It acts as an
+ * interruption move, interrupting just before the Dile Que No movement and replacing it."
+ *
+ * Both halves matter. A Dame reached first means the next juncture is a Dame, not a Dile Que No, and the
+ * Mujeres Arriba has nothing to replace. Something queued BEHIND the Dile Que No means the caller has
+ * already said what happens next, and swallowing their Dile Que No would leave that follow-on starting
+ * from a position it never asked for. Returns the position the Dile Que No would have been danced from,
+ * because that is what decides which form of the figure fits there. */
+function dileInterruptAt(){
+  let p = posState; const q = queue.slice();
+  for (let guard = 0; guard < 40; guard++){
+    while (q.length && !validFrom(q[0], p)) q.shift();
+    if (!q.length) return positionDefault(p) ? p : null;   // the implicit close — nothing behind it
+    const k = q[0];
+    if (k === positionDefault(p)) return q.length === 1 ? p : null;   // explicit, and must be last
+    if (INTERRUPTIBLE.has(k)) return null;                            // a Dame gets there first
+    q.shift();
+    if (!MOVEMENTS[k]) return null;
+    p = resolveSets(MOVEMENTS[k], p) || p;
+  }
+  return null;
+}
+// A Mujeres Arriba is offerable mid-sequence if such a juncture exists AND its figures fit there.
+function mujeresLandsFrom(c){
+  const at = dileInterruptAt();
+  return !!at && callOfferableFrom(c, at);
 }
 
 function buildButtons(){

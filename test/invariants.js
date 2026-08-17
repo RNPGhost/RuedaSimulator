@@ -671,13 +671,18 @@ function run() {
     const tag = `pequeña dile4/mujeres|n${n}`;
     T.captureLineaMovement('dame_peq', n, 0);              // -> Línea Moderna Exhibela
     nChecks++; check(T.state().posState === 'linea_ex', `${tag}: Dame Pequeña should land in LM Exhibela`);
+    /* THE 4-BEAT DILE QUE NO IS AVAILABLE AT EVERY COUPLE COUNT. This used to assert the opposite — that
+     * it and Mujeres Arriba Pequeña were gated below six — on a measurement of "29.6px at four couples"
+     * taken before the via-point pathing existed. Re-measured on the current engine, the closest approach
+     * is 36.42px at four couples, the identical number as at six and eight, and Mujeres Arriba Pequeña is
+     * 33.15px at every N alike: a mini 2-couple wheel is the same size whatever the rueda around it does,
+     * so its clearance cannot depend on N and cannot have a floor in N.
+     *
+     * A characterisation test outliving the measurement that justified it is worse than no test — it made
+     * a working figure look unimplemented, which is exactly how Sam found this. So the check is now the
+     * PROPERTY (does it clear?) at every N, not the decision (is it gated?) at one. */
     const r1 = T.fireHere('dile4');
-    if (n < 6) {   // a true-to-life step toward the mini centre doesn't fit on a 4-couple wheel
-      nChecks++; check(!r1, `${tag}: dile4_peq should be unavailable below 6 couples`);
-      nChecks++; check(!T.validFrom('mujeres_peq', 'linea_dile'), `${tag}: mujeres_peq should be unavailable below 6 couples`);
-      continue;
-    }
-    nChecks++; check(r1 && r1.endPos === 'linea_dile', `${tag}: dile4_peq ended ${r1 && r1.endPos}, expected linea_dile`);
+    nChecks++; check(r1 && r1.endPos === 'linea_dile', `${tag}: dile4 ended ${r1 && r1.endPos}, expected linea_dile`);
     if (!r1) continue;
     let worst = Infinity; r1.frames.forEach(f => { worst = Math.min(worst, minPairDist(f)); });
     nChecks++; check(worst >= GAP - 1.0, `${tag}: dile4_peq collision, minClear ${worst.toFixed(1)}`);
@@ -707,6 +712,80 @@ function run() {
     T.captureLineaMovement('dame_peq', n, 0);
     const res = T.issueOn('mujeres_arriba_pequena');
     nChecks++; check(res && res.endPos === 'linea', `${tag}: the call ended ${res && res.endPos}, expected linea rest`);
+
+    /* THE GRANDE FORM IS A DIFFERENT FIGURE, in two ways, and both are pinned here.
+     *
+     * WHERE THE WOMAN GOES. Both forms start from the same LM Dile Que No position — measured identical to
+     * 0.00px — and both give every leader a new partner, so "she got a new partner" proves nothing. The
+     * discriminator is which RING she lands on: grande advances her one couple around the ring she is
+     * already on and keeps her there; pequeña crosses her mini 2-couple wheel, which swaps her between the
+     * rings. Asserted in both directions, so neither form can quietly become the other.
+     *
+     * WHO DOES THE TRAVELLING. Sam: "All grande moves where a dancer changes a slot around the outer wheel
+     * MUST change the phase, in order for the outer wheel couples to have a chance to make it in a 4
+     * couple Línea Moderna. The leader does not stay in the same slot, they must progress to one slot
+     * anti-clockwise." So the grande is NOT the circle figure with the men standing still: each dancer
+     * crosses one odd half-spacing and they meet on the between-spoke, which is why it flips the phase.
+     * That is the whole reason it fits on a ring of two, so the suite asserts the mechanism and not just
+     * the outcome — a version that got the pairing right by sending the woman the whole way would pass an
+     * outcome-only check and then fail to path at four couples, which is exactly what happened. */
+    {
+      const m = n / 2;
+      const ringOf = d => (d.station < m ? 'inner' : 'outer');
+      const localOf = d => (d.station < m ? d.station : d.station - m);
+      T.captureLineaMovement('dame_peq', n, 0);
+      T.fireHere('dile4');
+      const phBefore = T.state().phase;
+      const before = {}; T._snap().forEach(d => before[d.id] = { ...d });
+      const pairBeforeG = {}; T._snap().filter(d => d.role === 'L').forEach(L => {
+        const F = T._snap().find(o => o.station === L.station && o.role === 'F'); pairBeforeG[L.id] = F.id; });
+      const r3 = T.fireHere('mujeres_grande');
+      nChecks++; check(r3 && r3.endPos === 'linea_ex', `${tag}: mujeres_grande ended ${r3 && r3.endPos}, expected linea_ex`);
+      if (r3) {
+        let worst3 = Infinity; r3.frames.forEach(f => { worst3 = Math.min(worst3, minPairDist(f)); });
+        nChecks++; check(worst3 >= GAP - 1.0, `${tag}: mujeres_grande collision, minClear ${worst3.toFixed(1)}`);
+        nChecks++; check(T.state().phase !== phBefore,
+          `${tag}: mujeres_grande did not flip the phase — a grande progression round a ring must`);
+
+        let newPartner = true, stayedOnRing = true, shiftsOk = true, badShift = '';
+        T._snap().forEach(d => { if (before[d.id] && ringOf(before[d.id]) !== ringOf(d)) stayedOnRing = false; });
+        T._snap().filter(d => d.role === 'L').forEach(L => {
+          const F = T._snap().find(o => o.station === L.station && o.role === 'F');
+          if (!F || F.id === pairBeforeG[L.id]) { newPartner = false; return; }
+          // one couple round the ring, in that ring's own sense: the inner ring is inverted, so its
+          // progression runs the other way and both +1 and -1 are correct answers.
+          const a = before[L.id], b = before[F.id];
+          const d = ((localOf(b) - localOf(a)) % m + m) % m;
+          if (!(d === 1 % m || d === ((m - 1) % m))) { shiftsOk = false; badShift = `${L.id}: ${d}`; }
+        });
+        nChecks++; check(newPartner, `${tag}: mujeres_grande left someone with the same partner`);
+        nChecks++; check(stayedOnRing, `${tag}: mujeres_grande moved somebody between rings — that is the PEQUEÑA`);
+        nChecks++; check(shiftsOk, `${tag}: mujeres_grande did not advance the pairing one couple round the ring (${badShift})`);
+
+        /* BOTH DANCERS TRAVEL. The mechanism, not the outcome: if the men stood still the women would each
+         * have to cross a whole couple, which on a ring of two is the near-antipodal chord that could not
+         * be pathed. Neither role may do less than a third of the total. */
+        let mL = 0, mF = 0;
+        T._snap().forEach(d => { const b = before[d.id]; if (!b) return;
+          const dist = Math.hypot(d.xy.x - b.xy.x, d.xy.y - b.xy.y);
+          if (d.role === 'L') mL += dist; else mF += dist; });
+        nChecks++; check(mL > (mL + mF) / 3 && mF > (mL + mF) / 3,
+          `${tag}: mujeres_grande is not shared — leaders moved ${mL.toFixed(0)}px, followers ${mF.toFixed(0)}px`);
+      }
+      // the pequeña must be the mirror claim: she DOES change ring, and the men DO stay put
+      T.captureLineaMovement('dame_peq', n, 0);
+      T.fireHere('dile4');
+      const beforeP = {}; T._snap().forEach(d => beforeP[d.id] = { ...d });
+      if (T.fireHere('mujeres_peq')) {
+        let anyCrossed = false, menStill = true;
+        T._snap().forEach(d => {
+          if (d.role === 'F' && ringOf(beforeP[d.id]) !== ringOf(d)) anyCrossed = true;
+          if (d.role === 'L' && beforeP[d.id].station !== d.station) menStill = false;
+        });
+        nChecks++; check(anyCrossed, `${tag}: mujeres_peq kept every woman on her ring — that is the GRANDE`);
+        nChecks++; check(menStill, `${tag}: mujeres_peq moved the men off their spots`);
+      }
+    }
   }
 
   // 25: the scripted / dynamic split (ENGINE_MODEL §2 and its decision 2). A dancer whose COUPLE
@@ -2237,6 +2316,77 @@ function run() {
       nChecks++; check(c && !T.callDanceableFrom(c, 'casino'),
         '§40 self-test: a call was judged danceable from a position its first movement rejects');
     }
+  }
+
+  /* 41: MUJERES ARRIBA REPLACES A DILE QUE NO, AND ONLY WHEN THERE IS ONE TO REPLACE.
+   *     Sam's rule: it may be called "when a Dile Que No movement is next in the queue of movements, and
+   *     there's no other movements queued after it. It acts as an interruption move, interrupting just
+   *     before the Dile Que No movement and replacing it."
+   *
+   *     Both halves are asserted, and the NEGATIVE half is the one that matters. An interruption rule that
+   *     only ever says yes is a rule that will one day swallow a call the caller had already made: a
+   *     figure queued behind the Dile Que No would find itself starting from a position nobody asked for. */
+  {
+    const CASES = [
+      { pos: 'linea_ex', q: [],                    want: 'linea_ex', why: 'the implicit close, nothing behind it' },
+      { pos: 'linea_ex', q: ['dile'],              want: 'linea_ex', why: 'an explicit Dile Que No, and last' },
+      { pos: 'linea_ex', q: ['dile', 'enchufla'],  want: null,       why: 'a call queued behind the Dile Que No' },
+      { pos: 'linea_ex', q: ['dame_grande'],       want: null,       why: 'a Dame reaches the juncture first' },
+      { pos: 'linea',    q: [],                    want: null,       why: 'at rest — no Dile Que No is coming' },
+      { pos: 'exhibela', q: [],                    want: 'exhibela', why: 'the circle closes the same way' },
+      { pos: 'casino',   q: ['enchufla'],          want: 'exhibela', why: 'the Enchufla runs, then its close' },
+    ];
+    for (const c of CASES) {
+      T.setupRest('casino', 6, 0);
+      if (c.pos.startsWith('linea')) T.captureLineaMovement('dame_peq', 6, 0);   // get into Línea Moderna
+      T.poseQueue(c.pos, c.q);
+      const got = T.dileInterruptAt();
+      nChecks++; check(got === c.want,
+        `§41 ${c.pos} + [${c.q.join(',')}] → ${got}, expected ${c.want} (${c.why})`);
+    }
+    // and the call agrees with the juncture: offerable exactly where one exists and its figures fit
+    T.captureLineaMovement('dame_peq', 6, 0);
+    T.poseQueue('linea_ex', []);
+    nChecks++; check(T.mujeresLandsFrom(T.CALLS.mujeres_arriba_grande),
+      '§41 Mujeres Arriba Grande should land on a bare LM Exhibela close at 6 couples');
+    T.poseQueue('linea_ex', ['dile', 'enchufla']);
+    nChecks++; check(!T.mujeresLandsFrom(T.CALLS.mujeres_arriba_grande),
+      '§41 Mujeres Arriba Grande must NOT land when a call is queued behind the Dile Que No');
+    /* BOTH FORMS, AT EVERY COUPLE COUNT. Sam: "There shouldn't be a reason that I can call Mujeres Arriba
+     * Pequeña, but not Mujeres Arriba Grande. Because Mujeres Arriba is an interrupt move that simply
+     * interrupts the end of a call when it is just about to do the last Dile Que No, it will always be in
+     * the same position, and so there should be no restriction on whether I want the Mujeres Arriba
+     * movement to change places in the grande wheels or the pequeña wheels."
+     *
+     * The grande did carry a six-couple gate, and it was earned honestly — built with the men standing
+     * still it genuinely could not be pathed on a ring of two. But the answer was to fix the figure, not
+     * to gate it: sharing the progression between both dancers clears 41.45px at four couples, the same
+     * as at six and eight. The asymmetry is gone, so the suite asserts that it stays gone. */
+    T.captureLineaMovement('dame_peq', 4, 0);
+    T.poseQueue('linea_ex', []);
+    for (const k of ['mujeres_arriba_grande', 'mujeres_arriba_pequena'])
+      { nChecks++; check(T.mujeresLandsFrom(T.CALLS[k]), `§41 ${k} should be offerable at 4 couples`); }
+  }
+
+  /* 42: EVERY FORM OF AN INTERRUPTION POINT IS ONE.
+   *     INTERRUPTIBLE was a hand-written set of three circle keys, so `dame_grande` was not an interruption
+   *     point and con Exhibela greyed out for the whole of an Adios Grande. The set is now derived from an
+   *     `interrupt` flag the base figures declare — this asserts the derivation actually reaches the forms
+   *     the Línea builder mints, which is the exact step that was missing. */
+  {
+    const base = Object.keys(T.MOVEMENTS).filter(k => T.MOVEMENTS[k].interrupt);
+    nChecks++; check(base.length >= 3, `§42 only ${base.length} movements declare interrupt — expected the Dame and Dile Que No families`);
+    const missing = [];
+    for (const k of Object.keys(T.MOVEMENTS)) {
+      const m = T.MOVEMENTS[k];
+      const of = m.play && m.play.compose && m.play.of;          // a Línea form names the figure it composes
+      if (of && T.MOVEMENTS[of] && T.MOVEMENTS[of].interrupt && !T.INTERRUPTIBLE.has(k)) missing.push(k);
+    }
+    nChecks++; check(missing.length === 0,
+      `§42 ${missing.length} derived form(s) of an interruption figure are not interruption points: ${missing.join(', ')}`);
+    // the two the bug actually cost us, named
+    for (const k of ['dame_grande', 'dame_peq', 'dile'])
+      { nChecks++; check(T.INTERRUPTIBLE.has(k), `§42 ${k} should be an interruption point`); }
   }
 
   // 8: determinism — the golden generator produces identical output twice.

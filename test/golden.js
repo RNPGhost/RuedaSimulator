@@ -97,22 +97,40 @@ function genInteractions(T) {
 }
 
 // Línea Moderna: frame snapshots for the figures that start from rest, and call transcripts + end grids.
-const LINEA_OPENERS = ['enchufla_grande', 'dame_grande', 'enchufla_peq', 'dame_peq', 'rueda', 'adios_rueda'];
+/* A NAME IN THESE TABLES MUST EXIST, and every case must actually produce frames. `enchufla_grande`,
+ * `enchufla_peq` and `dile4_peq` sat here for several versions after the de-duplication removed them, and
+ * `if (!cap.frames) continue` skipped each one in silence. Golden compared what it generated against what
+ * it had stored, and both had gone empty together, so it reported no change while covering nothing.
+ *
+ * That is the worst failure a change-detector has: it did not go red, it went blind — and it went blind
+ * on exactly the Línea figures whose bugs Sam then had to find by eye in the running sim. `assertCovered`
+ * turns a rename into a loud failure at generation time rather than a quiet hole in the baseline. */
+function assertCovered(what, name, ok) {
+  if (!ok) throw new Error(`golden: ${what} "${name}" produced no case — renamed or removed? ` +
+    `Fix the table in test/golden.js rather than letting the baseline lose coverage silently.`);
+}
+const LINEA_OPENERS = ['dame_grande', 'dame_peq', 'enchufla', 'rueda', 'adios_rueda'];
 const LINEA_CALLS = ['dame_grande', 'enchufla_grande', 'dame_pequena', 'enchufla_pequena', 'rueda', 'adios_rueda'];
 // Figures that only exist deeper in a Línea sequence (LM Exhibela / LM Dile Que No), captured by
 // dancing into that state first.
-const LINEA_CHAINS = [[['dame_peq'], 'dile4_peq'], [['dame_peq', 'dile4_peq'], 'mujeres_peq']];
+const LINEA_CHAINS = [
+  [['dame_peq'], 'dile4'],
+  [['dame_peq', 'dile4'], 'mujeres_peq'],
+  [['dame_peq', 'dile4'], 'mujeres_grande'],
+];
 function genLineaChains(T) {
   const out = {};
   for (const [setup, key] of LINEA_CHAINS) for (const n of NS) {
-    if (n < 6) continue;                                   // needs room: 6 couples up
+    // No couple-count gate. It used to skip below six, mirroring a `minCouples` that measurement has
+    // since retired; the figures run at four now and the baseline should say what they do there.
     const cap = T.captureLineaMovementFrom(setup, key, n);
-    if (!cap || !cap.frames) continue;
+    assertCovered('linea chain', `${setup.join('>')}>${key}|n${n}`, cap && cap.frames);
     const ids = cap.frames[0].map(d => d.id).sort();
     const frames = cap.frames.map(fr => { const byId = {}; fr.forEach(d => byId[d.id] = d);
       const flat = []; ids.forEach(id => { const d = byId[id]; flat.push(round(d.xy.x), round(d.xy.y), round(d.face)); }); return flat; });
     const cmv = T.MOVEMENTS[key];
-    const cbeats = typeof cmv.beats === 'function' ? cmv.beats('linea') : (cmv.beats === undefined ? 4 : cmv.beats);
+    // Beats at the position it was actually danced FROM — a movement's beat count may depend on it.
+    const cbeats = typeof cmv.beats === 'function' ? cmv.beats(cap.fromPos || 'linea') : (cmv.beats === undefined ? 4 : cmv.beats);
     out[`${setup.join('>')}>${key}|linea|n${n}`] = { kind: 'frames', ids, frames, beats: cbeats,
       segBeats: cap.segBeats ? cap.segBeats.map(round) : null, endPos: cap.endPos, endPhase: cap.endPhase };
   }
@@ -122,7 +140,7 @@ function genLineaMovements(T) {
   const out = {};
   for (const key of LINEA_OPENERS) for (const n of NS) {
     const cap = T.captureLineaMovement(key, n, 0);
-    if (!cap.frames) continue;
+    assertCovered('linea opener', `${key}|n${n}`, cap && cap.frames);
     const ids = cap.frames[0].map(d => d.id).sort();
     const frames = cap.frames.map(fr => { const byId = {}; fr.forEach(d => byId[d.id] = d);
       const flat = []; ids.forEach(id => { const d = byId[id]; flat.push(round(d.xy.x), round(d.xy.y), round(d.face)); }); return flat; });

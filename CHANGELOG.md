@@ -3,6 +3,170 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v137 — the women pass on the left, and golden had gone blind
+
+Sam, from the running sim: "the followers should be going clockwise around the mini wheels, which would
+mean that they would pass to the left of the other follower (over the right shoulder). Instead, they're
+currently passing to the right of the other follower in their wheel."
+
+- **Measured before touching anything**, on the final paths the way the engine judges a pass: Mujeres
+  Arriba Pequeña put every follower/follower encounter on the RIGHT, at 4, 6 and 8 couples alike. Exactly
+  as reported.
+- **The fix is a declaration, not a bend of the convention.** `TRAVELS.mujeres` now names `'F,F': 'left'`.
+  The rueda default for a same-role pair is 'right' and it remains the right default — two leaders
+  crossing the wheel in opposite directions meet head-on and the wheel's handedness settles it. These two
+  are not that pair: both women go the SAME way round their mini wheel, half a turn apart, following each
+  other round rather than meeting. Naming the exception is what a movement's own `passes` block is for.
+- **Blast radius, measured:** the circle Mujeres Arriba has no follower/follower encounter at all (every
+  follower travels the same direction one couple apart and no two come within 90px), and the grande form
+  was already passing left. So this lands on the pequeña alone. The grande's declaration was corrected to
+  match what it already does, so the stated side and the danced side agree.
+- Clearance **improved** as a side effect: 35px → 39px. The side Sam wanted is also the roomier one.
+
+**And the part worth reading twice.** Golden did not move — because it was not looking. `LINEA_OPENERS`
+and `LINEA_CHAINS` still named `enchufla_grande`, `enchufla_peq` and `dile4_peq`, keys the v134
+de-duplication had removed, and `if (!cap.frames) continue` skipped each missing case in silence. Golden
+compared what it generated against what it had stored; both had gone empty together, so it reported no
+change while covering nothing.
+
+That is the worst failure mode a change-detector has. It did not go red — it went blind, and it went
+blind on precisely the Línea figures whose bugs Sam has since had to find by eye. Both of the last two
+reports (the shared progression, this pass side) would have been caught here.
+
+- Tables corrected, the stale `n < 6` gate dropped, and **`assertCovered` added**: a name in these tables
+  that yields no case now throws at generation time. Mutation-tested by reintroducing a stale key.
+- Baseline regenerated: **342 → 354 movement cases**, all twelve of them ADDED, none changed — which is
+  itself the proof the coverage was absent rather than wrong. The new cases are Enchufla in Línea, the
+  4-beat Dile Que No in Línea, and both Mujeres Arriba forms, each at 4, 6 and 8 couples.
+- `captureLineaMovementFrom` now reports the position a chained movement was danced FROM, so the case
+  records its beats at that position rather than assuming `linea`.
+- Invariants 5206 unchanged; visual 15 scenes unchanged.
+
+## v136 — a grande progression is shared, and that is why it fits
+
+Sam: "There shouldn't be a reason that I can call Mujeres Arriba Pequeña, but not Mujeres Arriba Grande.
+Because Mujeres Arriba is an interrupt move that simply interrupts the end of a call when it is just
+about to do the last Dile Que No, it will always be in the same position, and so there should be no
+restriction on whether I want the Mujeres Arriba movement to change places in the grande wheels or the
+pequeña wheels."
+
+The six-couple gate v135 put on the grande form was earned honestly and was still wrong. Built the
+obvious way — the women advance a whole couple while the men stand — it genuinely could not be pathed on
+a ring of two: a whole couple IS the ring there, so both women travelled the same near-antipodal chord in
+opposite senses and `planCrossings` reported it could not clear them, **12.2px against a 35px corridor**,
+after throwing a leader **30× his own straight-line distance** trying.
+
+Two wrong answers preceded the right one, and both are worth recording because they were plausible:
+
+- **Mine.** I proposed keying the loop to the chord's closest approach to the midpoint rather than to the
+  180° winding threshold. It cleared the figure and broke Dame Dos at four couples. Sam: *"Is that my
+  rule?"* It was not.
+- **Ring containment**, which Sam proposed next — the outer ring's dancers must stay outside the inner
+  ring's. That rule is right, and it was **already implemented** (`'outer,inner': 'out'` in the grande
+  merge). It could not help, because it governs how a collision is RESOLVED and the outer woman's straight
+  chord through the middle was the INTENT. Evasion deviates from an intent; it cannot undo one.
+
+**The actual answer was the dance.** Sam: *"All grande moves where a dancer changes a slot around the
+outer wheel MUST change the phase, in order for the outer wheel couples to have a chance to make it in a
+4 couple Línea Moderna. The leader does not stay in the same slot, they must progress to one slot
+anti-clockwise, as if they were doing a Dame Grande from Exhibela in those 4 beats."*
+
+That is the Dame's arithmetic — `L: dh −1, F: dh +1`, an odd half-spacing each, meeting on the
+between-spoke, which is exactly why a Dame flips the phase — carrying the Mujeres Arriba's pairing
+result. The women still advance one couple; they no longer do the whole of it alone. Half the journey
+each, from opposite ends, is not a smaller version of the antipodal-chord problem. It is a different
+problem, and it has an answer.
+
+Measured on the shared form: **41.45px clear at four, six and eight couples alike, and every path exactly
+1.00× its straight line.** The figure needs no collision resolution at all, at any size. The gate was a
+symptom of getting the dance wrong, and it is gone rather than relaxed.
+
+- `TRAVELS.mujeres_shared` and the `mujeres_shared` movement (`requires: []` — nothing offers it directly;
+  `grandeFrames` reaches it by name, which does not go through `validFrom`). The grande form composes it
+  and takes its `flipsPhase` from it rather than from `mujeres`, which does not flip.
+- The pairing advances one couple **in each ring's own sense** — the inner ring is inverted, so it runs
+  the other way. §24 accepts +1 or −1 and nothing else.
+- §24 now asserts the MECHANISM, not only the outcome: neither role may do less than a third of the
+  travelling. Mutation-tested — restoring "she does it all, he stands" fails the collision check at four
+  couples **and the shared check at six and eight**, where the collision check alone would have passed it.
+  That is the point: an outcome-only test would have signed off the version that could not path.
+- Golden 342/132/6 unchanged; invariants 5187 → 5206; visual 15 scenes unchanged.
+
+## v135 — Línea Moderna gets its Dile Que No position back, and Mujeres Arriba gets both forms
+
+Sam, from the running sim: the 4-beat Dile Que No looked unimplemented in Línea Moderna, Mujeres Arriba
+was therefore unreachable there, both forms of it were missing as interruption calls, and *con Exhibela*
+could not be called during an Adios Grande. Four reports, three causes.
+
+- **The 4-beat Dile Que No was implemented all along.** It carried `minCouples: 6` in Línea against a
+  measurement of "29.6px apart at four couples" taken before the via-point pathing existed. Re-measured
+  on the current engine: **36.42px at four couples — the identical number as at six and eight** — against
+  a 34px floor, landing 46px apart. The same stale gate sat on Mujeres Arriba Pequeña, which clears
+  **33.15px at every N alike**, because a mini 2-couple wheel is the same size whatever the rueda around
+  it is doing; a clearance that does not vary with N cannot have a floor in N. Both gates removed. The
+  invariant that asserted them has been rewritten to assert the property (does it clear?) at every N
+  rather than the decision (is it gated?) at one — a characterisation test outliving the measurement that
+  justified it is worse than no test, and this one made a working figure look missing.
+- **Mujeres Arriba Grande exists**, which needed three pieces the old code lacked: an `afuera_dile`
+  position (the Dile Que No position with the wheel inside out), a `linea_dile` entry in `LINEA_SUB`, and
+  `mirror: true` on the figure so the inner ring progresses the other way. Its `minCouples: 6` is real and
+  measured: 19.8px at four couples, because a one-couple progression on a ring of two is a swap straight
+  across it. The two forms differ in **which ring the woman lands on** — grande keeps her on hers,
+  pequeña crosses her between them — and that, not "she got a new partner", is what §24 now asserts,
+  because the weaker claim is true of both and proves nothing.
+- **The two Dile Que No positions turned out to be one.** CLEANUP_PLAN assumed the grande and pequeña LM
+  Dile Que No positions were different places. Measured: **0.00px apart at 4, 6 and 8 couples on both
+  rings**, because `mcR ± mid2` is exactly `R_MID` of the ring — the mini wheel is built so its couples
+  sit on the rings. One `linea_dile`, the same conclusion as the `linea_ex` merge and by the same
+  argument. It also settles the 4-beat Dile Que No needing no grande form: it progresses nobody, and
+  Grande/Pequeña is a marker for *which slot to progress to*.
+- **Interruption points are derived now.** `INTERRUPTIBLE` was a hand-written set of three circle keys,
+  so `dame_grande` was not one and *con Exhibela* greyed out for the whole of an Adios Grande. The base
+  figures declare `interrupt: true` and the Línea builder carries the flag onto every form it mints. The
+  `exhibela` movement also joins the in-place family, so the divert has somewhere to land in Línea — it
+  was previously dropped as invalid the moment it was applied there. §42 asserts the derivation reaches
+  the minted forms, which is the exact step that was missing.
+- **Mujeres Arriba is an interruption call** in all three forms. `interruptsDile` means: when the next
+  juncture is a Dile Que No **with nothing queued behind it**, it takes that Dile Que No's place. The
+  second condition is the one worth having — something queued behind means the caller already said what
+  happens next, and swallowing their close would leave that follow-on starting from a position nobody
+  asked for. §41 asserts the refusals by name, and both new invariants were mutation-tested: reverting
+  the derivation and dropping the queued-behind check each fail exactly the checks written for them.
+- `positionDefault(p)` replaces four separate copies of "a transient Exhibela closes with a Dile Que No",
+  which is the same shape of duplication that let the interruption points drift out of step to begin with.
+- Golden 342/132/6 unchanged; invariants 5150 → 5187; visual 15 scenes unchanged.
+
+## v134 — the queue lists calls, because calls are what was shouted
+
+Sam: "the call queue should be limited to calls, not to movements. Movements are atomic units, and are
+not queued or chained. Finally, don't mention the implicitly done Dile Que No or Dames that are actually
+part of the calls, just list the actual calls, not their individual movements, and not anything that is
+done implicitly due to the rules of rueda, both in the call queue and in the call log."
+
+- **On the stage, not in the side panel.** The queue now sits top-left under the now-playing line with
+  22px of nothing between them. The gap is the design: the queue is the same kind of thing as the line
+  above it — a rule or a box would imply otherwise — it is simply not happening yet, and distance says
+  that. Oldest first, so a call reaches the top of the list, leaves it, and reappears in the now-playing
+  line directly above while everything behind shuffles up one place.
+- **Calls, by instance.** `queueCalls` held the call's *label* per queued movement; it now holds a
+  reference to the call *instance*. Collapsing by instance turns a call's several movements back into
+  one line — and, unlike collapsing by label, keeps two Dames shouted in a row as two entries. A caller
+  watching their second Dame silently merge into the first would be right to distrust the whole panel.
+- **Nothing implicit is named.** `runMovement`'s per-movement `logLine` is gone, and with it the
+  "Dile Que No y Dame" merge line. One Enchufla now reads as exactly one log entry where it used to read
+  as three, two of which the caller never said. The implicit figures are still *danced*, and still shown
+  in the now-playing line — that is where a dancer looks for what is happening now.
+- **A pending interrupt is a queued call.** A live Dame waits in `pendingInterrupt`, not in `queue`, and
+  so was invisible. It now shows last, which is also when it runs: `nextMovement` drains `queue` before
+  an interrupt can apply.
+- **A bug the move exposed.** Calls stayed clickable while a raw movement animated, and the resulting
+  call went into the queue and stayed there forever — a raw movement ends without re-entering the engine
+  (deliberately; that is what makes it a one-shot test), so nothing ever ran it. Invisible when the queue
+  was a movement list in the side panel. `rawMovement` closes the door: a movement is atomic in both
+  directions. Sam's rule turned out to be the fix for a defect neither of us was looking for.
+- The log numbers **calls** now (`logCount`); `stepCount` counts movements and remains undo bookkeeping.
+- Golden 342/132/6, invariants 5150, visual 15 scenes — all unchanged, all green.
+
 ## v133 — an entry turn must not set the tempo
 
 Sam, from the running sim: from Línea Moderna Exhibela at 4 couples, Dile Que No Pequeña → Adios Pequeña
