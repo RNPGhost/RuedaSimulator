@@ -1440,8 +1440,35 @@ function pathNaturalness(pts, dts, baseline){
 }
 // The signed angular sweep from aS to aE that stays nearest `base` — so a progression winds the way it
 // is meant to rather than always taking the short way round.
-function directedSweep(aS, aE, base){
-  let s = aE - aS; while (s - base > Math.PI) s -= 2 * Math.PI; while (s - base < -Math.PI) s += 2 * Math.PI; return s;
+/* Ties: the two branches were EXACTLY as near the declaration as each other, so the declaration did not
+ * decide the figure's shape and floating point did. Recorded rather than thrown, because a tie is a
+ * question for the figure's author, not a crash — see §50. Empty is the contract for shipped figures. */
+const SWEEP_TIES = [];
+function directedSweep(aS, aE, base, tag){
+  let s = aE - aS; while (s - base > Math.PI) s -= 2 * Math.PI; while (s - base < -Math.PI) s += 2 * Math.PI;
+  /* THE DEGENERACY, AND WHY IT MATTERS. `s` is whichever value congruent to `aE − aS` sits nearest the
+   * declared turn. When the two candidates are half a turn either side of it — a DIAMETRIC move with no
+   * declared turn is the everyday case — they are equidistant and the answer is decided by the fourteenth
+   * decimal place of two angles. That is not a small wobble: |sw| ≥ π is the LOOP threshold, so ±π
+   * chooses between winding one way and winding the other, and the two paths are not similar.
+   *
+   * Measured on a Línea figure whose leaders swap across their mini-wheel: three of them came out at
+   * −180.0000° and the fourth at +180.0000°, from arithmetic that is symmetric on paper. The odd one out
+   * looped the other way, met different traffic, and was carried 104px off his line resolving it —
+   * one dancer per couple count, a different dancer each count, with nothing in the figure to explain it.
+   *
+   * So the tie goes to the DECLARATION'S OWN SIGN, and to positive when the declaration is silent. Both
+   * halves matter: the sign rule is what makes `turn: -180` mean clockwise rather than "clockwise unless
+   * the arithmetic rounds the other way", and the positive default is what makes a silent figure at least
+   * consistent with itself across its own dancers. */
+  const TIE = 1e-6;
+  if (Math.abs(Math.abs(s - base) - Math.PI) < TIE){
+    const alt = s - Math.sign(s - base || 1) * 2 * Math.PI;
+    const want = Math.sign(base) || 1;
+    if (Math.sign(s) !== want && Math.sign(alt) === want) s = alt;
+    SWEEP_TIES.push({ tag: tag || null, base: +base.toFixed(6), s: +s.toFixed(6) });
+  }
+  return s;
 }
 function arcLenPath(pts){
   const cum = [0];
@@ -1588,6 +1615,11 @@ let LAST_SWEEPS = {};
  * the engine until a clause could name its own; §26 has to ask each dancer about the right point or it
  * is checking a cross-wheel traveller's winding around somebody else's wheel. */
 let LAST_CENTRES = {};
+/* …and what each traveller was ASKED for: the resolved reference, the declared turn in radians, and the
+ * start/landing stations. The sweep alone cannot say whether a surprising path came from a surprising
+ * declaration or from the geometry it was resolved against, and telling those apart is most of debugging
+ * a new figure. */
+let LAST_TARGETS = {};
 let VIA_TRACE = null;      // per-dancer declared winding from the most recent travel
 // Encounters whose intended paths already sit on the opposite shoulder to the one the movement declared.
 // Easing them apart cannot fix that — it drives them further onto the wrong side — so it is reported.
@@ -2168,6 +2200,7 @@ function playTravel(ds, N, o){
     return about === 'targetWheel' ? F.miniCenter(spokeOf(stTo), phase)
                                    : F.miniCenter(spokeOf(stFrom), o.phaseBefore);
   };
+  LAST_TARGETS = {};
   // Resolve every traveller's landing from its slot address — the one place a couple count enters.
   ds.forEach(d => { const ref = o.target(d); if (!ref) return;
     const p = placeOf(d, N, o.phaseBefore), q = resolvePlace(p, ref, N, phase);
@@ -2180,9 +2213,11 @@ function playTravel(ds, N, o){
      * turn in degrees about that centre instead. Both end up as `sw`, and `directedSweep` still picks the
      * branch nearest the declaration, which is what stops a progression quietly taking the short way. */
     const base = ref.turn !== undefined ? ref.turn * Math.PI / 180 : ref.dh * Math.PI / (p.span / 2);
+    LAST_TARGETS[d.id] = { ref, base, from: d.station, to: q.station, span: p.span,
+                           about: ref.about || 'formation' };
     kin[d.id] = { S, E, C, aS: _angAbout(S, C), aE: _angAbout(E, C),
       rS: _radAbout(S, C), rE: _radAbout(E, C),
-      sw: directedSweep(_angAbout(S, C), _angAbout(E, C), base) };
+      sw: directedSweep(_angAbout(S, C), _angAbout(E, C), base, d.id) };
   });
   /* THE INTENDED PATH: the shortest way to the destination that turns about the wheel's midpoint by the
    * amount the progression declares.
@@ -2831,8 +2866,13 @@ function resolveTravel(name, ds, o){
   const role = {}; ds.forEach(d => role[d.id] = d.role);
   const CLEAR = 2 * (DOT_R + PATH_CLEAR);
   return Object.assign({
+    /* EVERYTHING THE CLAUSE SAID, not most of it. `turn` was documented, read by the planner and never
+     * put on the reference — so a figure that declared a half turn was planned as if it had declared
+     * nothing, which is the exact centre of `directedSweep`'s degeneracy. It is mirrored like `dh`,
+     * because a turn is a direction around the wheel and mirroring is what turns the wheel inside out. */
     target: d => cl[d.id].scripted ? null
-      : { dh: mir * cl[d.id].dh, lane: laneOf(d), ring: ringOf(d), about: cl[d.id].about },
+      : { dh: mir * cl[d.id].dh, lane: laneOf(d), ring: ringOf(d), about: cl[d.id].about,
+          turn: cl[d.id].turn === undefined ? undefined : mir * cl[d.id].turn },
     yields: id => !cl[id].scripted,
     group: id => role[id], groups: def.groups,
     clearance: CLEAR, engage: CLEAR + 1.4 * DOT_R,

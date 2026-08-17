@@ -75,6 +75,37 @@ tune amplitudes, do not add an exception to a convention. A collision that appea
 a path is the model telling you a pass side has not been specified yet. Thirty seconds of asking beats an
 hour of collision mathematics, and the answer is one the user already knows.
 
+### NEVER DEFINE A PROGRESSIVE MOVEMENT IN TERMS OF ANOTHER PROGRESSIVE MOVEMENT
+
+> "I should not have been able to define progressive movements using an existing progressive movement …
+> I should not be able to concretely define a movement as if it were static when the movement I've
+> referenced has been calculated using the via path engine for avoiding collisions." — Sam
+
+A **static** figure is a fixed shape: nobody leaves their couple's slot, nothing about it depends on who
+else is dancing, and it means the same thing wherever it is used. A **progressive** movement is not a
+shape at all — it is a pair of slot addresses plus *a path the engine solved against the traffic that
+particular figure had*. The arc is an answer to a question about other dancers.
+
+So when a new figure needs a dancer to "do what she does in X":
+
+* **X is static** (an Enchufla, a Vacilala, a ¾ circle) — reference it. It carries no assumptions.
+* **X is progressive** (any Dame) — reference its **slots**, never its path. State where that dancer
+  starts and where she lands, and let the path be re-planned here, against the traffic *this* figure
+  actually has. Then ask for the pass sides of whatever collides.
+
+**This is not a style preference; it imports a wrong answer.** Dame Ene was specified as "three of the
+four dancers do exactly what they would do in a Dame Pequeña". Written as `about: 'ownWheel', turn: 180`
+— the Dame Pequeña's *path* — the inner leaders inherited the wide arc round the mini-wheel centre that
+a Dame Pequeña needs **because the other leader is coming the other way**. In Dame Ene he is not: he has
+left for another wheel entirely, and the arc is avoiding a dancer who is not there. Sam: *"the slot
+changes are the same, but the pathing should be recalculated based on different movements of other
+dancers."* Restating it as the slots alone — `{ dh: 0, ring: 'outer', lane: 'cw' }`, straight line — took
+the figure from **2.31x its straight line with an unresolvable collision to 1.00x intent / 1.11x planned,
+everyone clear, at 4, 6 and 8 couples**.
+
+The tell is in the user's own words: "they do a Dame Pequeña" describes the *result* — who ends up where.
+It is your job to hear that as an address, not as a trajectory.
+
 **Report the numbers, always.** Two measurements, for every figure, at every couple count, unprompted:
 minimum clearance *and* **path length against the straight line between the endpoints**. Invariants §44
 warns on the second automatically, but say it out loud too — a figure whose ratio stands out against the
@@ -106,6 +137,40 @@ dame: { groups: ['L','F'], L: { dh: -1, lane: 'cw', pass: 'in' },
 `dh` is in **half-couple spacings**, positive = clockwise. Use half-spacings — a Dame moves its leader
 an odd number of them, which is *why* it flips the phase. **Never declare a phase flip**: it falls out
 of `dh` being odd.
+
+#### A progression is a JOURNEY AROUND A MIDPOINT, not a destination
+
+> "I should also be able to define if the progression goes a certain direction around a particular rueda
+> midpoint. This will prevent moves like Dame Dos in a 2 couple wheel from devolving into the dancer just
+> staying still because they have already reached their destination slot, forcing them to navigate around
+> the midpoint in the correct direction." — Sam
+
+Endpoints are not enough, and two figures can share them and be different dances. A clause therefore
+says three things, and you should be able to name all three before writing it:
+
+| | says | example |
+|---|---|---|
+| `dh`, `ring`, `lane` | **where** they land | `{ dh: -4, ring: 'outer', lane: 'cw' }` |
+| `about` | **around what** the journey goes | `'formation'` (default) · `'ownWheel'` · `'targetWheel'` |
+| `turn` | **how far round, and which way**, in degrees about that point | `turn: -180` |
+
+**Never reduce `dh` modulo the wheel.** `dame_dos_pequena` is `dh: -4` on a *two-couple* mini-wheel: two
+couples is the whole wheel, so the leader crosses twice, passes the other leader both times and lands
+back with his own partner. Reduced to `dh: 0` it has the same endpoints and is the figure where he
+stands still. The unreduced value is what `directedSweep` uses as the winding the path must satisfy —
+that is the mechanism, and shortening the number silently deletes the dance.
+
+**Use `about` when the midpoint is not the wheel the figure is danced on.** A Línea figure whose dancers
+turn about their own mini-wheel while another crosses the formation needs both midpoints at once, and
+`about` is the only way to say so.
+
+**Declare `turn` for anything diametric.** A half-turn sits exactly on the tie in `directedSweep` — both
+directions are equally near a silent declaration — and on the `|sw| >= 180°` threshold that chooses
+between a straight chord and an in-round-out loop. The tie is broken deterministically toward the
+declaration's sign, so `turn: -180` means clockwise and stays clockwise; say nothing and you get the
+engine's default rather than your figure's intent. **§50 fails on any shipped figure that relies on the
+tiebreak.** This is not hypothetical — it is how three leaders in one Línea figure wound one way and the
+fourth wound the other, from arithmetic that is symmetric on paper.
 
 A **figure** is a chain of beat-level segments in the dancer's own frame — `{to, beats, steps, ease,
 face, turn, bow, round, orbit}`. Nothing a segment names may mention another couple; that is what makes

@@ -3047,6 +3047,88 @@ function run() {
     }
   }
 
+  /* 50: NO FIGURE'S SHAPE IS DECIDED BY THE FOURTEENTH DECIMAL PLACE.
+   *
+   *     `directedSweep` returns the winding congruent to the dancer's actual endpoints that sits nearest
+   *     the turn the movement DECLARED. When the two candidates are half a turn either side of the
+   *     declaration they are equidistant, and which one comes back is decided by rounding. That is not a
+   *     small wobble: |sw| >= 180° is the threshold between a straight chord and an in-round-out loop,
+   *     so the tie chooses between two completely different paths.
+   *
+   *     A diametric move with no declared turn sits exactly on it, which is the everyday case — a leader
+   *     swapping across a two-couple mini-wheel. Measured on the first figure to do it: three leaders
+   *     came out at -180.0000° and the fourth at +180.0000°, from arithmetic that is symmetric on paper.
+   *     The odd one looped the other way, met different traffic, and was carried 104px off his line
+   *     resolving it. One dancer per couple count, a different dancer each count, nothing in the figure
+   *     to explain it — the signature of a coin flip.
+   *
+   *     The tie is now broken toward the declaration's own sign (positive when it is silent) so the
+   *     engine is at least deterministic and self-consistent. But a tie still means the FIGURE did not
+   *     say which way it goes, and no shipped figure should be relying on the tiebreak: it is recorded
+   *     and asserted empty here, across every movement and every Línea call at 4/6/8 couples and both
+   *     phases. A figure that legitimately swaps diametrically should declare `turn`. */
+  {
+    T.SWEEP_TIES.length = 0;
+    for (const key of T.keys().movements) for (const from of POSITIONS){
+      if (!T.validFrom(key, from)) continue;
+      for (const n of [4, 6, 8]) for (const ph of PHASES){ try { T.captureMovement(key, from, n, ph); } catch (e) {} }
+    }
+    for (const [ck, c] of Object.entries(T.CALLS)){
+      if (!c.from || !c.from.includes('linea') || !c.seq) continue;
+      for (const n of [4, 6, 8]) for (const ph of PHASES){ let first = true;
+        for (const mv of c.seq){ try { first ? T.captureLineaMovement(mv, n, ph) : T.fireHere(mv); } catch (e) { break; } first = false; } }
+    }
+    const ties = T.SWEEP_TIES.slice();
+    nChecks++; check(ties.length === 0,
+      `§50 ${ties.length} traveller(s) had their winding decided by a tiebreak rather than by the figure` +
+      (ties.length ? ` (e.g. ${ties[0].tag}: declared ${(ties[0].base * 180 / Math.PI).toFixed(1)}°, ` +
+        `resolved ${(ties[0].s * 180 / Math.PI).toFixed(1)}°)` : '') +
+      ' — declare `turn` so the direction is the figure\'s, not the arithmetic\'s');
+    T.SWEEP_TIES.length = 0;
+
+    /* Self-tests. The probe has to be able to SEE a tie, the tiebreak has to be the DECLARATION'S sign,
+     * and a silent declaration has to come out the same way every time — otherwise "0 ties" is vacuous
+     * and the fix is not a fix. Driven on `directedSweep` directly: two angles exactly π apart. */
+    {
+      const P = Math.PI, sweep = T.directedSweep;
+      T.SWEEP_TIES.length = 0;
+      const silent = sweep(0, P, 0), silentFlip = sweep(0, -P, 0);
+      nChecks++; check(T.SWEEP_TIES.length === 2,
+        '§50 self-test: two exactly-diametric sweeps were not recorded as ties, so the probe is blind');
+      nChecks++; check(Math.abs(silent - silentFlip) < 1e-9,
+        `§50 self-test: the same diametric move resolved two ways (${silent.toFixed(6)} vs ` +
+        `${silentFlip.toFixed(6)}) — a silent figure is still inconsistent with itself`);
+      T.SWEEP_TIES.length = 0;
+      // …and a figure that DOES declare gets what it declared, both ways round.
+      nChecks++; check(sweep(0, P, P) > 0 && sweep(0, -P, P) > 0,
+        "§50 self-test: `turn: 180` did not resolve anticlockwise — the tie is not going to the declaration");
+      nChecks++; check(sweep(0, P, -P) < 0 && sweep(0, -P, -P) < 0,
+        "§50 self-test: `turn: -180` did not resolve clockwise — the tie is not going to the declaration");
+      T.SWEEP_TIES.length = 0;
+    }
+
+    /* AND THE DECLARATION HAS TO REACH THE PLANNER. `turn` was documented in the clause vocabulary, read
+     * by `playTravel`, and never put on the reference `resolveTravel` builds — so a figure that declared
+     * a half turn was planned as if it had declared nothing, landing exactly on the tie above. The bug
+     * was invisible to every behavioural test because the figure still ran. Asserted structurally. */
+    {
+      const ds = [{ id: 'L0', role: 'L', couple: 0, station: 0, lane: 'cw' },
+                  { id: 'F0', role: 'F', couple: 0, station: 0, lane: 'ccw' }];
+      const def = { groups: ['L', 'F'], passes: {}, L: { dh: -2, lane: 'cw', turn: 180 }, F: { scripted: true } };
+      const plain = T.resolveTravel(def, ds, { n: 2, phaseBefore: 0 });
+      nChecks++; check(plain.target(ds[0]).turn === 180,
+        "§50 a clause's declared `turn` did not reach the reference the planner reads — it is being dropped");
+      const mirrored = T.resolveTravel(def, ds, { n: 2, phaseBefore: 0, mirror: true });
+      nChecks++; check(mirrored.target(ds[0]).turn === -180,
+        '§50 a declared `turn` was not mirrored with the rest of the geometry — an inside-out wheel must ' +
+        'wind the other way, exactly as `dh` does');
+      nChecks++; check(T.resolveTravel({ groups: ['L'], passes: {}, L: { dh: -2, lane: 'cw' } }, ds,
+        { n: 2, phaseBefore: 0 }).target(ds[0]).turn === undefined,
+        '§50 a clause that declared no turn was given one — silence must stay silent, or `dh` stops ' +
+        'being what decides the winding');
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

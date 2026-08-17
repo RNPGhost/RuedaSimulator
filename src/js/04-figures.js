@@ -315,8 +315,35 @@ function pathNaturalness(pts, dts, baseline){
 }
 // The signed angular sweep from aS to aE that stays nearest `base` — so a progression winds the way it
 // is meant to rather than always taking the short way round.
-function directedSweep(aS, aE, base){
-  let s = aE - aS; while (s - base > Math.PI) s -= 2 * Math.PI; while (s - base < -Math.PI) s += 2 * Math.PI; return s;
+/* Ties: the two branches were EXACTLY as near the declaration as each other, so the declaration did not
+ * decide the figure's shape and floating point did. Recorded rather than thrown, because a tie is a
+ * question for the figure's author, not a crash — see §50. Empty is the contract for shipped figures. */
+const SWEEP_TIES = [];
+function directedSweep(aS, aE, base, tag){
+  let s = aE - aS; while (s - base > Math.PI) s -= 2 * Math.PI; while (s - base < -Math.PI) s += 2 * Math.PI;
+  /* THE DEGENERACY, AND WHY IT MATTERS. `s` is whichever value congruent to `aE − aS` sits nearest the
+   * declared turn. When the two candidates are half a turn either side of it — a DIAMETRIC move with no
+   * declared turn is the everyday case — they are equidistant and the answer is decided by the fourteenth
+   * decimal place of two angles. That is not a small wobble: |sw| ≥ π is the LOOP threshold, so ±π
+   * chooses between winding one way and winding the other, and the two paths are not similar.
+   *
+   * Measured on a Línea figure whose leaders swap across their mini-wheel: three of them came out at
+   * −180.0000° and the fourth at +180.0000°, from arithmetic that is symmetric on paper. The odd one out
+   * looped the other way, met different traffic, and was carried 104px off his line resolving it —
+   * one dancer per couple count, a different dancer each count, with nothing in the figure to explain it.
+   *
+   * So the tie goes to the DECLARATION'S OWN SIGN, and to positive when the declaration is silent. Both
+   * halves matter: the sign rule is what makes `turn: -180` mean clockwise rather than "clockwise unless
+   * the arithmetic rounds the other way", and the positive default is what makes a silent figure at least
+   * consistent with itself across its own dancers. */
+  const TIE = 1e-6;
+  if (Math.abs(Math.abs(s - base) - Math.PI) < TIE){
+    const alt = s - Math.sign(s - base || 1) * 2 * Math.PI;
+    const want = Math.sign(base) || 1;
+    if (Math.sign(s) !== want && Math.sign(alt) === want) s = alt;
+    SWEEP_TIES.push({ tag: tag || null, base: +base.toFixed(6), s: +s.toFixed(6) });
+  }
+  return s;
 }
 function arcLenPath(pts){
   const cum = [0];

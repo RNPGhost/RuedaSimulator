@@ -132,6 +132,11 @@ let LAST_SWEEPS = {};
  * the engine until a clause could name its own; §26 has to ask each dancer about the right point or it
  * is checking a cross-wheel traveller's winding around somebody else's wheel. */
 let LAST_CENTRES = {};
+/* …and what each traveller was ASKED for: the resolved reference, the declared turn in radians, and the
+ * start/landing stations. The sweep alone cannot say whether a surprising path came from a surprising
+ * declaration or from the geometry it was resolved against, and telling those apart is most of debugging
+ * a new figure. */
+let LAST_TARGETS = {};
 let VIA_TRACE = null;      // per-dancer declared winding from the most recent travel
 // Encounters whose intended paths already sit on the opposite shoulder to the one the movement declared.
 // Easing them apart cannot fix that — it drives them further onto the wrong side — so it is reported.

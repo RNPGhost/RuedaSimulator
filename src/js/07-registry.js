@@ -204,8 +204,13 @@ function resolveTravel(name, ds, o){
   const role = {}; ds.forEach(d => role[d.id] = d.role);
   const CLEAR = 2 * (DOT_R + PATH_CLEAR);
   return Object.assign({
+    /* EVERYTHING THE CLAUSE SAID, not most of it. `turn` was documented, read by the planner and never
+     * put on the reference — so a figure that declared a half turn was planned as if it had declared
+     * nothing, which is the exact centre of `directedSweep`'s degeneracy. It is mirrored like `dh`,
+     * because a turn is a direction around the wheel and mirroring is what turns the wheel inside out. */
     target: d => cl[d.id].scripted ? null
-      : { dh: mir * cl[d.id].dh, lane: laneOf(d), ring: ringOf(d), about: cl[d.id].about },
+      : { dh: mir * cl[d.id].dh, lane: laneOf(d), ring: ringOf(d), about: cl[d.id].about,
+          turn: cl[d.id].turn === undefined ? undefined : mir * cl[d.id].turn },
     yields: id => !cl[id].scripted,
     group: id => role[id], groups: def.groups,
     clearance: CLEAR, engage: CLEAR + 1.4 * DOT_R,

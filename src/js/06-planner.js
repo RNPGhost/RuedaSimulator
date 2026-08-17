@@ -566,6 +566,7 @@ function playTravel(ds, N, o){
     return about === 'targetWheel' ? F.miniCenter(spokeOf(stTo), phase)
                                    : F.miniCenter(spokeOf(stFrom), o.phaseBefore);
   };
+  LAST_TARGETS = {};
   // Resolve every traveller's landing from its slot address — the one place a couple count enters.
   ds.forEach(d => { const ref = o.target(d); if (!ref) return;
     const p = placeOf(d, N, o.phaseBefore), q = resolvePlace(p, ref, N, phase);
@@ -578,9 +579,11 @@ function playTravel(ds, N, o){
      * turn in degrees about that centre instead. Both end up as `sw`, and `directedSweep` still picks the
      * branch nearest the declaration, which is what stops a progression quietly taking the short way. */
     const base = ref.turn !== undefined ? ref.turn * Math.PI / 180 : ref.dh * Math.PI / (p.span / 2);
+    LAST_TARGETS[d.id] = { ref, base, from: d.station, to: q.station, span: p.span,
+                           about: ref.about || 'formation' };
     kin[d.id] = { S, E, C, aS: _angAbout(S, C), aE: _angAbout(E, C),
       rS: _radAbout(S, C), rE: _radAbout(E, C),
-      sw: directedSweep(_angAbout(S, C), _angAbout(E, C), base) };
+      sw: directedSweep(_angAbout(S, C), _angAbout(E, C), base, d.id) };
   });
   /* THE INTENDED PATH: the shortest way to the destination that turns about the wheel's midpoint by the
    * amount the progression declares.

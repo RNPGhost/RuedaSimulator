@@ -257,6 +257,8 @@ function load(htmlPath) {
       // The winding each traveller's progression declared, from the most recent travel the engine ran.
       lastSweeps(){ return Object.assign({}, LAST_SWEEPS); },
       lastCentres(){ return Object.assign({}, LAST_CENTRES); },
+      lastTargets(){ return JSON.parse(JSON.stringify(LAST_TARGETS)); },
+      get SWEEP_TIES(){ return SWEEP_TIES; }, directedSweep,
       // Run a TRAVEL definition straight from data, as if it had come out of a file.
       playTravelFrom(def, from, n, ph, opts){ setupRest(from, n, ph);
         return playTravel(dancers, n, resolveTravel(def, dancers, Object.assign({ phaseBefore: ph }, opts || {}))); },

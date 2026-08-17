@@ -134,6 +134,73 @@ where he ends up, so the discriminator no longer has to infer a journey from its
 dance-level fact; the `dh` addresses are its arithmetic consequence, and the two must agree —
 `k = (F.dh − L.dh) / 2`, which holds for all six travel definitions in the registry.
 
+### A progression names a midpoint and a direction around it, not just a landing
+
+Two figures can share their endpoints and be different dances, so a landing alone under-determines a
+progression. A clause says three things:
+
+* **where they land** — `dh` (half-couple spacings, positive clockwise), `ring`, `lane`;
+* **around what** the journey goes — `about: 'formation' | 'ownWheel' | 'targetWheel'`, defaulting to the
+  wheel the figure is being danced on;
+* **how far round, and which way** — `turn`, in degrees about that point, when `dh` alone does not say it.
+
+Sam:
+
+> "I should also be able to define if the progression goes a certain direction around a particular rueda
+> midpoint. This will prevent moves like Dame Dos in a 2 couple wheel from devolving into the dancer just
+> staying still because they have already reached their destination slot, forcing them to navigate around
+> the midpoint in the correct direction."
+
+That is why **`dh` is never reduced modulo the wheel**. `dame_dos_pequena` is `dh: -4` on a two-couple
+mini-wheel — two couples is the whole wheel, so the leader crosses it twice, passes the other leader both
+times and lands back with his own partner. `dh: 0` has identical endpoints and is the figure where he
+stands still. `directedSweep` takes the unreduced value as the winding the path must satisfy; shortening
+the number deletes the dance while leaving the addresses correct.
+
+`about` exists because one figure can need two midpoints at once — Línea dancers turning about their own
+mini-wheel while another crosses the whole formation — and there is no way to express that with a single
+implicit centre.
+
+`turn` exists for the case `dh` cannot reach: a turn about a sub-wheel is not a count of the formation's
+half-spacings, and a **diametric** move is degenerate without it. Half a turn sits exactly on the tie in
+`directedSweep` (both directions equally near a silent declaration) *and* on the `|sw| ≥ 180°` threshold
+between a straight chord and an in-round-out loop. The tie is broken toward the declaration's own sign,
+so `turn: -180` means clockwise and stays clockwise; **invariants §50 fails any shipped figure that
+leaves it to the tiebreak**, because that figure's shape is the engine's opinion rather than its author's.
+
+### A progressive movement is not a shape, so it may never be quoted as one
+
+The two halves above are not symmetric, and the asymmetry is a rule about how movements may be *built*
+out of other movements.
+
+A **scripted** figure is a shape. It is stated in the dancer's own frame, nothing in it refers to anyone
+else, and it means the same thing wherever it is used. Referencing one — "she dances an Enchufla here" —
+imports exactly what it says.
+
+A **dynamic** movement is not a shape at all. It is two slot addresses plus *a path `planCrossings`
+solved against the traffic that figure happened to have*. The bend in it is an answer to a question about
+other dancers, and that question is not asked again when the movement is quoted somewhere else.
+
+**So a new movement may name another movement's SLOTS, never its PATH.** Sam:
+
+> "I should not have been able to define progressive movements using an existing progressive movement …
+> I should not be able to concretely define a movement as if it were static when the movement I've
+> referenced has been calculated using the via path engine for avoiding collisions. … The slot changes
+> are the same, but the pathing should be recalculated based on different movements of other dancers."
+
+The case that produced the rule. Dame Ene was specified as "three of the four dancers do exactly what
+they would do in a Dame Pequeña". Built by quoting the Dame Pequeña's *path* — a half turn about the
+mini-wheel centre, expressed as `about: 'ownWheel', turn: 180` — the inner leaders inherited the wide arc
+that figure needs **because the other leader is coming the other way across the same wheel**. In Dame Ene
+he is not: he has left for an adjacent wheel entirely. The arc was avoiding a dancer who was not there,
+and it cost a 2.31x detour and a collision the solver could not clear. Restated as the slots alone —
+`{ dh: 0, ring: 'outer', lane: 'cw' }`, a straight line — the figure measures **1.00x intended, 1.11x
+planned, every pair clear, at 4, 6 and 8 couples**.
+
+This is why `compose` is not a counter-example: it re-runs the referenced figure *inside* the sub-wheel's
+own context, so the path is planned against that wheel's real traffic. It quotes the figure, not a
+trajectory. Anything that copies a resolved path is doing something else.
+
 ### Scripted dancers never yield — and never need to
 
 A scripted dancer goes into the planner as an **immutable obstacle**: planned around, never deviated.
