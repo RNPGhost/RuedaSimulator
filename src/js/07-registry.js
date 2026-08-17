@@ -71,7 +71,7 @@ function playFigure(figure, ds, params, mirror){
  * `mirror` at instantiation turns a figure inside out for the afuera positions — dh signs flip, lanes
  * swap, pass sides swap. One definition covers both, which is why there is no `dame_afuera` here. */
 /* WHICH DANCERS A FIGURE PASSES ON WHICH SIDE, stated by the figure rather than inferred from a global
- * table. `PASS_CONVENTION` remains the default for anything a definition does not name, but a movement
+ * table. `PASSES_RUEDA` remains the shorthand a definition may adopt for anything it does not name, but a movement
  * that means something different has to be able to say so — and the rueda's role conventions are exactly
  * what a formation without a wheel will not have. Sides are from the first-named dancer's point of view:
  * 'left' means you travel along their left-hand side, so they go by over your right shoulder.
@@ -168,7 +168,13 @@ function resolveTravel(name, ds, o){
      * side forces the leaders into an enormous journey. That is a fact about the figure, not about the
      * vocabulary — which is why Dame Dos is now banned afuera rather than mirrored into working. */
     passes: def.passes,
-  }, o);
+  }, o, {
+    /* MERGE, NEVER REPLACE. `Object.assign(defaults, o)` would let a play's `opts.passes` swap out the
+     * definition's whole map, so overriding one pair meant restating every pair — and forgetting one
+     * silently dropped it. (`dame_shared` had to restate all four role keys to change `partner0`.) The
+     * override now layers over the definition: name the pair you mean, keep the rest. */
+    passes: (o && o.passes) ? Object.assign({}, def.passes, o.passes) : def.passes,
+  });
 }
 
 /* SCRIPT_KINDS — what a SCRIPTED role does while the other travels, named so a definition can reference

@@ -191,10 +191,12 @@ const MOVEMENTS = {
     // them, over your own left shoulder — the same for inner and outer couples, because afuera never
     // changes which side a dancer passes on.
     play: { travel: 'dame', mirror: true,
-      // Stated inline rather than spread from PASSES_RUEDA, which is declared with the travel registry
-      // further down and is in its temporal dead zone here.
-      opts: { steps: 24, settle: 0.3, beats: 4,
-              passes: { 'L,F': 'left', 'F,L': 'left', 'L,L': 'right', 'F,F': 'right', partner0: 'right' } } },
+      // ONLY the pair this figure changes. It used to restate all four role keys as well, because
+      // `opts.passes` replaced the definition's map wholesale and omitting one dropped it; overrides now
+      // layer, so a figure names the pair it means and inherits the rest from `TRAVELS.dame`. (The old
+      // form also had to spell the roles out inline: `PASSES_RUEDA` is declared with the travel registry
+      // further down and is in its temporal dead zone here. Layering removes that problem too.)
+      opts: { steps: 24, settle: 0.3, beats: 4, passes: { partner0: 'right' } } },
     anim: { speed: 0.10, rotSpeed: 0.42 }
   },
   enchufla: {

@@ -245,3 +245,40 @@ direction one couple apart and no two come within 90px, so there is no follower/
 judge at all; the grande form was already passing left, and now says so. Clearance on the pequeña
 improved 35px → 39px, so the declared side is also the roomier one — usually a sign the declaration
 matches what the geometry wanted anyway.
+
+## The Side Book — one owner, with provenance
+
+Which side two dancers pass on used to have **three writers and two readers**. The map was built at
+author time (defaults spread flat into every travel), again in `resolveTravel` (where a play's
+`opts.passes` **replaced** the definition's map rather than layering over it), and a third time in
+`grandeFrames` (where Línea's radial clauses were spread **last**, so the formation beat any figure that
+named the same pair). It was then read by two functions that could disagree — one gated on `o.roleOf`,
+one not — each inventing "left" where nothing answered. `SIDE_FAULTS` verified a pass only when a side
+was *named*, so an invented side was both forced **and** exempt from the check that would have caught it.
+
+Three shipped bugs came out of that in three consecutive versions. Now there is one book:
+
+```js
+const BOOK = buildSideBook(o);          // built once per plan, before anything reads a side
+BOOK.lookup(a, b) → { side, source, key }
+```
+
+| `source` | meaning |
+|---|---|
+| `declared` | the movement named this pair — by relation (`partner0`) or by roles (`L,F`) |
+| `formation` | the movement did not; the **formation** supplied it (Línea's `outer,inner: 'out'`) |
+| `default` | nobody named it. The engine yields to its own left — and **says so** |
+
+**Precedence is figure, then formation, then default.** A formation fills gaps; it does not win arguments
+about a figure's own dancing. `opts.passes` **layers** over the definition, so overriding one pair means
+naming that pair and inheriting the rest.
+
+**The provenance is the point.** `DEFAULTED_PASSES` records every pair whose corridor was genuinely
+breached and whose side nobody declared — measured across every shipped figure at 4/6/8 couples: **zero**,
+which is why §36d is an assertion rather than a warning. The moment a new figure needs a side nobody
+gave, the suite fails by name. That is ask-don't-guess with teeth, and it is the same list the authoring
+loop will one day put to the user as questions.
+
+**A declaration is never negated.** Where two declared sides cannot both be honoured, the pair goes to
+`SIDE_CONFLICTS` rather than one being silently replaced by the negation of the other — which was the one
+place in the engine that overwrote an explicit pass side.

@@ -2653,6 +2653,143 @@ function run() {
       '§46 mujeres_shared is back — it was TRAVELS.dame under another name');
   }
 
+  /* 36d: NO DEFAULT IS EVER LOAD-BEARING. The Side Book answers every pair with a provenance; a
+   *      `source: 'default'` on a pair whose corridor is genuinely BREACHED means the engine picked a
+   *      side because nobody had. Every pass-side bug this engine has shipped has that signature — most
+   *      sharply the Dame Pequeña reversal, where the intended path already went the correct way and an
+   *      invented default drove it onto the other shoulder, with zero faults recorded because the old
+   *      check exempted exactly the pairs the default applied to.
+   *
+   *      Measured across every shipped figure at 4/6/8 couples: **zero**. So this is an assertion rather
+   *      than a warning — and the moment a NEW figure needs a side nobody named, it fails by name. That
+   *      is the ask-don't-guess rule with teeth: the suite refuses to let a guess ship silently, which is
+   *      what MOVEMENT_SPEC asks of the author and what the authoring loop will one day ask the user. */
+  {
+    T.DEFAULTED_PASSES.length = 0;
+    const sweep = (fn) => { try { fn(); } catch (e) { /* a setup that cannot run is not this check's business */ } };
+    for (const n of NS) {
+      for (const key of Object.keys(T.MOVEMENTS)) {
+        const m = T.MOVEMENTS[key];
+        if (!m.requires || m.linea) continue;
+        for (const from of m.requires) {
+          if (!T.POSITIONS[from] || T.POSITIONS[from].variant === 'linea') continue;
+          sweep(() => {
+            if (from === 'dile') { T.setupRest('exhibela', n, 0); if (!T.fireHere('dile4')) return; }
+            else T.setupRest(from, n, 0);
+            T.fireHere(key);
+          });
+        }
+      }
+      for (const [setup, key] of [[[], 'dame_grande'], [[], 'dame_peq'],
+                                  [['dile4'], 'dame_grande'], [['dile4'], 'dame_peq'],
+                                  [['dile4'], 'mujeres_peq']]) {
+        sweep(() => {
+          T.captureLineaMovement('dame_peq', n, 0);
+          for (const k of setup) if (!T.fireHere(k)) return;
+          T.fireHere(key);
+        });
+      }
+    }
+    const d = T.DEFAULTED_PASSES;
+    nChecks++; check(d.length === 0,
+      `§36d ${d.length} contested pass(es) rest on a side nobody declared — the engine guessed. ` +
+      (d[0] ? `e.g. ${d[0].a}/${d[0].b} at ${d[0].gap}px (key '${d[0].key}'). Name the side on the figure.` : ''));
+    /* Self-test: the recorder must be able to see one. A synthetic plan with two dancers crossing and no
+     * `passes` map at all is the case it exists to catch — if this does not register, the check above is
+     * passing because nothing is looking. */
+    {
+      const before = d.length;
+      const A = { x: 0, y: 0 }, B = { x: 100, y: 0 };
+      T.planCrossings({
+        ids: ['A', 'B'],
+        base: (id, t) => id === 'A' ? { x: A.x + 100 * t, y: -20 + 40 * t }
+                                    : { x: B.x - 100 * t, y: 20 - 40 * t },
+        roleOf: () => null, clearance: 35, engage: 45,
+        group: id => id, groups: ['A', 'B'],
+      });
+      nChecks++; check(d.length > before,
+        '§36d self-test: an undeclared contested pass was not recorded — the recorder is blind');
+      d.length = before;
+    }
+  }
+
+  /* 47: THE SIDE BOOK IS THE ONLY OWNER, and its precedence is asserted directly rather than inferred
+   *     from a figure that happens to exercise it. Both mechanisms below were built because a shipped bug
+   *     needed them, and NEITHER is load-bearing for any current figure — the merge matters only when a
+   *     movement overrides one pair, and the formation precedence only when a figure names a pair the
+   *     formation also names. A mechanism no figure exercises is exactly the kind that rots quietly, so
+   *     it is tested as a mechanism. */
+  {
+    // (a) `opts.passes` LAYERS over the definition's map. Replacing it wholesale is how overriding one
+    //     pair used to mean restating every pair, and forgetting one silently dropped it.
+    const def = { groups: ['L', 'F'], passes: { 'L,F': 'left', 'L,L': 'right', partner0: 'left' },
+                  L: { dh: -1, lane: 'cw' }, F: { dh: 1, lane: 'ccw' } };
+    const ds = [{ id: 'L0', role: 'L' }, { id: 'F0', role: 'F' }];
+    const merged = T.resolveTravel(def, ds, { passes: { partner0: 'right' } }).passes;
+    nChecks++; check(merged.partner0 === 'right', '§47a an override did not win for the pair it names');
+    nChecks++; check(merged['L,F'] === 'left' && merged['L,L'] === 'right',
+      '§47a overriding one pair dropped the others — opts.passes is replacing, not merging');
+    const untouched = T.resolveTravel(def, ds, {}).passes;
+    nChecks++; check(untouched.partner0 === 'left', '§47a a travel with no override lost its own map');
+
+    // (b) PRECEDENCE: what the movement declares beats what the formation supplies; the formation fills
+    //     gaps; a pair nobody names is answered anyway, and marked as a guess.
+    const mk = (passes, formationPasses) => T.buildSideBook({
+      passes, formationPasses, roleOf: id => id[0],
+      relation: (a, b) => (a[1] === b[1] ? 'partner0' : 'outer,inner'),
+    });
+    const both = mk({ 'outer,inner': 'right' }, { 'outer,inner': 'out' });
+    const e1 = both.lookup('L0', 'F1');
+    nChecks++; check(e1.side === 'right' && e1.source === 'declared',
+      `§47b the formation overruled the figure on a pair the figure named (got ${e1.side}/${e1.source})`);
+    const gapOnly = mk({}, { 'outer,inner': 'out' });
+    const e2 = gapOnly.lookup('L0', 'F1');
+    nChecks++; check(e2.side === 'out' && e2.source === 'formation',
+      `§47b the formation did not fill a gap the figure left (got ${e2.side}/${e2.source})`);
+    const nobody = mk(null, null);
+    const e3 = nobody.lookup('L0', 'F1');
+    nChecks++; check(e3.side === 'left' && e3.source === 'default',
+      `§47b an unnamed pair was not answered, or was not marked a guess (got ${e3.side}/${e3.source})`);
+
+    /* And the separation must survive the trip through a composition. §47b above proves the book's
+     * precedence; this proves the COMPOSE PATH still hands the two maps over separately, which is the
+     * thing that was actually wrong — Línea's radial clauses were spread into the figure's own map and
+     * so beat it. Read off the planner's real invocations rather than the source. */
+    {
+      const cap = T.__globalThis.__cap;
+      cap.pc.length = 0;
+      T.captureLineaMovement('dame_peq', 6, 0);
+      T.fireHere('dame_grande');
+      const merged = cap.pc.filter(p => p.passKeys.some(k => k === 'outer,inner' || k === 'inner,outer'));
+      const separated = cap.pc.filter(p => p.formationKeys.some(k => k === 'outer,inner' || k === 'inner,outer'));
+      nChecks++; check(separated.length > 0,
+        '§47b no composed plan supplied the formation clauses as formationPasses — the sweep is not reaching them');
+      nChecks++; check(merged.length === 0,
+        `§47b ${merged.length} composed plan(s) merged the formation's radial clauses into the figure's own ` +
+        'pass map — a formation overruling a figure about the figure\'s own dancing');
+    }
+
+    // (c) A DECLARATION IS NEVER SILENTLY NEGATED. Two sides that cannot both be honoured are reported.
+    //     This was the one code path in the engine that overwrote an explicit pass side.
+    T.SIDE_CONFLICTS.length = 0;
+    T.planCrossings({
+      ids: ['L0', 'L1'],
+      base: (id, t) => id === 'L0' ? { x: 100 * t, y: -18 + 36 * t } : { x: 100 - 100 * t, y: 18 - 36 * t },
+      /* Asymmetric on purpose. Two dancers meeting head-on who are BOTH told 'left' do oppose — each
+       * one's own left normal points the other way — which is the ordinary, satisfiable case. The
+       * unsatisfiable one is when the two declarations name the same side of the axis in space, which
+       * takes a relation that distinguishes the two directions. */
+      roleOf: id => 'L',
+      passes: { 'L0>L1': 'left', 'L1>L0': 'right' },
+      relation: (a, b) => a + '>' + b,
+      group: id => id, groups: ['L0', 'L1'],
+      clearance: 35, engage: 45,
+    });
+    nChecks++; check(T.SIDE_CONFLICTS.length > 0,
+      '§47c two declarations that cannot both be honoured were reconciled silently instead of reported');
+    T.SIDE_CONFLICTS.length = 0;
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

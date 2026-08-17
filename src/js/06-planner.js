@@ -37,6 +37,10 @@
  * ------------------------------------------------------------------ */
 
 function planCrossings(o){
+  /* ONE BOOK PER PLAN, built before anything reads a side, and the only thing that answers "which side".
+   * Both resolvers (`sideFor`, which signs the episode swell, and `sideVec`, which aims the vias) consult
+   * it, so they cannot disagree — they used to, because one gated on `o.roleOf` and the other did not. */
+  const BOOK = buildSideBook(o);
   const NSMP = o.samples || 40, smpT = [];
   for (let i = 1; i <= NSMP; i++) smpT.push(i / NSMP);
   const CLEAR = o.clearance, ENGAGE = (o.engage != null) ? o.engage : CLEAR;
@@ -114,7 +118,7 @@ function planCrossings(o){
     // Geometry is the fallback where roles are meaningless — a unit that is a whole couple has no role —
     // and elsewhere it is the check, below.
     const sideFor = (x, y) => {
-      const nm = passSide(o.roleOf && o.roleOf(x), o.roleOf && o.roleOf(y), o.passes, o.relation && o.relation(x, y));
+      const nm = BOOK.lookup(x, y).side;                      // one owner — see buildSideBook
       /* A RADIAL side, for dancers whose relationship to each other is which ring they are on rather than
        * which way they are heading. 'out' means you go round the OUTSIDE of them, 'in' the inside. It is
        * still a rule and not instantaneous geometry-chasing — the formation fixes which way is outward,
@@ -133,11 +137,10 @@ function planCrossings(o){
         const alongLeft = (d.y * away.x + -d.x * away.y) >= 0 ? +1 : -1;
         return alongLeft * (nm === 'out' ? +1 : -1);
       }
-      const c = o.roleOf && PASS_SIGN[nm];
-      // No roles to resolve a convention with — a unit that is a whole couple has no role, and the
-      // synthetic planner cases have none either. Then everyone yields to their own LEFT, which is what
-      // the engine has always done (the offset was a magnitude and the direction was each dancer's own
-      // left normal) and keeps simultaneous passes reinforcing rather than cancelling.
+      /* The book always answers, so there is no "nothing resolved" branch here any more — a unit that is
+       * a whole couple, or a synthetic planner case with no roles, gets `source: 'default'` and the same
+       * yield-to-your-own-left the engine has always used. The difference is that it is now recorded. */
+      const c = PASS_SIGN[nm];
       return (c === undefined || c === null) ? +1 : c;
     };
     mates[unit(a)].push({ ep, sign: sideFor(a, b) });
@@ -161,7 +164,10 @@ function planCrossings(o){
     // say about it. Still fully checked for collisions; just not judged on a side.
     // …UNLESS the movement names that pair. Declaring a side turns the figure's handedness from something
     // only the code knew into something stated and therefore checkable, which is the whole point.
-    const named = o.relation && o.passes && o.passes[o.relation(a, b)];
+    // "The movement named THIS PAIR" — by relation, which is what makes a couple's own handedness
+    // checkable. Asked of the book so there is one definition of 'named'.
+    const bk = BOOK.lookup(a, b);
+    const named = bk.source === 'declared' && o.relation && bk.key === o.relation(a, b);
     if (!named && o.bonded && o.bonded(a, b)) return;
     /* Judge a side only where there was a COLLISION to resolve. A declared side exists to settle which
      * way two dancers get out of each other's way; where their intended paths already hold the corridor
@@ -169,6 +175,13 @@ function planCrossings(o){
      * meant to help ends up fighting the shortest path. Sam: "if a pass side is not helping to resolve a
      * possible collision, it is not useful, and should be discarded." */
     if (gc <= CLEAR && (named || headOnAt(a, b, tc))) judged.push({ a, b, tc });
+    /* A CONTESTED PAIR NOBODY NAMED IS A QUESTION. Their corridor is genuinely breached, so a side had to
+     * be chosen, and the engine chose — "yield to your own left" — without anyone saying so. That is the
+     * signature of every pass-side bug this engine has shipped, and it is also precisely what the
+     * authoring loop will ask the user. Recorded rather than acted on: the path is unchanged, the fact
+     * that it rested on a guess is not. §36d reads this. */
+    if (gc <= CLEAR && bk.source === 'default' && !NAT_NOEVADE)
+      DEFAULTED_PASSES.push({ a, b, t: tc, gap: +gc.toFixed(2), key: bk.key, tag: o.tag || null });
   });
   // A unit eases along the LEFT NORMAL of its own travel — its centroid's travel, so a bonded couple
   // sidesteps as one body instead of shearing. This is the general rule; the radial offset the ring
@@ -333,8 +346,7 @@ function planCrossings(o){
      * declaration entirely and went left. Sam spotted it from the drawing: two leaders passing on the
      * left in a figure that declares otherwise. A declared side is worth nothing if only the pairs that
      * were obvious up front are asked about it. */
-    const nm = passSide(o.roleOf && o.roleOf(a), o.roleOf && o.roleOf(b), o.passes,
-                        o.relation && o.relation(a, b));
+    const nm = BOOK.lookup(a, b).side;                        // the same owner sideFor asks
     const ownLeft = { x: own.y, y: -own.x }, relLeft = { x: rel.y, y: -rel.x };
     /* A RADIAL side names a direction in the formation rather than a hand: 'out' means go round the
      * outside of them. It is resolved against the centre, not against a heading. */
@@ -377,13 +389,21 @@ function planCrossings(o){
      * uncapped it sent a leader 210px off his line to clear a woman standing still. */
     const half = (CLEAR / 2) * g, full = CLEAR * Math.min(g, 1.25);
     if (ya && yb){
-      /* Each dancer goes to the side THEIR OWN declaration names. Deriving b's side by negating a's
-       * forces the two to be opposite, which is right for a mutual head-on pass and wrong wherever the
-       * movement names the two halves separately — b ends up on the far side of the axis from the one it
-       * was told to take, and the pass is measured on the wrong shoulder even though nobody collides.
-       * Where the two declarations do oppose, this is the same placement as before. */
+      /* EACH DANCER GOES WHERE THEIR OWN BOOK ENTRY SAYS, and a disagreement is REPORTED rather than
+       * resolved by fiat. This used to negate a's direction to place b whenever the two declarations were
+       * not geometrically opposed — silently discarding b's declaration, which is the one place in the
+       * engine that overwrote an explicit pass side. Two sides that genuinely cannot both be honoured is
+       * real information (the figure has asked for something impossible); substituting one for the other
+       * hides it and draws something nobody asked for.
+       *
+       * Placing both on their own side when they are NOT opposed puts them on the same side of the
+       * meeting point, which does not separate them — so the pair is left for the solver to grow and,
+       * failing that, to report. That is the honest outcome. */
       const bx = sideVec(b, a, t);
       const opposed = (ax.x * bx.x + ax.y * bx.y) < 0;
+      if (!opposed) SIDE_CONFLICTS.push({ a, b, t: +t.toFixed(3),
+        aSide: BOOK.lookup(a, b).side, bSide: BOOK.lookup(b, a).side,
+        aSource: BOOK.lookup(a, b).source, bSource: BOOK.lookup(b, a).source });
       const bDir = opposed ? bx : { x: -ax.x, y: -ax.y };
       addVia(a, t, { x: C.x + ax.x * half, y: C.y + ax.y * half });
       addVia(b, t, { x: C.x + bDir.x * half, y: C.y + bDir.y * half });
@@ -457,11 +477,15 @@ function planCrossings(o){
   // close enough — measured, two dancers 6px apart end up correctly separated on the declared side — so
   // judging the intent would condemn an outcome that is right. A parallel pass has no mutual side
   // (PASSING.md), so only head-on ones are judged.
-  if (o.roleOf && !NAT_NOEVADE) judged.forEach(L => {
+  if (!NAT_NOEVADE) judged.forEach(L => {
     // WITH the relation. Without it this resolved the role key and judged every pass against a rule the
     // movement had explicitly overridden — 58 shipped passes reported on the wrong shoulder for going
     // exactly where they were told. The verification has to ask the same question the placement asked.
-    const want = PASS_SIGN[passSide(o.roleOf(L.a), o.roleOf(L.b), o.passes, o.relation && o.relation(L.a, L.b))];
+    /* JUDGED WHETHER OR NOT ANYONE DECLARED IT. This used to read `passSide` and return early when it
+     * answered `undefined` — so a pair nobody named was forced onto the default side and then exempted
+     * from the check that would have noticed. That is exactly how the Dame Pequeña reversal shipped with
+     * zero faults recorded. The book always answers, so the check always runs. */
+    const want = PASS_SIGN[BOOK.lookup(L.a, L.b).side];
     if (want === undefined || want === null) return;
     const h = 1 / (2 * NSMP), t = L.tc;
     const A0 = at(L.a, Math.max(0, t - h)), A1 = at(L.a, Math.min(1, t + h));

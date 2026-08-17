@@ -180,7 +180,13 @@ function grandeFrames(circleKey, from){
           if (ringOf[a] === ringOf[b]) return st0[a] === st0[b] ? 'partner0' : null;
           return ringOf[a] > ringOf[b] ? 'outer,inner' : 'inner,outer';
         },
-        passes: Object.assign({}, own, { 'outer,inner': 'out', 'inner,outer': 'in' }),
+        /* THE FIGURE'S OWN SIDES, and the FORMATION'S separately. These used to be one map with the
+         * radial clauses spread LAST, so Línea overruled any figure that named `'outer,inner'` itself —
+         * a formation deciding a figure's dancing. The Side Book consults `passes` first and
+         * `formationPasses` only for pairs the figure did not name, which is the precedence that was
+         * always meant: the formation fills gaps, it does not win arguments. */
+        passes: own,
+        formationPasses: { 'outer,inner': 'out', 'inner,outer': 'in' },
         orbit: { x: CX, y: CY },
         group: id => roleOf[id], groups: ['L', 'F'],
         clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
@@ -243,6 +249,9 @@ function pequenaFrames(circleKey, from){
     const RW = refWheels('pequena', N);
     const wheelOf = {}; frames[0].forEach(d => wheelOf[d.id] = RW.of(d.station));
     const roleOf = {}; frames[0].forEach(d => roleOf[d.id] = d.role);
+    // Which ring a dancer is on, for the radial relation. Stations 0..m-1 are inner, m..2m-1 outer.
+    const ringAt = {}; frames[0].forEach(d => ringAt[d.id] = d.station < m ? 'inner' : 'outer');
+    const ringOfStation = id => ringAt[id];
     const sameWheel = [];
     for (let i = 0; i < xIds.length; i++) for (let j = i + 1; j < xIds.length; j++)
       if (wheelOf[xIds[i]] === wheelOf[xIds[j]]) sameWheel.push([xIds[i], xIds[j]]);
@@ -255,8 +264,26 @@ function pequenaFrames(circleKey, from){
       const i = Math.min(F1 - 2, Math.floor(u)), f = u - i;
       return samplePath(track[id], i, f); };
     const CLEAR_TGT = 2 * (DOT_R + PATH_CLEAR);
+    /* THE FIGURE'S OWN SIDES REACH THE CROSS-WHEEL PASS. This plan used to be given no `passes` and no
+     * `relation` at all, so every mini-wheel-to-mini-wheel encounter was resolved by the engine's silent
+     * fallback — the one case where a figure's declarations provably could not reach the traffic they
+     * were written for. The grande merge had been given them; this one had not, and nothing noticed
+     * because §36d did not exist to ask.
+     *
+     * `formationPasses` states Línea's own rule for pairs the figure does not name — the same radial
+     * clause the grande merge uses, and gap-filling rather than overriding, so a figure that names an
+     * inter-wheel pair still wins. */
+    const st0p = {}; dancers.forEach(d => st0p[d.id] = d.station);
     const plan = planCrossings({ ids: xIds, exclude: sameWheel, base: sample,
       roleOf: id => roleOf[id], bonded: (a, b) => wheelOf[a] === wheelOf[b],
+      passes: declaredPasses(mv, LINEA_SUB_PEQ[from] || from) || {},
+      relation: (a, b) => {
+        if (wheelOf[a] === wheelOf[b]) return st0p[a] === st0p[b] ? 'partner0' : null;
+        const aIsOuter = ringOfStation(a) === 'outer';
+        return aIsOuter ? 'outer,inner' : 'inner,outer';
+      },
+      formationPasses: { 'outer,inner': 'out', 'inner,outer': 'in' },
+      orbit: { x: CX, y: CY },
       group: id => roleOf[id], groups: ['L', 'F'],
       clearance: CLEAR_TGT, engage: CLEAR_TGT + 1.4 * DOT_R });
     if (plan.scale > 0) frames.forEach((fr, i) => fr.forEach(d => { d.xy = plan.at(d.id, i / (F1 - 1)); }));

@@ -104,7 +104,10 @@ function load(htmlPath) {
       const r = _origPC(o);
       cap.pc.push({ ids: o.ids.slice(), pairs: (o.pairs || []).map(p => p.slice()),
         groups: o.groups ? o.groups.slice() : null, clearance: o.clearance,
-        share: r && r.share, amp: r && r.amp });
+        share: r && r.share, amp: r && r.amp,
+        // Which map each side came from, so §47b can assert the SEPARATION and not just the lookup:
+        // a formation's clauses must arrive as formationPasses, never merged into the figure's own.
+        passKeys: Object.keys(o.passes || {}), formationKeys: Object.keys(o.formationPasses || {}) });
       return r;
     };
     // playMovement -> record the transition (posState/phase already advanced by runMovement).
@@ -192,7 +195,7 @@ function load(htmlPath) {
       lastTiming(){ return { seg: cap.seg, rot: cap.rot, path: cap.segPath, rotStart: cap.rotStart }; },
       seedRot(m){ cap.nodeRot = Object.assign({}, m); },
       get SIDE_FAULTS(){ return SIDE_FAULTS; }, clearSideFaults(){ SIDE_FAULTS.length = 0; },
-      PASS_CONVENTION, PASS_SIGN, passSide,
+      PASS_SIGN, passSide,
       get STILL_PX(){ return STILL_PX; },
       get DIR_DERIVATIONS(){ return DIR_DERIVATIONS; }, clearDirs(){ DIR_DERIVATIONS.length = 0; },
       placeOf, resolvePlace, selectGroup, groupContext, GROUPS,
@@ -203,6 +206,10 @@ function load(htmlPath) {
       // The interruption vocabulary, asked of the engine rather than re-derived: §41/§42 assert rules
       // ABOUT these, and a test that computed its own answer would only be checking itself.
       get INTERRUPTIBLE(){ return INTERRUPTIBLE; },
+      // The Side Book's record of contested pairs nobody named — §36d's input, and one day the UI's.
+      get DEFAULTED_PASSES(){ return DEFAULTED_PASSES; },
+      get SIDE_CONFLICTS(){ return SIDE_CONFLICTS; },
+      buildSideBook, resolveTravel,
       positionDefault, dileInterruptAt, interruptLandsFrom, canInterruptDile, interruptSeqOf, interruptionPointAhead,
       POSITIONS,
       // Resolve a slot address inside a LIVE Línea context — placeOf/resolvePlace read layoutName,
