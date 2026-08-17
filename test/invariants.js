@@ -3254,6 +3254,123 @@ function run() {
     T.clearFaults();
   }
 
+  /* 53: THE DILE QUE NO ARC IS SIZED BY THE DANCER'S GRANDE WHEEL.
+   *
+   *     The follower's close from the Dile Que No position used to be built from three points that are
+   *     all LOCAL — her spoke point, its mirror across her couple midpoint, and her own slot — and local
+   *     geometry does not scale with the wheel (DELTA_DEG shrinks exactly as the radius grows). So one
+   *     251.4° arc on a 24.27px circle was danced on a 12-couple ring and inside a 4-couple Línea inner
+   *     ring alike, and on the small wheel it reached most of the way to the centre.
+   *
+   *     Sam: "this is causing the inner couple followers to travel a long way into the centre in order to
+   *     get back to their slot, which is taking up room that the leaders should be using … followers on a
+   *     smaller grande wheel will not do a full 3/4 of a circle, they'll do less, like 1/2 a circle."
+   *
+   *     Three claims, and each is asserted rather than trusted:
+   *       a) the two thresholds are still the 4-couple Línea rings Sam named them by — they are written
+   *          as numbers so they are one edit to turn, which is exactly why re-tuning the wheel geometry
+   *          must not be able to move them out from under the rule silently;
+   *       b) the arc RESPONDS: half circle at or below the small threshold, the full arc at or above the
+   *          big one, and genuinely graded in between (a build that ignored the grande wheel would show
+   *          one sweep everywhere, and one that clamped would show two);
+   *       c) it moves the BULGE AND NOTHING ELSE: her chord — the straight line from where she starts to
+   *          where she lands — is the same 39.42px on every wheel and both rings, because the mini-wheel
+   *          she dances it in is the same size at every couple count. An interpolation that dragged an
+   *          endpoint would show up here and nowhere else, since the sweep alone cannot tell a shorter
+   *          arc from a shorter journey. */
+  {
+    const A = T.DILE_ARC;
+    const g4 = T.setupLinea(4).LM;
+    nChecks++; check(Math.abs(A.rFull - g4.Ro) < 0.01,
+      `§53 the full-arc threshold is ${A.rFull.toFixed(3)}px but the 4-couple Línea OUTER ring is ` +
+      `${g4.Ro.toFixed(3)}px — the rule and the formation it was stated in terms of have drifted apart`);
+    nChecks++; check(Math.abs(A.rHalf - g4.Ri) < 0.01,
+      `§53 the half-circle threshold is ${A.rHalf.toFixed(3)}px but the 4-couple Línea INNER ring is ` +
+      `${g4.Ri.toFixed(3)}px — the rule and the formation it was stated in terms of have drifted apart`);
+    nChecks++; check(A.rHalf < A.rFull, '§53 the two arc thresholds are not ordered');
+
+    // Fit the circle each follower actually walks and read its sweep. Evasion off: the claim is about
+    // the SCRIPT, and a planner nudge would be measured here as a change of arc.
+    const TWO = 2 * Math.PI;
+    const arcOf = (P) => {
+      const n = P.length; let sx = 0, sy = 0; P.forEach(p => { sx += p.x; sy += p.y; });
+      const mx = sx / n, my = sy / n;
+      let Suu = 0, Suv = 0, Svv = 0, Suuu = 0, Svvv = 0, Suvv = 0, Svuu = 0;
+      P.forEach(p => { const u = p.x - mx, v = p.y - my;
+        Suu += u * u; Svv += v * v; Suv += u * v; Suuu += u * u * u; Svvv += v * v * v; Suvv += u * v * v; Svuu += v * u * u; });
+      const det = Suu * Svv - Suv * Suv, b0 = (Suuu + Suvv) / 2, b1 = (Svvv + Svuu) / 2;
+      const O = { x: (b0 * Svv - Suv * b1) / det + mx, y: (Suu * b1 - b0 * Suv) / det + my };
+      let r = 0; P.forEach(p => r += Math.hypot(p.x - O.x, p.y - O.y)); r /= n;
+      let tot = 0;
+      for (let i = 1; i < n; i++){
+        const a0 = Math.atan2(P[i - 1].y - O.y, P[i - 1].x - O.x), a1 = Math.atan2(P[i].y - O.y, P[i].x - O.x);
+        let d = a1 - a0; while (d > Math.PI) d -= TWO; while (d < -Math.PI) d += TWO; tot += d;
+      }
+      const rms = Math.sqrt(P.reduce((s, p) => s + Math.pow(Math.hypot(p.x - O.x, p.y - O.y) - r, 2), 0) / n);
+      return { sweep: Math.abs(tot) * 180 / Math.PI, r, rms,
+        chord: Math.hypot(P[n - 1].x - P[0].x, P[n - 1].y - P[0].y) };
+    };
+    const rows = [];
+    T.setNoEvade(true);
+    for (const n of [4, 6, 8, 10, 12]){
+      const res = T.captureLineaMovementFrom(['enchufla', 'dile4'], 'dame_peq', n);
+      if (!res || !res.frames) continue;
+      const m = n / 2;
+      res.frames[0].filter(d => d.role === 'F').forEach(d => {
+        const P = [res.start[d.id]].concat(res.frames.map(fr => fr.find(x => x.id === d.id).xy));
+        rows.push(Object.assign({ n, id: d.id, ring: d.station < m ? 'inner' : 'outer' }, arcOf(P)));
+      });
+    }
+    T.setNoEvade(false);
+    nChecks++; check(rows.length === (4 + 6 + 8 + 10 + 12),
+      `§53 only ${rows.length} follower arcs were measured — the probe is not reaching the figure`);
+    if (rows.length){
+      const round1 = v => Math.round(v * 10) / 10;
+      const outer = rows.filter(r => r.ring === 'outer'), inner = rows.filter(r => r.ring === 'inner');
+      // b) THE FULL ARC IS THE ARC IT ALWAYS WAS. Every outer ring is above the big threshold at 4+
+      // couples, so every outer follower must dance one and the same sweep.
+      const fullSweeps = new Set(outer.map(r => round1(r.sweep)));
+      nChecks++; check(fullSweeps.size === 1,
+        `§53 outer-ring followers danced ${fullSweeps.size} different arcs (${[...fullSweeps].join(', ')}°) — ` +
+        'every outer ring is above the full-arc threshold, so they must all dance the same one');
+      const FULL = round1(outer[0].sweep);
+      nChecks++; check(Math.abs(FULL - 251.4) < 0.2,
+        `§53 the full arc is ${FULL}° — the three-point ¾ circle is 251.4°, so the top of the ` +
+        'interpolation is no longer the arc it is supposed to reproduce');
+      // The 4-couple inner ring IS the half-circle threshold, so it must dance exactly 180°.
+      const i4 = inner.find(r => r.n === 4);
+      nChecks++; check(i4 && Math.abs(i4.sweep - 180) < 0.2,
+        `§53 the 4-couple inner follower sweeps ${i4 && i4.sweep.toFixed(1)}° — at the half-circle ` +
+        'threshold she must dance exactly a half circle');
+      // …and the 12-couple inner ring is above the big threshold, so it must be back to the full arc.
+      const i12 = inner.find(r => r.n === 12);
+      nChecks++; check(i12 && Math.abs(i12.sweep - FULL) < 0.2,
+        `§53 the 12-couple inner follower sweeps ${i12 && i12.sweep.toFixed(1)}° against a full arc of ` +
+        `${FULL}° — her ring is above the threshold and she is still being cut short`);
+      /* GENUINELY GRADED, not two settings with a switch. Five wheel sizes span the range, and a build
+       * that ignored the grande wheel gives one distinct sweep while one that clamped gives two. */
+      const grades = new Set(rows.map(r => round1(r.sweep)));
+      nChecks++; check(grades.size >= 4,
+        `§53 only ${grades.size} distinct arc(s) across five wheel sizes (${[...grades].sort((x, y) => x - y).join(', ')}°) — ` +
+        'the arc is switching between settings rather than scaling with the wheel');
+      // Monotone in the wheel: a bigger grande wheel never gives a smaller arc.
+      const byN = [4, 6, 8, 10, 12].map(n => inner.find(r => r.n === n)).filter(Boolean).map(r => r.sweep);
+      const mono = byN.every((v, i) => i === 0 || v >= byN[i - 1] - 0.05);
+      nChecks++; check(mono,
+        `§53 the inner-ring arc is not monotone in the wheel size (${byN.map(v => v.toFixed(1)).join(' → ')}°)`);
+      // c) THE ENDPOINTS NEVER MOVE. Same mini-wheel at every couple count, so the same chord.
+      const chords = rows.map(r => r.chord);
+      const cSpread = Math.max(...chords) - Math.min(...chords);
+      nChecks++; check(cSpread < 0.05,
+        `§53 her start-to-finish chord varies by ${cSpread.toFixed(3)}px across wheels — scaling the arc ` +
+        'has moved an endpoint, and she is no longer walking between the two places the figure names');
+      // …and every path really is a circular arc, or the sweep measured above means nothing.
+      const worstRms = Math.max(...rows.map(r => r.rms));
+      nChecks++; check(worstRms < 0.05,
+        `§53 a follower's path is ${worstRms.toFixed(3)}px off any circle — the arc is not an arc`);
+    }
+  }
+
   // 8: determinism — the golden generator produces identical output twice.
   const g = require('./golden');
   const a = JSON.stringify(g.generate());

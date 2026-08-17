@@ -269,6 +269,9 @@ function load(htmlPath) {
       setDameWL(v){ DAME_WL_FORCE = v; },
       circleAt(station, lane, n, ph){ return FORMATIONS.circle.slot(station, lane, n, ph); },
       lineaGeom(){ return Object.assign({}, LM); },
+      // The two grande-wheel radii the Dile Que No arc is scaled between — §53 asserts they are still the
+      // 4-couple Línea Moderna rings Sam named them by.
+      get DILE_ARC(){ return DILE_ARC; },
       // A mini-wheel's centre, in the linea layout, for tools that draw the formation behind a path.
       lineaMiniCenter(k, ph){ const s = layoutName; layoutName = 'linea';
         const p = FORMATIONS.linea.miniCenter(k, ph); layoutName = s; return p; },

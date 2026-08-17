@@ -353,10 +353,40 @@ function dirFrom(vx, vy){
   return len < STILL_PX ? null : { x: vx / len, y: vy / len, len };
 }
 
+/* HOW FAR ROUND SHE GOES DEPENDS ON HOW BIG HER GRANDE WHEEL IS.
+ *
+ * The Dile Que No close used to be built from three points — her spoke point, its mirror across the
+ * couple midpoint, and her own slot — which fixes the shape entirely from LOCAL geometry. Local geometry
+ * does not scale with the wheel: `R_MID`, `R_STEP` and the lane offset are all constant in absolute
+ * pixels (DELTA_DEG shrinks exactly as the radius grows, to hold the arc-length spacing), so the SAME
+ * arc — 251.4° on a 24.27px circle — was danced on a 12-couple ring and inside a 4-couple Línea inner
+ * ring alike. Measured: identical to 0.00px at 4, 6, 8, 10 and 12 couples, on the ring and in the mini.
+ *
+ * Sam: "the Dile Que No movement of the followers on the inner wheel (the 3/4 circle path) has the same
+ * radius no matter how big their grande wheel is. this is causing the inner couple followers to travel a
+ * long way into the centre in order to get back to their slot, which is taking up room that the leaders
+ * should be using … followers on a smaller grande wheel will not do a full 3/4 of a circle, they'll do
+ * less, like 1/2 a circle."
+ *
+ * So the RADIUS is interpolated against the radius of the dancer's own GRANDE WHEEL — the rueda she
+ * would change places around on a Dame Grande — between the arc she has always danced and the tightest
+ * arc that can join her two endpoints at all. That floor is the half circle on the chord between them
+ * (r = c/2): no circle through two points has a smaller radius, so "cut the radius such that the path is
+ * 1/2 of a circle" is the limit of the family, not a second construction. Her endpoints and her
+ * rotational sense never move — this changes how far out she swings, and nothing else.
+ *
+ * THE TWO THRESHOLDS ARE MEANT TO BE TURNED. Sam named them by the formation they come from ("the
+ * outside grande wheel in a 4 couple linea moderna", "a 4 couple linea moderna inner grande wheel") and
+ * they are written here as plain numbers so they are one edit to change. §53 asserts they are still
+ * those two rings, so re-tuning the wheel geometry cannot move them silently. */
+const DILE_ARC = {
+  rFull: 146.312222,   // grande radius AT OR ABOVE which she dances the full arc — 4-couple LM outer ring
+  rHalf:  57.357253,   // ...and AT OR BELOW which she dances a half circle — 4-couple LM inner ring
+};
 const SCRIPT_KINDS = {
-  /* The Dile Que No y Dame follower's close: a ¾ circle from her spoke point, out through its mirror on
-   * the far side of the ring, and back to the spot she started the movement on. Her couple midpoint never
-   * moves, so she is scripted — but the shape is a circle through three known points rather than anything
+  /* The Dile Que No y Dame follower's close: an arc from her spoke point, out past the far side of her
+   * couple's midpoint, and back to the spot she started the movement on. Her couple midpoint never
+   * moves, so she is scripted — but the shape is a circle fitted to known points rather than anything
    * the segment primitives can state, which is why it is a named kind. */
   three_quarter_circle(ds, N, cfg, mirror, who){
     const TWO = 2 * Math.PI, io = mirror ? -1 : 1;
@@ -383,12 +413,34 @@ const SCRIPT_KINDS = {
       const Xs = { x: CX + R_MID() * fr.out.x, y: CY + R_MID() * fr.out.y };
       const Pf   = { x: Xs.x - io * R_STEP * fr.out.x, y: Xs.y - io * R_STEP * fr.out.y };   // her spoke point
       const Pout = { x: Xs.x + io * R_STEP * fr.out.x, y: Xs.y + io * R_STEP * fr.out.y };   // its mirror
-      const O = circ3(Pf, Pout, F0), rho = Math.hypot(Pf.x - O.x, Pf.y - O.y);
-      const aA = Math.atan2(Pf.y - O.y, Pf.x - O.x), aB = Math.atan2(Pout.y - O.y, Pout.x - O.x);
-      const aC = Math.atan2(F0.y - O.y, F0.x - O.x);
       const nrm = x => ((x % TWO) + TWO) % TWO;
-      const dAB = nrm(aB - aA), dAC = nrm(aC - aA);
-      const dir = dAB < dAC ? 1 : -1, sweep = dAB < dAC ? dAC : TWO - dAC;
+      /* THE FULL ARC, which is still the three-point circle — it is what "¾ circle" has always meant and
+       * it is the top of the interpolation, so it is derived rather than restated as a number. It also
+       * fixes the ROTATIONAL SENSE: the way round that goes out through the mirror point. The sense is a
+       * property of the figure, not of how far she swings, so it is read here once and then left alone. */
+      const O3 = circ3(Pf, Pout, F0), rFull = Math.hypot(Pf.x - O3.x, Pf.y - O3.y);
+      const a3A = Math.atan2(Pf.y - O3.y, Pf.x - O3.x), a3B = Math.atan2(Pout.y - O3.y, Pout.x - O3.x);
+      const a3C = Math.atan2(F0.y - O3.y, F0.x - O3.x);
+      const dir = nrm(a3B - a3A) < nrm(a3C - a3A) ? 1 : -1;
+      /* HER GRANDE WHEEL. Inside a Línea mini-wheel the ambient `R_RING` is the MINI wheel's, which is
+       * 57.36px at every couple count — the one radius in the formation that says nothing at all about
+       * how much room she has. `miniWheelView` states each dancer's ring radius for exactly this, and
+       * this reads it. Everywhere else the wheel the figure is danced on IS her grande wheel: the plain
+       * rueda, and each ring of a grande composition (`runOnWheel` binds `R_RING` to the ring). */
+      const gR = (d.grandeR != null) ? d.grandeR : R_RING;
+      const u = Math.max(0, Math.min(1, (gR - DILE_ARC.rHalf) / (DILE_ARC.rFull - DILE_ARC.rHalf)));
+      /* The centre slides along the chord's perpendicular bisector, ON THE SIDE THE FULL ARC'S CENTRE IS
+       * ALREADY ON, from that centre (u = 1, today's arc reproduced exactly) to the chord's midpoint
+       * (u = 0, the half circle). It never crosses the chord, so the arc keeps its bulge and its sense
+       * for every wheel size in between. */
+      const M = { x: (Pf.x + F0.x) / 2, y: (Pf.y + F0.y) / 2 };
+      const half = Math.hypot(F0.x - Pf.x, F0.y - Pf.y) / 2;
+      const rho = half + u * Math.max(0, rFull - half);
+      const bx = O3.x - M.x, by = O3.y - M.y, bL = Math.hypot(bx, by);
+      const h = Math.sqrt(Math.max(0, rho * rho - half * half));
+      const O = bL < 1e-9 ? M : { x: M.x + bx / bL * h, y: M.y + by / bL * h };
+      const aA = Math.atan2(Pf.y - O.y, Pf.x - O.x), aC = Math.atan2(F0.y - O.y, F0.x - O.x);
+      const sweep = nrm(dir * (aC - aA));
       at[d.id] = t => { const a = aA + dir * sweep * t; return { x: O.x + rho * Math.cos(a), y: O.y + rho * Math.sin(a) }; };
     });
     return at;

@@ -3,6 +3,48 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v145 — her ¾ circle knows how big her wheel is
+
+Sam: "the Dile Que No movement of the followers on the inner wheel (the 3/4 circle path) has the same
+radius no matter how big their grande wheel is. This is causing the inner couple followers to travel a
+long way into the centre in order to get back to their slot, which is taking up room that the leaders
+should be using … followers on a smaller grande wheel will not do a full 3/4 of a circle, they'll do
+less, like 1/2 a circle."
+
+He was exactly right, and the reason is structural. The arc was built from three points that are all
+**local** — her spoke point, its mirror across her couple midpoint, and her own slot — and local geometry
+does not scale with the wheel: `R_MID`, `R_STEP` and the lane offset are constants in pixels, because
+`DELTA_DEG` shrinks precisely as the radius grows to hold the arc-length spacing. Measured, the same
+**251.4° arc on a 24.27px circle** was danced at 4, 6, 8, 10 and 12 couples, on a Línea ring and inside a
+mini-wheel, identical to 0.00px. On a big ring that is a flourish. Inside a 4-couple Línea inner ring it
+reaches most of the way to the centre, through the corridor the leaders need.
+
+Her arc's **radius** is now interpolated against the radius of her own **grande wheel** — the rueda she
+would change places around on a Dame Grande — between the arc she has always danced and the tightest arc
+that can join her two endpoints at all. That floor is the half circle on the chord between them
+(`r = c/2`); no circle through two points has a smaller radius, so "cut the radius such that the path is
+1/2 of a circle" is the limit of the family rather than a second construction. Her endpoints and her
+rotational sense do not move — only how far out she swings.
+
+| grande wheel | sweep | radius |
+|---|---|---|
+| 4-couple LM **inner** ring (57.4px) and below | **180.0°** | 19.71px |
+| 6-couple LM inner ring (80.1px) | **218.5°** | 20.88px |
+| plain 4-couple rueda / 8-couple LM inner (104.4px) | **234.0°** | 22.12px |
+| 4-couple LM **outer** ring (146.3px) and above | **251.4°** | 24.27px |
+
+The two thresholds are `DILE_ARC` in `07-registry.js`, written as plain numbers because they are meant
+to be turned; **§53** asserts they are still the two 4-couple Línea rings Sam named them by, that the arc
+is genuinely graded rather than switched between two settings, and that her start-to-finish chord is
+unchanged on every wheel — the sweep alone cannot tell a shorter arc from a shorter journey. Five
+mutations bite it.
+
+Scope: it changes the plain rueda at **four couples** (whose wheel, at 104.4px, is smaller than a
+4-couple Línea outer ring) and the Línea inner-ring followers at 4, 6 and 8. Every larger wheel dances
+exactly what it danced before — seven golden cases moved, none by more than 16.6px, and no other figure
+in the suite touches it. Dame Grande from the Dile Que No position is unaffected: it composes the
+*shared* Dame, which has no ¾ circle in it.
+
 ## v144 — she dances her ¾ circle here too, and one heading replaces two
 
 Sam, on Dame Pequeña from the LM Dile Que No position: "the dancers pass the dancer that they're

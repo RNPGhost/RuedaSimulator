@@ -176,6 +176,36 @@ A **figure** is a chain of beat-level segments in the dancer's own frame — `{t
 face, turn, bow, round, orbit}`. Nothing a segment names may mention another couple; that is what makes
 scripted figures collision-unaware by construction.
 
+#### A scripted figure's own frame does NOT scale with the wheel — say so if it should
+
+Everything local is a constant in pixels: `R_MID`, `R_STEP` and the lane offset never change with the
+couple count, because `DELTA_DEG` shrinks exactly as the radius grows to hold the arc-length spacing. A
+figure built only from local points is therefore *the same figure on every wheel* — which is usually
+right, and is wrong the moment the figure has to share room with travellers.
+
+> "The Dile Que No movement of the followers on the inner wheel (the 3/4 circle path) has the same
+> radius no matter how big their grande wheel is. This is causing the inner couple followers to travel a
+> long way into the centre in order to get back to their slot, which is taking up room that the leaders
+> should be using … followers on a smaller grande wheel will not do a full 3/4 of a circle, they'll do
+> less, like 1/2 a circle." — Sam
+
+So a scripted figure may scale against the radius of the dancer's **grande wheel** — the rueda she would
+change places around on a Dame Grande, which is the whole rueda on a circle, her *ring* in Línea
+Moderna, and *not* the mini-wheel she is standing in (that one is 57.4px whatever the formation does,
+which is exactly why the ambient `R_RING` cannot be asked). `miniWheelView` states it per dancer as
+`grandeR`; everywhere else `R_RING` already is it.
+
+`three_quarter_circle` is the worked example: two named thresholds (`DILE_ARC`), the full arc at or above
+the big one, the tightest arc that still joins her two endpoints — the half circle on their chord — at or
+below the small one, and a linear interpolation of the **radius** between. When you write one of these:
+
+* **Scale the bulge, never the endpoints.** Where she starts and where she lands are choreography. A
+  check on the sweep alone cannot tell a shorter arc from a shorter journey — assert the chord too.
+* **Keep the rotational sense fixed.** It is a property of the figure, not of how far she swings.
+* **Write the thresholds as plain numbers, and assert what they mean.** They exist to be turned. §53
+  asserts `DILE_ARC` is still the two 4-couple Línea rings Sam named it by, so re-tuning the wheel
+  geometry cannot move the rule out from under the figure in silence.
+
 Both registries (`FIGURES`, `TRAVELS`) and every `play` descriptor are **pure JSON**. If you are writing
 a function inside one, you have taken a wrong turn — see §4.
 

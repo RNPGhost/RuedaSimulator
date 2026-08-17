@@ -233,8 +233,15 @@ function miniWheelView(ds, k){
   const byStation = {}; ds.forEach(d => { (byStation[d.station] = byStation[d.station] || []).push(d); });
   const cur = d => d.xy ? d.xy : pos(d), fc = d => (typeof d.face === 'number') ? d.face : facingAngle(d);
   const sub = [];
-  (byStation[m + k] || []).forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 0, lane: d.lane,             xy: cur(d), face: fc(d) }));
-  (byStation[k]     || []).forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 1, lane: MINI_SWAP(d.lane),  xy: cur(d), face: fc(d) }));
+  /* …AND EACH DANCER CARRIES THE RADIUS OF THE GRANDE WHEEL SHE CAME FROM. Inside the mini-wheel context
+   * `R_RING` is the MINI wheel's — 57.36px whatever the couple count — so a figure danced here cannot ask
+   * the ambient geometry how much room the formation actually has. It is the one fact the view drops, and
+   * the Dile Que No arc needs it (see `DILE_ARC`): the outer couple's grande wheel is the outer ring, the
+   * inner couple's is the inner ring, and at 4 couples those are 146px and 57px — the two ends of the
+   * whole scale. Stated here rather than sniffed from the context downstream, because this is the one
+   * place that knows which ring each mini-wheel dancer came off. */
+  (byStation[m + k] || []).forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 0, lane: d.lane,             xy: cur(d), face: fc(d), grandeR: LM.Ro }));
+  (byStation[k]     || []).forEach(d => sub.push({ id: d.id, role: d.role, couple: d.couple, station: 1, lane: MINI_SWAP(d.lane),  xy: cur(d), face: fc(d), grandeR: LM.Ri }));
   const mc = FORMATIONS.linea.miniCenter(k);
   const thk = LM_BASE + k * 360 / m + phase * 180 / m;
   return { sub, ctx: { CX: mc.x, CY: mc.y, R_RING: LM.R2, DELTA_DEG: LM.d2 * 180 / Math.PI, N: 2, BASE_ANG: thk, phase: 0 } };

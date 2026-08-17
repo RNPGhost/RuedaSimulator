@@ -100,6 +100,18 @@ Every dancer in a movement is doing exactly one of two things.
 their mini-wheel centre). An orbit, a dip out along the Exhibela line and back, a ¾ circle, standing
 still. Scripted figures are **collision-unaware by design**: they are choreography, not traffic.
 
+> **Local does not mean size-blind.** A scripted figure is stated in the dancer's own frame, and the
+> frame is the same size at every couple count — `R_MID`, `R_STEP` and the lane offset are constants in
+> pixels, because `DELTA_DEG` shrinks exactly as the wheel radius grows. So a figure written purely from
+> local points is *identical* on a 12-couple ring and inside a 4-couple Línea inner ring, and on the
+> small wheel it can swallow most of the room the travellers need. When that matters, the figure may
+> scale against the radius of the dancer's **grande wheel** — the rueda she would change places around on
+> a Dame Grande. The Dile Que No close (`three_quarter_circle`) is the first one that does: full ¾ arc at
+> or above the 4-couple Línea *outer* ring, a half circle at or below the 4-couple *inner* ring, its
+> radius interpolated linearly in between. Endpoints and rotational sense are untouched — only how far
+> out she swings. The thresholds are `DILE_ARC`, deliberately plain numbers so they are one edit to turn;
+> §53 asserts they are still those two rings.
+
 **DYNAMIC** — travelling to another couple's slot. The endpoints are choreography; the *path between
 them* is not authored, it is planned.
 
