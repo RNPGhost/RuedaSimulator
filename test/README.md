@@ -31,9 +31,20 @@ stay green.
   new movement most often trips are collision-free ≥ GAP (§1), grid-exact rest and partners facing
   (§3–4), no overtaking (§9), evasion smoothness (§18e), orientation inheritance (§22), the
   scripted/dynamic contract (§25), "nobody cuts the wheel" (§26) and the planner's rigid-unit contract
-  (§27). **MOVEMENT_SPEC.md §3 is the checklist**; read that before adding a movement.
+  (§27) — and **§47, "the window contains the dance"**: no part of a dancer's glyph (disc *or* facing
+  arrow) may fall outside the stage window the renderer computes for the formation. A figure that swings
+  wider than any current one fails there rather than sliding off the edge of the stage, which nothing
+  else would notice — every other check is about where dancers are relative to *each other*, never to
+  the frame — and **§48, "a dancer's `lane` names the slot they are standing on"**, which is the check
+  that was missing when every dancer arriving in `linea_ex` carried the opposite of their true lane.
+  **MOVEMENT_SPEC.md §3 is the checklist**; read that before adding a movement.
 - **`visual.js`** — Chromium screenshots of settled states (rest + afuera), diffed in-browser against
   `golden/visual/*.png`. Guards the `render`/`buildNodes`/CSS path the headless suite can't see.
+  - Needs `playwright` installed, and `executablePath` is hard-coded to `/opt/pw-browsers/chromium` — a
+    Linux path, so it does not run on a Windows checkout without editing that line.
+  - **The v145 UI work invalidates all 15 baselines** (the stage window is computed now, so every scene
+    is drawn at a different scale). They need `node test/visual.js --update` on a machine that can run
+    it, and the new PNGs reviewed before they are committed.
 
 ## Known issues surfaced by the suite
 
@@ -47,6 +58,20 @@ hardened into the baseline (fix the test, and record the measurement that justif
 MOVEMENT_SPEC.md §3.
 
 ## Gotchas
+
+- **The DOM stub is a Proxy that answers every unknown property with another stub**, so a missing member
+  is an *object*, never `undefined`. Three consequences, all of which have broken the suite:
+  - `if (!el.getAttribute) return;` does **not** guard anything — the stub is truthy. Test
+    `typeof el.getAttribute === 'function'`.
+  - Coercing a stub throws `TypeError: object is not a function` rather than yielding `NaN`, because
+    `toString` is a stub too. So `+el.value` and `parseFloat(el.value)` are unsafe on anything the
+    stub might supply; compare as strings (`el.value !== String(n)`) or type-test before coercing.
+  - Dispatching events at stubs (`el.dispatchEvent(new Event(...))`) fails twice over — the method is
+    not callable and `Event` does not exist in the sandbox. Call the handler's logic directly instead;
+    that is why the speed slider's handler is the named `applySpeed`.
+
+  None of this is the stub being wrong. It is deliberately permissive so app code can touch the DOM
+  freely, and the cost is that app code must not *interrogate* the DOM without a real type test.
 
 - The harness makes playback synchronous, so live-mode "issue a call mid-flight" timing can't be
   reproduced; those interactions are tested in **step mode** instead (which pauses at decision points

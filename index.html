@@ -15,9 +15,9 @@
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
        background:var(--bg);color:var(--ink);
        height:100dvh;overflow:hidden;display:flex;flex-direction:column}
-  header{padding:10px 20px;border-bottom:1px solid var(--line);flex:0 0 auto}
-  header h1{margin:0;font-size:17px;font-weight:650;letter-spacing:.2px}
-  header p{margin:3px 0 0;color:var(--muted);font-size:12px}
+  /* NO PAGE HEADER. The title and strapline cost a band of height on every screen to say what the
+     browser tab already says, and on a phone that band was competing with the wheel. The document
+     <title> still carries the name. */
   /* Full-viewport layout: stage flexes to fill; the Calls panel is always pinned/visible.
      Landscape → Calls on the right; Portrait → Calls at the bottom. The page never scrolls. */
   #app{flex:1 1 auto;min-height:0;display:flex}
@@ -30,36 +30,27 @@
      afford the room — Sam: "give the panel more horizontal room, the animation may shrink to pay for it." */
   .side{flex:0 0 420px;border-left:1px solid var(--line);background:var(--panel);
         display:flex;flex-direction:column;min-height:0}
-  .tabrow{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+  /* Wraps, because on a narrow phone three tabs plus the checkbox do not fit on one line and a tab you
+     cannot see is a list you cannot reach. */
+  .tabrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
   .tab{background:transparent;border:1px solid transparent;border-radius:8px;padding:5px 12px;
        font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
   .tab:hover{color:var(--ink)}
   .tab.active{background:var(--chip);border-color:var(--line);color:var(--ink)}
   .movehint{font-size:11.5px}
+  /* Sits in the tab row, so it is sized to sit beside a tab rather than tower over one. */
+  #unavail{padding:4px 6px;border-radius:8px;font-size:12px}
   .calls-pin{flex:0 0 auto;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
   .side-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
-  @media (orientation:portrait){
-    #app{flex-direction:column}
-    .side{flex:0 0 auto;max-height:42vh;border-left:none;border-top:1px solid var(--line)}
-    .calls-pin{border-bottom:1px solid var(--line)}
-    /* Trim vertical chrome so the wheel keeps as much height as possible. */
-    header p{display:none}
-    header{padding:8px 16px}
-    .stagewrap{padding:8px 10px;gap:6px}
-    .toolbar{gap:6px}
-    .toolbar label.ctl,.toolbar button,.toolbar select{font-size:12px}
-    .toolbar button{padding:6px 10px}
-    .modebar{margin:2px 0}
-  }
-  /* Short landscape screens (e.g. phone held sideways): trim vertical chrome so everything still fits. */
-  @media (orientation:landscape) and (max-height:560px){
-    header p{display:none}
-    header{padding:8px 16px}
-    .stagewrap{padding:8px 10px;gap:6px}
-    .toolbar button{padding:6px 10px}
-    .side{flex-basis:340px}
-  }
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  /* One flex item holding the tempo and its transport, so a wrap can never fall between them and strand
+     the ⏸ on a line by itself. `flex-wrap:nowrap` says that outright rather than relying on the two
+     happening to fit. */
+  .tempo{display:flex;flex-wrap:nowrap;align-items:center;gap:8px}
+  /* A fixed cell, so swapping ⏸ for ▶ cannot change the button's width and shuffle the row — the same
+     reason the call buttons live in a grid rather than a wrapping flex row. `width`, not `min-width`:
+     the two glyphs are not the same width (⏸ measured 1.6px wider), so a minimum still let it twitch. */
+  #beatToggle{width:48px;padding-left:0;padding-right:0;text-align:center;line-height:1;flex:0 0 auto}
   .calls{display:flex;flex-wrap:wrap;gap:8px}
   /* Buttons live in a fixed GRID, not a wrapping flex row: a hover or a state change can alter a
      button's ink but never its cell, so nothing reflows and a button can't slide out from under the
@@ -86,18 +77,25 @@
   button.call{background:#232a45}
   button.primary{background:var(--accent);border-color:var(--accent);color:#0b1020;font-weight:600}
   button.ghost{background:transparent}
+  /* A toolbar button that latches (the Mode row's visibility toggle) reads as pressed while it is on. */
+  .toolbar button.on{background:var(--accent);border-color:var(--accent);color:#0b1020;font-weight:600}
   button:disabled{opacity:.32;cursor:not-allowed;border-color:var(--line)}
   button:disabled:hover{border-color:var(--line)}
-  .posbar{font-size:13px;color:var(--muted);margin-top:2px}
-  .posname{color:var(--ink);font-weight:600}
   select{font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
          padding:8px 10px;border-radius:10px}
   label.ctl{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+  label.ctl[hidden]{display:none}          /* author `display:flex` beats the UA's `hidden` — see .modebar */
   .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
   .card h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
   .legend{display:flex;gap:16px;font-size:13px}
   .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
-  #log{max-height:120px;overflow:auto;font-size:13px;line-height:1.6}
+  .help h3{font-size:12px;margin:15px 0 5px;color:var(--ink);font-weight:650}
+  .help h3:first-child{margin-top:0}
+  .help p{margin:0 0 8px;color:var(--muted);font-size:12.5px;line-height:1.55}
+  .help b{color:var(--ink);font-weight:600}
+  .help p:last-child{margin-bottom:0}
+  .wip{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);font-weight:600;
+       border:1px solid var(--line);border-radius:20px;padding:1px 7px;margin-left:6px;white-space:nowrap}
   #log .step{color:var(--muted)}
   #log .move{color:var(--ink);font-weight:600}
   #log .note{color:var(--muted);font-style:italic}
@@ -109,6 +107,9 @@
   .pill.F{background:rgba(63,198,160,.18);color:var(--follow)}
   .muted{color:var(--muted);font-size:12px;line-height:1.5}
   .modebar{display:flex;align-items:center;gap:8px;margin:6px 0 2px}
+  /* Same trap as `.grouped` below: `display:flex` is an AUTHOR rule and the `hidden` attribute is only
+     styled by the UA stylesheet, so the row has to be turned off explicitly or it ignores `hidden`. */
+  .modebar[hidden]{display:none}
   .modebar .modelabel{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px}
   .modebtn{padding:6px 12px;border-radius:8px;background:var(--panel2);font-size:13px}
   .modebtn.active{background:var(--accent);color:#0b1020;border-color:var(--accent);font-weight:600}
@@ -119,9 +120,12 @@
             background:rgba(91,140,255,.08);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .decision .dtext{font-size:13px;color:var(--ink)}
   button.silence{background:#2a3150}
-  .beatbig{position:absolute;top:6px;right:18px;font-size:72px;line-height:1;font-weight:800;
+  /* The count, not a headline. It was 72px — sized for a room, on a stage that has to share its space
+     with the wheel. A dancer glances at it; it does not need to shout.
+     `font-size` is set by `scaleBeat()`, in proportion to the wheel: see there for why. */
+  .beatbig{position:absolute;top:10px;right:16px;font-size:22px;line-height:1;font-weight:700;
            color:var(--accent);opacity:.92;font-variant-numeric:tabular-nums;pointer-events:none;
-           text-shadow:0 2px 14px rgba(0,0,0,.55)}
+           text-shadow:0 2px 10px rgba(0,0,0,.6)}
   /* The corner stack: now-playing, a gap, the queue. `min-height` on the now-playing line keeps the
      queue from jumping up and down as calls start and stop — the queue is a list you read, and a list
      that moves when nothing about it changed is a list you stop trusting. */
@@ -139,39 +143,94 @@
   .queuelist .qcall .qnum{color:var(--muted);font-size:12px;margin-right:4px}
   /* The next call up is the one about to be danced — it reads brighter than the ones behind it. */
   .queuelist .qcall.qnext{opacity:1;font-weight:600}
-  .beatstrip{display:flex;justify-content:center;margin-top:2px}
-  .beatpips{display:flex;gap:8px}
-  .beatpips span{width:30px;height:9px;border-radius:5px;background:var(--line);transition:background .06s}
-  .beatpips span.on{background:var(--accent)}
+  /* The row of light-up beat pips that used to sit under the stage is gone. It said exactly what the
+     big number in the stage's top-right corner already says, and on a short screen the wheel needs
+     that band of height far more than the count needs saying twice. */
+
+  /* ================= SCREEN OVERRIDES — LAST, so that they win =================
+     These blocks used to sit in the middle of the sheet, above the rules they override. CSS breaks
+     ties on source order, so at equal specificity the LATER rule wins and three of these were dead
+     letters: the portrait `.toolbar` gap (8px, not the 7 it asks for), the portrait `.tempo` gap, and
+     the portrait `.modebar` margin. All three read as though they worked. The toolbar gap was the one
+     that mattered — three gaps of one pixel each is exactly what stood between the controls and
+     fitting on two rows at 375px. Overrides belong at the end of a stylesheet; here they are. */
+  @media (orientation:portrait){
+    #app{flex-direction:column}
+    .side{flex:0 0 auto;max-height:42vh;border-left:none;border-top:1px solid var(--line)}
+    .calls-pin{border-bottom:1px solid var(--line)}
+    /* Trim vertical chrome so the wheel keeps as much height as possible. */
+    .stagewrap{padding:8px 10px;gap:6px}
+    .modebar{margin:2px 0}
+    /* THE TOOLBAR IS THE BIGGEST CONSUMER OF HEIGHT ON A PHONE. At 375px it wrapped to five rows — 154px,
+       well over half of what the wheel itself got — because each control is a flex item that will not
+       split. Nothing here removes information: the controls simply stop reserving room they were not
+       using; the selects were padded for a mouse. */
+    .toolbar{gap:5px 7px}
+    .toolbar label.ctl,.toolbar button,.toolbar select{font-size:12px}
+    .toolbar button{padding:6px 10px}
+    /* Horizontal padding only — it is the sole term that affects how the row wraps, and taking it off
+       the sides rather than the top keeps the selects the same height as the buttons beside them.
+       Worth 8px across the two selects on each line, which is the difference between wrapping at a
+       375px phone and wrapping at a 360px one. */
+    .toolbar select{padding:5px 5px;border-radius:8px}
+    .toolbar label.ctl{gap:4px}
+    #beatToggle{width:40px}
+    .tempo{gap:7px}
+  }
+  /* Short landscape screens (e.g. phone held sideways): trim vertical chrome so everything still fits. */
+  @media (orientation:landscape) and (max-height:560px){
+    .stagewrap{padding:8px 10px;gap:6px}
+    .toolbar button{padding:6px 10px}
+    .side{flex-basis:340px}
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>Rueda de Casino — Call Simulator <span style="color:var(--muted);font-weight:400">· MVP</span></h1>
-  <p>Step through calls and watch the formation change. Model is a first draft — meant to be corrected against the real dance.</p>
-</header>
-
 <div id="app">
   <main class="stagewrap">
     <div class="toolbar">
-      <label class="ctl">Couples
-        <select id="couples">
-          <option>4</option><option>6</option><option>8</option>
-        </select>
-      </label>
+      <!-- `autocomplete="off"` throughout: browsers restore form-control state across a reload, and
+           these controls are not a form — they are a view of engine state that `reset()` re-derives on
+           load. Left to itself, a reloaded page could show Couples 8 over a wheel of 4. -->
       <label class="ctl">Formation
-        <select id="layout">
+        <select id="layout" autocomplete="off">
           <option value="circle">Rueda (circle)</option>
           <option value="linea">Línea Moderna</option>
         </select>
       </label>
-      <label class="ctl">Speed
-        <input type="range" id="speed" min="0" max="1" step="0.01" value="0.5" style="width:120px;vertical-align:middle">
-        <span id="speedval" class="muted">1.0×</span>
+      <!-- Position: both the readout of where the wheel is and the way to put it somewhere. It sits
+           next to Formation because the two are the same kind of statement — which floor plan, and
+           where within it — and because a line of its own was a band of height a phone cannot spare. -->
+      <label class="ctl">Position
+        <select id="position" autocomplete="off"></select>
       </label>
-      <button id="beatToggle" class="ghost">⏸ Stop beat</button>
-      <button id="reset" class="ghost">Reset to base</button>
-      <button id="undo" class="ghost">← Undo</button>
+      <!-- Couples comes after Position: the two wide pickers pair off on the first line, and the three
+           narrow controls plus the tempo group fit on the second. Ordering the row by what it says —
+           which floor plan, where on it, how many of you — happens to be the ordering that wraps. -->
+      <label class="ctl">Couples
+        <select id="couples" autocomplete="off">
+          <option>4</option><option>6</option><option>8</option>
+        </select>
+      </label>
+      <button id="reset" class="ghost">Reset</button>
+      <!-- Mode is a practice setting, not a per-call control: you choose Live or Step once and then
+           leave it. So the row is off by default and this brings it back when you want it. -->
+      <button id="modeToggle" class="ghost">Mode</button>
+      <!-- THE TEMPO AND ITS TRANSPORT ARE ONE CONTROL, so they are one flex item. The toolbar wraps,
+           and a wrap that fell between these two would leave a ⏸ stranded on a line of its own with
+           nothing to say what it governs. Grouped, they wrap together — BPM goes to the next line and
+           takes its button with it.
+
+           Tempo in the unit a caller actually thinks in: a slider offered a continuum of speeds nobody
+           dances at and no way to say which one you were on. These are real salsa tempos, generated
+           from the range below so the base tempo is on the list by construction. -->
+      <div class="tempo">
+        <label class="ctl">BPM
+          <select id="bpm" autocomplete="off"></select>
+        </label>
+        <!-- Glyph only. The word was the widest thing in the row and said what the icon already says. -->
+        <button id="beatToggle" class="ghost" title="Stop the beat" aria-label="Stop the beat">⏸</button>
+      </div>
     </div>
 
     <div class="stage">
@@ -186,10 +245,7 @@
       <div id="beatbig" class="beatbig">1</div>
     </div>
 
-    <div class="beatstrip"><div id="beatpips" class="beatpips"></div></div>
-    <div class="posbar">Formation: <span id="posname" class="posname">Casino position</span></div>
-
-    <div class="modebar">
+    <div class="modebar" id="modebar" hidden>
       <span class="modelabel">Mode</span>
       <button id="modeLive" class="modebtn">Live · queue calls</button>
       <button id="modeStep" class="modebtn">Step · pause for calls</button>
@@ -202,24 +258,62 @@
   </main>
 
   <aside class="side">
-    <!-- One panel, two tabs. Calls and Movements are the same kind of thing to a user — a list of things
-         you can fire — so they share a space rather than competing for one, and the tabs replace the two
-         `show` checkboxes that used to do the same job less clearly. -->
+    <!-- One panel, three tabs. Calls and Movements are the same kind of thing to a user — a list of
+         things you can fire — so they share a space rather than competing for one, and the tabs replaced
+         the two `show` checkboxes that used to do the same job less clearly. The Call log joined them
+         for the same reason: on a phone the panel can only really show one thing at a time, and the
+         list you are picking from should get all of it.
+
+         ONLY THE TAB ROW IS PINNED. Everything below it scrolls. The lists used to live up here in the
+         fixed block, which is why on a short screen the last few calls sat below the bottom of the
+         panel with no way to reach them. -->
     <div class="calls-pin">
       <div class="tabrow" role="tablist">
         <button class="tab active" id="tabCalls" role="tab" aria-selected="true">Calls</button>
         <button class="tab" id="tabMoves" role="tab" aria-selected="false">Movements</button>
-        <label class="ctl" style="margin-left:auto"><input type="checkbox" id="hideUnavail"> Hide Unavailable</label>
+        <button class="tab" id="tabHelp" role="tab" aria-selected="false">Instructions</button>
+        <!-- What to do with a call you cannot make right now. A checkbox had to name one of the two
+             states and leave the other implied; a picker names both, and says which you are in. -->
+        <label class="ctl" id="unavailLabel" style="margin-left:auto">
+          <select id="unavail" autocomplete="off">
+            <option value="grey" selected>Greyout</option>
+            <option value="hide">Hide</option>
+          </select>
+        </label>
       </div>
-      <div class="grouped" id="callButtons"></div>
-      <div class="grouped" id="moveButtons" hidden></div>
-      <p class="muted movehint" id="moveHint" hidden style="margin:8px 0 0">Fire one at a time to test — a movement runs to completion and can't be interrupted.</p>
     </div>
 
     <div class="side-scroll">
-      <div class="card" style="margin-top:0">
-        <h2>Call log</h2>
-        <div id="log"></div>
+      <div class="grouped" id="callButtons"></div>
+      <div class="grouped" id="moveButtons" hidden></div>
+      <p class="muted movehint" id="moveHint" hidden style="margin:0">Fire one at a time to test — a movement runs to completion and can't be interrupted.</p>
+      <!-- The Call log's tab became this one. What the log showed — what you had called — is the queue
+           at the top-left of the stage while it matters, and what a newcomer needs instead is to be
+           told what any of these buttons do. -->
+      <div class="card help" id="helpCard" hidden style="margin-top:0">
+        <h3>Calling</h3>
+        <p>Press a <b>Call</b> and it joins the queue shown at the top-left of the stage. Press more and
+           they line up behind it, danced in the order you called them — which is the point: a caller
+           shouts the next call while the current one is still being danced.</p>
+        <p>Calls are timed to the music, so a call waits for its place in the measure before it starts.
+           Press <b>⏸</b> to stop the beat and there is no measure to wait for — calls are then danced
+           the moment you press them. <b>BPM</b> sets the tempo everything is danced at.</p>
+
+        <h3>Calls are made of movements</h3>
+        <p>A <b>call</b> is a word the caller shouts. Each one expands into a series of
+           <b>movements</b> — the figures actually danced. An <i>Enchufla</i> is an Enchufla movement,
+           then a Dame, then the Dile Que No the rules of rueda supply on your behalf.</p>
+        <p>The <b>Movements</b> tab fires any single movement on its own, for looking at one figure
+           closely. A movement runs to completion, and nothing can be queued behind it.</p>
+
+        <h3>Setting the floor</h3>
+        <p>Along the top: how many <b>Couples</b> are in the wheel, the <b>Formation</b> they are in, and
+           the <b>Position</b> they are standing in — pick one and the dancers go there, keeping their
+           current partners. <b>Reset</b> puts everyone back to the start.</p>
+
+        <h3>Step mode <span class="wip">under development</span></h3>
+        <p>Behind the <b>Mode</b> button is a second mode that pauses at each decision point and asks you
+           for a call instead of flowing on by itself. It works, but it is still being built out.</p>
       </div>
     </div>
   </aside>
@@ -868,6 +962,20 @@ let N = 4, layoutName = 'circle', dancers = [], history = [], stepCount = 0, ani
 let logCount = 0;             // the call log numbers CALLS; stepCount counts movements (undo bookkeeping)
 let speedMul = 1;             // tempo multiplier from the slider (0.2×…1×…2×, 1 = base tempo)
 const BASE_MS_PER_BEAT = 400; // base musical tempo; a movement lasts (its beats) × ms-per-beat
+/* THE SAME TEMPO, SAID IN THE UNIT A CALLER THINKS IN. 400ms a beat *is* 150bpm — this is a restatement
+ * of BASE_MS_PER_BEAT, not a second opinion about it, so the two cannot drift. The tempo picker offers
+ * real salsa tempos and `speedMul` (which is what the engine actually divides by) falls out as
+ * bpm/BASE_BPM, making the base tempo 1× by construction. */
+const BASE_BPM = Math.round(60000 / BASE_MS_PER_BEAT);      // 150
+/* The tempos on offer, generated from the range rather than written out, so widening it is one number.
+ * BASE_BPM is forced onto the list if the arithmetic ever misses it: the picker showing a tempo that
+ * is not exactly 1× would be a silent disagreement between what it says and what the engine does. */
+const BPM_MIN = 50, BPM_MAX = 250, BPM_STEP = 25;
+const BPM_CHOICES = (() => {
+  const out = [];
+  for (let b = BPM_MIN; b <= BPM_MAX; b += BPM_STEP) out.push(b);
+  return out.includes(BASE_BPM) ? out : out.concat(BASE_BPM).sort((a, b) => a - b);
+})();
 let beatCursor = 0;           // total beats danced so far; (beatCursor % 8) is the current beat of the measure
 let justIssued = false;       // the next movement is the first of a freshly-issued call → snap to its start beat
 let beatRunning = true;       // is the metronome ticking?
@@ -1041,13 +1149,32 @@ const REST_LANES = {
    * longer described where they were. A Dame Grande danced from here put two dancers 0.00px apart. */
   linea_dile:      { L: 'outer', F: 'inner' },
 };
+/* THE TWO Línea POSITIONS WHOSE LANES DEPEND ON THE RING. Its rings are mirror images — the inner one
+ * dances afuera — so the inner ring's Casino is the outer ring's Exhibela, and one entry per role cannot
+ * say that. (`linea_dile` above can, because `FORMATIONS.linea.slot` already flips the radial sign for
+ * the inner ring, so both rings name the same two lanes.)
+ *
+ * These used to be left to the generators, on the reasoning that "Línea positions set `lane`
+ * themselves". They did not. Every dancer arriving in `linea_ex` carried the OPPOSITE of the lane they
+ * stood on — 12 of 12, at 0.00px geometric certainty, by every route in: a Dame Grande, a Dame Pequeña,
+ * or a chained sequence, where the lane was stale from two positions back. It is exactly the fault
+ * described above `linea_dile`, which is the one that got noticed because it put two dancers 0.00px
+ * apart; this one went unseen because `pos()` prefers the live `xy` and the next figure's `swap`
+ * reference cancels a CONSISTENTLY inverted lane. That is luck, not design, and §48 now asserts it. */
+const LINEA_REST_LANES = {
+  linea:    { inner: { L: 'cw',  F: 'ccw' }, outer: { L: 'ccw', F: 'cw'  } },
+  linea_ex: { inner: { L: 'ccw', F: 'cw'  }, outer: { L: 'cw',  F: 'ccw' } },
+};
 /* `lane` must be AUTHORITATIVE after a movement, not a souvenir of where the dancer started. Most circle
  * generators carry `lane` through untouched — harmless while `pos()` prefers the live `xy`, but wrong the
  * moment anything addresses a slot by (spoke, lane), which is exactly what the declarative vocabulary
  * does. Every movement lands in a RESTING position whose lanes are defined, so snap them from it. */
 function snapRestLanes(frame){
-  const t = REST_LANES[posState]; if (!t) return;                  // Línea positions set `lane` themselves
-  (frame || dancers).forEach(d => { d.lane = t[d.role]; });
+  const ds = frame || dancers;
+  const byRing = LINEA_REST_LANES[posState];
+  if (byRing){ ds.forEach(d => { d.lane = byRing[d.station < N / 2 ? 'inner' : 'outer'][d.role]; }); return; }
+  const t = REST_LANES[posState]; if (!t) return;
+  ds.forEach(d => { d.lane = t[d.role]; });
 }
 
 /* A dancer's PLACE, in the coordinates the engine actually reasons in.
@@ -2841,8 +2968,85 @@ let nodes = {};
 // can be redrawn when the phase flips (e.g. a grande Dame) without rebuilding the dancer nodes.
 let guideLayer = null, lastGuideKey = '';
 const guideKey = () => `${layoutName}|${phase}|${N}|${LM_GAP}|${LM_BASE}|${BASE_ANG}`;
+
+/* ------------------------------------------------------------------ *
+ *  THE WINDOW ON THE WHEEL  (a render concern, and only a render concern)
+ *
+ *  The engine has always worked in its own units — nothing in it reads a screen pixel, and the SVG
+ *  viewBox is where those units become a picture. What tied the picture to a size was that the viewBox
+ *  was a FIXED 510-unit square, big enough for the largest formation. Dancer spacing is fixed and the
+ *  wheel is sized to fit the couple count, so its radius runs about 104 / 154 / 205 units at 4 / 6 / 8
+ *  couples: at four couples the wheel covered barely half the window's width and a quarter of its area,
+ *  and at eight the outermost dancers were very slightly outside it.
+ *
+ *  So the window is computed from the formation instead. This changes NO engine value — the dancers
+ *  stand exactly where they always did, the golden baseline does not move by a pixel, and scaling the
+ *  picture up or down cannot reach the simulation. That separation already existed; it just was not
+ *  being used.
+ *
+ *  THE MARGIN is one dancer's disc plus the reach of their facing arrow — what it takes for no part of
+ *  a resting dancer to be outside the window. Measured across every movement at 4, 6 and 8 couples in
+ *  both formations, that same margin also clears every excursion a figure makes beyond the resting
+ *  slots: the largest is a Dame Pequeña from Afuera Exhibela, 18.9 units out at eight couples, against
+ *  a margin of 46. So the window never has to move while anyone is dancing, and it does not — it is
+ *  recomputed only with the guide, when the formation itself changes. Invariants §47 asserts it, so a
+ *  future figure that would swing wider than this is a test failure rather than a clipped dancer.
+ * ------------------------------------------------------------------ */
+const STAGE_MARGIN = DOT_R + ARROW_LEN;
+const STAGE_LANES = ['cw', 'ccw', 'inner', 'outer'];    // every lane a dancer can REST in
+function stageExtent(){
+  const F = FORMATIONS[layoutName];
+  let r = 0;
+  for (let s = 0; s < N; s++)
+    for (const lane of STAGE_LANES)
+      for (let ph = 0; ph < 2; ph++){
+        const p = F.slot(s, lane, N, ph);
+        r = Math.max(r, Math.hypot(p.x - CX, p.y - CY));
+      }
+  return r + STAGE_MARGIN;
+}
+/* The extent of a formation OTHER than the one currently set up. The geometry globals belong to one
+ * layout at a time (`linea.compute` even leaves R_RING pointing at its outer ring), so the only honest
+ * way to ask is to size that layout, measure, and put everything back. */
+function extentOf(layout){
+  const saved = wheelContext();
+  try { layoutName = layout; computeWheel(N); return stageExtent(); }
+  finally { setWheelContext(saved); computeWheel(N); }
+}
+/* `alsoCover` is the formation being LEFT. During a formation change the dancers genuinely occupy both
+ * at once — they start on the rueda's ring and finish on Línea's, or the reverse — so the window has to
+ * hold both or something gets cut off at one end of the walk. Without it the four-couple exit ran with
+ * 6px of clearance on the dancers' discs and less than none on their facing arrows. */
+function fitStage(alsoCover){
+  if (!svg || !svg.setAttribute) return;
+  let r = stageExtent();
+  if (alsoCover && alsoCover !== layoutName) r = Math.max(r, extentOf(alsoCover));
+  svg.setAttribute('viewBox', `${CX - r} ${CY - r} ${2 * r} ${2 * r}`);
+  stageR = r;
+  scaleBeat();
+}
+/* THE BEAT COUNT IS PART OF THE PICTURE, so it is sized like part of the picture. It stays HTML, over
+ * the stage, because the corner is where a dancer looks for it — but a fixed pixel size meant it stayed
+ * put while the wheel grew and shrank underneath it, reading as a headline at eight couples on a phone
+ * and as a footnote at four on a desktop.
+ *
+ * So it is stated in ENGINE UNITS and converted here. The wheel's scale is the SVG's own: with
+ * `preserveAspectRatio="xMidYMid meet"` one engine unit becomes min(width/viewBox, height/viewBox)
+ * screen pixels, which is exactly the factor every dancer is drawn at. */
+const BEAT_UNITS = 15;      // the same size as the couple number on a dancer's dot
+let stageR = 0;             // half the current window, in engine units — set by fitStage
+function scaleBeat(){
+  const big = document.getElementById('beatbig');
+  if (!big || !big.style || !stageR || typeof svg.getBoundingClientRect !== 'function') return;
+  const box = svg.getBoundingClientRect();
+  if (!box.width || !box.height) return;                         // not laid out yet (or headless)
+  // The window is square (2·stageR), so `meet` scales by the stage's shorter side over that.
+  big.style.fontSize = (BEAT_UNITS * Math.min(box.width, box.height) / (2 * stageR)).toFixed(1) + 'px';
+}
+
 function drawGuide(){
   if (!guideLayer) return;
+  fitStage();                                   // the window is formation furniture, like the guide itself
   while (guideLayer.firstChild) guideLayer.removeChild(guideLayer.firstChild);
   FORMATIONS[layoutName].guide(guideLayer);
   lastGuideKey = guideKey();
@@ -2983,8 +3187,6 @@ function startBeatOf(key, from){
 function showBeat(b0){
   const b = ((Math.floor(b0) % 8) + 8) % 8;                       // 0-indexed beat of the measure
   const big = document.getElementById('beatbig'); if (big) big.textContent = b + 1;
-  const pips = document.getElementById('beatpips');
-  if (pips) for (let i = 0; i < pips.children.length; i++) pips.children[i].classList.toggle('on', i === b);
 }
 
 // Inside-out (afuera) version of an IN-COUPLE figure: run the normal generator on a per-couple
@@ -3327,9 +3529,16 @@ function movementFrames(mv, ds, N, from){
 
 function playMovement(mv, from, onDone, leadBeats = 0){
   if (mv.relabel || mv.beats === 0){ snapRestLanes(); render(); renderTable(); updateUI(); if (onDone) onDone(); return; }
+  const wasLayout = layoutName;
   const out = (isAfuera(from) && !mv.progresses && !mv.relabel) ? afueraFrames(mv, dancers, N, from) : movementFrames(mv, dancers, N, from);
   const fr = Array.isArray(out) ? out : out.frames;
   snapRestLanes(fr[fr.length - 1]);
+  /* THE FORMATION MAY HAVE CHANGED UNDER US ALREADY. A formation-changing movement flips `layoutName`
+   * while it generates its frames, just above — so fit the stage window HERE, before a step is danced,
+   * covering both the formation being left and the one being joined. Fitting it when the movement
+   * landed instead would rescale the stage from under the dancers at the very end of the figure. For
+   * every movement that does not change formation this recomputes the same number and nothing moves. */
+  fitStage(wasLayout);
   const segBeats = Array.isArray(out) ? null : out.segBeats;
   const beats = typeof mv.beats === 'function' ? mv.beats(from) : (mv.beats || 4);
   playFrames(fr, mv.anim, onDone, { beats, segBeats, leadBeats });
@@ -3412,7 +3621,14 @@ function proceed(){
   // snaps to beat 1; mid-chain explicit moves run contiguously (no lead-in hold).
   let snap = null;
   if (justIssued){ snap = startBeatOf(nk, posState); justIssued = false; }
-  else if (!fromQueue && (nk === 'dile' || nk === 'dile' || nk === 'dile')){ snap = 1; }   // a default Dile Que No always lands on beat 1
+  else if (!fromQueue && nk === positionDefault(posState)){ snap = 1; }   // a default Dile Que No always lands on beat 1
+  /* STOPPING THE BEAT MEANS "DANCE IT NOW". Snapping exists so a figure lands on the musical count —
+   * a Dame from Casino starts on 7 so that it ends on 8 and the Dile Que No behind it lands on 1. With
+   * the metronome stopped there is no count to land on, and the wait becomes a hold of up to seven
+   * beats (2.8s at default tempo) with nothing behind it. Measured before this existed: the lead-in was
+   * identical whether the beat was running or not, which made the Stop beat button far less useful than
+   * it looks — it is exactly the control you reach for when you want to step through a figure. */
+  if (!beatRunning) snap = null;
   let leadBeats = 0;
   if (snap !== null){                                  // wait (hold on the spot) until the next matching grid beat
     let t = Math.ceil(beatCursor - 1e-6);
@@ -3491,24 +3707,103 @@ function doMovement(key){
   playMovement(mv, from, () => { rawMovement = false; currentMoveLabel = null; renderTable(); updateUI(); });
 }
 
+/* ------------------------------------------------------------------ *
+ *  PUTTING THE WHEEL SOMEWHERE — the Position picker
+ *
+ *  A setup control, not a figure. Nobody dances here: it states where the dancers ARE, and setting it
+ *  puts them there. That is why it writes nothing to the call log — the log is what was *called* — and
+ *  why it may be used at any time, including mid-figure, where it abandons whatever was running. With
+ *  Undo gone this is also the way back out of a sequence you did not mean to start.
+ *
+ *  WHO IS PARTNERED WITH WHOM IS PRESERVED. Every dancer keeps their station; only their lane and their
+ *  facing change. So "put them back in Casino from here" works after a Dame has progressed the wheel,
+ *  which is the whole point of having it — Reset already covers starting over.
+ * ------------------------------------------------------------------ */
+/* WHICH POSITIONS A FORMATION CAN REST IN. Not every entry in POSITIONS qualifies: `afuera_dile` is a
+ * label the Línea grande composition needs for its inner ring (which dances inverted), and the circle
+ * cannot reach it — the 4-beat Dile Que No that is the only way into a Dile Que No position is
+ * `entryOnly`, and `validFrom` blocks entry-only figures while afuera. Offering it would invent a state
+ * the wheel has no way to arrive at, and therefore one nothing has ever tested. */
+const FORMATION_POSITIONS = {
+  circle: ['casino', 'exhibela', 'dile', 'afuera', 'afuera_exhibela'],
+  linea:  ['linea', 'linea_ex', 'linea_dile'],
+};
+/* Both lane tables live with the engine's resting positions (see REST_LANES / LINEA_REST_LANES): the
+ * picker and `snapRestLanes` have to agree about where a position stands people, and the way to
+ * guarantee that is for there to be one answer rather than two that match today. */
+function restLaneOf(p, d){
+  const byRing = LINEA_REST_LANES[p];
+  if (byRing) return byRing[d.station < N / 2 ? 'inner' : 'outer'][d.role];
+  return (REST_LANES[p] || {})[d.role];
+}
+/* The picker sits beside the Formation picker, which already says which formation you are in, and its
+ * own label already says "Position" — so an option repeats neither. */
+const posOptionLabel = p => (POSITIONS[p] || {}).name ? POSITIONS[p].name.replace(/^Línea Moderna /, '').replace(/ position$/, '') : p;
+let posOptionsFor = null;                                // the layout the option list was built for
+function buildPositionOptions(){
+  const sel = document.getElementById('position'); if (!sel) return;
+  sel.innerHTML = '';
+  (FORMATION_POSITIONS[layoutName] || []).forEach(p => {
+    const o = document.createElement('option');
+    o.value = p; o.textContent = posOptionLabel(p);
+    sel.appendChild(o);
+  });
+  posOptionsFor = layoutName;
+}
+function setPosition(p){
+  if (!(FORMATION_POSITIONS[layoutName] || []).includes(p)) return;
+  animGen++; animating = false;                          // abandon anything in flight, as Reset does
+  queue = []; queueCalls = []; engineActive = false; awaiting = false;
+  pendingDefault = null; pendingInterrupt = null; pendingCall = null; rawMovement = false;
+  currentCall = null; currentMoveLabel = null;
+  // An aborted movement leaves the nodes with transitions switched off (playFrames drives them itself
+  // and only restores them when it finishes). Put them back, so the wheel always glides into the new
+  // position rather than sometimes gliding and sometimes jumping.
+  Object.values(nodes).forEach(n => { n.g.style.transition = G_TRANS; n.arrowG.style.transition = ARROW_TRANS; });
+  posState = p;
+  // Off the live xy and back onto the grid: a resting position is a slot address, not a pixel.
+  dancers.forEach(d => { d.lane = restLaneOf(p, d); delete d.xy; delete d.face; delete d.turn; delete d.snapTurn; });
+  /* FACING IS ONE RULE, and it was measured off every position the engine can actually reach rather
+   * than read out of the figures that land in them: partners face each other — except that in a Dile
+   * Que No position the follower faces 90° clockwise of her partner. She is standing beside him on the
+   * couple's spoke looking round the wheel, not at him. That holds in the circle, inverted (afuera),
+   * and on both Línea rings, whose opposite senses of "clockwise" it absorbs for free. */
+  if ((POSITIONS[p] || {}).variant === 'dile')
+    dancers.forEach(d => { if (d.role === 'F') d.face = faceTowardPartner(d, dancers) + 90; });
+  render(); renderTable(); updateUI();
+}
+
 function setMode(m){
   mode = m;
   if (m === 'live' && awaiting){ awaiting = false; step(); }
   else updateUI();
+}
+/* The Mode row is off by default. Live vs Step is a practice setting you choose once, not something you
+ * reach for between calls, and on a phone it was a whole row of chrome standing between the wheel and
+ * the calls. Hiding it does NOT change the mode: in Step the decision prompt still appears on the stage,
+ * so the row can be put away and Step still works. */
+let modeShown = false;
+function applyModeVisibility(){
+  const bar = document.getElementById('modebar'); if (bar) bar.hidden = !modeShown;
+  const t = document.getElementById('modeToggle'); if (t) t.classList.toggle('on', modeShown);
 }
 
 /* Panel toggles: show/hide the whole section, and whether unavailable entries grey out (default) or
  * disappear. Hiding is applied per BUTTON and per GROUP, so an empty group takes its heading with it. */
 let panelTab = 'calls';                                  // which list the one panel is showing
 function applyPanelPrefs(){
-  const hiding = !!(document.getElementById('hideUnavail') || {}).checked;
-  const showing = { calls: panelTab === 'calls', moves: panelTab === 'moves' };
-  [['tabCalls', 'calls'], ['tabMoves', 'moves']].forEach(([id, which]) => {
+  const hiding = ((document.getElementById('unavail') || {}).value === 'hide');
+  const showing = { calls: panelTab === 'calls', moves: panelTab === 'moves', help: panelTab === 'help' };
+  [['tabCalls', 'calls'], ['tabMoves', 'moves'], ['tabHelp', 'help']].forEach(([id, which]) => {
     const t = document.getElementById(id); if (!t) return;
     t.classList.toggle('active', showing[which]);
     t.setAttribute('aria-selected', showing[which] ? 'true' : 'false');
   });
   const hint = document.getElementById('moveHint'); if (hint) hint.hidden = !showing.moves;
+  const help = document.getElementById('helpCard'); if (help) help.hidden = !showing.help;
+  // "Hide Unavailable" is a statement about a list of buttons; on the Instructions there is no such
+  // list to make it about, so the control goes with them rather than sitting there doing nothing.
+  const hu = document.getElementById('unavailLabel'); if (hu) hu.hidden = showing.help;
   [['callButtons', callBtns, showing.calls], ['moveButtons', moveBtns, showing.moves]].forEach(([hostId, btns, on]) => {
     const host = document.getElementById(hostId); if (!host) return;
     host.hidden = !on;
@@ -3549,9 +3844,21 @@ function callOfferableFrom(c, pos){
 
 function updateUI(){
   const idle = !engineActive && !animating && !awaiting;
-  const pn = document.getElementById('posname'); if (pn) pn.textContent = (POSITIONS[posState] || {}).name || '—';
-  const ls = document.getElementById('layout');            // a movement can change formation — keep the picker honest
+  /* THE TOOLBAR IS A VIEW OF ENGINE STATE, so the engine wins every time it disagrees. A movement can
+   * change the formation under the picker; a browser can restore a control's value across a reload
+   * (`autocomplete="off"` asks it not to, and it is not always obeyed) and leave Couples reading 8 over
+   * a wheel of four. Both are the same bug, and this is the same fix. */
+  const ls = document.getElementById('layout');
   if (ls && ls.value !== layoutName) ls.value = layoutName;
+  const cs = document.getElementById('couples');
+  if (cs && cs.value !== String(N)) cs.value = String(N);   // compared as strings, never coerced — see below
+  // The Position picker is a readout as much as a control: a figure moves the wheel, and the picker has
+  // to say so. Its option list belongs to the formation, so it is rebuilt when the formation changes.
+  const ps = document.getElementById('position');
+  if (ps){
+    if (posOptionsFor !== layoutName) buildPositionOptions();
+    if (ps.value !== posState) ps.value = posState;
+  }
   document.getElementById('modeLive').classList.toggle('active', mode === 'live');
   document.getElementById('modeStep').classList.toggle('active', mode === 'step');
 
@@ -3843,6 +4150,10 @@ function playFrames(frames, opts = {}, onDone, timing = {}){
   };
   requestAnimationFrame(tick);
 }
+/* NO UNDO BUTTON ANY MORE (Sam) — the toolbar is the scarcest row on a phone and this was the least
+ * earned thing in it. The machinery stays: every movement still records its state, so restoring the
+ * control is one line of wiring rather than a re-implementation. What replaced it in practice is the
+ * Position picker, which abandons whatever is running and puts the wheel where you say. */
 function undo(){
   if (animating || !history.length) return;
   dancers = history.pop();
@@ -3868,13 +4179,18 @@ function reset(){
   queue = []; queueCalls = []; engineActive = false; awaiting = false; pendingDefault = null; pendingInterrupt = null; pendingCall = null; rawMovement = false;
   currentCall = null; currentMoveLabel = null;
   beatCursor = 0; justIssued = false; showBeat(0);
-  document.getElementById('log').innerHTML = '';
+  { const log = document.getElementById('log'); if (log) log.innerHTML = ''; }
   buildNodes(); render(); updateUI();
 }
+/* THE CALL LOG HAS NO PANEL RIGHT NOW — its tab became the Instructions. The record is still kept, and
+ * `logCount` still numbers the calls, so giving it a home again is markup rather than logic; until then
+ * every call site here writes into nothing. Guarded rather than deleted, for the same reason Undo's
+ * machinery survived its button. */
 function logLine(move, note, undo=false){
   const log = document.getElementById('log');
-  const div = document.createElement('div');
   const n = undo ? '' : `<span class="step">${++logCount}.</span> `;
+  if (!log) return;
+  const div = document.createElement('div');
   div.innerHTML = `${n}<span class="move">${move}</span>` + (note?` <span class="note">(${note})</span>`:'');
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
@@ -3897,17 +4213,23 @@ function logLine(move, note, undo=false){
  * it was filing a movement under one of two answers to a question that has several. The distinction is
  * still there where it belongs — in `flipsPhase`, which the engine asks per call — and off the label,
  * which cannot state it honestly. */
-const MOVE_GROUPS = [
-  ['formation',  'Formation & frame'],
-  ['progressive','Progressions'],
-  ['standard',   'Standard'],
-];
-const CALL_GROUPS = [
-  ['formation',  'Formation & frame'],
-  ['progressive','Progressions'],
+/* ORDER IS THE SAME IN BOTH PANELS, and it runs from what you reach for most to what you reach for
+ * least: an interruption is shouted over something already running, the standard figures are the body
+ * of the dance, a progression moves people between couples, and a formation change resets the floor
+ * plan. The two lists are stated separately because they are read by two panels, but they say the same
+ * thing in the same order — a reader who has learnt one has learnt the other.
+ *
+ * `interrupt` is in the movements list although nothing lands there today: a movement is a figure, and
+ * only a CALL can be a modifier. An empty group takes its heading with it (`.grp.empty`), so it costs
+ * nothing to state, and the day a movement does become an interruption it appears in the right place. */
+const GROUP_ORDER = [
   ['interrupt',  'Interruptions'],
   ['standard',   'Standard'],
+  ['progressive','Progressions'],
+  ['formation',  'Formation & frame'],
 ];
+const MOVE_GROUPS = GROUP_ORDER;
+const CALL_GROUPS = GROUP_ORDER;
 function moveGroup(key){
   const m = MOVEMENTS[key]; if (!m) return 'standard';
   // A formation change replaces the slot set; a relabel (Afuera/Adentro) turns the whole wheel
@@ -4039,8 +4361,6 @@ function buildButtons(){
   };
   callBtns = build('callButtons', CALL_GROUPS, Object.keys(CALLS), callGroup, k => CALLS[k].label, issueCall);
   moveBtns = build('moveButtons', MOVE_GROUPS, Object.keys(MOVEMENTS), moveGroup, k => MOVEMENTS[k].label, doMovement);
-  const pips = document.getElementById('beatpips'); pips.innerHTML = '';
-  for (let i = 0; i < 8; i++) pips.appendChild(document.createElement('span'));
 }
 
 // Free-running metronome: the beat keeps advancing in real time whenever a movement isn't
@@ -4053,32 +4373,66 @@ function metronome(now){
   } else metroLast = null;
   requestAnimationFrame(metronome);
 }
+/* The button is a glyph now, so what it MEANS lives in the tooltip and the accessible name — which have
+ * to be kept in step with it, or a screen reader is told the opposite of what the icon shows. */
 function toggleBeat(){
   beatRunning = !beatRunning;
   if (beatRunning){ beatCursor = 0; showBeat(0); }        // (re)start the count on beat 1
-  document.getElementById('beatToggle').textContent = beatRunning ? '⏸ Stop beat' : '▶ Start beat';
+  const b = document.getElementById('beatToggle'); if (!b) return;
+  b.textContent = beatRunning ? '⏸' : '▶';
+  const label = beatRunning ? 'Stop the beat' : 'Start the beat';
+  b.title = label; if (b.setAttribute) b.setAttribute('aria-label', label);
 }
 
 document.getElementById('couples').onchange = e=>{ N = +e.target.value; if (layoutName === 'linea' && N % 2) N++; reset(); };
 document.getElementById('layout').onchange = e=>{ layoutName = e.target.value; if (layoutName === 'linea' && N % 2) N++; reset(); };   // reset fully into the chosen formation
 document.getElementById('reset').onclick = reset;
-document.getElementById('undo').onclick = undo;
+document.getElementById('position').onchange = e => setPosition(e.target.value);
 document.getElementById('beatToggle').onclick = toggleBeat;
-document.getElementById('speed').oninput = e => {
-  const p = +e.target.value;                         // 0..1, 0.5 = current speed
-  speedMul = p < 0.5 ? 0.2 + 1.6 * p : 1 + 2 * (p - 0.5);   // 0.2× … 1× … 2×
-  document.getElementById('speedval').textContent = speedMul.toFixed(2) + '×';
-};
+document.getElementById('modeToggle').onclick = () => { modeShown = !modeShown; applyModeVisibility(); };
+/* A named function rather than an inline handler so the picker's value can be APPLIED at startup as
+ * well as on change: whatever it is showing — its own default, or a value the browser restored across a
+ * reload — is what the engine should be running at. */
+function applyTempo(bpm){ speedMul = bpm / BASE_BPM; }
+function buildTempoOptions(){
+  const sel = document.getElementById('bpm'); if (!sel) return;
+  sel.innerHTML = '';
+  BPM_CHOICES.forEach(b => {
+    const o = document.createElement('option');
+    o.value = String(b); o.textContent = String(b);
+    sel.appendChild(o);
+  });
+  sel.value = String(BASE_BPM);
+}
+document.getElementById('bpm').onchange = e => applyTempo(+e.target.value);
 document.getElementById('modeLive').onclick = () => setMode('live');
 document.getElementById('modeStep').onclick = () => setMode('step');
 document.getElementById('silenceBtn').onclick = takeDefault;
 
-{ const h = document.getElementById('hideUnavail');
-  if (h) h.addEventListener('change', applyPanelPrefs);
-  const tc = document.getElementById('tabCalls'), tm = document.getElementById('tabMoves');
-  if (tc) tc.onclick = () => setPanelTab('calls');
-  if (tm) tm.onclick = () => setPanelTab('moves'); }
+{ const h = document.getElementById('unavail');
+  // Greyout is the stated default, so it is asserted rather than left to the markup alone — a reloading
+  // browser will happily hand back the value you had last time, which is not what "default" means.
+  if (h){ h.value = 'grey'; h.addEventListener('change', applyPanelPrefs); }
+  const tabs = { tabCalls: 'calls', tabMoves: 'moves', tabHelp: 'help' };
+  for (const id in tabs){ const t = document.getElementById(id); if (t) t.onclick = () => setPanelTab(tabs[id]); } }
+/* The stage's pixel size can change without the viewBox changing at all — a window resize, an
+ * orientation flip, the toolbar wrapping to one fewer row — and the beat count is sized from the ratio
+ * of the two. Observed on the stage itself rather than on the window, so a reflow that the window never
+ * hears about still re-scales it. */
+if (typeof ResizeObserver !== 'undefined'){
+  const stageBox = document.querySelector('.stage');
+  if (stageBox) new ResizeObserver(scaleBeat).observe(stageBox);
+} else if (window.addEventListener) window.addEventListener('resize', scaleBeat);
 buildButtons();
+applyModeVisibility();
+// Take the picker at its word, so the tempo and the control cannot start out disagreeing. The type test
+// is not defensive padding: headless, `value` is a DOM stub, and coercing one is a TypeError rather than
+// a NaN — so anything but a real string or number falls back to the base tempo, which is what a
+// no-picker environment should run at anyway.
+buildTempoOptions();
+{ const raw = (document.getElementById('bpm') || {}).value;
+  const v = (typeof raw === 'string' || typeof raw === 'number') ? parseFloat(raw) : NaN;
+  applyTempo(isFinite(v) && BPM_CHOICES.includes(v) ? v : BASE_BPM); }
 reset();
 requestAnimationFrame(metronome);
 </script>

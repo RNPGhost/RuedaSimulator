@@ -18,12 +18,18 @@ const UPDATE = process.argv.includes('--update');
 // beat display cleared so nothing animates between captures (deterministic diff).
 async function scene(pg, setup) {
   await pg.goto(FILE, { waitUntil: 'networkidle' });
-  await pg.evaluate(() => { const s = document.getElementById('speed'); s.value = '1'; s.dispatchEvent(new Event('input')); });
+  // Fastest tempo on offer, so the scenes settle sooner. (Was a 0..1 slider; it is a BPM picker now.)
+  await pg.evaluate(() => {
+    const s = document.getElementById('bpm');
+    s.value = s.options[s.options.length - 1].value;
+    s.dispatchEvent(new Event('change'));
+  });
   await setup(pg);
   await pg.waitForTimeout(600);
   // hide the running beat readout so it can't differ between captures (it's not what we're testing)
   await pg.evaluate(() => {
-    const b = document.getElementById('beatToggle'); if (b && /Stop/.test(b.textContent)) b.click();
+    // The button is a glyph, not a word: ⏸ showing means the beat is running, so click to stop it.
+    const b = document.getElementById('beatToggle'); if (b && b.textContent.includes('⏸')) b.click();
     const big = document.getElementById('beatbig'); if (big) big.style.visibility = 'hidden';
   });
   await pg.waitForTimeout(150);

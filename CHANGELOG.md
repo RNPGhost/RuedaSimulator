@@ -3,6 +3,350 @@
 History of the Rueda de Casino call simulator. Versions below correspond to the
 iterations during initial development (single-file app, `index.html`).
 
+## v151 — two rows, and three overrides that were never running
+
+Sam: "if we put Couples after Position in the ordering, can we fit all the buttons at the top into 2
+lines?" Measured first, and the answer was **no — by 1.3 pixels**. Which turned out to be the
+interesting part.
+
+The reorder alone changed nothing: three rows at every width from 300px to 414px. Simulating it by
+restyling the container gave contradictory answers twice, so the measurement was redone properly —
+each control's intrinsic width taken once, then the wrapping computed directly. That gave a stable
+number: with Couples after Position, the second line needs **356.3px** and had **355px**.
+
+The missing pixels were in a rule that was never running. **The `@media` blocks sat in the middle of
+the stylesheet, above rules they override**, and CSS breaks specificity ties on source order — so at
+equal specificity the later rule won and three portrait overrides were dead letters that read as though
+they worked:
+
+| override | asks for | actually got |
+|---|---|---|
+| `.toolbar` gap | `5px 7px` | 8px |
+| `.tempo` gap | `7px` | 8px |
+| `.modebar` margin | `2px 0` | `6px 0 2px` |
+
+The toolbar gap is the one that mattered: three gaps of one pixel each is precisely the 1.3px shortfall.
+Moving both blocks to the end of the sheet — where overrides belong — makes all three live, and the
+row fits.
+
+One further pixel-lever was worth having: taking 2px of *horizontal* padding off the toolbar selects
+(the only term that affects wrapping) is worth 8px a line, which is the difference between fitting on a
+375px phone and fitting on a 360px one. Horizontal only, so the selects stay the same height as the
+buttons beside them — measured at 29.2px against 29.6px.
+
+A lever that was **not** worth having, recorded so it is not tried again: shortening the Formation
+option labels. The select is sized by its widest option, so trimming "Rueda (circle)" leaves "Línea
+Moderna" holding the width — and once Formation shrinks, the second row becomes the binding constraint
+anyway. Measured gain: 365px → 364px. One pixel.
+
+| on a 375px phone | before | after |
+|---|---|---|
+| toolbar | 104px, 3 rows | **64px, 2 rows** |
+| stage | 345px (42%) | **385px (47%)** |
+| two rows from | — | **357px of viewport** |
+
+For the record of where this ends up: the stage began this branch at 256px on the same phone, 32% of
+the screen. It is now 385px and 47%.
+
+## v150 — one order for both panels, and a button that cannot be stranded
+
+**Both panels are grouped in the same order**, and it is now literally the same list: `GROUP_ORDER`,
+read by `MOVE_GROUPS` and `CALL_GROUPS` alike, running **Interruptions, Standard, Progressions,
+Formation & frame** — most reached-for to least. An interruption is shouted over something already
+running; the standard figures are the body of the dance; a progression moves people between couples; a
+formation change resets the floor plan.
+
+`interrupt` is in the movements list although nothing lands there: a movement is a figure, and only a
+*call* can be a `modifier`. It costs nothing to state — `.grp.empty` takes an empty group's heading with
+it, verified — and the day a movement does become an interruption it appears in the right place rather
+than at the bottom under "Standard".
+
+**The Mode button moves between Reset and BPM.**
+
+**The tempo picker and the metronome button became one flex item** (`.tempo`, `flex-wrap:nowrap`). Sam:
+"the pause/play button should always be on the same line as the BPM dropdown, even if it means putting
+the BPM on a new line." Exactly the right instinct — a wrap falling between them would leave a ⏸
+stranded on a line by itself with nothing to say what it governs. Squeezed through **41 container widths
+from 200px to 1000px**: never separated, never overflowing.
+
+**BPM is now 50 to 250 in twenty-fives.** The choices are generated from `BPM_MIN`/`BPM_MAX`/`BPM_STEP`
+rather than written out, and `BASE_BPM` is forced onto the list if the arithmetic ever stops landing on
+it — a picker showing a tempo that is not exactly 1× would be a silent disagreement between what it says
+and what the engine does. All nine options verified to produce exactly the milliseconds-per-beat they
+claim, and 150 is still the default at exactly 1×, so the golden's beat timings do not move.
+
+Also corrected a documentation drift found on the way: `CALLING.md` still described the Movements panel
+as splitting "Progressions that flip the phase" from "Progressions on the same phase". v144 merged those
+into one group, for the good reason that whether a figure flips the phase depends on where it is danced
+from — and the doc never caught up.
+
+## v149 — tempo in the unit a caller thinks in
+
+**The metronome button is a glyph**, ⏸ or ▶, with no word beside it. The word was the widest thing in
+the toolbar and said what the icon already says. Its `title` and `aria-label` are updated alongside the
+glyph, so what it means survives for anyone who cannot see which icon is showing — and it has a fixed
+`width` rather than a `min-width`, because ⏸ measures **1.6px wider** than ▶ and a minimum still let the
+whole row twitch on every press. Measured after: 48px across four toggles, and no other control moves.
+
+**"Reset to base" is "Reset"**, and sits to the left of the tempo control.
+
+**The speed slider is a BPM picker** — 140 to 230 in tens. A slider offered a continuum of speeds nobody
+dances at and no way to say which one you were on; these are real salsa tempos. `BASE_BPM` is *derived*
+from `BASE_MS_PER_BEAT` (60000/400 = 150) rather than written down beside it, so the two cannot drift
+and the base tempo is on the list — and is exactly 1× — by construction. The engine still divides by
+`speedMul`, which is now simply `bpm / BASE_BPM`.
+
+Checked against what the engine actually does, rather than assumed: every option produces the
+milliseconds-per-beat it claims, exactly.
+
+| BPM | 140 | 150 | 160 | 170 | 180 | 190 | 200 | 210 | 220 | 230 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ms/beat | 428.57 | 400 | 375 | 352.94 | 333.33 | 315.79 | 300 | 285.71 | 272.73 | 260.87 |
+| implied BPM | 140 | 150 | 160 | 170 | 180 | 190 | 200 | 210 | 220 | 230 |
+
+The golden is unaffected because `speedMul` still starts at exactly 1 — which is worth stating, since
+the beat timings it records are in milliseconds and would have moved had the default landed anywhere
+else on the new scale.
+
+`test/visual.js` needed both controls too, and would have gone quietly wrong rather than failing: it
+drove the tempo by setting a 0..1 slider to `'1'`, and it stopped the metronome by testing the button's
+text for `/Stop/`. Neither exists now — the first would have left the scenes running at the base tempo,
+the second would have left the beat *running* through every capture, which is exactly the
+non-determinism that hiding the beat readout was there to prevent.
+
+**On a phone the toolbar is still 104px over three rows** — narrower controls, but not fewer rows. The
+gain is on wider screens, where the row now fits in one.
+
+## v148 — the lane a dancer says they are in is the lane they are in
+
+### `linea_ex` had every lane backwards
+
+Found while measuring the resting positions for v145's Position picker, and fixed now. Every dancer
+arriving in the Línea Moderna Exhibela position carried a `lane` that was the **exact opposite** of the
+slot they stood on — 12 of 12 at six couples, at 0.00px geometric certainty, by every route in:
+
+| route | before | after |
+|---|---|---|
+| `dame_grande` from rest → `linea_ex` | 12/12 wrong | **0/12** |
+| `dame_peq` from rest → `linea_ex` | 12/12 wrong | **0/12** |
+| `dame_grande` → `dile4` → `dame_grande` | 12/12 wrong (lanes stale from *two* positions back) | **0/12** |
+
+`snapRestLanes` returned early for `linea` and `linea_ex` on the reasoning that "Línea positions set
+`lane` themselves". They did not. This is the same fault the comment above `linea_dile` already
+describes — the one that got noticed because it put two dancers 0.00px apart — and it went unseen here
+for two reasons that are both luck rather than design: `pos()` prefers the live `xy`, so nobody was ever
+*drawn* in the wrong place, and the next figure's `swap` lane reference inverts a **consistently**
+inverted lane back to the right answer.
+
+That luck is measurable: **the golden did not move by a pixel.** A correctness repair with no
+behavioural change, which is exactly what you would expect if the wrong value was being cancelled
+downstream every time — and exactly why nothing caught it.
+
+The fix is `LINEA_REST_LANES`, stated per *ring* because Línea's rings are mirror images (the inner one
+dances afuera, so its Casino is the outer ring's Exhibela). It already existed — v145 added it for the
+Position picker, having measured it off the engine — so this moves it next to `REST_LANES` where the
+engine can share it. One answer rather than two that happen to match.
+
+**§48 is the check that was missing**: after every movement, the slot a dancer's own `(station, lane)`
+names must be where that dancer actually is. ~4,700 assertions, and it self-tests by putting a dancer on
+the couple's other lane and confirming the residual is large — because a comparison that cannot tell the
+two lanes apart would have passed whatever the engine did, which is precisely how this survived.
+Invariants: **5,941 → 10,659**.
+
+### Greyout / Hide, and controls that tell the truth on reload
+
+The **Hide/Grey** checkbox is now a picker with **Greyout** (default; the entry stays put and goes
+unclickable) and **Hide**. A checkbox had to name one state and leave the other implied.
+
+Testing the default turned up something else: browsers restore form-control values across a reload, so
+the picker came back on Hide, and — worse — **Couples could read 8 over a wheel of four**, because
+nothing re-derived the engine from the controls or the controls from the engine at startup.
+`autocomplete="off"` asks the browser not to, and was not obeyed here. So the rule is stated properly
+instead: the toolbar is a *view* of engine state, and `updateUI` now syncs Couples as well as Formation
+and Position. The speed slider is squared off the other way — `applySpeed` applies whatever it shows at
+load — and the Greyout/Hide picker asserts its stated default.
+
+### And a note for whoever breaks the harness next
+
+Three separate TypeErrors while doing the above, all the same root cause: the headless DOM stub is a
+Proxy that answers any unknown property with **another stub**, so a missing member is an object rather
+than `undefined`. `if (!el.getAttribute)` guards nothing; `+el.value` and `parseFloat(el.value)` throw
+rather than yielding `NaN`, because `toString` is a stub too; and `el.dispatchEvent(new Event(...))`
+fails twice over. Written up in `test/README.md` under Gotchas. The fixes were all better than the
+guards would have been — `fitStage` hands the beat its radius rather than the beat re-reading the
+`viewBox` out of the DOM, and the speed handler became the named `applySpeed` that startup can call
+directly.
+
+## v147 — the count is drawn to the same scale as the dancers
+
+Sam: "rather than the beat indicator number being always small, it should scale with the scale of the
+dancers. This is a good size for the current layout."
+
+v146 traded one fixed size for another — 72px for 22px — which is right for one layout and wrong for
+every other, because v145 made the wheel's scale depend on the couple count and the window. So the
+count is now stated in **engine units** rather than pixels: `BEAT_UNITS = 15`, the same nominal size as
+the couple number on a dancer's dot, converted by `scaleBeat()` through the factor the SVG itself uses
+(`xMidYMid meet` over a square window: the stage's shorter side over `2·stageR`). It stays HTML in the
+corner — the position was never the problem.
+
+Measured across both formations at every couple count, the digit's size as a fraction of a dancer's
+diameter is constant at **0.469**:
+
+| | circle 4 | 6 | 8 | línea 4 | 6 | 8 |
+|---|---|---|---|---|---|---|
+| dancer diameter | 140px | 107 | 87 | 111 | 99 | 89 |
+| beat count | 65.5px | 50.2 | 40.8 | 52.1 | 46.4 | 41.9 |
+| ratio | .468 | .469 | .469 | .469 | .469 | .469 |
+
+A `ResizeObserver` on the stage — not the window — keeps it honest through reflows the `viewBox` never
+hears about: shrinking the stage alone took the count 16px → 5px → 16px. It watches the stage because
+the toolbar wrapping to one fewer row resizes the stage without the window moving at all.
+
+The first attempt broke the headless suite, which is worth recording: the harness's DOM stub is a Proxy
+returning a fresh stub for any unknown property, so `svg.getAttribute` was an *object* rather than
+undefined and the usual `if (!svg.getAttribute)` guard sailed straight through it into a TypeError. The
+fix was better than the guard — `fitStage` already knows the radius, so it hands it over (`stageR`)
+instead of the beat re-reading its own `viewBox` attribute back out of the DOM.
+
+**"Hide Unavailable" is now "Hide/Grey"**, which names both of the things the checkbox chooses between
+rather than only one of them.
+
+## v146 — the beat stops meaning wait, and the log makes way for instructions
+
+**The title is gone.** Header, strapline and all: a band of height on every screen to say what the
+browser tab already says. With it and v145's work together, the stage on a 375×812 phone has gone from
+**256px (32% of the screen) to 345px (42%)**, and the toolbar from 154px to 104px.
+
+**The beat count is 22px, not 72px.** It is a count a dancer glances at, not a headline, and it was
+sized for a room on a stage that has to share its space with the wheel.
+
+**The overlays never touched the dancers, and that is now on the record.** Sam: "the size of the dancers
+dancing should also not be impacted by the call queue or the current call writing in the corner, the
+dancers should just render behind that text." They already do — both the corner and the beat count are
+`position:absolute`, and both come after the `<svg>` in the DOM, so they paint over it. Measured rather
+than asserted: stuffing the corner with a 12-deep queue **346px tall inside a 306px stage** leaves the
+stage, the SVG and its scale byte-identical. Nothing to change. What changed under it is that v145's
+fitted window means the wheel now reaches where that text sits, so it reads as an overlap where before
+there was empty margin to hide in.
+
+### Stopping the beat now means "dance it now"
+
+Sam's instructions were to say "that if you pause the beat, then the calls will be executed
+immediately". They were not, so writing that down would have documented a behaviour the app did not
+have. Measured first — the lead-in hold a call asks for, at every position of the beat cursor:
+
+| beat cursor | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| Dame, beat running | 6 | 5 | 4 | 3 | 2 | 1 | 0 | 7 |
+| Dame, beat **stopped** (before) | 6 | 5 | 4 | 3 | 2 | 1 | 0 | 7 |
+| Dame, beat **stopped** (now) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Identical, in other words: stopping the metronome froze the counter but changed nothing about the wait,
+so a call could still hold on the spot for seven beats — 2.8s at base tempo — against a count that was
+not running. Snapping exists so a figure lands on the music (a Dame from Casino starts on 7 so it ends
+on 8 and the Dile Que No behind it lands on 1); with no music there is nothing to land on. `proceed()`
+clears the snap when `beatRunning` is false, which makes **Stop beat** the control it looks like — the
+one you reach for to step through a figure and see it now. The suite is untouched: `beatRunning` starts
+true and the harness never toggles it.
+
+While in there, the default-Dile-Que-No test was written `(nk === 'dile' || nk === 'dile' || nk ===
+'dile')` — the same disjunct three times. It is now `nk === positionDefault(posState)`, which is what it
+was standing in for: with `!fromQueue`, `nk` came from `positionDefault` by construction.
+
+### An Instructions tab, where the Call log was
+
+The log recorded what you had called; the stage's corner already shows that while it matters, and what a
+newcomer needs instead is to be told what any of these buttons do. So the tab now explains: that a Call
+joins the queue and that calls stack up behind one another, that stopping the beat dances them
+immediately, that a call expands into movements which the Movements tab can fire one at a time, what the
+Couples / Formation / Position / Reset controls at the top do, and that Step mode exists behind the Mode
+button and is still under development.
+
+`logLine` survives its panel the way Undo survived its button — still running, still numbering the
+calls, guarded against having no element to write into — so giving the log a home again is markup rather
+than logic.
+
+## v145 — the window is fitted to the wheel, and the phone gets its height back
+
+Sam, on small screens: "I want to remove a lot of the things taking up vertical room." Six changes, all
+of them in the UI, none of them in the engine — `GOLDEN 357/132/6` did not move by a pixel, which is the
+point of the last one.
+
+**Position is a control now, not a caption.** The `Formation: Casino position` line under the stage has
+become a **Position** picker sitting beside the Formation picker — one row instead of two, and the two
+are the same kind of statement: which floor plan, and where within it. It still reports where the wheel
+is; it will also put it there. A setup control rather than a figure, so it snaps, writes nothing to the
+log, and may be used mid-figure, where it abandons whatever was running. **Partners are preserved** —
+every dancer keeps their station and only their lane and facing change — so "put them back in Casino
+from here" works after a Dame has progressed the wheel. *Reset to base* already covers starting over.
+
+Its two rules were **measured off the engine rather than read out of the figures** that land in these
+positions, because the `lane` field cannot be trusted after a movement (see the finding below):
+
+| | rule |
+|---|---|
+| Lanes, circle | `REST_LANES` |
+| Lanes, Línea | per *ring* — the inner one dances afuera, so `linea_ex` is `linea`'s swap on each ring |
+| Facing | partners face each other — **except** the Dile Que No follower, who faces 90° clockwise of her partner |
+
+That one facing exception covers the circle, afuera, and both Línea rings, whose opposite senses of
+"clockwise" it absorbs for free. `afuera_dile` is **not** offered: `dile4` is the only way into a Dile
+Que No position and it is `entryOnly`, which `validFrom` blocks while afuera — so the circle cannot
+reach it, and offering it would invent a state nothing has ever tested.
+
+**Gone:** the beat pips (they said what the big corner number already says), and Undo (the least earned
+thing in the scarcest row; the machinery stays, so the button is one line of wiring away).
+**Hidden by default:** the Mode row, behind a toolbar toggle. Hiding it does not change the mode — in
+Step the decision prompt still appears on the stage, so Step still works with the row put away.
+
+**The panel scrolls.** The lists lived in the *pinned* block, so on a 375×812 phone the last call sat at
+y=1056 — 244px below the bottom of the screen with no way to reach it. Now only the tab row is pinned
+and everything below it scrolls, and the call log has joined Calls and Movements as a third tab so the
+list you are picking from gets the panel's whole height.
+
+### The stage window, and the pixel worry
+
+Sam: "I worry that the system is currently inherently tied to display pixels when calculating paths. If
+this is the case, we should separate the visual display logic from the engine simulation logic."
+
+It is not, and the separation already existed — it just was not being used. The engine works in its own
+units and never reads a screen pixel; the `viewBox` is where those units become a picture. What tied the
+picture to a size was that the `viewBox` was a **fixed 510-unit square**, big enough for the largest
+formation, while the wheel is sized to the couple count. So the window is computed from the formation
+instead — a render change that moves no engine value:
+
+| | 4 couples | 6 | 8 |
+|---|---|---|---|
+| circle wheel radius | 104.4 | 154.0 | 204.2 |
+| window half-size (was 255) | **168.3** | **219.6** | **270.7** |
+| how much of the window the wheel fills | 47% → **72%** | 67% → **77%** | 86% → **81%** |
+| magnification | **1.51×** | **1.16×** | 0.94× |
+
+The point is not only the 1.51× at four couples but the *consistency*: the wheel now fills 72–81% of the
+stage whatever the couple count, instead of ranging from a half-empty 47% to an 81% that was over its
+own edge — at eight couples a dancer used to cross the boundary by 4.5px during a Dame Pequeña from
+Afuera Exhibela.
+
+The margin is one dancer's disc plus the reach of their facing arrow: what it takes for no part of a
+resting dancer to be outside. Measured across every movement at 4/6/8 couples in both formations, that
+same margin also clears every excursion a figure makes beyond the resting slots — the largest is 18.9
+units, against a margin of 46 — so the window never has to move while anyone is dancing. During a
+formation change it covers **both** formations, since the dancers genuinely occupy both; without that
+the four-couple exit ran with 6px of clearance on the discs and less than none on the arrows.
+
+**§47 asserts it**, so this is a property rather than a measurement that was true once. It places each
+waypoint's arrow tip using the rotation the harness records beside the position — the whole glyph, not
+the centre — across 395 cases, and self-tests that figures really do travel outside the resting slots so
+a green run means something. A future figure that swings wider than the margin is now a test failure
+instead of a dancer sliding off the stage.
+
+**The toolbar is now the biggest consumer of height on a phone**, and taking Position into it made that
+worse before it got better: at 375px it wrapped to five rows and 154px, over half of what the wheel
+itself was getting. A density pass that removes no information — the slider does not need 120px, the
+selects were padded for a mouse — brought it to **106px**, and the stage from **256px to 304px** (32% →
+37% of the screen). The slider's width had to move out of an inline `style` first, which was beating the
+media query and silently doing nothing.
+
 ## v144 — she dances her ¾ circle here too, and one heading replaces two
 
 Sam, on Dame Pequeña from the LM Dile Que No position: "the dancers pass the dancer that they're

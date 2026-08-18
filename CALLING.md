@@ -294,15 +294,27 @@ therefore lands in the right group without anyone maintaining a list, and the tw
 
 | Movements | rule |
 |---|---|
-| Formation & frame | changes formation (`play.formation`), or is a relabel (Afuera / Adentro) |
-| Progressions that flip the phase | `progresses` and `flipsPhase` |
-| Progressions on the same phase | `progresses`, no flip |
+| Interruptions | nothing, today — only a *call* can be a `modifier`. Stated so the two panels share an order; an empty group takes its heading with it |
 | Standard | everything else |
+| Progressions | `progresses` |
+| Formation & frame | changes formation (`play.formation`), or is a relabel (Afuera / Adentro) |
 
 Calls take the group of the strongest thing in their sequence: formation, then progression, then
 standard; a `modifier` is an Interruption. Afuera and Adentro sit with **Formation & frame** (agreed with
 Sam): they keep the same partner in the same slot, but every figure afterwards is danced point-reflected,
 which is closer to changing formation than to an ordinary figure.
+
+There is **one Progressions group, not two**. It used to split "that flip the phase" from "on the same
+phase" — a real distinction in the arithmetic and a false one on a button, because whether a figure flips
+the phase can depend on where it is danced *from* (`dame.flipsPhase` is `virtualPos(from) !== 'dile'`). A
+heading has no from-position, so it was filing a movement under one of two answers to a question that
+has several. The distinction lives in `flipsPhase`, which the engine asks per call.
+
+**The display order is shared** — one `GROUP_ORDER`, read by both panels — and runs from what you reach
+for most to what you reach for least: **Interruptions, Standard, Progressions, Formation & frame**. An
+interruption is shouted over something already running; the standard figures are the body of the dance;
+a progression moves people between couples; a formation change resets the floor plan. A reader who has
+learnt one panel's order has learnt the other's.
 
 **Availability.**
 
@@ -314,11 +326,103 @@ which is closer to changing formation than to an ordinary figure.
   from). `projectedEndPos()` walks the remaining queue plus the default that follows it to work that out.
   Offering anything else invites a click that silently does nothing.
 
-Each panel has two toggles: **show** (the whole section, default on) and **hide unavailable** (default
-off, so unavailable entries grey out as before). Hiding is applied per button *and* per group, so an
-empty group takes its heading with it. Buttons live in a fixed **grid**, not a wrapping flex row: a hover
-or a state change can alter a button's ink but never its cell, so nothing reflows and a button can no
-longer slide out from under the pointer mid-click.
+The side panel is **one surface with three tabs** — Calls, Movements, Instructions — plus a picker for
+what to do with a call you cannot make right now: **Greyout** (the default — the entry stays put and
+goes unclickable) or **Hide**. A checkbox had to name one of those two states and leave the other
+implied; a picker names both, and says which one you are in. Hiding is
+applied per button *and* per group, so an empty group takes its heading with it. Buttons live in a fixed
+**grid**, not a wrapping flex row: a hover or a state change can alter a button's ink but never its
+cell, so nothing reflows and a button can no longer slide out from under the pointer mid-click.
+
+Only the **tab row is pinned**; everything below it scrolls. The lists used to sit in the fixed block,
+which is why on a short screen the last few calls were below the bottom of the panel with no way to
+reach them.
+
+**The toolbar reads Formation, Position, Couples, Reset, Mode, BPM+⏸** — which floor plan, where on it,
+how many of you, then the controls. That ordering is also the one that wraps best: the two wide pickers
+pair off on the first line and the four narrow controls fit on the second, so on a phone the row is two
+lines rather than three (64px rather than 104px, from 357px of viewport upwards).
+
+**Media queries live at the END of the stylesheet.** They used to sit in the middle, above rules they
+were meant to override — and CSS breaks specificity ties on source order, so three of them were dead
+letters that read as though they worked: the portrait `.toolbar` gap, the portrait `.tempo` gap, and the
+portrait `.modebar` margin. The toolbar gap was the one that mattered; three gaps of one pixel each was
+exactly what stood between the controls and fitting on two rows.
+
+**The toolbar is a view of engine state, and the engine wins whenever they disagree.** `updateUI` syncs
+Formation, Couples and Position from the engine rather than trusting what the controls say. That matters
+for two quite different reasons: a movement can change the formation under the picker, and a *browser*
+restores form-control values across a reload — `autocomplete="off"` asks it not to and is not reliably
+obeyed — which could otherwise leave Couples reading 8 over a wheel of four. The tempo picker is
+squared off the other way, by applying whatever it shows at load (`applyTempo`), and the Greyout/Hide
+picker simply asserts its stated default on startup.
+
+### The Position picker
+
+Beside the Formation picker, and the same kind of statement: which floor plan, and where within it. It
+is a readout — a figure moves the wheel and the picker says so — and a control: choosing a position puts
+the dancers in it.
+
+It is a **setup control, not a figure**. Nobody dances there, so it snaps rather than animating and
+writes nothing to the call log (the log is what was *called*). It may be used at any time, including
+mid-figure, where it abandons whatever was running — which is what makes it the way out of a sequence
+you did not mean to start.
+
+**Who is partnered with whom is preserved.** Every dancer keeps their station; only their lane and
+facing change. So "put them back in Casino from here" works after a Dame has progressed the wheel, which
+is the point of having it — *Reset* already covers starting over.
+
+Two rules it encodes, both measured off the positions the engine actually reaches rather than read out
+of the figures that land in them:
+
+- **Lanes.** Circle positions come from `REST_LANES`. Línea's two rings are mirror images (the inner one
+  dances afuera), so `linea` and `linea_ex` state their lanes *per ring* in `LINEA_REST_LANES`;
+  `linea_dile` does not need to, because `FORMATIONS.linea.slot` already flips the radial sign for the
+  inner ring, so both rings name the same two lanes.
+- **Facing is one rule.** Partners face each other — *except* that in a Dile Que No position the
+  follower faces 90° clockwise of her partner: she stands beside him on the couple's spoke looking round
+  the wheel, not at him. That holds in the circle, inverted (afuera), and on both Línea rings, whose
+  opposite senses of "clockwise" it absorbs for free.
+
+**`afuera_dile` is not offered**, because the circle cannot reach it: the 4-beat Dile Que No is the only
+way into a Dile Que No position and it is `entryOnly`, which `validFrom` blocks while afuera. It exists
+as a label for Línea's inner ring during grande composition. Offering it would invent a state the wheel
+has no way to arrive at, and therefore one nothing has ever tested.
+
+### Mode, and what is no longer on screen
+
+The **Mode** row is hidden by default, behind a toggle in the toolbar: Live vs Step is a practice
+setting you choose once, not something you reach for between calls. Hiding it does **not** change the
+mode — in Step the decision prompt still appears on the stage, so the row can be put away and Step still
+works.
+
+Several things are gone outright, all of them height on a screen that has none to spare:
+
+- The **beat pips** under the stage said exactly what the number in the stage's corner already says.
+  That number is no longer 72px either — it is a count a dancer glances at, not a headline.
+- The **Undo** button was the least earned thing in the toolbar; the machinery stays (every movement
+  still records its state) so restoring the control is one line of wiring, and the Position picker
+  covers the case it was mostly used for.
+- The **page header** — title and strapline — cost a band on every screen to say what the browser tab
+  already says. The document `<title>` still carries the name.
+- The **Call log** gave its tab to the **Instructions**. What the log showed is on the stage while it
+  matters (the now-playing line and the queue); what a newcomer needs instead is to be told what the
+  buttons do. `logLine` still runs and still numbers the calls, guarded against having no element to
+  write into, so giving the log a home again is markup rather than logic.
+
+The stage's two overlays — the now-playing/queue corner and the beat count — are `position:absolute`,
+so they are painted over the dancers and take no space from them. Verified rather than assumed: a
+12-deep queue 346px tall in a 306px stage leaves the SVG's size and scale byte-identical.
+
+**The beat count is sized like part of the picture.** It stays HTML, in the corner where a dancer looks
+for it, but a fixed pixel size meant it stayed put while the wheel grew and shrank underneath — a
+headline at eight couples on a phone, a footnote at four on a desktop. So it is stated in **engine
+units** (`BEAT_UNITS`, 15 — the same nominal size as the couple number on a dancer's dot, which works
+out at just under half a dancer's width) and `scaleBeat()` converts: with `preserveAspectRatio` set to
+`xMidYMid meet` and a square window, one engine unit is the stage's shorter side over `2·stageR`, which
+is exactly the factor every dancer is drawn at. Measured across both formations at 4/6/8 couples, the
+ratio of the digit to a dancer's diameter is constant at 0.469. A `ResizeObserver` on the stage keeps it
+true through window resizes and reflows that never change the `viewBox` at all.
 
 ## Decision points, queue, and the two modes
 
@@ -458,8 +562,8 @@ Dile Que No. (So during an Enchufla — `enchufla → dame → dile` — a Dame 
 
 Movements are timed in **beats** (salsa is counted in 8-beat measures). Each movement declares a
 `beats` value — a number, or a function of the starting position. A movement plays over
-`beats × ms-per-beat`; the tempo (ms-per-beat) is set by the speed slider (0.2× … 1× … 2× of a
-base tempo). So beats give the *relative* timing between movements and the slider sets the
+`beats × ms-per-beat`; the tempo (ms-per-beat) is set by the **BPM** picker. So beats give the
+*relative* timing between movements and the tempo sets the
 absolute tempo.
 
 Most movements distribute their beats internally in proportion to how far each part moves
@@ -501,10 +605,22 @@ Beat counts so far:
 ## Measure placement (start beats)
 
 As well as how long a movement lasts, the engine tracks **where in the 8-beat measure we are**
-— a beat cursor, shown large over the stage (with an 8-pip strip). It **free-runs like a
+— a beat cursor, shown in the stage's top-right corner. It **free-runs like a
 metronome**: the beat keeps advancing in real time even when idle, and movements sync to it. So
 a call issued mid-beat waits (holding on the spot) until its start beat comes around. (The base
-tempo is 400 ms/beat at the 1× slider position; the slider scales it 0.2×…2×.)
+tempo is 400 ms/beat, which *is* 150bpm — see below.)
+
+**Tempo is picked in BPM**, from 50 to 250 in twenty-fives: real tempos, rather than a slider offering a
+continuum of speeds nobody dances at and no way to say which one you were on. `BASE_BPM` is derived
+from `BASE_MS_PER_BEAT` (60000/400 = 150) rather than written down beside it, so the two cannot drift
+and the base tempo is on the list — and is exactly 1× — by construction. The choices are generated from
+`BPM_MIN`/`BPM_MAX`/`BPM_STEP`, and `BASE_BPM` is forced onto the list if the arithmetic ever stops
+landing on it: a picker showing a tempo that is not exactly 1× would be a silent disagreement between
+what it says and what the engine does. The engine still divides by `speedMul`, which is `bpm/BASE_BPM`.
+
+The tempo picker and the metronome button are **one flex item** (`.tempo`, `flex-wrap:nowrap`). The
+toolbar wraps, and a wrap falling between them would strand a ⏸ on a line of its own with nothing to say
+what it governs. Grouped, BPM goes to the next line and takes its button with it.
 
 - **Almost all calls start their first movement on beat 1.** After a call the dancers finish
   their current movement (or keep holding on the spot) until the next 1, then begin.
@@ -522,8 +638,21 @@ tempo is 400 ms/beat at the 1× slider position; the slider scales it 0.2×…2�
 Start beats come from `startBeatOf(key, from)`; the lead-in hold before a snapped movement is a
 real timed hold in `playFrames`, and the beat cursor is rounded to whole beats each movement.
 
-The **Stop beat / Start beat** button freezes or restarts the metronome; restarting resets the
-count to beat 1 (useful for lining the simulator up with a track).
+The metronome button (**⏸** / **▶**, a glyph — the word was the widest thing in the toolbar and said
+what the icon already says) freezes or restarts the count; restarting resets it to beat 1, which is
+useful for lining the simulator up with a track. Its `title` and `aria-label` are updated with the
+glyph, so what it means is still available to anyone who cannot see which icon is showing. The button
+has a fixed width rather than a minimum, because ⏸ measures 1.6px wider than ▶ and a minimum still let
+the toolbar twitch on every press.
+
+**With the beat stopped there is no grid, so nothing waits for one.** Snapping exists to land a
+figure on the musical count; with the metronome off there is no count to land on, and the lead-in
+becomes a hold of up to seven beats — 2.8s at the base tempo — with nothing behind it. Measured
+before this rule existed, the lead-in was *identical* whether the beat was running or not, which
+made **Stop beat** far less useful than it looks: it is exactly the control you reach for when you
+want to step through a figure and see it now. So `proceed()` clears the snap when `beatRunning` is
+false, and a call pressed with the beat stopped is danced immediately. The tests are unaffected —
+`beatRunning` starts true and the harness never toggles it.
 
 ## Data shapes (in `index.html`)
 

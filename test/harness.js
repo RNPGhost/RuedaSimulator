@@ -219,6 +219,19 @@ function load(htmlPath) {
       setDameWL(v){ DAME_WL_FORCE = v; },
       circleAt(station, lane, n, ph){ return FORMATIONS.circle.slot(station, lane, n, ph); },
       lineaGeom(){ return Object.assign({}, LM); },
+      /* The RENDER WINDOW — how much of the plane the stage's viewBox is computed to cover. Purely a
+       * display quantity (it moves no dancer), but §47 asserts nothing danced falls outside it, and
+       * that check is the only thing between a future figure swinging wider than any current one and a
+       * dancer sliding off the edge of the stage. Both sized here the way the app sizes them, because
+       * stageExtent reads the geometry globals and so needs the right formation set up first. */
+      get STAGE_MARGIN(){ return STAGE_MARGIN; },
+      stageExtentCircle(n){ setupRest('casino', n, 0); return stageExtent(); },
+      stageExtentLinea(n){
+        resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; BASE_ANG = -90; computeWheel(n); phase = 0;
+        const r = stageExtent();
+        layoutName = 'circle'; computeWheel(n);      // leave the harness back on circle, as its siblings do
+        return r;
+      },
       // Build the Línea Moderna rest state for n couples; return dancers (pos + face) and geometry.
       setupLinea(n){
         resetEngine(); N = n; layoutName = 'linea'; LM_BASE = -90; BASE_ANG = -90; computeWheel(n); phase = 0; posState = 'linea';
