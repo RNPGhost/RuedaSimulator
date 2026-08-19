@@ -167,26 +167,27 @@ Measurable, and checked by the verification in §14.
 | S1 | No two dancers are ever closer than the required clearance | centre to centre ≥ `w + 2Δ` (35 units today) |
 | S2 | Every declared passing side is realised in the output | 100% — a violation is a failure, not a warning |
 | S3 | Collision avoidance does not significantly distort the authored route | actual path length ÷ corridor length **< 1.5**, and expected near 1.0 |
-| S4 | A deviating dancer never separates from their corridor by more than a dancer's width | `d < (W + w) / 2 + w` — see below |
+| S4 | A deviating dancer never separates from their corridor by more than a dancer's width | `gap < w` — see below |
 | S5 | Paths are deterministic | identical inputs produce identical output to the last decimal |
 | S6 | Every movement is reviewed as a rendered diagram and signed off by a human | the corpus defined in §14 |
 | S7 | The drawn path is the planned path | the renderer evaluates the engine's own curve, not an approximation of it |
 
-**How S4 is measured.** Writing `d` for the distance from the dancer's centre to the nearest point on the
-corridor's centreline, and using `W` and `w` as defined in §1.2:
+**How S4 is measured.** Using `W` and `w` as defined in §1.2:
 
-The corridor is the authored route widened by `W/2` each side, and the dancer's body reaches `w/2` from
-their own centre, so the **clear gap between the dancer's body and the nearer edge of their corridor** is:
+    definition
+      d   = distance from the deviating dancer's centre to the nearest point on their corridor's centreline
+      gap = d - W/2 - w/2
 
-    gap = d - W/2 - w/2
+    restriction
+      gap < w
 
-The rule is that this gap never exceeds one dancer's width, which gives the constraint in the table:
+The corridor is the authored route widened by `W/2` on each side, and the dancer's body reaches `w/2`
+from their own centre, so `gap` is the clear space between the dancer and the near edge of their own
+corridor. It is zero or negative while the dancer is still touching their corridor — until then they have
+not separated from it at all. At today's values the restriction works out at `d < 64` units.
 
-    d < (W + w) / 2 + w
-
-At today's values that is **d < 64** units. Note the gap is zero while `d ≤ (W + w) / 2` — until then the dancer is still touching their own corridor and has not separated from it at
-all. Measuring centre-to-centreline against a dancer's width instead would have been too strict by a
-factor of two.
+Measuring the centre against the centreline instead, and comparing that to a dancer's width, would have
+been too strict by a factor of two.
 
 The rule in plain terms, which is the form to check a diagram against: *it must never be possible to fit
 another dancer between a deviating dancer and their corridor without touching one of them.*
