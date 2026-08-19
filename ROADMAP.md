@@ -87,13 +87,15 @@ paths over each beat window.
 
 ## Near-term milestones (before the overhaul)
 
-1. **Confirm the current build is solid.** Exercise the recent work (Línea Moderna, the universal Dile
-   pinch, the naturalness metric, the Dame evasion solver) and shake out anything off. *(In progress —
-   v88–v95 are gated green but not yet committed to the Windows repo; device bridge has been offline.)*
-2. **Rueda ↔ Línea Moderna transitions.** Movements + calls that move the wheel between the standard
-   rueda formation and the Línea Moderna position. This is the first real cross-formation transition and
-   will stress the wheel-context seam (`runOnWheel`) and the formation model in a useful way.
-3. **Then** — the big overhaul, incrementally (order TBD with Sam).
+1. ~~**Confirm the current build is solid.**~~ *Done.* The suite gates every change: golden 357/132/6,
+   invariants 10,659 checks, and the Windows repo is current.
+2. ~~**Rueda ↔ Línea Moderna transitions.**~~ *Done.* `Línea Moderna` / `Adios Línea` / `Dame Línea` go
+   in; `Rueda` / `Adios Rueda` come out. They stressed the wheel-context seam as intended, and are the
+   reason a movement must be able to travel a couple as one rigid object.
+3. **The pathing rework — in progress.** Two design documents, written before any code:
+   corridors and the movement language first, then scheduling and concurrency. See those documents for
+   what is being built and why.
+4. **Then** — the rest of the overhaul, incrementally (order TBD with Sam).
 
 ## How the current work already feeds the vision
 
@@ -166,19 +168,61 @@ point rather than inherit it, which is what a formation with no rueda will need.
 and the §26 winding invariant, both of which are written in terms of "the wheel's midpoint" and would
 take a named point without changing shape.
 
+## Authoring a movement through the UI (agreed with Sam, not yet built)
+
+The eventual authoring surface, captured in full so the design does not have to be rediscovered. Nothing
+here is built; the same steps are being followed by hand, through prompts, in the meantime.
+
+**Defining a movement.** A staged flow, each stage revisitable:
+
+1. Select the **formation**, the **starting position**, and an example **couple count** to draw with.
+2. Select a **group identifier**, then an example dancer from that group to demonstrate with. Everything
+   authored against that dancer applies to the whole group.
+3. Select the **end slot** and the **ending position** from a drop-down, including whether the movement
+   changes configuration.
+4. Select the **static obstacles** to avoid on the way, and the side to pass each on. These are stored
+   as *relative* addresses — "the wheel this dancer starts in", never "the wheel at the bottom of the
+   screen" — so a definition made at six couples still means something at ten.
+5. The **corridor redraws live** as obstacles are added and removed, so the author sees the consequence
+   of each declaration immediately.
+6. On confirmation the engine runs the **collision simulation** and presents the resulting path as a
+   **scrubbable animation** — the author drags forwards and backwards through the movement.
+7. The author **clicks a collision** to flip its passing side, then re-runs the detection. Repeat until
+   satisfied.
+8. Per group, the author sets whether the dancers **move as a couple**, whether that couple **rotates**,
+   and which way they **face**.
+9. Confirm to save. Movements can be edited at any time afterwards, and **duplicated** to speed up
+   authoring — a duplicate must be given a new name.
+
+**Defining concurrency.** The author selects two movements they want to be danceable at the same time,
+picks a starting position and formation, and resolves whatever collisions the pairing produces — either
+accepting the engine's default or overriding it.
+
+**Until the UI exists** the same flow runs through prompts, with static diagrams and scrubbable example
+pages standing in for the live preview. A packaged skill carries the step order so no stage is skipped.
+
+## A formation to support: alternating afuera (Sam)
+
+A rueda that looks ordinary except that **every other couple is turned afuera**. It is the reason a
+position is modelled as a property of a *slot* as well as of a formation: a formation position is a
+*named assignment* of slot-positions to slots, and this one alternates by couple parity from the
+cantante. Línea Moderna already has the same shape — its inner ring sits in Afuera Casino while its
+outer ring sits in Casino — so the machinery is shared rather than special-cased.
+
 ## Open questions (next round)
 
-*Resolved:* concurrency invariant = one movement per dancer, three composition modes (overlap /
-interrupt / queue); anchor = the cantante (always couple 1), positional clockwise numbering; movements
-carry a length + start beat.
+*Resolved since the last round, and now specified in the design documents:* what a corridor is and how
+it is declared; pass sides as topological constraints against static places rather than against moving
+dancers; priority and yielding; the beat clock and how deviation is absorbed; what a group is and the
+minimum vocabulary for naming one; how concurrency is admitted; how movements are verified.
 
 - **Group hierarchy geometry.** Can a group's centre be an arbitrary point, or always a parent spoke
   position? How are inter-group clearances handled when groups scale independently?
-- **Variable passing widths.** What can the engine vary automatically (lane radius, dip depth, timing
-  within a beat window) before it must ask the user to change a pass-side?
 - **Standard-movement library.** Which built-ins are canonical (Enchufla, Dile Que No, Vacilala, Adios,
   Exhibela, …), and are they themselves expressed in the same declarative model, or privileged code?
-- **Interrupt semantics.** When a movement interrupts another, does the interrupted movement snap to a
-  clean state, or blend? Which movements are interruptible, and at which beats?
-- **Path-editing UX.** How does the user see and adjust a path — toggle pass-sides on a rendered preview,
-  reorder passes, nudge a coarse waypoint?
+  Currently privileged: scripted figures stay out of the corridor engine.
+- **Two unbounded movements disagreeing.** If an interrupting movement leaves a dancer unbounded and
+  both the original and the interrupting movement suggest a landing, and those landings are in
+  *different* positions, which wins? No such movement exists; the engine refuses and reports if it ever
+  meets one. Revisit when there is a real example.
+- **Storage.** Local files first, a shared library later.
