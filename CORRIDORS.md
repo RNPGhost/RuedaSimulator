@@ -231,9 +231,9 @@ It works like this:
 2. **Units.** The free variables are *units*, not dancers. A solo traveller is their own unit; a bonded
    couple is one unit whose two dancers share a single displacement, so the pair deviates as a rigid body
    instead of being pulled apart.
-3. **Candidates.** The planner builds its own candidate set: every pair of dancers except partners inside
-   one rigid unit. It does not accept a caller's list, because a caller that supplies its own list will
-   eventually omit a pair.
+3. **Candidates.** The planner decides for itself which pairs of dancers to compare for collisions — the
+   *candidate set*. It is every pair except partners inside one rigid unit, whose spacing the figure fixes
+   anyway. A caller never supplies this list; §2.5 explains what happened the last time one did.
 4. **Sampling.** Paths are compared at 40 samples across the movement. Detection is *time-synchronised* —
    the two dancers are compared at the same instant `t`, never as static curves.
 5. **Sides.** Where a pair must separate, the direction is resolved by asking the movement: first by
@@ -331,10 +331,45 @@ and each was learnt the hard way.
 |---|---|
 | **One planner, no bypasses** | Every traveller goes through a single function. The moment a second code path knows about collisions, the two disagree. |
 | **Time-synchronised detection** | Two dancers are compared at the same instant, never as static curves. A pair that shares floor space at different times is not a collision, and this is already correct. |
-| **The planner builds its own candidate set** | A caller supplying its own pair list will eventually omit a pair, and an omitted pair usually clears anyway — so the omission is invisible until the day it isn't. Narrowing the candidate set once left every behavioural check green while leaving two dancers 10.5px apart. |
-| **Coverage is part of the contract** | The *size* of the candidate set is asserted directly by a test, not inferred from what the dancers did. A collision test can only find what it looked at. |
+| **The planner builds its own candidate set** | The list of pairs to compare is built by the planner, never supplied by a caller. Explained below. |
+| **Coverage is part of the contract** | How many pairs were compared is itself asserted by a test. Explained below. |
 | **Units, not dancers, as free variables** | A bonded couple must deviate as one body. When this was per-dancer, a couple travelling to Línea was stretched 32px apart — which is a couple pulled in half, not a couple avoiding someone. |
 | **Constraints re-derived every pass** | From attempt two. A constraint may bind only while the geometry it describes is actually violated. Never carry a resolution forward as state. |
 | **Innermost-first resolution order** | A collision near the centre pushes its dancers outward and forces the outer pairs to move; resolving from the centre out means each outer pair answers an arrangement that is not about to change underneath it. |
 | **Faults are reported, never swallowed** | A solve that cannot hold its corridor records the failure. Returning a silent best-effort is how two dancers end up sharing a spot with nothing in the logs. |
 | **The planner and the renderer must agree** | If the renderer reconstructs a curve between sampled points, the drawn path is not the planned path, and the thing verified is not the thing shown. See §11. |
+
+#### Two of those need more than a line
+
+**What a candidate set is.** Before the planner can hold anyone apart, it must decide **which pairs of
+dancers to compare**. That list is the *candidate set*. Every pair on it is measured at every time
+sample; every pair not on it is invisible — to the engine, and to every test.
+
+It used to be assembled by each caller, as *every cross-group pair*: one dancer from the first group,
+one from the second. Since the groups were the leaders and the followers, **no candidate pair ever
+contained two leaders**. On a full wheel that looks obviously safe, because the leaders all progress in
+lockstep and never approach one another.
+
+It is false on a Línea Moderna mini-wheel. There a wheel holds only two couples, and a movement that
+offsets a leader by two half-slots sends *both* leaders across that small wheel at the same time. During
+**Adios Pequeña at 8 couples, two leaders passed 10.5 units apart** — against a requirement of `w + 2Δ`,
+with their bodies overlapping by more than 20 units — and **not one test failed**. Nothing failed because
+nothing was asked.
+
+So the planner builds the set itself: every pair of dancers except partners inside one rigid unit, whose
+spacing the figure fixes anyway. A caller may declare what is *held together*; it may never declare what
+to compare. The same reasoning retired per-formation planning — Línea's mini-wheels were once solved one
+at a time, so two dancers in different mini-wheels were never compared at all. The whole formation is
+planned together now. Nothing moved as a result (those pairs clear by 60.2 units); the point is only that
+the pair is now looked at.
+
+**Why coverage has to be asserted directly.** Here is the trap that makes this worth a section. Narrow
+the candidate set back to cross-group-only today, and *every behavioural check still passes* — because
+the pairs nobody looks at happen to clear anyway, at the couple counts and figures that exist right now.
+
+A collision test can only find what it looked at. "No collisions were detected" is therefore not evidence
+that none exist; it is a statement about the size of the search. So the suite asserts **the size of the
+candidate set itself** — how many dancers were in play, and how many pairs were actually compared —
+rather than inferring coverage from the fact that the dancers came out fine.
+
+Any replacement planner must do the same: report what it examined, and have that report checked.
