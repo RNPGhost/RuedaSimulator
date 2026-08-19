@@ -373,3 +373,307 @@ candidate set itself** — how many dancers were in play, and how many pairs wer
 rather than inferring coverage from the fact that the dancers came out fine.
 
 Any replacement planner must do the same: report what it examined, and have that report checked.
+
+---
+
+## 3. The model
+
+Everything in this document is built from the terms defined here. They are introduced in dependency
+order: the floor first, then how dancers stand on it, then how a movement is described against it.
+
+### 3.1 The wheel: slots, half-slots and configurations
+
+Couples stand around a circle. With `n` couples there are `n` **slots** — one per couple — evenly spaced
+around the ring.
+
+**Dancer spacing is fixed; the wheel resizes to fit.** Two lengths are constants of the dance, not of the
+drawing:
+
+| Symbol | Meaning | Value today |
+|---|---|---|
+| `s` | partner separation: leader to follower within one couple, centre to centre | 64.04 units |
+| `g` | the gap between couples: a follower to the next couple's leader | 95.16 units |
+
+The ring radius `R` for `n` couples is the value that makes `n` couples plus `n` gaps wrap the circle
+exactly once:
+
+    n * ( 2*asin(s / 2R) + 2*asin(g / 2R) ) = 2*pi
+
+solved numerically. This gives `R` ≈ 104.4, 154.0 and 204.2 units at 4, 6 and 8 couples. Two derived
+quantities are used throughout:
+
+    delta = asin(s / 2R)      the half-angle a couple subtends at the centre
+    R_mid = R * cos(delta)    the radius of a couple's midpoint, slightly inside the ring
+
+**Half-slots.** A slot's angular width is `360/n` degrees. A **half-slot** is half of that, `180/n`
+degrees, and it is the unit in which all movement offsets are counted. Half-slots matter because a
+progression routinely lands a dancer *between* two of the slots they started among — that is not an
+irregularity, it is the ordinary case, and a unit that cannot express it cannot describe a Dame.
+
+**Configurations.** The wheel rests in one of two configurations. Configuration 0 puts the slots on one
+set of spokes; configuration 1 rotates them by exactly one half-slot. Both are equally valid resting
+arrangements. A movement whose offsets are **odd** lands the dancers in the other configuration; one
+whose offsets are **even** lands them in the same one.
+
+Positions around the ring are therefore counted in half-slots from a reference spoke, `0 .. 2n-1`, of
+which every other one is occupied at any given moment.
+
+**The cantante.** One leader is the caller, and is always couple 1. Couples are numbered **clockwise**
+from them. Every relative address and every group predicate in this document is resolved against that
+numbering, so it survives the wheel rotating and survives partners being exchanged.
+
+### 3.2 Slot-positions and places
+
+A **slot-position** says how the two dancers of a couple stand within their slot. It is a property of the
+slot, not of the whole formation.
+
+Each slot-position assigns each role to a **lane**:
+
+| Lane | Where it is |
+|---|---|
+| `ccw` | on the ring, `delta` anti-clockwise of the slot's spoke |
+| `cw` | on the ring, `delta` clockwise of the slot's spoke |
+| `outer` | on the slot's spoke, `R_step` further out than `R_mid` |
+| `inner` | on the slot's spoke, `R_step` further in than `R_mid` |
+
+where `R_step = (a + w/2) / 2` — half the distance between the two partners when they gather onto their
+spoke. That distance is `a + w/2` (46 units today) because it is set so a leader's facing arrow exactly
+bridges the gap: it leaves his edge and its tip meets hers.
+
+The slot-positions:
+
+| Slot-position | Leader | Follower | Notes |
+|---|---|---|---|
+| **Casino** | `ccw` | `cw` | The resting arrangement. Partners face each other. |
+| **Exhibela** | `cw` | `ccw` | The mirror of Casino. |
+| **Afuera Casino** | `cw` | `ccw` | Looks like Exhibela, behaves inside-out: every figure danced from it is point-reflected. |
+| **Afuera Exhibela** | `ccw` | `cw` | Looks like Casino, behaves inside-out. |
+| **Dile Que No** | `outer` | `inner` | Both partners gathered onto the slot's midpoint spoke. |
+| **Afuera Dile Que No** | `inner` | `outer` | The same place with the wheel inside-out. |
+
+**A place is a slot, a slot-position and a role.** Those three together identify exactly one point on the
+floor — "the follower's place, in the Exhibela slot-position, of the slot one half-slot clockwise of
+mine". A place exists whether or not anyone is standing on it. This matters more than it sounds: it is
+what makes a corridor computable without knowing where any other dancer currently is, and therefore what
+makes a corridor independent of everything else being danced.
+
+### 3.3 Formations and formation positions
+
+A **formation** is the floor plan. Two exist today:
+
+- **Rueda** — one wheel of `n` slots.
+- **Línea Moderna** — two concentric rings sharing `m = n/2` spokes. The inner ring is a proper `m`-couple
+  wheel; each outer couple sits on the same spoke, one wheel further out, so every inner-plus-outer pair
+  forms its own **mini wheel** of two couples. A formation therefore has a hierarchy of wheels: the
+  *grande* wheel (the whole formation) and the *pequeña* wheels (each mini wheel).
+
+A **formation position** is a **named assignment of slot-positions to slots**. It is not necessarily
+uniform:
+
+| Formation position | Assignment |
+|---|---|
+| Casino | every slot in Casino |
+| Exhibela | every slot in Exhibela |
+| Dile Que No | every slot in Dile Que No |
+| Afuera Casino | every slot in Afuera Casino |
+| **LM Casino** | inner-ring slots in **Afuera Casino**; outer-ring slots in **Casino** |
+| **LM Exhibela** | inner-ring slots in Afuera Exhibela; outer-ring slots in Exhibela |
+| **LM Dile Que No** | every slot in Dile Que No (the mini wheel's geometry supplies the inversion) |
+
+Línea Moderna is the proof that non-uniform assignments are needed already: its inner ring genuinely
+rests in a different slot-position from its outer ring. A formation Sam has identified for later — a
+rueda in which **every other couple is turned afuera** — is the same construction with the assignment
+selected by couple parity rather than by ring. No new machinery is required for it.
+
+Two consequences that matter downstream:
+
+1. A movement declares its **ending formation position**, and every dancer's landing slot-position is
+   *derived* from it. Group clauses never restate it. One source of truth.
+2. Because a movement may govern only some of the dancers, its declared ending position is a statement
+   about **its own slots**. Whether the formation as a whole is left in a valid state is a separate check,
+   specified in `SCHEDULING.md`.
+
+### 3.4 Offsets
+
+A progression states where its dancers end as an **offset in half-slots from each dancer's own starting
+slot**, counted around a named wheel.
+
+    positive = clockwise        negative = anti-clockwise
+
+Three rules govern offsets, and the third is the one that is easy to get wrong.
+
+**Offsets are relative, never absolute.** "Three half-slots anti-clockwise of my own slot", never "slot
+3". An absolute address does not survive a change in the number of couples; a relative one does. This is
+not a convenience — it is the reason a movement authored at six couples still means something at ten.
+
+**Pairings emerge; they are never declared.** In a Dame the leader moves `-1` and the follower moves
+`+1`. Leader `k` lands one half-slot anti-clockwise of slot `k`; the follower who started at slot `k-1`
+lands one half-slot clockwise of hers — which is the same spoke. They meet without either being told who
+the other is. A movement never names a partner, so nothing has to be re-derived when partners change.
+
+**Offsets are never reduced modulo the wheel.** An offset of `-4` half-slots around a two-couple mini
+wheel is a *complete circuit*, not zero. Reducing it would turn the figure into standing still. This is
+how whole-turn winding is expressed: the magnitude of the offset carries how far round the dancer goes,
+not merely where they end up. Any implementation that normalises an offset into the range `0 .. 2n-1`
+destroys information the language depends on.
+
+### 3.5 Groups
+
+A movement's clauses apply to **groups** of dancers, selected by predicate, never by index.
+
+The vocabulary is derived from evidence rather than invented. Clustering every dancer in every existing
+movement by "performing an identical path once rotational symmetry is removed" gives:
+
+| Formation | Movements | Distinct behaviours | Distinguished by |
+|---|---|---|---|
+| Rueda | 48 of 51 cases | **2** | `role` alone |
+| Línea Moderna | enchufla, vacilala, adios, leader's enchufla, dame grande, dame pequeña | **4** | `role` × `ring` |
+| Rueda → Línea entries | línea moderna, dame línea, adios línea | — | `role` × `parity from the cantante` |
+
+So the minimum vocabulary the existing corpus demands is three properties:
+
+| Selector | Values | Meaning |
+|---|---|---|
+| `role` | leader, follower | |
+| `ring` | inner, outer | Which ring of a multi-ring formation. Meaningless in a single-wheel formation. |
+| `parity` | primeros, segundos | Couple parity counted clockwise from the cantante. Names the alternating halves. |
+
+A group is any conjunction of these — "the outer leaders", "the primero followers", "all followers". The
+set is **designed to be extended**: a new formation may need a predicate none of these express, and adding
+one must not disturb existing definitions.
+
+*Caveat recorded honestly:* the clustering does not fully collapse for the movements that **change**
+formation, and the reason is structural rather than a gap in the vocabulary. A formation change has no
+single symmetry: the Rueda entries begin with `n`-fold symmetry and end with `n/2`-fold, so "rotate by
+one slot and compare" is not well-defined across them. Group predicates for an entry are resolved against
+the **starting** formation's symmetry. This should be confirmed against real output before the vocabulary
+is treated as final.
+
+### 3.6 Motion, and whether a dancer is bounded
+
+Each group's clause states **one motion type**:
+
+| Motion | Meaning |
+|---|---|
+| `progression` | The dancers travel. They have a corridor, computed as in §3.8. This document is about these. |
+| `scripted` | The dancers perform prescribed choreography from the existing figure library. To the collision engine they are **immutable obstacles that never yield**. Out of scope — see §13. |
+| `still` | The dancers do not move. They are static obstacles. |
+
+Independently, each group carries **`bounded`**:
+
+- **bounded** — this movement requires these dancers. No concurrent movement may claim them.
+- **unbounded** — this movement's instruction for them is a default that a concurrent movement may
+  replace.
+
+Defaults: a `progression` is bounded, a `still` group is unbounded. Both are overridable, and the author
+is always asked to confirm which they meant — a dancer omitted by accident and a dancer deliberately left
+free look identical in the data, so the confirmation is the only thing that distinguishes them.
+
+The combination is more useful than it first appears. A group may be a **progression and unbounded** at
+once: its dancers have a defined transition that exists only to keep the arrangement consistent, and a
+concurrent movement is welcome to move them somewhere else instead. Dame Dos Pequeña's followers are
+exactly this — their transition exists to preserve the configuration and meet the leader, and nothing
+about the figure depends on them doing it.
+
+How a claim is resolved when two movements want the same dancer is specified in `SCHEDULING.md`.
+
+### 3.7 Features, and how much room they take
+
+A **feature** is something a corridor is declared to pass on one side of. Two kinds:
+
+| Feature | Its own radius `r` |
+|---|---|
+| **A place** — where a dancer stands (§3.2) | `w/2` |
+| **An abstract point** — the midpoint of a named wheel; nobody stands there | `0` |
+
+A corridor must not overlap a feature. Since a corridor extends `W/2` either side of its centreline, and
+a feature occupies `r`, the centreline must stay clear by:
+
+    keep-out = r + W/2 + 2*delta_margin
+
+`delta_margin` is the per-body anti-collision margin (`Δ` in §1.2, 1.5 units today), applied once for the
+feature and once for the corridor edge.
+
+This single rule specialises correctly, which is the check that it is the right rule:
+
+| Case | Keep-out | Sanity |
+|---|---|---|
+| A place, solo corridor (`W = w`) | **35.00 units** | Exactly the clearance the engine already holds between two dancers — as it must be, since a corridor edge touching a place means a body touching a body |
+| An abstract point, solo corridor | **19.00 units** | The dancer's body never covers the point |
+| A place, couple corridor | **83.02 units** | |
+
+**A feature is avoided for the whole movement, whether or not it stays occupied.** A place declared as an
+obstacle remains one even if its dancer has left. This is deliberate: it is what keeps a corridor a
+function of the formation alone, and it is what allows corridors to be computed while other dancers are
+mid-flight.
+
+### 3.8 Corridors and the taut path
+
+A **corridor** is:
+
+- a **centreline** — the shortest route from the group's starting place to its ending place that passes
+  every declared feature on the declared side, with each feature inflated to its keep-out radius; and
+- a **width** `W`.
+
+The centreline is called the **taut path**, because it is what a string pulled tight between the two ends
+would lie along while still going round the correct side of every peg. Its shape follows from that
+definition and is not separately specified: straight runs, joined by arcs that run tangentially onto and
+off the inflated features it actually touches. It leaves a straight run at a tangent and rejoins one at a
+tangent, so the direction of travel is continuous — there is no corner.
+
+**Declared features that do not bind are dropped.** If the taut path does not touch a feature's inflated
+radius, that feature imposes nothing and the path is as if it were never declared. An author may
+therefore declare a side for a feature that only matters at some couple counts — Dame declares a side
+against the wheel's midpoint, which binds only on a one-couple wheel — and it costs nothing everywhere
+else. The engine determines the order in which features are actually met and re-orders the declaration
+silently if the author listed them differently; the engine is authoritative about encounter order.
+
+**Corridor width:**
+
+| Travelling unit | `W` |
+|---|---|
+| A single dancer | `w` |
+| A couple travelling as one rigid object | `s + 2w` |
+
+The couple case is derived, not chosen: each partner sits `s/2` from the couple's midpoint, their body
+reaches `s/2 + w/2`, and another dancer's centre must stay a further `w/2` clear — giving a half-width of
+`s/2 + w`, which is `(s + 2w)/2`. At today's values that is a corridor 128.04 units wide.
+
+**Two corridors overlapping means a collision is *possible*, not that one occurs.** Because a corridor's
+half-width is the dancer's own radius, two corridor centrelines closer than `w` means two bodies could
+touch — which is exactly the condition worth screening for. Whether they *do* depends on whether both
+dancers are in the shared region at the same time, which is decided in §6.
+
+### 3.9 The property everything rests on
+
+> **A corridor is a pure function of the formation, the couple count, and the movement's declarations.**
+
+It does not depend on collisions, on what any other dancer is doing, or on what else is being danced
+concurrently. Compute it twice and you get the same answer; compute it during someone else's movement and
+you get the same answer.
+
+Every benefit claimed in this document follows from that one property:
+
+- a path has a shape to return to after avoiding someone, so avoidance cannot leave residue
+- a declared side is a property of the corridor rather than an input to a solver, so it cannot be outvoted
+- a corridor can be drawn, reviewed and signed off before any collision is considered
+- concurrent movements can each compute their own corridors without reference to one another
+
+Neither previous attempt had it (§2.4). If an implementation choice would make a corridor depend on what
+other dancers do, that choice is wrong, whatever else recommends it.
+
+### 3.10 Known bounds of this language
+
+Stated so they are recognised as deliberate limits rather than discovered later as defects.
+
+- **A pass-side selects between exactly two routes**, so it can express up to one turn around a feature.
+  Windings of a full circuit or more are expressed by the offset instead (§3.4), unreduced. Between them
+  the two mechanisms cover every figure in the current corpus, but neither covers "one and a half turns
+  around a dancer" — nothing needs it today.
+- **Scripted figures are outside the model.** They are prescribed choreography and must clear each other
+  unaided (§13).
+- **A group predicate cannot yet name an arbitrary subset.** Only conjunctions of `role`, `ring` and
+  `parity`. This is a floor derived from evidence, not a ceiling; extending it is expected.
+- **Facing cannot cause a failure.** It is cosmetic: a dancer's footprint is a circle regardless of which
+  way they look. Orientation of a *couple* travelling as one object is not cosmetic — it sets the
+  footprint — and is declared (§4).
