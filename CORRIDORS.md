@@ -658,6 +658,23 @@ names a value only when the hold differs from the position they came from, which
 The list extends the same way the group vocabulary does (§3.5): a new hold gets a name and a derivation,
 never a bare number.
 
+**Arriving at a different separation.** A couple's arrival slot-position has a separation of its own, and
+it need not match the one they travelled at. Where they differ, the couple **interpolates between them
+over the end of the movement** — the same treatment facing receives (§4). Because the travelling
+separation *defaults* to the separation of the slot-position they set off from, a couple that takes the
+default only ever has to change separation on arrival; one whose author named a different hold changes
+twice, opening or closing after departure and again before arrival.
+
+**The corridor takes the widest separation the couple ever holds:**
+
+    W = max(c_start, c_travel, c_end) + 2w
+
+A corridor is a constant-width object by definition, so this is deliberately conservative rather than
+tapering the corridor to follow the transition. Tapering would make width a function of time, which every
+downstream check — overlap screening, feature keep-out, the S4 deviation test — would then have to
+account for, and it would buy a little tightness at two moments of a movement in exchange for complicating
+all of them. If a figure is ever found where that tightness matters, this is the decision to revisit.
+
 **Two corridors overlapping means a collision is *possible*, not that one occurs.** Because a corridor's
 half-width is the dancer's own radius, two corridor centrelines closer than `w` means two bodies could
 touch — which is exactly the condition worth screening for. Whether they *do* depends on whether both
