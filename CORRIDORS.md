@@ -744,7 +744,18 @@ encounters:  optional  — overrides for individual collisions    (§4.5)
 `from` and `to` are **formation positions** (§3.3), and `to` is what derives every dancer's landing
 slot-position. No group clause ever restates it: one source of truth, so the two cannot drift apart.
 
-`beats` is a single number. It does not vary by starting position — a movement lasts as long as it lasts.
+**`(name, from)` is the key.** A movement's name together with the formation position it is danced from
+**uniquely identifies one definition**. The same name may therefore have several definitions — a Dame from
+Casino and a Dame from the Dile Que No position are one word to a caller and different geometry to the
+engine — and the pair is the index the engine looks up when dancers standing somewhere are told to dance
+something. **No definition set may contain two entries sharing a `(name, from)`.**
+
+**Every definition sharing a name must declare the same `beats`.** A caller shouting a word needs to know
+how long the figure takes without first working out where everybody is standing, and a call's start beat is
+computed by back-timing from that duration (`SCHEDULING.md`). If two definitions of one name differed in
+length, the start beat would depend on the starting position — which contradicts the start beat being a
+property of the call. This is a rule over a *set* of definitions rather than a property of any one of them,
+and it is checkable: group the definitions by name and assert one distinct `beats` per group.
 
 Because a movement may govern only some of the dancers, `to` is a claim about **the slots this movement
 touches**. Whether the formation as a whole is left in a valid state, when something else is running
