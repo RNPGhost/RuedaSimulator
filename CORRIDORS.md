@@ -481,7 +481,7 @@ uniform:
 | **LM Dile Que No** | every slot in Dile Que No (the mini wheel's geometry supplies the inversion) |
 
 Línea Moderna is the proof that non-uniform assignments are needed already: its inner ring genuinely
-rests in a different slot-position from its outer ring. A formation Sam has identified for later — a
+rests in a different slot-position from its outer ring. A formation that has been identified for later — a
 rueda in which **every other couple is turned afuera** — is the same construction with the assignment
 selected by couple parity rather than by ring. No new machinery is required for it.
 
@@ -600,7 +600,7 @@ This single rule specialises correctly, which is the check that it is the right 
 |---|---|---|
 | A place, solo corridor (`W = w`) | **35.00 units** | Exactly the clearance the engine already holds between two dancers — as it must be, since a corridor edge touching a place means a body touching a body |
 | An abstract point, solo corridor | **19.00 units** | The dancer's body never covers the point |
-| A place, couple corridor | **83.02 units** | |
+| A place, couple corridor at `open` separation | **83.02 units** | Varies with the couple’s travelling separation — see §3.8 |
 
 **A feature is avoided for the whole movement, whether or not it stays occupied.** A place declared as an
 obstacle remains one even if its dancer has left. This is deliberate: it is what keeps a corridor a
@@ -633,11 +633,30 @@ silently if the author listed them differently; the engine is authoritative abou
 | Travelling unit | `W` |
 |---|---|
 | A single dancer | `w` |
-| A couple travelling as one rigid object | `s + 2w` |
+| A couple travelling as one rigid object | `c + 2w`, where `c` is the couple's **travelling separation** |
 
-The couple case is derived, not chosen: each partner sits `s/2` from the couple's midpoint, their body
-reaches `s/2 + w/2`, and another dancer's centre must stay a further `w/2` clear — giving a half-width of
-`s/2 + w`, which is `(s + 2w)/2`. At today's values that is a corridor 128.04 units wide.
+The couple case is derived, not chosen: each partner sits `c/2` from the couple's midpoint, their body
+reaches `c/2 + w/2`, and another dancer's centre must stay a further `w/2` clear — giving a half-width of
+`c/2 + w`, which is `(c + 2w)/2`.
+
+**The travelling separation is a named value, not a free number.** How far apart partners hold each other
+while travelling is a property of the *hold*, and different holds are genuinely different distances — a
+couple with elbows hooked walks far closer than a couple at arm's length. The available values are the
+separations the formation already defines, so each one has a derivation rather than being a measurement
+somebody liked:
+
+| Name | `c` | Value today | The hold it describes | Corridor width |
+|---|---|---|---|---|
+| `linked` | `w` | 32.00 | Shoulder to shoulder, elbows hooked — bodies touching | 96.00 |
+| `spoke` | `a + w/2` | 46.00 | The Dile Que No separation: partners gathered on one spoke, close enough that the leader's facing arrow exactly bridges the gap | 110.00 |
+| `open` | `s` | 64.04 | The Casino separation: partners at arm's length as they stand on the ring | 128.04 |
+
+**The default is the separation belonging to the slot-position the couple sets off from** — a couple
+leaving Casino travels at `open`, a couple leaving the Dile Que No position travels at `spoke`. An author
+names a value only when the hold differs from the position they came from, which is what `linked` is for.
+
+The list extends the same way the group vocabulary does (§3.5): a new hold gets a name and a derivation,
+never a bare number.
 
 **Two corridors overlapping means a collision is *possible*, not that one occurs.** Because a corridor's
 half-width is the dancer's own radius, two corridor centrelines closer than `w` means two bodies could
@@ -667,9 +686,11 @@ other dancers do, that choice is wrong, whatever else recommends it.
 Stated so they are recognised as deliberate limits rather than discovered later as defects.
 
 - **A pass-side selects between exactly two routes**, so it can express up to one turn around a feature.
-  Windings of a full circuit or more are expressed by the offset instead (§3.4), unreduced. Between them
-  the two mechanisms cover every figure in the current corpus, but neither covers "one and a half turns
-  around a dancer" — nothing needs it today.
+  Windings of a full circuit or more come from the offset instead (§3.4), unreduced. Neither expresses
+  something like one and a half turns around another dancer — and that is deliberately *not* a gap to be
+  filled here. A figure of that kind is choreography, not avoidance, and collision resolution is the wrong
+  instrument for producing it. It would be modelled as a scripted movement together with a position the
+  dancers move into and out of. If such a figure is ever wanted, it is specified then.
 - **Scripted figures are outside the model.** They are prescribed choreography and must clear each other
   unaided (§13).
 - **A group predicate cannot yet name an arbitrary subset.** Only conjunctions of `role`, `ring` and
