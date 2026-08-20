@@ -70,6 +70,8 @@ names**, never in terms of the values in the right-hand column:
 | `Δ` | the anti-collision margin held between two dancers over and above their bodies | 1.5 engine units |
 | `W` | a corridor's width. For a solo dancer `W = w`; for a couple travelling as one object it is wider — see §3 | 32 engine units (solo) |
 | `a` | the arrow reach: how far a dancer's facing arrow extends from their centre | 30 engine units |
+| `Δ_len` | the tolerance within which two corridor lengths count as equal, so priority between mirror-image dancers cannot flip on floating-point noise (§4.5) | 0.1 engine units |
+| `Δ_side` | the dead band within which two dancers' approach is too near head-on for a passing side to be derived from the geometry, so the author is asked instead (§4.5) | 0.1 engine units |
 
 Where a figure elsewhere in this document is quoted as a plain number — the accelerations in §1.4, the
 timings in §2 — it is a *measurement taken at today's values*, not a rule. Rules are formulas.
@@ -715,3 +717,348 @@ Stated so they are recognised as deliberate limits rather than discovered later 
 - **Facing cannot cause a failure.** It is cosmetic: a dancer's footprint is a circle regardless of which
   way they look. Orientation of a *couple* travelling as one object is not cosmetic — it sets the
   footprint — and is declared (§4).
+
+---
+
+## 4. The movement definition language
+
+A movement definition is **data**. It contains no code, no coordinates and no couple counts. Everything is
+stated relative to where each dancer starts, so one definition serves every couple count the formation
+supports.
+
+The notation below is illustrative — an implementation may serialise it however it likes — but every field
+shown is required, and no field not shown exists.
+
+### 4.1 A movement
+
+```
+name:        a unique name
+from:        the formation position the movement starts in
+to:          the formation position it ends in
+beats:       how long it lasts, a constant for the movement
+groups:      one or more group clauses          (§4.2)
+priority:    optional  — overrides the derived yielding order   (§4.5)
+encounters:  optional  — overrides for individual collisions    (§4.5)
+```
+
+`from` and `to` are **formation positions** (§3.3), and `to` is what derives every dancer's landing
+slot-position. No group clause ever restates it: one source of truth, so the two cannot drift apart.
+
+`beats` is a single number. It does not vary by starting position — a movement lasts as long as it lasts.
+
+Because a movement may govern only some of the dancers, `to` is a claim about **the slots this movement
+touches**. Whether the formation as a whole is left in a valid state, when something else is running
+alongside, is checked in `SCHEDULING.md`.
+
+### 4.2 The group clause
+
+```
+id:           a name, so other clauses can refer to this group
+select:       which dancers                     (§3.5)
+unit:         dancer | couple                   default: dancer
+motion:       progression | scripted | still    (§3.6)
+bounded:      true | false                      default: progression true, still false
+
+  — when motion is `progression` —
+destination:  a slot address                    (§4.3)
+passes:       an ordered list of pass declarations   (§4.4)
+
+  — when unit is `couple` —
+separation:   linked | closed | open            default: the separation of the `from` slot-position
+orientation:  a rotation over the movement      (§4.6)
+facing:       a facing rule                     (§4.6)
+
+  — when motion is `scripted` —
+figure:       names a figure in the existing library
+```
+
+`select` is a conjunction of the selectors in §3.5 — `role`, `ring`, `parity` — and an omitted selector
+matches everything. `{ role: leader, ring: outer }` is the outer leaders; `{ role: follower }` is every
+follower.
+
+**A movement mentions only the dancers it governs.** Dancers matched by no clause are not part of the
+movement at all; they are free, and free to be claimed by something running concurrently. A group declared
+`motion: still` is asserted *deliberately* still, which is a different statement from silence and is
+recorded as such. An author is always asked which they meant, because a dancer left out on purpose and a
+dancer left out by accident look identical in the data.
+
+### 4.3 Addresses
+
+Everything an author can point at is addressed **relative to the dancer's own starting slot**. There are
+no absolute indices anywhere in the language.
+
+**A wheel address** names which wheel a thing belongs to:
+
+```
+own                     the dancer's own wheel — the single wheel in a Rueda,
+                        or the dancer's own mini wheel in Línea Moderna
+grande                  the whole formation's wheel
+{ wheel: +k }           k wheels clockwise of the dancer's own, around the parent
+```
+
+**A slot address** names one slot, in one of two forms:
+
+```
+{ offset: k, around: <wheel address> }     k HALF-SLOTS, signed: + clockwise, - anti-clockwise
+{ wheel: <wheel address>, ring: inner|outer }    a slot in a multi-ring formation
+```
+
+Both forms address the same thing and either may be used where a slot address is expected. They differ in
+what they can express:
+
+- The **offset form carries winding**, because it is not reduced (§3.4). `{ offset: -4, around: own }` on a
+  two-couple mini wheel is a complete circuit, not zero. Use this form whenever how far round matters.
+- The **ring form is clearer where a formation has named rings** and no winding is involved.
+
+**A place address** names a point on the floor — where a dancer stands, whether or not one is there:
+
+```
+{ role: leader|follower, position: <slot-position>, slot: <slot address> }
+```
+
+The **slot-position must be named explicitly**. It is not defaulted from the movement's `from`, because
+"which arrangement is this place in" has two plausible answers and picking one silently is exactly the
+class of decision that produced the defects in §2.
+
+**An abstract point** names something nobody stands on:
+
+```
+{ midpoint: <wheel address> }
+```
+
+*This is the part of the language most likely to need extending.* A new formation may need a way to point
+at something none of these forms reach. Extending it must not disturb existing definitions — which is why
+every address is relative, and why none of them mention a couple count.
+
+### 4.4 Declaring passes
+
+```
+passes:
+  - { side: left|right, of: <place address or abstract point> }
+```
+
+The list is **ordered by the order the dancer meets each feature**, and authors are asked to write it that
+way because it is how they think and it saves the engine work. But the engine determines the true encounter
+order itself, and **re-orders silently** where the author got it wrong: the engine is authoritative about
+what the dancer actually meets and when.
+
+`side` says which side of the feature the dancer travels along. A feature the corridor does not actually
+touch imposes nothing and is dropped (§3.8), so declaring a side that only binds at some couple counts is
+harmless everywhere else.
+
+**Passes are declared against static features only** — places and abstract points. A pass against another
+*moving* dancer is not a pass declaration; it is a collision, and collisions are governed by priority and
+by the encounter overrides in §4.5. This distinction is the heart of the design: the static declarations
+determine the corridor, and the corridor is a pure function of the formation (§3.9). Allowing a moving
+dancer into that list would destroy that property.
+
+### 4.5 Priority and encounter overrides
+
+Both are **overrides**. Both are absent from a definition unless the derived answer is wrong.
+
+**Priority** decides who yields when two dancers contend. The default is derived: **the dancer with the
+longer corridor holds their route, and the shorter one yields**, on the reasoning that the longer path has
+more room to absorb a detour. Corridor lengths within `Δ_len` of each other are treated as equal, and equal
+corridors yield **50/50** — each moves half as far as it otherwise would.
+
+```
+priority: [ <group id>, <group id>, ... ]
+```
+
+When present it is a **complete ranking** of the groups that collide, first meaning highest priority,
+with no ties. A partial ranking is not accepted: if the author disagrees with the derived order, they state
+the whole order, so there is never a mixture of declared and derived precedence to reason about.
+
+**Encounter overrides** name a side for one particular collision:
+
+```
+encounters:
+  - between: [ <group id>, <group id> ]     may name the same group twice
+    nth:     k                              optional; which encounter between this pair
+    side:    left | right
+```
+
+The default side is derived from the geometry: **whichever side the two dancers already favour** on their
+undeviated corridors. If their approach is close to head-on, that preference is unstable — a fraction of a
+unit decides it — so a **dead band of `Δ_side`** applies, and inside it there is no honest default and the
+author is asked.
+
+`between` may name the same group twice, which is how a collision between two dancers of one group is
+declared — "when two outer leaders meet, they pass on each other's right". There is no priority within a
+group, so such a pair always yields 50/50.
+
+**`nth` is a fragile identifier and is treated as such.** If a corridor is edited so that an earlier
+encounter appears or disappears, `nth: 2` silently refers to a different event. The engine therefore
+records, alongside every override, the time and location of the encounter it resolved, and **warns when an
+override still matches by ordinal but its geometry has moved**.
+
+**Derived decisions are recorded, not just applied.** Every priority and every side the engine derives is
+written into the stored output as *derived*. Stored overrides remain the only hand-authored data, but the
+derived values are kept so that a change to a default shows up as a diff to be reviewed rather than as a
+silent change to movements a human already approved.
+
+### 4.6 Couples travelling as one object
+
+When `unit: couple`, the group's clauses apply to couples rather than individual dancers: one corridor for
+the pair, one destination, and a corridor width from §3.8.
+
+```
+separation:   linked | closed | open
+orientation:  { turn: <degrees>, direction: clockwise | anticlockwise }
+facing:       travel | partner | { toward: <place address or abstract point> } | { formation: up|down|left|right }
+```
+
+**Orientation is stated as a rotation over the movement**, not as a start and an end angle. A rotation can
+express more than a half turn and says which way round; a pair of angles cannot do either.
+
+**Orientation is physical.** It sets the couple's footprint, and therefore what they collide with. A couple
+broadside to its direction of travel needs far more room than one edge-on.
+
+**Facing is cosmetic.** A dancer's footprint is a circle whichever way they look, so facing can never cause
+a collision and can never make a movement fail. It is declared because it is visible, not because it
+matters to the geometry.
+
+For a **progression by a single dancer**, facing is not declared at all: the rule is always *face the way
+you are travelling, interpolating to the arrival facing over the end of the movement*. Only couples declare
+facing, because only a couple can sensibly look at something other than where it is going — partners
+looking at each other while they travel, or both looking along the direction of travel with arms linked.
+
+### 4.7 Worked examples
+
+Four movements, chosen because between them they exercise every field.
+
+**Dame** — the commonest progression. Leader and follower move half a slot toward each other and meet on
+the spoke between, which is why the configuration flips.
+
+```
+name:  Dame
+from:  Casino          to: Exhibela          beats: 4
+groups:
+  - id: leaders
+    select:      { role: leader }
+    motion:      progression
+    destination: { offset: -1, around: own }
+    passes:      [ { side: right, of: { midpoint: own } } ]
+  - id: followers
+    select:      { role: follower }
+    motion:      progression
+    destination: { offset: +1, around: own }
+    passes:      [ { side: right, of: { midpoint: own } } ]
+```
+
+Note that nobody names a partner. Leader `k` lands one half-slot anti-clockwise; the follower who began one
+slot anti-clockwise lands one half-slot clockwise; those are the same spoke. **The pairing emerges from the
+offsets.** The declared side against the wheel's midpoint binds only on a one-couple wheel, and is simply
+dropped everywhere else.
+
+**Dame Dos** — the same figure progressing two couples instead of one.
+
+```
+name:  Dame Dos
+from:  Casino          to: Exhibela          beats: 4
+groups:
+  - id: leaders
+    select:      { role: leader }
+    motion:      progression
+    destination: { offset: -3, around: own }
+    passes:      [ { side: right, of: { midpoint: own } } ]
+  - id: followers
+    select:      { role: follower }
+    motion:      progression
+    destination: { offset: +1, around: own }
+    passes:      [ { side: right, of: { midpoint: own } } ]
+```
+
+Twice the distance in the same four beats, so this is the figure that cannot pass anything closely
+(§1.4). Nothing in the definition says so — it falls out of the geometry, and the diagram review is where
+it is seen.
+
+**Dame Dos Pequeña** — the figure that proves offsets must not be reduced.
+
+```
+name:  Dame Dos Pequeña
+from:  LM Exhibela     to: LM Exhibela       beats: 4
+groups:
+  - id: leaders
+    select:      { role: leader }
+    motion:      progression
+    destination: { offset: -4, around: own }
+    passes:      [ { side: right, of: { midpoint: grande } } ]
+  - id: followers
+    select:      { role: follower }
+    motion:      progression
+    destination: { offset: 0, around: own }
+    bounded:     false
+encounters:
+  - between: [ leaders, leaders ]
+    side:    right
+```
+
+`{ offset: -4, around: own }` on a two-couple mini wheel is a **complete circuit**. Reduced to zero it
+would be standing still. The leaders cross their own mini wheel twice and meet each other twice, which is
+why the encounter override names a side for two dancers of the same group — there is no priority within a
+group, so they yield equally.
+
+The followers move zero half-slots but change slot-position, which is a lane swap across their own slot.
+They are `bounded: false` because their transition exists only to keep the arrangement consistent; nothing
+about the figure depends on them making it, so a concurrent movement is welcome to move them instead.
+
+**Dame Eñe** — a cross-wheel progression, and the figure the previous engine could not resolve.
+
+```
+name:  Dame Eñe
+from:  LM Exhibela     to: LM Exhibela       beats: 4
+groups:
+  - id: outer-leaders
+    select:      { role: leader, ring: outer }
+    motion:      progression
+    destination: { wheel: +1, ring: inner }
+    passes:
+      - side: left
+        of:   { role: follower, position: LM Exhibela, slot: { wheel: own, ring: inner } }
+  - id: inner-leaders
+    select:      { role: leader, ring: inner }
+    motion:      progression
+    destination: { wheel: own, ring: outer }
+    passes:
+      - side: right
+        of:   { midpoint: own }
+  - id: followers
+    select:      { role: follower }
+    motion:      still
+```
+
+Every leader place is filled exactly once: each mini wheel's inner leader takes its own outer slot, and its
+inner slot is taken by the outer leader of the mini wheel one place anti-clockwise. The followers hold, so
+their places are the static features the outer leaders route around.
+
+This definition declares **no priority and no encounter overrides**. That is not because none are needed —
+it is because the engine has not yet been asked. Running it will surface whatever contention exists
+between the outer and inner leaders, and the author answers then (§4.8). A definition is complete when it
+is *syntactically* total, not when it is collision-free.
+
+### 4.8 What the author states, and what the engine works out
+
+| The author states | The engine derives |
+|---|---|
+| The groups, and each one's motion type | Which dancers each group selects, at each couple count |
+| Where each group ends, as a relative address | Every landing slot-position, from `to` |
+| Which side of which static features | The corridor: the taut path and its width |
+| — | Which declared features actually bind, and in what order they are met |
+| — | Who is paired with whom, from the offsets meeting |
+| — | Which pairs of dancers can possibly collide, and which actually do |
+| — | Who yields, from the corridor lengths |
+| — | Which side a colliding pair passes on, from the geometry they already favour |
+| `bounded`, where it differs from the default | — |
+| A priority ranking, only where the derived order is wrong | — |
+| An encounter side, only where the derived side is wrong or ambiguous | — |
+
+**The authoring loop.** An author does not write a complete definition in one pass, and is not expected
+to. They state the groups, the destinations and the static passes — the part they can know without
+computing anything. The engine then computes the corridors, finds the contention, and **asks about
+whatever it cannot decide honestly**: a pair whose corridors contend with no declared side and no stable
+geometric preference, a priority it had to guess between near-equal corridors, a collision it could not
+resolve at all.
+
+The author answers, and the answers are stored as overrides. Nothing is guessed silently, and nothing that
+was obvious is put to the author twice.
