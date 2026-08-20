@@ -648,11 +648,11 @@ somebody liked:
 | Name | `c` | Value today | The hold it describes | Corridor width |
 |---|---|---|---|---|
 | `linked` | `w` | 32.00 | Shoulder to shoulder, elbows hooked — bodies touching | 96.00 |
-| `close` | `a + w/2` | 46.00 | The Dile Que No separation: partners gathered on one spoke, close enough that the leader's facing arrow exactly bridges the gap | 110.00 |
+| `closed` | `a + w/2` | 46.00 | The Dile Que No separation: partners gathered on one spoke, close enough that the leader's facing arrow exactly bridges the gap | 110.00 |
 | `open` | `s` | 64.04 | The Casino separation: partners at arm's length as they stand on the ring | 128.04 |
 
 **The default is the separation belonging to the slot-position the couple sets off from** — a couple
-leaving Casino travels at `open`, a couple leaving the Dile Que No position travels at `close`. An author
+leaving Casino travels at `open`, a couple leaving the Dile Que No position travels at `closed`. An author
 names a value only when the hold differs from the position they came from, which is what `linked` is for.
 
 The list extends the same way the group vocabulary does (§3.5): a new hold gets a name and a derivation,
