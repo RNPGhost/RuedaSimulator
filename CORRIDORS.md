@@ -750,12 +750,15 @@ Casino and a Dame from the Dile Que No position are one word to a caller and dif
 engine — and the pair is the index the engine looks up when dancers standing somewhere are told to dance
 something. **No definition set may contain two entries sharing a `(name, from)`.**
 
-**Every definition sharing a name must declare the same `beats`.** A caller shouting a word needs to know
-how long the figure takes without first working out where everybody is standing, and a call's start beat is
-computed by back-timing from that duration (`SCHEDULING.md`). If two definitions of one name differed in
-length, the start beat would depend on the starting position — which contradicts the start beat being a
-property of the call. This is a rule over a *set* of definitions rather than a property of any one of them,
-and it is checkable: group the definitions by name and assert one distinct `beats` per group.
+**`beats` belongs to the definition, and definitions sharing a name may differ.** Today's Dame lasts two
+beats from Casino and four from Exhibela, and nothing requires them to agree. A shorter movement simply
+**starts later**: a call's start beat is back-timed from the length of what it schedules
+(`SCHEDULING.md`), so a figure of any duration can still be made to finish on the beat it needs to. There
+is no rule tying a movement's length to its name, to its formation, or to anything else.
+
+*(This document does move the Dame family to a uniform four beats — §1.4 — but that is a decision about
+those particular figures, taken because it quarters the severity of their turns. It is not a constraint the
+language imposes.)*
 
 Because a movement may govern only some of the dancers, `to` is a claim about **the slots this movement
 touches**. Whether the formation as a whole is left in a valid state, when something else is running
