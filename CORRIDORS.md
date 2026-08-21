@@ -732,10 +732,10 @@ shown is required, and no field not shown exists.
 ### 4.1 A movement
 
 ```
-name:        a unique name
+name:        the movement’s name — NOT unique on its own; see `(name, from)` below
 from:        the formation position the movement starts in
 to:          the formation position it ends in
-beats:       how long it lasts, a constant for the movement
+beats:       how long it lasts, a constant for THIS definition
 groups:      one or more group clauses          (§4.2)
 priority:    optional  — overrides the derived yielding order   (§4.5)
 encounters:  optional  — overrides for individual collisions    (§4.5)
