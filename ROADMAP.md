@@ -92,10 +92,20 @@ paths over each beat window.
 2. ~~**Rueda ↔ Línea Moderna transitions.**~~ *Done.* `Línea Moderna` / `Adios Línea` / `Dame Línea` go
    in; `Rueda` / `Adios Rueda` come out. They stressed the wheel-context seam as intended, and are the
    reason a movement must be able to travel a couple as one rigid object.
-3. **The pathing rework — in progress.** Two design documents, written before any code:
-   corridors and the movement language first, then scheduling and concurrency. See those documents for
-   what is being built and why.
-4. **Then** — the rest of the overhaul, incrementally (order TBD with Sam).
+3. **The pathing rework — in progress.** Design documents written in full *before any code*, on branch
+   `engine/pathing_rework`, following the elephant-and-goldfish method: each document must be
+   implementable by an agent that has only that document.
+
+   | Document | Covers | State |
+   |---|---|---|
+   | `FORMATIONS.md` | How a formation is structured and addressed: named overlapping wheels, traversals, phases per wheel, aliases; the authoring language and interface | §1–§6 drafted; the authoring half (§4–§5) may be implemented later than the addressing half (§2), which the corridor work depends on |
+   | `CORRIDORS.md` | The corridor model, the movement definition language, the path engine, verification, migration | §1–§4 written; §5–§16 outstanding |
+   | `SCHEDULING.md` | Call validity, the end of chained calls, interrupt points, and concurrent movements | not started |
+
+   **Order of work:** finish `CORRIDORS.md`, implement it, then `SCHEDULING.md`. The formation
+   addressing model is a dependency of the first and is implemented alongside it.
+
+4. **Then** — the rest of the overhaul, incrementally (order to be agreed).
 
 ## How the current work already feeds the vision
 
