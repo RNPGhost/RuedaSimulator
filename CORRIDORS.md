@@ -18,6 +18,23 @@
 
 ---
 
+## Review status
+
+Sections are reviewed **in order**, and the unreviewed material is meant to be one contiguous run at the
+end. Anything edited *after* its review is listed explicitly, because a silent change to reviewed text is
+how unreviewed wording slips through unnoticed.
+
+| Section | State |
+|---|---|
+| §1 Purpose, intent and value | **Reviewed** |
+| §2 How we got here | **Reviewed** |
+| §3 The model | **Reviewed**, except §3.5 — see below |
+| §3.5 Groups | ⚠ **Edited after review.** The `ring` selector was replaced by formation-declared aliases, and `parity` reworded to `odd`/`even` with the alias note. Needs re-reading. |
+| §4 The movement definition language | **Reviewed to the end of §4.3.** §4.3 was then rewritten from the tree model to named wheels and traversals, so it needs re-reading. §4.4–§4.8 are unreviewed. |
+| §5 onwards | Not written |
+
+---
+
 ## 1. Purpose, intent and value
 
 ### 1.1 What this document is for

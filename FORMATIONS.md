@@ -9,6 +9,29 @@
 
 ---
 
+## Review status
+
+**None of this document has been reviewed.** It was written in one pass at the end of a long design
+conversation, to get the decisions out of that conversation and into a file before the context was lost.
+It should be treated as a faithful record of what was agreed, not as finished text — expect it to need
+substantial iteration.
+
+Confidence varies by section, and it is worth knowing where:
+
+| Section | State |
+|---|---|
+| §2.1–§2.3 structure, overlapping wheels, traversals | Settled in discussion and worked through with examples. Most likely to survive as written. |
+| §2.4 phases per wheel | Settled, but stated as three guarantees the language owes rather than a mechanism. The mechanism is undesigned. |
+| §2.5 orientation stated once | Argued but not tested against a formation where it is awkward. |
+| §2.6 aliases | Agreed in principle; the shape of the declaration is my proposal, not reviewed. |
+| §3.2 Línea Moderna | **Verified numerically** against the running engine — every radius matches to 0.1 units. |
+| §3.3 the perpendicular formation | **My reconstruction** from a natural-language description. The drawing was confirmed as close, with one correction applied (all two-couple wheels share a radius). The written form has not been checked. |
+| §4 the authoring language | Transcribed from decisions, unreviewed, and thin. |
+| §5 the authoring interface | A record of a described workflow. Not a specification. |
+| §6 open questions | Genuinely open. §6's first two block work in `CORRIDORS.md`. |
+
+---
+
 ## 1. Why formations need their own model
 
 A movement says where a dancer ends by naming a place relative to where they started — "the inner slot of
