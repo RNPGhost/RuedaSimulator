@@ -27,7 +27,7 @@ Confidence varies by section, and it is worth knowing where:
 | §3.2 Línea Moderna | **Verified numerically** against the running engine — every radius matches to 0.1 units. |
 | §3.3 the perpendicular formation | **My reconstruction** from a natural-language description. The drawing was confirmed as close, with one correction applied (all two-couple wheels share a radius). The written form has not been checked. |
 | §4 the authoring language | Transcribed from decisions, unreviewed, and thin. |
-| §5 the authoring interface | A record of a described workflow. Not a specification. |
+| §5 the authoring interface | ⚠ **Least settled thing here.** A stated intent with one example path through it — never taken through a design conversation, never assessed against alternatives. To be explored and refined properly before anything is built from it. |
 | §6 open questions | Genuinely open. §6's first two block work in `CORRIDORS.md`. |
 
 ---
@@ -248,10 +248,16 @@ The authoring interface converts dragging into explicit values; the geometry is 
 
 ---
 
-## 5. The authoring interface (planned, not built)
+## 5. The authoring interface (a sketch, not a design)
 
-Recorded so the data model can be judged against the way a person will actually build a formation. The
-sequence for the §3.3 formation:
+> **This section has had the least scrutiny of anything in these documents.** It is one worked path
+> through building one formation, described in conversation to show how an author might think — not a
+> specification, not assessed against alternatives, and never taken through a design discussion of its
+> own. It is recorded because the shape of the interface constrains the data model, and it is useful to
+> have *something* concrete to judge the model against. **It needs exploring and refining properly before
+> anything is built from it**, and it should be expected to change substantially when it is.
+
+The sequence, for the §3.3 formation:
 
 1. **Create rueda** — couple count `n/2`, midpoint snapped to the formation's centre.
 2. The interface draws the wheel with its slots in default Casino positions.

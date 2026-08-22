@@ -183,6 +183,10 @@ take a named point without changing shape.
 The eventual authoring surface, captured in full so the design does not have to be rediscovered. Nothing
 here is built; the same steps are being followed by hand, through prompts, in the meantime.
 
+> **A sketch, not a design.** What follows is one described path through the interface, captured so the
+> data model has something concrete to be judged against. It has not been through a design discussion,
+> has not been assessed against alternatives, and should be expected to change substantially when it is.
+
 **Defining a movement.** A staged flow, each stage revisitable:
 
 1. Select the **formation**, the **starting position**, and an example **couple count** to draw with.
