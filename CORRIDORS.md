@@ -29,7 +29,7 @@ how unreviewed wording slips through unnoticed.
 | §1 Purpose, intent and value | **Reviewed** |
 | §2 How we got here | **Reviewed** |
 | §3 The model | **Reviewed**, except §3.5 — see below |
-| §3.5 Groups | ⚠ **Edited after review.** The `ring` selector was replaced by formation-declared aliases, and `parity` reworded to `odd`/`even` with the alias note. Needs re-reading. |
+| §3.5 Groups | ⚠ **Edited after review.** The `ring` selector was replaced by formation-declared aliases; `parity` reworded to `odd`/`even` with the alias note; and a caveat about how the vocabulary was measured was removed as closed. Needs re-reading. |
 | §4 The movement definition language | **Reviewed to the end of §4.3.** §4.3 was then rewritten from the tree model to named wheels and traversals, so it needs re-reading. §4.4–§4.8 are unreviewed. |
 | §5 onwards | Not written |
 
@@ -547,7 +547,7 @@ movement by "performing an identical path once rotational symmetry is removed" g
 |---|---|---|---|
 | Rueda | 48 of 51 cases | **2** | `role` alone |
 | Línea Moderna | enchufla, vacilala, adios, leader's enchufla, dame grande, dame pequeña | **4** | `role` × `ring` |
-| Rueda → Línea entries | línea moderna, dame línea, adios línea | — | `role` × `parity from the cantante` |
+| Rueda → Línea entries | línea moderna, dame línea, adios línea | **4** | `role` × `parity from the cantante` |
 
 So the minimum vocabulary the existing corpus demands is three properties:
 
@@ -561,12 +561,9 @@ A group is any conjunction of these — "the outer leaders", "the primero follow
 set is **designed to be extended**: a new formation may need a predicate none of these express, and adding
 one must not disturb existing definitions.
 
-*Caveat recorded honestly:* the clustering does not fully collapse for the movements that **change**
-formation, and the reason is structural rather than a gap in the vocabulary. A formation change has no
-single symmetry: the Rueda entries begin with `n`-fold symmetry and end with `n/2`-fold, so "rotate by
-one slot and compare" is not well-defined across them. Group predicates for an entry are resolved against
-the **starting** formation's symmetry. This should be confirmed against real output before the vocabulary
-is treated as final.
+**For a movement that changes formation, group predicates are resolved against the formation it starts
+in.** The choice of who does what is made before anybody moves, so the starting arrangement is the one
+that has to answer it.
 
 ### 3.6 Motion, and whether a dancer is bounded
 
