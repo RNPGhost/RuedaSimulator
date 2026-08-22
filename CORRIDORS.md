@@ -537,8 +537,8 @@ So the minimum vocabulary the existing corpus demands is three properties:
 | Selector | Values | Meaning |
 |---|---|---|
 | `role` | leader, follower | |
-| `ring` | inner, outer | Which ring of a multi-ring formation. Meaningless in a single-wheel formation. |
-| `parity` | primeros, segundos | Couple parity counted clockwise from the cantante. Names the alternating halves. |
+| *formation-declared* | e.g. `inner`, `outer`, `primeros`, `segundos` | Names the formation itself supplies for slots and for dancer groups — see `FORMATIONS.md §2.6`. Not language primitives: a formation with a five-slot sub-wheel brings its own five names and nothing in the engine changes. |
+| `parity` | odd, even | Couple parity counted clockwise from the cantante. A formation may alias these (Línea Moderna calls them primeros and segundos). |
 
 A group is any conjunction of these — "the outer leaders", "the primero followers", "all followers". The
 set is **designed to be extended**: a new formation may need a predicate none of these express, and adding
@@ -787,8 +787,9 @@ figure:       names a figure in the existing library
 ```
 
 `select` is a conjunction of the selectors in §3.5 — `role`, `ring`, `parity` — and an omitted selector
-matches everything. `{ role: leader, ring: outer }` is the outer leaders; `{ role: follower }` is every
-follower.
+matches everything. `{ role: leader, in: outer }` is the outer leaders; `{ role: follower }` is every
+follower. `outer` there is a name **the formation declares** (`FORMATIONS.md §2.6`), not a keyword of this
+language — a formation that has no such grouping simply does not offer it.
 
 **A movement mentions only the dancers it governs.** Dancers matched by no clause are not part of the
 movement at all; they are free, and free to be claimed by something running concurrently. A group declared
@@ -801,28 +802,39 @@ dancer left out by accident look identical in the data.
 Everything an author can point at is addressed **relative to the dancer's own starting slot**. There are
 no absolute indices anywhere in the language.
 
-**A wheel address** names which wheel a thing belongs to:
+The structure being addressed is defined in **`FORMATIONS.md`**, which this document depends on. In
+summary: a formation is a set of **named wheels**; a **slot** may belong to any number of them; and no slot
+belongs to two wheels sharing a name. Names such as `grande`, `pequeña`, `inner` and `outer` are
+**declared by the formation**, not by this language.
+
+**A slot address is a walk** — an ordered sequence of **traversals**, each naming a wheel and an offset,
+applied from the dancer's own slot:
 
 ```
-own                     the dancer's own wheel — the single wheel in a Rueda,
-                        or the dancer's own mini wheel in Línea Moderna
-grande                  the whole formation's wheel
-{ wheel: +k }           k wheels clockwise of the dancer's own, around the parent
+[ (wheel name, offset), (wheel name, offset), ... ]
 ```
 
-**A slot address** names one slot, in one of two forms:
+Each traversal **resolves its wheel name against the slot the previous one left you on**. Because no slot
+belongs to two wheels of one name, the resolution is always unique — and the same word can denote a
+different wheel at a different point in the walk, which is what makes overlapping structures navigable.
+
+Worked example, in Línea Moderna, starting from an outer slot — *the inner slot of the pequeña wheel one
+place clockwise*:
 
 ```
-{ offset: k, around: <wheel address> }     k HALF-SLOTS, signed: + clockwise, - anti-clockwise
-{ wheel: <wheel address>, ring: inner|outer }    a slot in a multi-ring formation
+[ (pequeña, +1 slot), (grande, +1 slot) ]
 ```
 
-Both forms address the same thing and either may be used where a slot address is expected. They differ in
-what they can express:
+The second step resolves `grande` to the **inner** grande wheel, because that is the only wheel of that
+name containing the slot the first step landed on.
 
-- The **offset form carries winding**, because it is not reduced (§3.4). `{ offset: -4, around: own }` on a
-  two-couple mini wheel is a complete circuit, not zero. Use this form whenever how far round matters.
-- The **ring form is clearer where a formation has named rings** and no winding is involved.
+**Every intermediate step must land on a defined slot.** A point between slots has no wheel membership, so
+the next traversal would have nothing to resolve against.
+
+**Offsets and phases.** How offsets are counted internally is deliberately unspecified — see
+`FORMATIONS.md §2.4`. What this language guarantees is that an author can name the exact slot they mean,
+can see which wheels permit a phase change, and cannot write a movement that leaves a couple in an invalid
+position. Nothing in this document may depend on the internal unit.
 
 **A place address** names a point on the floor — where a dancer stands, whether or not one is there:
 
@@ -830,19 +842,18 @@ what they can express:
 { role: leader|follower, position: <slot-position>, slot: <slot address> }
 ```
 
-The **slot-position must be named explicitly**. It is not defaulted from the movement's `from`, because
-"which arrangement is this place in" has two plausible answers and picking one silently is exactly the
-class of decision that produced the defects in §2.
+The **slot-position is always named explicitly** and is never defaulted from the movement's `from` or
+`to`. A place is only a point once the arrangement is known — the follower's place in a slot is one point
+in Casino and a different point in Exhibela — and there are two plausible defaults, so choosing one
+silently is exactly the class of decision that produced the defects in §2.
 
 **An abstract point** names something nobody stands on:
 
 ```
-{ midpoint: <wheel address> }
+{ midpoint: <wheel name> }
 ```
 
-*This is the part of the language most likely to need extending.* A new formation may need a way to point
-at something none of these forms reach. Extending it must not disturb existing definitions — which is why
-every address is relative, and why none of them mention a couple count.
+resolved against the dancer's current slot in the same way a traversal is.
 
 ### 4.4 Declaring passes
 
@@ -951,13 +962,13 @@ groups:
   - id: leaders
     select:      { role: leader }
     motion:      progression
-    destination: { offset: -1, around: own }
-    passes:      [ { side: right, of: { midpoint: own } } ]
+    destination: [ (wheel, -1) ]
+    passes:      [ { side: right, of: { midpoint: wheel } } ]
   - id: followers
     select:      { role: follower }
     motion:      progression
-    destination: { offset: +1, around: own }
-    passes:      [ { side: right, of: { midpoint: own } } ]
+    destination: [ (wheel, +1) ]
+    passes:      [ { side: right, of: { midpoint: wheel } } ]
 ```
 
 Note that nobody names a partner. Leader `k` lands one half-slot anti-clockwise; the follower who began one
@@ -974,13 +985,13 @@ groups:
   - id: leaders
     select:      { role: leader }
     motion:      progression
-    destination: { offset: -3, around: own }
-    passes:      [ { side: right, of: { midpoint: own } } ]
+    destination: [ (wheel, -3) ]
+    passes:      [ { side: right, of: { midpoint: wheel } } ]
   - id: followers
     select:      { role: follower }
     motion:      progression
-    destination: { offset: +1, around: own }
-    passes:      [ { side: right, of: { midpoint: own } } ]
+    destination: [ (wheel, +1) ]
+    passes:      [ { side: right, of: { midpoint: wheel } } ]
 ```
 
 Twice the distance in the same four beats, so this is the figure that cannot pass anything closely
@@ -996,19 +1007,19 @@ groups:
   - id: leaders
     select:      { role: leader }
     motion:      progression
-    destination: { offset: -4, around: own }
+    destination: [ (pequeña, -4) ]
     passes:      [ { side: right, of: { midpoint: grande } } ]
   - id: followers
     select:      { role: follower }
     motion:      progression
-    destination: { offset: 0, around: own }
+    destination: [ ]     (same slot, new slot-position)
     bounded:     false
 encounters:
   - between: [ leaders, leaders ]
     side:    right
 ```
 
-`{ offset: -4, around: own }` on a two-couple mini wheel is a **complete circuit**. Reduced to zero it
+`[ (pequeña, -4) ]` on a two-couple wheel is a **complete circuit**. Reduced to zero it
 would be standing still. The leaders cross their own mini wheel twice and meet each other twice, which is
 why the encounter override names a side for two dancers of the same group — there is no priority within a
 group, so they yield equally.
@@ -1024,19 +1035,19 @@ name:  Dame Eñe
 from:  LM Exhibela     to: LM Exhibela       beats: 4
 groups:
   - id: outer-leaders
-    select:      { role: leader, ring: outer }
+    select:      { role: leader, in: outer }
     motion:      progression
-    destination: { wheel: +1, ring: inner }
+    destination: [ (pequeña, +1), (grande, +1) ]
     passes:
       - side: left
-        of:   { role: follower, position: LM Exhibela, slot: { wheel: own, ring: inner } }
+        of:   { role: follower, position: LM Exhibela, slot: [ (pequeña, +1) ] } }
   - id: inner-leaders
-    select:      { role: leader, ring: inner }
+    select:      { role: leader, in: inner }
     motion:      progression
-    destination: { wheel: own, ring: outer }
+    destination: [ (pequeña, +1) ]
     passes:
       - side: right
-        of:   { midpoint: own }
+        of:   { midpoint: pequeña }
   - id: followers
     select:      { role: follower }
     motion:      still
@@ -1076,3 +1087,26 @@ resolve at all.
 
 The author answers, and the answers are stored as overrides. Nothing is guessed silently, and nothing that
 was obvious is put to the author twice.
+
+---
+
+## Status and handover
+
+**Written:** §1 Purpose, §2 How we got here, §3 The model, §4 The movement definition language.
+
+**Outstanding, in order:** §5 Geometry and constants · §6 From corridor to path · §7 Timing · §8 Declared
+versus derived · §9 Edge cases · §10 Failure · §11 The renderer contract · §12 Alternatives considered and
+rejected · §13 Out of scope · §14 Verification · §15 Implementation plan · §16 Open questions.
+
+Then `SCHEDULING.md` in full.
+
+**Read first:** `FORMATIONS.md`, which this document depends on for how a formation is structured and
+addressed, and `ROADMAP.md` for where this work sits in the larger picture.
+
+**Still open, and needing an answer before the sections that use them:**
+
+- How a wheel's placement is stated in general (`FORMATIONS.md §6`).
+- Whether the corridor work lands on top of the module split that exists on two unmerged branches, which
+  would change every file path in §15 but nothing in the design.
+- The verification corpus: how many diagrams constitute the first review pass, against the full corpus of
+  roughly 357 movement cases.
