@@ -384,30 +384,30 @@ orientation: fixed                up is the audience
 each pequeña so that `S` sits in Casino relative to it puts its centre at the standard 4-couple midpoint
 radius along the direction 90° clockwise of `S`'s grande spoke — and that lands the pequeña at exactly that
 same radius from the *next grande slot clockwise*, which is why the containment clause is satisfied for
-free. The eight couple midpoints then fall on an exact **4 × 2 grid**, 140.6 units apart in both
+free. The eight couple midpoints then fall on an exact **4 × 2 grid**, 140.46 units apart in both
 directions, before any facing has been decided.
 
 **The anti-clockwise turn in step 2 is load-bearing.** Turn those two slots *clockwise* instead and the
-pequeña centre lands due `up` of the formation centre, putting the next grande slot 222.3 units away
-against the 99.4 the wheel requires. Only one direction satisfies the construction, and the formation does
+pequeña centre lands due `up` of the formation centre, putting the next grande slot 222.1 units away
+against the 99.32 the wheel requires. Only one direction satisfies the construction, and the formation does
 not exist under the other.
 
 Measured at the standard radii, with the formation centre at the origin and `up` negative:
 
 | | value |
 |---|---|
-| grande midpoint radius, 4 couples | 99.4 |
-| pequeña centres | (±140.6, 0) |
-| couple midpoints | (±70.3, ±70.3) and (±210.9, ±70.3) |
-| grid spacing, both directions | 140.6 |
-| the two lines | y = −70.3 (`front`) and y = +70.3 (`back`) |
+| grande midpoint radius, 4 couples | 99.32 |
+| pequeña centres | (±140.46, 0) |
+| couple midpoints | (±70.23, ±70.23) and (±210.69, ±70.23) |
+| grid spacing, both directions | 140.46 |
+| the two lines | y = −70.23 (`front`) and y = +70.23 (`back`) |
 
 Wheel membership is uneven, and legitimately so: four slots are in a `grande` and a `pequeña`, and four
 are in a `pequeña` only. The slot graph stays connected through the first four, so `walk → hop → walk`
 reaches every slot (`CORRIDORS.md §4.3`).
 
-**No wheel can be inferred over the four outer slots.** They are concyclic at radius 222.3, but spaced
-36.8° and 143.2° alternately, so §4.1 refuses the inference. This is the first formation where that
+**No wheel can be inferred over the four outer slots.** They are concyclic at radius 222.08, but spaced
+36.9° and 143.1° alternately, so §4.1 refuses the inference. This is the first formation where that
 refusal does real work rather than guarding a mistake.
 
 Aliases: the formation declares the axis `line`, with values `front` and `back` — `front` being the line

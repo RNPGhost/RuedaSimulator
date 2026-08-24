@@ -174,19 +174,23 @@ Three things this has to get right, each of which is a way the naive version fai
   the honest answer is to say which pair cannot be placed rather than to draw something false —
   `PLAN_FAULTS` and `SIDE_FAULTS` are the beginnings of that.
 
-## Rotation about a named point (agreed with Sam, not yet built)
+## Rotation about a named point — solved, and by not being a feature
 
-A figure must be able to say **that its dancers go round a particular point**, which the engine then
-treats as the midpoint of a theoretical rueda. Everything about winding then follows from it: the path
-has to turn about that point by the amount the progression declares, and where a straight line cannot
-(half a turn or more) it goes in, round and out.
+The requirement was that a figure be able to say **that its dancers go round a particular point** —
+naming it rather than inheriting the wheel it happens to be dancing on, which is what a formation with no
+rueda needs. It is met, and it turned out not to need a mechanism of its own.
 
-This is already half-built and half-assumed. The engine derives the winding from the wheel it happens to
-be dancing on, which is exactly why **Dame Dos Pequeña** was expressible at all — a two-couple
-progression on a two-couple wheel is a full circuit. What is missing is letting a figure **name** the
-point rather than inherit it, which is what a formation with no rueda will need. See `DECLARATIVE.md` §2
-and the §26 winding invariant, both of which are written in terms of "the wheel's midpoint" and would
-take a named point without changing shape.
+`CORRIDORS.md` §5.8 makes a declared pass a statement that the dancer **goes past** the feature, on the
+named side — not a statement about which side they would be on if they happened to. The feature can be any
+point the language can address: a wheel’s midpoint, a place, a slot’s midpoint. Where the endpoints leave
+no way to satisfy that but to go round — because both sit on the same ray from the point, or because they
+are the same point — the shortest path that does is a single loop, and the side says which way round.
+
+So **Dame Dos Pequeña’s circuit is produced by its pass declaration**, not by the magnitude of its offset,
+and a figure in a formation with no rueda in it names whatever point it means and gets the same behaviour.
+Nothing declares a rotation, a winding or a turn count. The one thing this does not express is more than a
+full loop, because a second loop is longer and shortest-path never returns it — which is the line
+`CORRIDORS.md` §3.10 wanted drawn anyway.
 
 ## Authoring a figure through the UI (agreed with Sam, not yet built)
 
