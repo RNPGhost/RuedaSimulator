@@ -3525,24 +3525,27 @@ either exactly right or never exercised — and those want opposite responses.
 
 ## Status and handover
 
-**Written and reviewed:** §1 Purpose · §2 How we got here · §3 The model · §4 The figure definition
-language. Every section to the end of §4 has been read and revised, and the text above is the state those
-revisions left it in.
+**§1 to §8 are written and reviewed.** Purpose · How we got here · The model · The figure definition
+language · Geometry and constants · From corridor to path · Timing · Declared versus derived. Each was
+read section by section and revised, and the text above is what those revisions left.
 
-**Written and reviewed:** §5 Geometry and constants · §6 From corridor to path — with the caveat that
-`t_blend` has since been redefined in beats, which touches §6.2 and §6.3.
+The document carried a *review status* table while that was happening. It has been removed rather than
+allowed to go stale: with §1–§8 read, it would say only that. What is worth drawing is the line between
+written and unwritten, and this section draws it.
 
-**Written and reviewed:** §7 Timing.
+**Three values in the reviewed text are provisional**, and are the ones to revisit once §14's corpus
+exists rather than by argument:
 
-**Written, not yet reviewed:** §8 Declared versus derived — the four kinds of value, a complete inventory
-of which is which, the rule that derived values are stored rather than only applied, and the two sets of
-values that must never change hands.
+| | | |
+|---|---|---|
+| `t_blend` | 1 beat | §7.5 gives the reasoning — the ramps land on the pauses — but the value is a feel decision |
+| `Δ_ang` | 0.01° | a floating-point-noise guard, not a design threshold (§1.2) |
+| `d_engage` | `w + 2Δ` | shapes a swell only, and never decides whether a collision is real (§6.7) |
 
-This document carried a *review status* section while that was happening, listing which sections had been
-read and which had been edited afterwards. It has been removed rather than allowed to go stale: with §1–§4
-read in full it would say only that, and a section whose sole content is "everything above is current" is
-a thing to maintain rather than a thing to use. §5 onwards is unwritten, which is the only status
-distinction still worth drawing, and this section draws it.
+**One claim in §4.7 is asserted and not yet measured:** that `Línea Moderna` is the figure declaring
+`extra turns` and `Adios Línea` the one declaring none. It follows from the derived turn resolving
+clockwise, and §4.7 records it as the first thing to check numerically when §5 is implemented. If it
+resolves the other way, the direction swaps between those two definitions and nothing else changes.
 
 **Outstanding, in order:** §9 Edge cases · §10 Failure — including the rendered diagram a fault carries (§6.10) · §11 The renderer contract · §12 Alternatives considered and
 rejected · §13 Scripted movements, and what the engine reads from one · §14 Verification — including the cold-versus-warm cache comparison §5.10 requires · §15
@@ -3554,6 +3557,10 @@ Then `SCHEDULING.md` in full.
 **Read first:** `FORMATIONS.md`, which this document depends on for how a formation is structured and
 addressed, and `ROADMAP.md` for where this work sits in the larger picture.
 
+**`FORMATIONS.md` is unreviewed, and is the only unreviewed dependency.** Much of it was rewritten as a
+consequence of reviewing this document rather than from a reading of its own — §2.4, §2.6, §3.1 and §3.2
+changed, and §2.7 and §3.4 are new. It should be read before implementation begins.
+
 **Still open, and needing an answer before the sections that use them:**
 
 - How a wheel's placement is stated in general (`FORMATIONS.md §6`).
@@ -3561,9 +3568,9 @@ addressed, and `ROADMAP.md` for where this work sits in the larger picture.
   would change every file path in §15 but nothing in the design.
 - The verification corpus: how many diagrams constitute the first review pass, against the full corpus of
   roughly 357 figure cases.
-- **Whether §4.5 survives at all.** Priority and encounter overrides exist because the derived answers
-  might not always be right. The migration is the experiment that settles it, and §4.5 says what evidence
-  would retire them.
+- **How often §4.5 is needed.** Priority and encounter overrides stay — a figure is already known that
+  needs both — but the migration counts how often each kind is written, because that says which derived
+  default is the weaker (§4.5).
 - **A call whose landing beat differs per group** — one call where both the figure danced *and* the beat it
   ends on depend on parity from the Cantante. It fits the model as two concurrent figures with a fixed
   relative offset, and §7.3 would generalise from one back-timed sequence per call to one per group. It is
