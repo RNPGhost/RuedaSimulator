@@ -121,26 +121,62 @@ nothing to hold the shape steady.
 4. **No erratic or high-acceleration motion.** Every turn must be one a person could physically walk.
 
 Criteria 3 and 4 are in tension, and the tension is quantified. Passing an obstacle at exactly the minimum
-permitted clearance is the tightest turn available. At the speed a Dame is currently danced — one
-couple-spacing in two beats at 150bpm — that turn is **1.42 g to 1.60 g** depending on couple count. A
-person walking briskly around a one-metre radius sustains about **0.20 g**. Hugging at minimum clearance
-at that speed is not something a human body can do.
+permitted clearance is the tightest turn available: a dancer moving at speed `v` around a circle of radius
+`w + 2Δ` sustains `v² / (w + 2Δ)`. A person walking briskly around a one-metre radius sustains about
+**0.20 g**, and that is the number to compare against.
 
-This is why this work also changes the Dame family to a uniform four beats (§7). Lateral acceleration
-scales with the square of speed, so halving the speed quarters the severity of the turn:
+**Every figure below is measured, not assumed** — the furthest any dancer travels in that figure, taken
+from the engine, over the figure's own beats, at the default tempo. Ranges span four, six and eight
+couples:
 
-| couples | Dame over 2 beats | Dame over 4 beats |
-|---|---|---|
-| 4 | 1.42 g | **0.36 g** |
-| 6 | 1.55 g | **0.39 g** |
-| 8 | 1.60 g | **0.40 g** |
+| figure | beats | furthest travelled | per beat | hugging at `w + 2Δ` |
+|---|---|---|---|---|
+| Dame, from Casino | 2 | 15.9 – 16.9 | 7.9 – 8.4 | **0.016 – 0.019 g** |
+| Dame Línea, from Casino | 2 | 60.9 – 105.7 | 30.4 – 52.8 | **0.24 – 0.73 g** |
+| Dame, from the Dile Que No position | 4 | 133.9 – 135.8 | 33.5 – 33.9 | 0.29 – 0.30 g |
+| Dame Pequeña, from Exhibela | 4 | 149.5 – 166.4 | 37.4 – 41.6 | 0.37 – 0.45 g |
+| Dame Dos, from the Dile Que No position | 4 | 235.6 – 279.5 | 58.9 – 69.9 | **0.91 – 1.28 g** |
+| Dame Dos Pequeña, from Exhibela | 4 | 247.3 – 288.8 | 61.8 – 72.2 | **1.00 – 1.36 g** |
 
-At four beats close passing becomes physically plausible, and criteria 3 and 4 stop fighting.
+**A Dame is a short walk, and an earlier draft of this section said otherwise.** It recorded the Dame as
+covering "one couple-spacing in two beats" — the 154-unit chord between adjacent slots at six couples —
+and derived 1.42 to 1.60 g from it. The figure does not do that. The leader moves one half-slot
+anti-clockwise while his new partner moves one half-slot clockwise, and they meet on the spoke between
+(§4.7), so each of them walks **16.1 units at six couples — half a dancer's own width**. The Dame from
+Casino is therefore the *slowest*-travelling figure in the corpus rather than the fastest, and hugging at
+minimum clearance costs it 0.017 g. The arithmetic in that draft was right; the distance it was given was
+not.
 
-*Accepted exception:* **Dame Dos** covers two couple-spacings in the same four beats, so it stays at
-**0.71–1.36 g** if it hugs. This is deliberate — it is a fast, inherently chaotic figure — and the
-consequence is that Dame Dos takes wider berths than the shortest route would give. Recorded here so it is
-not later mistaken for a defect.
+**And that step is the same size at every couple count**, which is worth knowing because it is the reason
+the mistake is not a rounding error. A leader sets off `delta` anti-clockwise of his own slot's spoke and
+lands `delta` clockwise of the spoke a half-slot away, so his angular travel is `180/k − 2*delta` and his
+chord is
+
+    2R * sin( 90/k − delta )
+
+which is **16.9, 16.1 and 15.9 units at four, six and eight couples**, and tends to `(g − s)/2` = 15.57 as
+the wheel grows — half the gap between couples, less half the partner separation. The wheel gets bigger and
+the angle gets smaller in almost exactly the same proportion, so the walk does not change. A quantity that
+is flat across the whole range cannot be a couple-spacing, which varies from 147.6 to 156.3 over the same
+range.
+
+**The Dame family still moves to a uniform four beats (§7), and the reason is uniformity.** Only two
+figures are affected, because only two were ever at two beats:
+
+- **Dame Línea** is the one the physics argues for as well: 0.73 g at eight couples becomes **0.18 g**,
+  which takes it from three and a half times a brisk walk to just under one.
+- **Dame from Casino** goes from 0.017 g to 0.004 g, which is no argument at all. It moves because a family
+  of figures that a caller thinks of as one thing should not have two lengths, and because §7.3's
+  back-timing makes the change cost nothing — a shorter figure simply starts later.
+
+**Where criteria 3 and 4 genuinely fight is the Dame Dos family**, which is already at four beats and stays
+there. Dame Dos Pequeña from Exhibela reaches **1.36 g** at eight couples if it hugs, and Dame Dos from the
+Dile Que No position 1.28 g. That is deliberate — they are fast, inherently chaotic figures — and the
+consequence is that they take wider berths than the shortest route would give. Recorded here so it is not
+later mistaken for a defect.
+
+**No number in this table reaches the engine** (§7.7). They are an input to human decisions about a
+figure's `beats`, reported per figure by §14, and never something the engine quietly compensates for.
 
 ### 1.5 What we are changing
 
@@ -171,7 +207,7 @@ Measurable, and checked by the verification in §14.
 |---|---|---|
 | S1 | No two dancers are ever closer than the required clearance | centre to centre ≥ `w + 2Δ` (35 units today) |
 | S2 | Every declared passing side is realised in the output | 100% — a violation is a failure, not a warning |
-| S3 | Collision avoidance does not significantly distort the authored route | actual path length ÷ corridor length **< 1.5**, and expected near 1.0 |
+| S3 | Collision avoidance does not significantly distort the authored route | actual path length ÷ corridor length **< 1.5**, and expected near 1.0 — for corridors longer than `Δ_len` |
 | S4 | A deviating dancer never separates from their corridor by more than a dancer's width | `gap < w` — see below |
 | S5 | Paths are deterministic | identical inputs produce identical output to the last decimal |
 | S6 | Every figure is reviewed as a rendered diagram and signed off by a human | the corpus defined in §14 |
@@ -196,6 +232,19 @@ been too strict by a factor of two.
 
 The rule in plain terms, which is the form to check a diagram against: *it must never be possible to fit
 another dancer between a deviating dancer and their corridor without touching one of them.*
+
+**S3 and S4 ask different questions, and both are wanted.** S3 asks how much further the dancer is being
+made to *walk*; S4 asks how far off their route they are being made to *stand*. S3 keeps the distance
+about right and S4 keeps the shape about right, and neither implies the other: an amplitude is capped
+absolutely by S4 whatever the corridor's length, and proportionally by S3, so which of the two is the
+tighter depends on how far the dancer was going in the first place. §9.4 works that out and says where
+they cross.
+
+**S3 carries a floor, and it is a noise guard rather than a threshold.** A corridor shorter than `Δ_len`
+is a corridor with no route to distort, and the ratio is `0/0` rather than merely large — so S3 does not
+apply below that length and S4 is the whole of the constraint there. **S4 is what the solver caps on**
+(§6.8); S3 is a verification criterion (§14), held under observation because a system working as intended
+should never approach it.
 
 S2 and S7 are listed explicitly because both have previously failed silently.
 
@@ -408,10 +457,24 @@ Quoting them rounded to two decimals is what an earlier draft did, and every rad
 out wrong in the third significant figure. **`R(6)` = 154 exactly, by construction** — the six-couple wheel
 is the baseline and every other couple count solves for the radius that preserves its spacings.
 
-**These are strong defaults, not invariants.** Every formation that exists today uses them, and a figure
-may assume them unless told otherwise. But a formation may deliberately want its couples closer or further
-apart — for the whole formation, or for one wheel inside it — and nothing here may assume that cannot
-happen. `s` and `g` are values **a formation supplies**, with the numbers above as the defaults.
+**The two are not held the same way, and the difference is load-bearing.**
+
+**`s` belongs to the dance.** It is one value everywhere — every formation, every wheel, every slot — and
+no formation may supply its own. The reason is that a slot may belong to more than one wheel (§3.3), and a
+slot-place turns out to be *the slot's midpoint offset by half the slot-position's separation, along the
+slot's own axis* (§3.2, §5.5) — with the wheel's radius dropping out entirely. Casino's separation is `s`,
+so two wheels sharing a Casino slot agree about where its dancers stand **exactly when they agree about
+`s`**; and if they did not, one slot would have two different sets of places and the language would
+contradict itself. Making `s` global is what makes that impossible rather than merely checked.
+
+A couple that genuinely stands closer or wider is expressed as **a new slot-position** — a rotation and a
+separation (§3.2) — never as a different `s`. That is the same move §3.8 already makes for the travelling
+separations `linked`, `closed` and `open`, and it draws on the same three names, so the arrangement stays
+named, derived and visible in the definition instead of hidden in a formation's parameters.
+
+**`g` is supplied by a formation, and may differ per wheel.** Nothing prevents it: `g` reaches the geometry
+only through the radius, and the radius has just dropped out of where anybody stands. The value above is
+the default every formation uses today.
 
 The ring radius `R` for `n` couples is the value that makes `n` couples plus `n` gaps wrap the circle
 exactly once:
@@ -472,29 +535,77 @@ is not.
 A **slot-position** says how the two dancers of a couple stand within their slot. It is a property of the
 slot, not of the whole formation.
 
-Each slot-position puts each role in a **slot-place** — one of the standing points a slot offers,
-described relative to that slot and to nothing else:
+Each slot-position puts each role in a **slot-place** — a standing point described relative to that slot
+and to nothing else. **A slot-position is two numbers**: a **rotation** and a **separation**. Its two
+dancers stand at the two ends of the slot's **axis** — the slot's **tangent**, turned by the rotation —
+that separation apart, with the leader at the positive end:
 
-| Slot-place | Where it is |
-|---|---|
-| `ccw` | on the ring, `delta` anti-clockwise of the slot's spoke |
-| `cw` | on the ring, `delta` clockwise of the slot's spoke |
-| `outer` | on the slot's spoke, `R_step` further out than the slot's midpoint |
-| `inner` | on the slot's spoke, `R_step` further in than the slot's midpoint |
+    tangent(slot)   =  spoke − 90°        the Casino axis, named in `FORMATIONS.md §2.5`
+    axis            =  tangent + rotation
 
-where `R_step = (a + w/2) / 2` — half the distance between the two partners when they gather onto their
-spoke. That distance is `a + w/2` (46 units today) because it is set so a leader's facing arrow exactly
-bridges the gap: it leaves his edge and its tip meets hers.
+    the leader      =  the slot's midpoint  +  (c/2) along the axis
+    the follower    =  the slot's midpoint  −  (c/2) along the axis
+
+The separations are §3.8's, unchanged: `linked` = `w`, `closed` = `a + w/2`, `open` = `s`. And the axis is
+the couple's orientation (§5.6) — one quantity, read from the slot's tangent here and from the floor there.
+
+**`FORMATIONS.md §2.5` owns the rule and the list of names**, and this document uses them rather than
+repeating them, so the two cannot drift. What matters here is that a figure author writes a *name* —
+`Casino`, `Exhibela`, `Dile Que No`, the `Afuera` forms, `Sesgo`, `Contra-Sesgo` — or writes the two numbers
+out where no name fits. **The names are abbreviations, never capability.**
+
+**A slot-place is a direction; a slot-position is a direction *and* a distance.** The rotation picks the
+direction and the separation supplies the distance, so nothing about how far apart the partners stand is
+lost by making a place directional — it lives in the second of the two numbers:
+
+    Casino       (   0°, open   )    dancers  open/2   = 32.02  from the midpoint, at  ccw    and  cw
+    Dile Que No  (  90°, closed )    dancers  closed/2 = 23.00  from the midpoint, at  outer  and  inner
+
+**Verified** against the running engine: a resting Casino couple's dancers sit **32.018** from their slot's
+midpoint and a Dile Que No couple's sit **23.000**, which are exactly half of `open` and half of `closed`.
+
+Reading it the other way round is the trap, and `R_step` is where it hides: **`R_step` is not a distance
+`outer` carries with it** — it is `closed / 2`, and the same place under the `open` separation sits `s/2`
+out instead. `FORMATIONS.md` §3.3 does exactly that, so this is not a hypothetical.
+
+So the names below name **eight directions from the slot's midpoint, at 45° intervals**, and nothing else.
+A slot-position's leader stands at the place for its rotation and the follower at the one opposite:
+
+| Slot-place | direction from the midpoint | the leader's place at rotation |
+|---|---|---|
+| `ccw` | 90° anti-clockwise of the spoke — the tangent | 0° |
+| `outer-ccw` | 45° anti-clockwise of the spoke | 45° |
+| `outer` | along the spoke, outward | 90° |
+| `outer-cw` | 45° clockwise of the spoke | 135° |
+| `cw` | 90° clockwise of the spoke — the tangent | 180° |
+| `inner-cw` | 135° clockwise of the spoke | 225° |
+| `inner` | along the spoke, inward | 270° |
+| `inner-ccw` | 135° anti-clockwise of the spoke | 315° |
+
+**The two distances that used to look intrinsic are both derived.** `R_step = closed / 2` = 23 units is half
+the distance between two partners gathered on their spoke, and that distance is `closed = a + w/2` because
+it is set so a leader's facing arrow exactly bridges the gap — it leaves his edge and its tip meets hers.
+`delta` is likewise not a separate quantity: a dancer at `ccw` with `c = open` sits `s/2` across the spoke,
+and on a ring of radius `R` that subtends `asin(s / 2R)` (§5.5).
+
+**Eight is where the useful names run out, not where the language does.** A rotation of 30° has two perfectly
+good places and no names for them; it is written as a rotation, like any other (`FORMATIONS.md §2.5`).
 
 **A slot-place is not a place, and the hyphen is doing real work.** A slot-place is a *relative* thing —
 `cw` means nothing until a slot is supplied. A **place** is the absolute thing you get once one is: a
 slot, a slot-position and a role together (below). Two names because they are two objects, and running
 them together is how an address ends up meaning a point and a template at once.
 
-**These four are the slot-places there are today, not the ones there can ever be.** A later formation may
-need others — partners gathered on the spoke at `linked` separation, one either side of the slot's
-midpoint, is the obvious next one. A slot-place is added by naming it and saying where it sits relative to
-the slot. Nothing else in the language changes, and no rule below may assume the list is closed.
+**The named list is not closed, for positions any more than for places.** The names exist so a reader does
+not have to decode `(0°, open)` every time they meet Casino. A formation needing one it lacks writes the
+two numbers and may name the result: `FORMATIONS.md` §3.3 wanted the ±45° pair often enough that they are
+now called `Sesgo` and `Contra-Sesgo`, while §3.4's slots are turned by 90° and a further 135° and carry no
+name at all, which costs them nothing. No rule below may assume the named list is the whole of it.
+
+**Stating it as two numbers rather than as a list is what makes a slot in two wheels well defined.** The
+axis direction above is *absolute*; its rotation against a second wheel is its rotation against the first
+plus the angle between the two spokes (`FORMATIONS.md §2.5`), so both readings give the same axis and the
+same two points, at any angle. §9.3 works that through.
 
 The slot-positions:
 
@@ -507,9 +618,11 @@ The slot-positions:
 | **Dile Que No** | `outer` | `inner` | Both partners gathered onto the slot's midpoint spoke. |
 | **Afuera Dile Que No** | `inner` | `outer` | The same place with the wheel inside-out. |
 
-**A slot-position is always stated against a named wheel.** Every place above is defined relative to the
-slot's **spoke**, and a slot belonging to more than one wheel has more than one spoke — so a slot-position
-on its own does not identify an arrangement. It is *Casino with respect to the pequeña*, or *Afuera
+**A slot-position is stated against a named wheel** — or, where the formation's orientation is `fixed`,
+against the floor, in which case the wheel is omitted (`FORMATIONS.md` §2.5 and §2.7). Every place above is
+defined relative to the slot's **tangent**, and a slot belonging to more than one wheel has more than one
+spoke — so a rotation on its own does not identify an arrangement until the frame it is measured in is
+named. It is *Casino with respect to the pequeña*, or *Afuera
 Exhibela with respect to the grande*. The same physical arrangement carries a different name against each
 wheel the slot belongs to, and **both names are correct**: the data states the rotation once and the
 engine derives the rest (`FORMATIONS.md §2.5`). Wherever this document names a slot-position it names the
@@ -672,6 +785,19 @@ conjunction of what is written.
 `FORMATIONS.md §2.6`** — one place rather than two that can drift. In summary: distance is the **shortest
 slot path**, and **today only the Rueda offers the axis**. A figure naming `parity` in a formation that
 does not offer it is refused at definition time.
+
+**And the Rueda offers it only at an even couple count.** Because distance is the shortest slot path, an
+odd count makes two adjacent couples share a parity: at five couples the distances round the ring are
+`0, 1, 2, 2, 1`, so the parities are `even, odd, even, even, odd` — a three-two split with two evens side
+by side. The axis stops alternating, and an alternating split is the whole of what every figure naming it
+means. So `parity` is not offered at an odd count, and a figure naming it **resolves to instances at even
+counts only** (§3.9) — which puts the restriction in the stored resolution, where it can be read, rather
+than in a reader's head.
+
+That is also why the transitions into Línea Moderna are confined to even counts, and they are confined
+twice over: §4.3's step 3 independently refuses their hop at an odd count, because an odd-count parity set
+is not evenly spaced and so is not a rigid rotation of the hop's `from` set. Two mechanisms reaching one
+answer is worth having, because the second protects a figure that names no axis at all.
 
 That is a narrower claim than an earlier draft of this section made, and the narrowing was earned. Parity
 is *computable* in any formation whose slots are connected, but computable is not the same as meaningful:
@@ -1013,7 +1139,9 @@ changes; the number of instances resolved from it does.
 The rule:
 
 1. **Resolve one instance per distinguishable starting circumstance** — couple count × starting phase,
-   within the formation position the definition is keyed by (§4.1).
+   within the formation position the definition is keyed by (§4.1). The couple counts are not all of them:
+   the formation bounds the range from below (§9.2), and an axis the figure names may narrow it further —
+   `parity` is offered only at even counts (§3.5).
 2. **Compare them, and collapse the ones that are identical** up to the formation's own symmetry. Almost
    everything collapses, and for a reason worth stating: every address in this language is *relative*, so
    a figure is phase-independent unless something **absolute** enters it. Today exactly one thing does —
@@ -1073,6 +1201,14 @@ Stated so they are recognised as deliberate limits rather than discovered later 
 - **Facing cannot cause a failure.** It is cosmetic: a dancer's footprint is a circle regardless of which
   way they look. Orientation of a *couple* travelling as one object is not cosmetic — it sets the
   footprint — and is declared (§4).
+- **The named slot-positions cover four rotations and two separations, and nothing forbids the rest.** A
+  slot-position is a rotation and a separation (§3.2), so any arrangement is expressible and a slot in two
+  wheels always has a true description against both (§5.5, §9.3). What the language does *not* supply is a
+  familiar name for every one: `FORMATIONS.md §3.3` needs `(90°, open)` and `(±45°, open)`, and §3.4 needs
+  `(90°, open)` and `(135°, open)`. Naming those is a formation's business, not a gap in the model.
+- **A slot holds exactly one couple, and both of its places are filled.** Formations are foreseen with
+  partly-filled slots, and with slot-positions that take a single dancer. Nothing here forbids them and
+  nothing here supports them; this vocabulary is expected to flex when the first one is built.
 
 ---
 
@@ -1161,9 +1297,13 @@ its values are **declared by the formation** (`FORMATIONS.md §2.6`), not keywor
 formation that draws no such distinction simply does not offer the axis, and a figure naming an axis its
 starting formation has not declared is refused at definition time.
 
-**A figure mentions every dancer on the floor.** Not only the ones it moves — every one. A figure whose
-clauses do not between them select every dancer is **refused at definition time**, naming the dancers no
-clause reached.
+**A figure mentions every dancer on the floor, exactly once.** Not only the ones it moves — every one —
+and no dancer twice. That is one rule with two halves, and both are refused at definition time:
+
+- a figure whose clauses do not between them select every dancer is refused, **naming the dancers no clause
+  reached**;
+- a figure whose clauses select the same dancer more than once is refused, **naming the dancers and the
+  clauses that both reached them**.
 
 That is stricter than it needs to be for the engine and exactly as strict as it needs to be for the
 author. A dancer left out on purpose and a dancer left out by accident are *identical in the data*, and
@@ -1183,6 +1323,24 @@ what it should do if nothing else claims it:
 is welcome to move them instead*. **`bounded: false` is how a figure gives dancers up**, and it is now the
 only way, so the set of dancers another figure may claim is readable from the definition rather than
 inferred from what is missing.
+
+**The second half is as easy to trip over as the first**, and for a reason built into §3.5: an omitted axis
+matches every value of it, so `{ role: follower }` and `{ ring: inner }` read as two different groups and
+share every inner follower between them. Such a dancer would carry **two movements** — two destinations,
+two corridors, two sets of declared passes — and there is no honest way to choose. A group clause states
+what *these* dancers do, and a dancer who is in two groups is being told two things.
+
+**An ordering rule was available and is rejected.** Letting the later clause win, or the more specific one,
+would make a clause's meaning depend on what else is in the figure — so adding a group would silently
+change the behaviour of groups that never mention it. That is precisely the action at a distance §4.5
+refuses when it reads a partial priority ranking narrowly, and it would be worse here, because a priority
+ranking at least announces that it is about other groups.
+
+Writing the exception into both selectors instead costs one axis value: `{ role: follower, ring: inner }`
+and `{ role: follower, ring: outer }` in place of `{ ring: inner }` and `{ role: follower }`. Every clause
+then reads correctly on its own, which is what the extra words buy. **If a figure is ever found where that
+is genuinely painful, this is the decision to revisit** — nothing in the corpus comes close today, and all
+seven of §4.7's worked examples are already disjoint.
 
 ### 4.3 Addresses
 
@@ -1424,6 +1582,9 @@ write, and therefore no way for the two directions to drift apart.
 ```
 { role: leader|follower, position: <slot-position>, slot: <slot address> }
 ```
+
+The slot-position is written as `{ <wheel>, <slot-position> }` (§3.2), or as `{ <slot-position> }` alone
+where the formation's orientation is `fixed` and the rotation is stated against the floor.
 
 The **slot-position is always named explicitly** and is never defaulted from the figure's `from` or
 `to`. A place is only a point once the arrangement is known — the follower's place in a slot is one point
@@ -1770,15 +1931,29 @@ offsets.**
 
 **The two groups declare opposite sides because they travel opposite ways round the centre.** A leader's
 `-1` takes him anti-clockwise, which puts the midpoint on his left, which is `side: right` (§4.4). A
-follower's `+1` takes her clockwise, the midpoint on her right, which is `side: left`. Each declaration
-agrees with the direction that dancer's own offset already implies, so at every ordinary couple count the
-pass costs nothing.
+follower's `+1` takes her clockwise, the midpoint on her right, which is `side: left`.
 
-Where it earns its place is a one-couple wheel. There are only two half-slot positions, so `+1` and `-1`
-land on the *same* one and the offset can no longer say which way round the centre anybody goes. The
-sides say it, and they send the two dancers round opposite ways — which is what keeps them apart rather
-than sending them head-on through the middle. This is §3.10's rule at its smallest: the offset carries
-where you land and how far you wind, the side chooses between the two routes that satisfy it.
+**Neither declaration binds on an evenly-spaced wheel at any couple count**, and both are written anyway.
+Two things would have to happen for one to bind, and on such a wheel neither can. The leader's journey
+subtends `2*delta - 180/k` about the centre, which lies strictly inside `(-180°, 180°)` for every `delta`
+and every `k` — so the straight line already has the centre on the declared side, and the **side can never
+flip**. And his chord clears the centre by `R * cos(|span|/2)`, which is smallest at one couple, where it
+comes out at exactly `s/2` — 32.02 units against a 19-unit keep-out (§5.7), *at any radius*. Closing that
+would take `s` below `2*(w/2 + 2Δ)`, a little over half today's value.
+
+So the declarations cost nothing today, and §4.4 is why they are written regardless: a declaration is
+never discarded for doing little in front of the geometry it happens to meet, because the same definition
+is evaluated at every couple count and in every formation it is ever danced in. **What would make this one
+bind is a wheel whose slots are not evenly spaced** — an arrival spoke lying more than `180° + 2*delta`
+anti-clockwise of the starting one, which an even wheel cannot reach and an uneven one can. Such a wheel
+is not defined in `FORMATIONS.md` yet and is expected; this declaration is what will make this figure
+still mean what it means when one arrives.
+
+**The same declaration is already load-bearing one figure further down.** Dame Dos at two couples binds
+twice over: its leader's straight chord subtends `+157.87°` — the *left* side — against a declared
+`right`, and it passes 11.01 units from the wheel's centre against that same 19-unit keep-out. One family,
+one declaration, free in the figure above and decisive in the one below, which is the whole argument for
+writing it in both.
 
 **Dame Dos** — the same figure progressing two couples instead of one.
 
@@ -2188,7 +2363,7 @@ and why it has the value it has.
 | `Δ` | the anti-collision margin held between two bodies | §1.2 | 1.5 |
 | `s` | partner separation within a couple | §3.1 | 64.037 |
 | `g` | the gap between couples | §3.1 | 95.177 |
-| `R_step` | half the distance between partners gathered on their spoke, `(a + w/2)/2` | §3.2 | 23 |
+| `R_step` | half the `closed` separation, `closed/2` = `(a + w/2)/2` — the distance from a slot's midpoint to a partner gathered on its spoke | §3.2 | 23 |
 | `Δ_len` | tolerance within which two corridor lengths count as equal — a distance | §1.2 | 0.1 |
 | `Δ_side` | dead band within which an approach is too near head-on to derive a side — a distance | §1.2 | 0.1 |
 | `Δ_ang` | tolerance within which two directions count as parallel, or a swept angle as zero | §1.2 | 0.01° |
@@ -2201,9 +2376,9 @@ move relative to each other between samples — is **the implementation's choice
 The rule is written so that any `δ` is sound and a smaller one is safer, which is why it has a name in
 §6.5 and no row here.
 
-**`s` and `g` are supplied by the formation** (§3.1). Every formula below takes them as inputs; the values
-above are the defaults every formation uses today. Nothing in §5 may treat them as constants, and in
-particular no radius may be cached across formations.
+**`s` is one value for the whole dance; `g` is supplied by the formation** (§3.1). Every formula below
+takes both as inputs, and the values above are today's. Nothing in §5 may treat `g` as a constant, and in
+particular no radius may be cached across formations — `R`, `delta` and `R_mid` all move with it.
 
 ### 5.3 A wheel's geometry
 
@@ -2308,16 +2483,36 @@ Every address in §4.3 resolves to a point, and every resolution is exact — no
 the ending formation, and the walk that follows it resolves there.
 
 **A place address** `{ role, position: { wheel, slot-position }, slot }` resolves in three steps: walk to
-the slot; read from the slot-position which **slot-place** that role stands in (§3.2); then
+the slot; read the slot-position's **rotation** and **separation** `c` (§3.2); then, against the spoke of
+**the wheel the slot-position names**,
 
-    ccw    →  on the ring, at angle  spoke − delta,   radius R
-    cw     →  on the ring, at angle  spoke + delta,   radius R
-    outer  →  on the spoke, at radius  R_mid + R_step
-    inner  →  on the spoke, at radius  R_mid − R_step
+    axis      =  tangent + rotation            tangent = spoke − 90°  (§3.2)
+    leader    =  the slot's midpoint  +  (c/2) * ( cos axis, sin axis )
+    follower  =  the slot's midpoint  −  (c/2) * ( cos axis, sin axis )
 
-all measured against **the wheel the slot-position names**, and its `spoke`, `R`, `delta` and `R_mid`. This
-is the whole reason §3.2 requires a slot-position to name its wheel: a slot in two wheels has two spokes
-and two radii, and these four lines would otherwise have two answers.
+At rotation 0° and `c` = `open` that is the pair of ring places §3.2 calls `ccw` and `cw`; at 90° and
+`closed` it is `outer` and `inner`. The four names need no separate arithmetic.
+
+**The wheel's radius does not appear, and that is an identity rather than a simplification.** Take the
+Casino case, where §3.2 puts the two places on the ring at `spoke ∓ delta` and radius `R`: the component
+along the spoke is `R cos(delta)`, which *is* `R_mid`, and the component across it is `R sin(delta)` =
+`R × s/2R` = **`s/2`**, for every `R`. Same two points, and the radius has cancelled. What a place actually
+depends on is therefore four things and no more — the slot's midpoint, the direction of the spoke, the
+rotation, and the separation.
+
+**Verified** — Línea Moderna at six couples, one inner slot resolved twice. Read off the inner `grande`
+(`R` = 80.11) its `ccw` place is (73.4364, −32.0185); read off its `pequeña` (`R` = 57.36) its `cw` place is
+the same point to 1.4 × 10⁻¹⁴. Two radii, one place.
+
+So a slot in two wheels has **one** set of places, at any angle between its two spokes. The axis above is
+an absolute direction, and the slot's rotation against the second wheel is its rotation against the first
+plus the angle between the spokes (`FORMATIONS.md §2.5`) — so the two readings add up to the same axis and
+the same two points. `{ grande, Afuera Casino }` and `{ pequeña, Casino }` are that addition with the two
+spokes anti-parallel (§3.3). `s` is fixed for the whole dance (§3.1), so the separations agree too.
+
+**Naming the wheel is still required**, because the rotation is stated against one wheel (`FORMATIONS.md
+§2.5`) and an address has to say which one it means. That is a question of reference, not of geometry:
+whichever wheel is named, the point comes out the same.
 
 **An abstract point:**
 
@@ -2738,9 +2933,10 @@ So §6 solves at constant speed and §7 may reparametrise afterwards. Two condit
   `beats`, by `beats / (beats − t_blend)`. Lateral acceleration goes as the *square* of speed, so §1.4's
   figures, computed at a uniform rate, are a **floor** rather than a ceiling once easing is added: at
   `t_blend = 1` a four-beat figure peaks at `4/3` of its average, so its lateral acceleration rises by
-  about three quarters and a four-beat Dame goes from 0.39 g to nearer 0.7. §1.4's argument for four beats
-  survives — two beats would be four times worse again — but the headroom it describes is smaller than it
-  looks, and §7 is where that is confronted.
+  about three quarters. The worst figure in the corpus, Dame Dos Pequeña from Exhibela at eight couples,
+  goes from **1.36 g to nearer 2.4**. That figure is one §1.4 already records as an accepted exception, so
+  easing enlarges an exception rather than creating one — but the headroom is smaller than it looks, and §7
+  is where that is confronted.
 
 **Whether a dancer starts and stops at all is deferred, on purpose.** Whether they are stationary at
 `t = 0` depends on what they were doing immediately before, and at `t = 1` on what comes next — neither of
@@ -3226,12 +3422,14 @@ accelerations, so they scale with the square of speed, and speed scales with tem
 
 | | at 150 bpm | at 250 bpm |
 |---|---|---|
-| Dame, 4 beats, 6 couples, hugging | 0.39 g | **1.08 g** |
-| the same, with §7.5's ramps (× 1.78) | ≈ 0.69 g | **≈ 1.9 g** |
+| Dame Dos Pequeña from Exhibela, 8 couples, hugging | 1.36 g | **3.79 g** |
+| the same, with §7.5's ramps (× 1.78) | ≈ 2.4 g | **≈ 6.7 g** |
+| Dame Pequeña from Exhibela, 6 couples, hugging | 0.42 g | **1.18 g** |
+| the same, with §7.5's ramps | ≈ 0.75 g | **≈ 2.1 g** |
 
-**So "a four-beat Dame is physically plausible" is a statement about the default tempo and not about the
-figure.** At the top of the tempo range it is not plausible at all, and no amount of engine work makes it
-so — the formation is a fixed size and the music is asking for it to be crossed in less time.
+**So "these figures are physically plausible" is a statement about the default tempo and not about the
+figures.** At the top of the tempo range they are not plausible at all, and no amount of engine work makes
+them so — the formation is a fixed size and the music is asking for it to be crossed in less time.
 
 #### No acceleration figure changes what the engine produces
 
@@ -3383,7 +3581,8 @@ authoritative and this table is a finding aid.
 | what a wheel is anchored to | declared | §2.4 |
 | an axis, its values, and which slots take which | declared | `FORMATIONS.md §2.6` |
 | `orientation: free \| fixed` | defaulted — `free` | `FORMATIONS.md §2.7` |
-| `s`, `g` — partner separation and the gap between couples | defaulted — the values in §3.1 | a formation may supply its own |
+| `s` — partner separation | **fixed for the whole dance** — no formation supplies its own | §3.1 |
+| `g` — the gap between couples | defaulted — the value in §3.1 | a formation may supply its own |
 | `R`, `delta`, `R_mid` | **derived** | §5.3 |
 | an anchored wheel's centre | **derived** | §5.4 |
 | an inferred wheel's radius and clockwise order | **derived** | `FORMATIONS.md §4.1` |
@@ -3523,11 +3722,1272 @@ either exactly right or never exercised — and those want opposite responses.
 
 ---
 
+## 9. Edge cases
+
+Every rule in §3 to §8 is stated with an input. This section is about **the configurations where one of
+those inputs is not there** — where a length is zero, a duration is zero, an angle does not turn, or two
+things leave no room between them. Each rule is clear on its own; what is not clear until it is written
+down is what they do at an extreme, and an implementation that has not been told will decide by accident.
+
+### 9.1 What an edge case is here
+
+**Every edge case in this design is a quantity going to zero that some rule divides by or reads the sign
+of.** That is the organising idea, and it is meant to be used: a rule added later that divides by something
+or takes its sign is a new candidate for this section, and the way to find its edge case is to ask what
+happens as that quantity vanishes.
+
+| The quantity | Where it reaches zero | |
+|---|---|---|
+| a wheel's couple count | below the smallest `s` and `g` admit | §9.2 |
+| the angle between two wheels' spokes at a shared slot | a slot belonging to more than one wheel | §9.3 |
+| a corridor's length | a group told to hold its place | §9.4 |
+| a figure's `beats` | `afuera`, `adentro` | §9.5 |
+| `Φ`, the turning of a bearing | both endpoints on one ray from a feature | §9.6 |
+| the room between two declared features | two features declared on opposite sides | §9.7 |
+| the sum of two opposed deviations | a unit pressed from both sides at once | §9.8 |
+
+One more belongs to the family and is **already answered**, listed so it is recognised as the same shape of
+problem rather than as a special case of its own: the cross product in the side test goes to zero when two
+dancers approach head-on, and `Δ_side` is the dead band around it inside which the engine asks the author
+instead of reading a sign off noise (§4.5).
+
+**The line against §10.** §9 says what the answer *is* wherever the rules still produce one. §10 says how
+the engine reports where they do not. Some of the zeros above give a perfectly ordinary answer, some give
+one of the failures §5.8.4 and §6.10 already name, and saying which is which is most of the work here.
+
+**Each has to be reachable.** An edge case nobody can arrive at is not one, so every case below is recorded
+with the couple count, formation or figure at which it first becomes reachable — and where nothing reaches
+it today, that is said plainly, because a rule that is exercised and a rule that is a guess should not look
+alike.
+
+**Nothing here introduces a rule.** Every answer is derived from §3 to §8. Where a derivation contradicted
+something written earlier, the earlier text was corrected rather than patched here; §9.9 lists what moved.
+
+### 9.2 The couple counts a formation actually has
+
+**A wheel does not exist below a couple count derived from `s` and `g`.** §5.3 solves
+
+    k * ( 2*asin(s / 2R) + 2*asin(g / 2R) )  =  2*pi
+
+whose left-hand side is strictly decreasing in `R` over the admissible range `R >= max(s, g) / 2`. Its
+supremum is therefore at that lower bound, and a solution exists exactly when the supremum reaches `2*pi`:
+
+    a wheel of k couples exists  when   k * ( asin( min(s,g) / max(s,g) ) + 90° )  >=  180°
+
+**Verified** at today's values: the per-couple supremum is 132.28°, so `k >= 1.361`, so **`k >= 2`**. The
+bound moves with the formation's `g` — at `s = g` it admits `k = 1`; at `s = 90`, `g = 95` it is still 2 —
+so no rule anywhere may hard-code the number two.
+
+**A one-couple wheel is a different object, not a smaller one.** At `k = 1` the dancer clockwise of the
+follower *is* her own leader, so the gap is not a chord between two bodies and `g` constrains nothing:
+**the radius becomes a free parameter**, and `FORMATIONS.md` would have to say what fixes it. That is also
+why the equation above has no solution there rather than an awkward one — it assumes every gap subtends a
+minor arc between two *distinct* couples, which at one couple is false.
+
+**Verified**, and worth recording because it is counter-intuitive and §4.7 turns on it: on a one-couple
+wheel a Dame's leader travels from his `ccw` place to the `cw` place of the single other-phase position,
+and his chord clears the wheel's centre by exactly `s/2` — 32.02 units against a 19-unit keep-out — **at
+every radius**. Sweeping `R` from 33 to 1000 does not move it, because the clearance is `R sin(delta)` and
+`R sin(asin(s/2R))` is `s/2` identically.
+
+**A formation's minimum is the largest of its wheels'.** Línea Moderna's inner `grande` holds `n/2`
+couples, so `n >= 4`; with `n` even (`FORMATIONS.md §3.2`) its counts are 4, 6, 8, … A Rueda's single wheel
+holds `n`, so its counts are 2, 3, 4, …
+
+**There is no maximum, and none is imposed.** `R` grows with `k` and every spacing is preserved by
+construction, so a wheel of forty couples is a large circle and nothing else. What bounds the corpus is
+§14's choice of which counts to verify, which is a different question with a different answer.
+
+**`parity` and odd couple counts.** Distance from the Cantante is the shortest slot path, so at an odd
+count two adjacent couples share a parity. **Verified** at five couples: the distances round the ring are
+`0, 1, 2, 2, 1`, giving parities `even, odd, even, even, odd` — a three-two split with two evens side by
+side. Seven and nine behave the same way. So the Rueda offers the axis only at even counts (§3.5), a figure
+naming it resolves only there, and the transitions into Línea Moderna are protected twice over: by that,
+and independently by §4.3's step 3, which refuses their hop at an odd count because the resulting set is
+not evenly spaced and so is not a rigid rotation of the hop's `from` set.
+
+**A group that selects nobody at some couple count is reported, not refused.** §4.2's completeness rule is
+about *dancers* — that every dancer is reached by some clause — and an empty group cannot leave anybody
+unreached. A definition may legitimately be written for the counts at which the group is populated. What is
+not acceptable is silence: the number of dancers per group is part of the resolution (§8.3), so a group
+that empties out appears in a diff rather than on a diagram.
+
+### 9.3 A slot in more than one wheel
+
+The ordinary case in Línea Moderna, not a rarity. The edge is what happens when the two wheels disagree.
+
+**They cannot disagree about where anybody stands, and the angle between their spokes is irrelevant.**
+§5.5 resolves a place as the slot's midpoint offset by `c/2` along an **absolute** axis direction, and the
+wheel's radius does not appear; `s` is fixed for the whole dance (§3.1). A slot's rotation against the
+second wheel is its rotation against the first plus the angle between the two spokes (`FORMATIONS.md
+§2.5`), so `spoke − 90° + rotation` comes out the same however it is read. Línea Moderna is the case with
+the spokes anti-parallel: one arrangement, two true names, `{ grande, Afuera Casino }` and
+`{ pequeña, Casino }`.
+
+**They may disagree about `g`, and it costs nothing.** `g` reaches the geometry only through the radius,
+and the radius has dropped out of where anybody stands. Línea Moderna's inner `grande` and its `pequeña`s
+already have different radii — 80.11 and 57.36 at six couples — and resolve one inner slot's places to the
+same points to 1.4 × 10⁻¹⁴ (§5.5).
+
+**Where the two spokes meet at an odd angle, the readings still agree — but one of them may have no
+name.** `FORMATIONS.md §3.3` is exactly that case: its shared slot reads as 45° clockwise of standard
+Casino against its pequeña, and the arrangement is perfectly well defined, because 45° is as good a
+rotation as 0°. What is missing is only a word for it, the way `Casino` is a word for `(0°, open)`. That is
+a formation's business (§3.10) rather than a hole in the geometry, and it is why §3.2 states a slot-place
+as two numbers and treats the four names as abbreviations.
+
+**An earlier draft of this section had that the wrong way round**, and recorded it as a bound: with the
+slot-places enumerated rather than derived, a slot whose second wheel met it at 45° genuinely had no
+description. Deriving them removes the bound rather than working around it.
+
+**For an implementer that reduces to one line:** resolve a place against **the wheel the slot-position
+names**, never against "the slot's wheel". A slot does not have one.
+
+### 9.4 A corridor with no length
+
+**Reachable, and not yet reached.** §3.6 offers two ways for a group to hold its place, and one of them — a
+progression whose destination is the slot it started on, with no declared pass — has a corridor of length
+zero. No figure in the corpus uses it: every holding group today is `kind: scripted` with a movement that
+stays on the spot. Everything below applies the moment an author picks the other form, and §3.6 is explicit
+that the choice is a real one.
+
+**A zero-length corridor and a declared pass are mutually exclusive.** Worth establishing first, because it
+removes half the problem. If `A = B` and a pass is declared, §5.8's condition demands `Φ ≠ 0` and the
+shortest path satisfying it is a full loop — which has length. If `A = B` and nothing is declared, the path
+is the point. So **a corridor is zero-length exactly when its endpoints coincide and no pass is declared**,
+and the side test of §4.4 is never asked to run without a heading.
+
+**What is genuinely missing is the heading**, and two rules take it as an input:
+
+| Rule | Its input | With no travel |
+|---|---|---|
+| §4.6's default facing — *face the way you are travelling* | direction of travel | there is none |
+| §6.8's deviation direction — *the left normal of the unit's own travel* | direction of travel | there is none |
+
+**Facing collapses to its own second half.** §4.6's rule is *face the way you are travelling, interpolating
+to the arrival facing over the end of the movement*; with nothing to interpolate from, the whole figure is
+the arrival facing. That is the right answer as well as the only available one — a dancer holding a place
+stands as their arrangement requires. An author wanting otherwise writes `facing`, and the vocabulary
+already serves.
+
+**The deviation direction is taken from the pair.** A unit with no travel deviates **along the line joining
+it to the other unit at the instant of closest approach, directly away from it**. Two things recommend
+that. It is the minimal-amplitude direction — it separates fastest per unit of displacement, which is what
+§6.8 solves for. And it cannot disagree with anything, which is §6.8's actual concern: the frame it insists
+on owning exists so a caller cannot supply a second notion of "aside", and a unit with no travel has no
+frame of its own to conflict with. The travelling unit in the pair still deviates in its own travel frame,
+unchanged.
+
+**The side vocabulary still applies, read from whichever unit is moving.** Left and right come from a
+heading (§5.1), and a pair in which one unit travels has exactly one heading to read them from — so
+`side: right` means **the moving dancer keeps the stationary one on their left**, which is §4.4's rule for a
+static feature said again for a pair of dancers. An encounter override naming a side for such a pair is
+meaningful and is honoured: §4.5 resolves it in the travelling unit's frame as usual, and the stationary
+unit takes the complementary displacement.
+
+Only a pair in which **neither** unit travels would have no side to name, and by the paragraph below such a
+pair never contends — so there is no configuration in which an override has to be refused for want of a
+heading.
+
+**Where neither is travelling the case does not arise at all.** **Verified** across the Rueda at 2, 3, 4, 5,
+6, 8, 10 and 12 couples and Línea Moderna at 4 through 12, in each of Casino, Exhibela and the Dile Que No
+position: the closest two places of any formation position are always the two partners of one slot, at
+
+    min( s , 2*R_step )   =   min( 64.04 , 46.00 )   =   46.00
+
+against a clearance of `w + 2Δ` = 35. The closest pair in *different* slots is 49.18 — two couples of a
+two-slot wheel gathered onto their spokes, `g - 2*R_step` apart, the two midpoints being exactly `g` apart
+on a two-slot wheel. So two units both on zero-length corridors are never within the clearance, and there
+is nothing to solve.
+
+Both margins are relationships between named constants, and **neither is recorded anywhere else**:
+
+    within one slot                a + w/2  >=  w + 2Δ         i.e.  a >= 19        (a = 30 today)
+    across a two-slot wheel              g  >=  a + 3w/2 + 2Δ  i.e.  g >= 81        (g = 95.18 today)
+
+The first says the Dile Que No position is legal only because a leader's arrow reach is what it is:
+shorten `a` below `w/2 + 2Δ` and the resting position itself puts two bodies in collision, with no figure
+having been danced. The second says the same of the gap between couples on the smallest wheel there is.
+
+**Priority.** A zero-length corridor is the shortest there is, so §6.6 makes it yield to everybody — which
+is exactly what §3.6 intends by offering the form: a group told to hold its place steps aside for somebody
+who needs to pass, where a scripted group would not.
+
+**S3 and S4.** S3's ratio is `0/0` here rather than merely large, which is why §1.6 gives it a floor of
+`Δ_len`. Below that length S4 is the whole of the constraint, and S4 is what the solver caps on in any case
+(§6.8).
+
+**What the two do to each other on a short corridor is worth seeing**, because it is a thing to watch
+rather than a thing to fix. S4 permits an absolute deviation of `W/2 + w/2 + w` = 64 units whatever the
+corridor's length; S3 permits about half the corridor's length. **Verified** by integrating one C2 swell
+along a straight corridor:
+
+| corridor length | S3 permits | S4 permits | ratio at S4's cap | the tighter |
+|---|---|---|---|---|
+| 15.9 — a Dame's leader at six couples | 7.9 | 64.0 | 8.23 | S3 |
+| 64.0 — Dame Dos Pequeña's follower from Casino | 32.0 | 64.0 | 2.36 | S3 |
+| 128.2 | 64.0 | 64.0 | 1.50 | they agree |
+| 180.8 — Dame Dos Pequeña's leader, the loop | 90.2 | 64.0 | 1.29 | S4 |
+| 267.9 — Dame Dos from the Dile Que No position | 133.7 | 64.0 | 1.14 | S4 |
+
+They cross at **128.2 units**, and the corpus lies on both sides of that. The shortest corridor in it is
+**15.9 units** — a Dame's leader at six couples, the two dancers each covering half a slot toward one
+another — which would score 8.23 against S3 if it ever took S4's full deviation. Nothing is expected to
+come near that, which is precisely why S3 is a verification criterion held under observation (§1.6, §14)
+and not a second cap in the solver: if the system works as intended it is never approached, and if it is
+approached the number is the evidence.
+
+### 9.5 A figure with no duration
+
+**Reachable today.** `afuera` and `adentro` are the two zero-beat entries §7.5 names as having no ramp.
+
+**Measured in the existing engine: both are pure relabellings and nobody moves.** The model says the same
+thing independently, which is the check that the relabelling is real rather than an implementation
+shortcut: §3.2 puts Casino's leader at `ccw` and its follower at `cw`, and Afuera Exhibela puts them in the
+same two slot-places; Exhibela and Afuera Casino likewise. The arrangement is unchanged and only its name
+against the wheel differs, which is what `afuera` means.
+
+**What goes undefined.** §7.2 gives a figure the half-open window `[ b_start , b_start + beats )`, which at
+`beats = 0` is the empty interval, and normalises time as `t = (beat - b_start) / beats`, which is `0/0`.
+
+**The answer: a zero-beat figure occupies no interval on the clock.** Its effect is applied at the instant
+`b_start`, and `t` is never needed, because `path(dancer, t)` is constant — every dancer's start place and
+end place are the same point.
+
+**And that is the well-formedness condition**, stated so it is checked rather than assumed:
+
+> A figure with `beats = 0` is well-formed only if every dancer's start place and end place coincide.
+
+A zero-beat figure that moved anybody would move them at infinite speed, which §1.4's fourth criterion
+forbids outright. Refusing it when it is defined is the honest answer, and the check needs only the two
+formation positions — no couple count, no geometry beyond §5.5.
+
+**The half-open window then needs no exception.** A zero-beat figure claims no instant, so a figure
+starting on the same beat owns it and there is no question of which of the two a dancer is in. That is
+§7.2's rule working, rather than §7.2's rule being bent.
+
+**Note what a relabel is in the model:** a figure whose `to` differs from its `from` and whose places do
+not. §3.3 already derives every landing slot-position from `to`, so nothing new is needed to express one.
+
+### 9.6 A pass that is nearly not a pass
+
+**Reachable wherever `A` and `B` sit near one ray from a declared feature** — the collinear rows of §5.8's
+table describe it exactly, and this section is about the neighbourhood of those rows rather than the rows
+themselves.
+
+**The phenomenon.** Along the straight line `Φ` is a small `±ε`. If the declared side matches its sign, the
+corridor *is* the straight line and the declaration costs nothing. If it does not, the shortest path with
+the other sign is a near-full loop. So **corridor length is discontinuous at collinearity**, jumping
+between the length of `AB` and something of the order of the loop. §5.8's second worked example is that
+jump taken: a path of 278.99 units where the straight line is 50.
+
+**Two things this is not.**
+
+It is **not an ambiguity.** `Φ` has a sign, the engine computes it exactly, and identical inputs give
+identical output — S5 is untouched. Discontinuous is not the same as undetermined.
+
+It is **not a case for a dead band.** Snapping a near-collinear configuration to collinear would make the
+corridor depend on a threshold instead of on the declarations, and §8.4 is explicit that a pass side
+against a static feature must never be derived. The author said which side. The engine's business is to
+honour it, including where honouring it is expensive.
+
+**What the engine does is report the cost.** The resolution carries, for each declaration, **the taut
+path's length with that declaration and the length without it**. A declaration that multiplies the length
+is then a number in the resolution and a line in a diff, in front of the author before anybody watches the
+figure — which is the only way this discontinuity is ever visible, because a corridor that has jumped from
+a straight line to a loop is still a perfectly plausible-looking corridor.
+
+**Neither number is extra work.** §5.8.3's construction already recomputes the chain with each feature
+removed, on every pass, in order to decide whether that feature binds — so the length without the
+declaration is a by-product of a calculation the engine performs anyway. What it costs is storage: one
+number per declaration per instance, alongside the *bound / did not bind* flag §4.8 already lists as
+derived.
+
+This is deliberately **not** a question put to the author. §4.8's loop asks only where the engine cannot
+answer honestly, and here it answers perfectly well; asking would imply a doubt it does not have.
+
+**Two measurements, because the corpus already shows both halves of this.**
+
+*How near it comes to the edge.* Dame Dos's leader at two couples — the tightest case there is — subtends
+157.87° about the wheel's midpoint, which is **22.13° from the flip**. Not a knife edge, and recorded so
+that a figure which does sit on one is recognised as sitting on one.
+
+*What a binding declaration costs when it binds.* Dame Dos Pequeña's follower, danced from
+`{ Línea Moderna, Dile Que No }`, has a straight line of 39.42 units from her `inner` place to her `ccw`
+place. Its `Φ` is `+90°` — the *left* side — against a declared `right`, so the declaration binds by side;
+and the straight line clears her slot's midpoint by 18.68 against a keep-out of 19, so it binds by
+clearance too. Her taut path is a tangent of 12.96, an arc of 182.10° measuring 60.39, and a tangent of
+25.77: **99.12 units**, two and a half times the straight line. That is the figure §4.7 describes as
+travelling *around* her slot's midpoint rather than straight past it, and the number is what that costs.
+
+### 9.7 Two features with no room between them
+
+**Declaring one feature on the left and another on the right says *walk between these two things*.**
+Sometimes there is no between.
+
+**The condition is one line of §5.8.2.** The tangent joining two wrapped circles exists only when the size
+of `ρ̂_i - ρ̂_j` is less than `D`, the distance between the two centres — with the wrap directions carried
+inside the signed radii. The two cases then read very differently:
+
+| The two features are declared | `ρ̂_i - ρ̂_j` comes to | which needs |
+|---|---|---|
+| on the **same** side | `r_i - r_j` | almost nothing — zero for two features of equal radius, so the tangent exists even where the discs overlap |
+| on **opposite** sides | `r_i + r_j` | the two centres further apart than the two keep-outs together |
+
+Going *round* two things is therefore always expressible; going *between* them may not be. A tangent that
+does not exist is a failure reported under §5.8.4, never a value to clamp.
+
+**What that permits at today's values.** A place inflates to `r + W/2 + 2Δ`, which for a solo corridor is
+`16 + 16 + 3` = **35**, so two people must stand more than **70** apart for a solo dancer to be routed
+between them. A formation offers exactly two spacings between neighbouring dancers:
+
+| What the dancer is told to walk between | Apart | Needs | |
+|---|---|---|---|
+| the two partners of one couple | `s` = 64.04 | 70 | **cannot be expressed** |
+| a follower and the next couple's leader | `g` = 95.18 | 70 | fine |
+
+**The two halves of the design reach that number independently, and that is the point of recording it.**
+§6.5 says two bodies collide inside `w + 2Δ` = 35, so anyone squeezing between two standing dancers must be
+35 clear of each, needing those two more than `2(w + 2Δ)` = 70 apart. The corridor language arrives at 70
+from §5.8.2's tangent condition and §3.7's keep-out; the collision model arrives at it from two bodies and
+a margin. Their agreement is the check that §3.7 inflates a feature by the right amount — had the two
+disagreed, one of them would have been wrong and neither would have said so.
+
+**A couple travelling as one object fits through neither.** Its corridor is `W = c + 2w`, which is 128.04 at
+`open`, so a place inflates to 83.02 and the two would have to be more than 166.04 apart. Neither 64.04 nor
+95.18 is close. That is right rather than restrictive: a couple plus its clearances is 128 units across and
+the widest gap between neighbours the formation offers is 95. **A couple-unit figure goes round the outside
+or through the middle**, and the language says so by refusing to express anything else.
+
+Two riders, both of which matter to an implementer:
+
+- **This is about *neighbouring* dancers.** Two places on opposite sides of an eight-couple wheel are some
+  400 units apart and a couple passes between them comfortably. `s` and `g` are the gaps a formation offers
+  between neighbours, and they are the ones that bind.
+- **Whether a between-declaration is expressible can depend on the couple count**, so it is asked per
+  instance (§3.9). Neither `s` nor `g` varies with the count, so a declaration between two partners or
+  across one gap has the same answer everywhere — but a declaration naming a place and a wheel's midpoint,
+  or two places further apart, has a `D` that grows with `R`.
+
+### 9.8 A unit with nowhere to go
+
+Three configurations, and what they share is worth naming first: **the engine is not short of a technique,
+it is short of room.** Each ends in a fault (§6.10), and what §9 adds is that the fault must name the cause
+rather than the symptom — because a fault an author cannot act on is a fault reported badly.
+
+**Pressed from both sides at once.** §6.7 merges swells that push a unit the same way and sums swells that
+push it opposite ways. Two encounters pushing exactly opposite ways with comparable amplitude therefore sum
+to nothing: neither pair clears, and §6.9's loop rebuilds the same paths on every pass until it reaches its
+limit.
+
+The *symptom* is the pass limit, which §6.10 already lists. The *cause* is that the unit had nowhere to go.
+They are different messages to the person who has to fix it, and only one of them can be acted on — so the
+engine distinguishes them, and the test is cheap, because everything it needs is in front of it on the
+final pass:
+
+> For each unit still carrying an unresolved encounter, take its swell contributions at the instant of the
+> worst remaining violation. If two of them are of **opposite sign** and cancel to within the amplitude the
+> solve was still asking for, that unit is **boxed in**, and the fault names **those two encounters** — the
+> other dancer in each, and the instant — rather than reporting only that the loop did not settle.
+
+That distinction is what makes the fault actionable. A unit that is boxed in is not a solver failure and
+will not be fixed by more passes: the author's options are a priority ranking that makes one of the two
+yield (§4.5), a declared pass that routes this unit clear of one of them before they ever meet (§5), or a
+different destination. A unit that is merely *not settled yet* is a different problem with different
+answers, and a fault that cannot tell the author which of the two they have is a fault reported badly.
+
+**Most of this is legible from the diagram §6.10 already requires**, and that is the point rather than a
+redundancy: an author looking at three dancers converging on one spot can usually see that the middle one
+has nowhere to go. What the named pair adds is the two things a drawing does not carry — *which* instant
+the engine measured, and that it was opposition rather than insufficient passes — so the diagram shows the
+problem and the fault says which of the two answers applies to it. **Both are marked on the same drawing**:
+the two opposed encounters are the pair to highlight, alongside the instant of closest approach §6.10
+already asks for.
+
+**An occupied place inside a corridor that nobody declared.** §3.7 is deliberate that keep-out is about
+declarations and collision is about dancers, so a corridor may run straight through a place with somebody
+standing on it and nothing about the corridor changes. The body is found by §6.5 at every sample and the
+traveller deviates around it. If that dancer is scripted or holding they never yield (§6.6), so the
+traveller absorbs the whole of it, which can exceed S4's cap and become a fault.
+
+**The advice that fault carries is specific, and it is the most useful sentence in this section:** *declare
+a pass against that place.* Doing so moves the problem out of §6, where it is solved by dodging, and into
+§5, where it is solved by routing — and §1.5 is the statement that this is the right way round. A figure
+that faults here has usually not found a limitation of the engine; it has found a route its author never
+stated.
+
+**Two scripted groups in contention.** Already a fault (§3.6, §6.6), and listed here because it completes
+the family: neither group may be moved, so there is nobody to ask.
+
+### 9.9 What §9 does not do
+
+- **No new rules.** Everything above is derived from §3 to §8 — or, in two cases, from measuring the engine
+  this design replaces and from drawing a formation the language could not yet describe. Where a derivation
+  contradicted earlier text, the earlier text was corrected rather than patched here: §1.4, §1.6, §3.1,
+  §3.2, §3.5, §3.9, §3.10, §4.7, §5.2, §5.5, §6.2, §7.7 and §8.2 all moved as a consequence of writing this
+  section.
+- **No failure machinery.** What a fault carries, and the rendered diagram it carries with it, are §10's.
+- **No formation construction.** The minimum couple count is derived here because §5.3's equation is where
+  it falls out; how a one-couple wheel's radius is fixed, and how an unevenly-spaced wheel is described, are
+  `FORMATIONS.md`'s.
+- **No verification.** Which of these configurations the corpus contains, and which are exercised only by a
+  written test, is §14's.
+- **No claim of completeness.** §9.1's spine is a checklist, not a proof.
+
+---
+
+## 10. Failure
+
+Nine sections defer to this one. §3.6, §3.9, §5.8.4, §5.10, §6.10 and §9.8 all say that something *is a
+fault* and leave what that means to be said here; §1.5 and §2.5 state the principle it has to serve; §9.1
+draws the line between an edge case with an answer and one without. This section is the answer.
+
+It is short on new decisions and long on gathering, deliberately. **Almost every failure in this system was
+already specified where it arises** — what is missing is one place that says what the word means, what a
+failure carries, when it is noticed, and what an author does with it.
+
+### 10.1 Three kinds, and the word for each
+
+Earlier sections say *refused*, *fault*, *failure*, *error*, *warns* and *reports*. Underneath there are
+exactly **three** things, and the difference between them is not a matter of severity — it is a matter of
+**what still exists afterwards**:
+
+| | What it means | When | What survives | Who acts |
+|---|---|---|---|---|
+| **Refusal** | the definition is not a definition. It could not mean anything, whatever the floor looked like | as it is written | **nothing** — the figure does not enter the corpus | the author, before anything runs |
+| **Fault** | the definition is well formed and **this instance could not be produced** — this couple count, this phase, this placement | while resolving or solving | the definition, and every other instance of it | the author, told which instance and why |
+| **Report** | nothing stopped. A number, a count or a suggestion is recorded because somebody should see it | wherever it arises | everything | nobody, necessarily — it is evidence |
+
+**"Failure" is not a fourth kind.** Where §5.8.4 says *failure* and §6.10 says *fault* they mean the same
+thing, and §10.3's catalogue says which kind each named case is. The three words above are the ones to use
+from here on.
+
+**The principle all three serve is §1.5's**, and it is worth restating in the form an implementer needs:
+
+> **Nothing is swallowed and nothing is approximated.** A deviation that cannot be made without breaking
+> the author's declarations is a failure the author is told about, never a licence to disobey them. A
+> corridor that could not be built is **absent** — not empty, not a best effort (§5.10). A figure that
+> faults is drawn as its faults, not as its best guess (§6.10).
+
+The reason is §2.5's, learnt once already: returning a plausible-looking path is how two leaders passed
+10.5 units apart during Adios Pequeña with nothing in the logs and no test failing.
+
+### 10.2 What a fault is scoped to, and when it is noticed
+
+#### One definition, many instances — and a fault belongs to one of them
+
+§3.9 resolves a definition into **one instance per distinguishable starting circumstance**: couple count ×
+phase, within the formation position the definition is keyed by. A fault belongs to an instance, never to
+the definition — which is why a figure can be perfectly good at six couples and fault at two.
+
+**Two sentences in the reviewed text read as contradicting each other, and this is where they are
+reconciled.** §3.9 says *"every instance must resolve"*; §4.3 step 2 says a hop that cannot be 1-1 at some
+couple count *"makes the figure invalid at that count and leaves the others untouched"*. Both are right,
+because they are about different steps:
+
+1. **The instance set is determined first.** It is the couple counts the formation supports (§9.2),
+   narrowed by the axes the figure names — `parity` restricts a figure to even counts (§3.5, §9.2) — and
+   narrowed again by any count at which the figure is inapplicable rather than broken, such as §4.3 step 2's
+   hop that cannot be 1-1. **Narrowing is a report, not a fault** (§10.3): the author is told their figure
+   does not exist at ten couples, and nothing has gone wrong.
+2. **Then every instance in that set must resolve.** One that does not is a fault, and §3.9's rule applies
+   to the set as narrowed.
+
+Phase is the case §3.9 argues about and it does not narrow: **no figure is supported that is danceable from
+one phase and not the other**, so a phase instance that will not resolve is a fault rather than a narrowing.
+If a real phase-restricted figure ever appears, §3.9 is where it is admitted, and this rule follows it.
+
+#### Noticed as early as the inputs allow
+
+Three moments, and a rule about them:
+
+| Moment | What is known | What can be caught |
+|---|---|---|
+| **definition time** | the definition, the two formation positions, the wheels' names and phases | everything that does not need a couple count |
+| **resolution time** | that, plus a couple count, a phase and a placement — so every corridor | everything geometric about one instance, before any dancer moves |
+| **solve time** | that, plus every other dancer in play and the clock | contention, deviation and the collision loop |
+
+> **A failure is raised at the earliest moment its inputs are complete.** A refusal that could have been
+> found at definition time and instead waits for a couple count is a defect in the implementation, not a
+> late fault.
+
+That rule is worth the sentence because the temptation runs the other way: it is easier to write one check
+at the end than to know which inputs each check needs. §4.3 already states it for the hop — *"each failure
+is named and refused — at definition time where it can be, otherwise at the couple count that breaks"* —
+and it generalises to all of them.
+
+**All failures of an instance are collected, not the first.** Resolution and the solve run to completion
+and report everything they found. An author fixing a definition one message at a time is being made to pay
+for the implementation's convenience, and §14's corpus needs the whole picture of a bad instance rather
+than its first symptom.
+
+### 10.3 The catalogue
+
+Every failure this document names, gathered. Each has a **kind** — a stable lowercase name — because a
+failure is stored (§10.6) and stored things get compared; a kind that is a sentence cannot be diffed.
+
+Where a row's "what the author does" is blank, the fault has no single answer and the diagram (§10.5) is
+what the author works from.
+
+#### Refusals — the definition is rejected
+
+| Kind | Raised when | Specified in |
+|---|---|---|
+| `dancers-not-covered` | the group clauses do not between them select every dancer | §4.2 |
+| `dancers-covered-twice` | more than one group clause selects the same dancer | §4.2 |
+| `axis-not-offered` | a figure names an axis the relevant formation has not declared | §3.5, §4.2 |
+| `parity-not-offered` | a figure names `parity` in a formation that does not offer it | §3.5 |
+| `odd-offset-on-phaseless-wheel` | an offset would land a dancer in a phase its wheel does not have | §4.3, §5.5 |
+| `unresolvable-name` | a wheel name resolves to no wheel from the slot it is resolved against | §4.3, §5.5 |
+| `facing-and-turns` | a solo clause declares both `facing` and `extra turns` | §4.6 |
+| `series-does-not-land` | `beats` is not a cumulative boundary of the `repeating` series | §4.6 |
+| `too-short-for-ramps` | `2 × t_blend > beats` | §7.5 |
+| `zero-beat-moves-somebody` | a zero-beat figure whose dancers' start and end places differ | §9.5 |
+
+Every one of these is decidable from the definition alone, and every one names what it found: the dancers
+no clause reached, the axis and the formation, the group and the offset, the lengths that would have been
+accepted.
+
+#### Faults — the definition stands, this instance does not
+
+| Kind | Raised when | When | What the author does |
+|---|---|---|---|
+| `endpoint-inside-feature` | a corridor's start or end lies inside a declared feature's disc | resolution | drop the declaration, or move the destination |
+| `features-coincide` | two declared features share a centre; if their sides differ the declaration contradicts itself | resolution | remove one |
+| `no-tangent` | the declared sides leave no route between two features — `abs(ρ̂_i − ρ̂_j) ≥ D` | resolution | the two cannot be walked between; go round (§9.7) |
+| `order-does-not-settle` | the encounter order oscillates instead of converging | resolution | — |
+| `hop-not-rigid-rotation` | **H** is not one rigid rotation of the hop's `from` set | resolution | correct the walk of the dancers named |
+| `hop-pairing-incomplete` | one clockwise turn does not carry every pair at once | resolution | as above |
+| `arrival-not-one-per-place` | after walk 2 a place of the ending position receives none or two dancers | resolution | correct the destinations |
+| `instance-does-not-resolve` | some phase instance fails where its siblings succeed | resolution | §3.9 — no such figure is supported |
+| `clearance-unreachable` | a pair cannot be brought to `w + 2Δ` at all | solve | — |
+| `deviation-exceeds-cap` | clearing a pair would need a deviation past S4's cap | solve | declare a pass, or a priority ranking |
+| `deviation-breaks-a-pass` | the final path fails a §5.8.5 test — through a feature, or round its wrong side | solve | the declarations cannot all hold; relax one |
+| `scripted-contention` | two scripted groups contend and neither may be moved | solve | one of them must become a progression |
+| `boxed-in` | a unit's opposed swells cancel; it has nowhere to go | solve | priority, a declared pass, or a different destination |
+| `pass-limit` | the loop did not settle, and the unit is not boxed in | solve | — |
+
+**`boxed-in` and `pass-limit` are one symptom and two causes**, which is why they are two kinds. §9.8 gives
+the test that separates them, on the final pass: take a still-unresolved unit's swell contributions at the
+instant of the worst violation, and if two are of opposite sign and cancel to within the amplitude still
+being asked for, it is `boxed-in` and the fault names those two encounters. Otherwise it is `pass-limit`.
+The distinction is the whole of whether the author has something to act on.
+
+#### Reports — nothing stopped
+
+| Kind | What is recorded | Specified in |
+|---|---|---|
+| `unsupported-count` | a couple count excluded from the instance set, and why | §4.3, §9.2 |
+| `instance-count` | how many instances a definition resolved to | §3.9 |
+| `empty-group` | a group that selects nobody at some couple count | §9.2 |
+| `coverage` | dancers in play, and pairs actually compared | §6.4 |
+| `declaration-cost` | each declaration's taut path length with it and without it | §9.6 |
+| `absolute-address` | a figure addressing by index rather than relatively | §3.4 |
+| `simpler-address` | a place address with an equivalent Casino form | §4.7 |
+| `override-moved` | a stored override still matching by ordinal, with its geometry moved | §4.5 |
+| `override-usage` | how often priority and encounter overrides were written, by kind | §4.5 |
+| `acceleration` | peak lateral acceleration per figure per couple count | §7.7, §14 |
+| `cache-miss` | a content-keyed miss on a definition nobody meant to change | §5.10 |
+
+**Half of these exist to be counted rather than read**, and that is not a lesser purpose. `coverage` is
+§2.5's argument made into data — a collision test can only find what it looked at, so the size of the
+search is asserted directly. `override-usage` is what tells §4.5 which derived default is the weaker.
+`declaration-cost` is the only way §9.6's discontinuity is ever visible.
+
+### 10.4 What a failure carries
+
+One shape, with a payload that varies by kind:
+
+```
+kind         one of §10.3's names
+severity     refusal | fault | report
+figure       (name, from) — the definition, keyed as §4.1 keys it
+instance     { placement, couple count, phase }   absent for a refusal
+groups       the group ids involved — one, or two where it is a contention
+dancers      the dancers involved, where the failure is about particular bodies
+where        a feature, an address, a place, or a point on the floor
+moment       the beat, or t within the figure, where the failure has one
+measured     { got, required }  — the two numbers that did not agree
+advice       the next action, where the kind has one
+diagram      a rendered drawing (§10.5)
+```
+
+Three fields deserve their reasons.
+
+**`measured` is two numbers, always in the same order**, and it is what makes a fault legible at a glance:
+`{ got: 31.14, required: 35 }` for a clearance, `{ got: 1.093, required: "< 1" }` for a tangent that does
+not exist, `{ got: 8.23, required: "< 1.5" }` for an S3 breach. A fault that says only *"too close"* makes
+the reader open the geometry to find out how close, and a fault whose numbers are prose cannot be compared
+between two runs.
+
+**`advice` is a field rather than prose**, because §9.8 found the useful case: an occupied place inside a
+corridor that nobody declared produces a `deviation-exceeds-cap` fault whose answer is always *declare a
+pass against that place* — moving the problem out of §6, where it is solved by dodging, and into §5, where
+it is solved by routing. Where a kind has one canonical next action, the fault carries it; where it does
+not, the row in §10.3 is blank and the diagram is what the author works from.
+
+**`instance` is what makes a fault addressable.** "Dame Dos Pequeña faults" is not something an author can
+act on; "Dame Dos Pequeña, four couples, phase 1" is.
+
+#### Failures are deterministic, and that is S5 again
+
+Identical inputs must produce **identical failures in an identical order** — same kinds, same numbers, same
+sequence. §5.10 requires it of geometry and §8.3 requires it of the stored resolution; a fault list that
+reorders between runs makes every diff noise, and §8.3's whole mechanism depends on regenerating an
+unchanged definition producing no diff at all.
+
+So the order is fixed the way §6.9's is: by the order the checks run, and within a check, innermost first.
+A set or a hash map iterated in its own order is a defect here for the same reason it is there.
+
+### 10.5 A fault is shown, not only described
+
+§6.10 asks for this and leaves the specification here:
+
+> A pair of names and a time is enough to **reproduce** a fault and not enough to **see** one, and seeing
+> it is what an author needs before they can answer the question the fault is asking.
+
+**Every fault carries a rendered diagram.** Not every report does — a `coverage` count has nothing to draw
+— but every fault does, because a fault is a geometric claim and geometry is read by eye.
+
+What it draws, in every case:
+
+- the formation at that instance's couple count and phase, with every dancer at rest;
+- the corridors of the units the fault concerns, with their declared features **inflated to their keep-out
+  radii** (§5.7), so the constraint the author wrote is visible rather than inferred;
+- the cause, marked.
+
+What "the cause, marked" means, per family:
+
+| Fault | What is marked |
+|---|---|
+| a corridor fault — `endpoint-inside-feature`, `features-coincide`, `no-tangent` | the feature or features, their keep-out discs, and the endpoint or gap that failed |
+| a collision fault — `clearance-unreachable`, `deviation-exceeds-cap` | both units' paths, the instant of closest approach, and the clearance circle `w + 2Δ` around each |
+| `deviation-breaks-a-pass` | the feature, the side declared, and the side the final path actually took |
+| `boxed-in` | **the two opposed encounters**, each with its other dancer and its instant — §9.8's diagnosis drawn |
+| `scripted-contention` | both scripted groups, and where they overlap |
+
+**The diagram is regenerated from the fault, never hand-drawn.** It is the same discipline the formation
+diagrams already follow — `test/formation-lines.js` and `test/formation-perpendicular.js` derive every
+number from the construction so the picture cannot drift from the words — applied to failures. A fault
+diagram that was drawn once and stored would go stale the moment the geometry moved, and a stale picture of
+a failure is worse than none.
+
+### 10.6 What happens to the output
+
+**A faulting instance produces no artefact.** Its corridor is absent, not empty and not approximate
+(§5.10); its path is absent; the figure cannot be scheduled at that instance. There is no degraded mode,
+and an implementation that returns a best effort with a fault attached has missed the point of §1.5.
+
+**Failures are stored in the resolution, alongside everything else derived** (§8.3). That is the part worth
+insisting on: a fault is **data, not a log line**. Three things follow, and each is the reason for the last:
+
+- **A new fault arrives as a diff** against a corpus a human has already approved, naming exactly which
+  instances moved — which is §8.3's argument for storing derived values at all, applied to the values
+  nobody wants.
+- **A fault that disappears is equally visible.** A change that fixes six instances and breaks one shows
+  both halves in the same diff.
+- **§14 can assert on them.** "This corpus has no faults" is a check; so is "this definition faults at two
+  couples and is expected to", which is how a known limitation stops being rediscovered every run.
+
+**A refusal is not stored**, because there is nothing to store it against — the definition never entered the
+corpus. It is raised to whoever is writing the definition, which today is §4.8's authoring conversation.
+
+**And a fault is the start of that conversation rather than the end of a run** (§6.10). Where its cause is a
+contested corridor it is exactly the question §4.8's loop puts to the author — which side should these two
+pass on — so the authoring agent reads faults as its queue of things to ask about, and §10.4's `advice`
+field is what it says first.
+
+### 10.7 What §10 does not do
+
+- **It does not add failures.** Every kind in §10.3 was specified where it arises; this section names them,
+  says which of the three things they are, and settles what they carry. If a kind here has no section
+  against it, that is a defect in this table rather than a new rule.
+- **It does not decide what happens at run time** when a call would use a figure that faults at the current
+  couple count. The figure is unavailable; whether the call is refused, substituted or queued is
+  `SCHEDULING.md`'s.
+- **It does not specify the corpus.** Which instances are generated, and which faults are expected, is
+  §14's.
+- **It does not draw.** §10.5 says what a fault diagram must contain; how it is rendered, and in what, is
+  §11's.
+
+---
+
+## 11. The renderer contract
+
+§5, §6 and §7 each end by saying they do not render, and each names the same requirement: the renderer must
+draw **the curve the engine computed**, not a reconstruction of it. §1.6 carries it as S7 and §2.5 lists it
+among the things a replacement must not lose. This section states what that means, what crosses the
+boundary, and what the renderer is forbidden to do with it.
+
+It is a short section with one idea in it. The length is in the evidence, because this is a change to
+working code and the case for changing it has to be made with numbers rather than principle.
+
+### 11.1 The contract
+
+> **The engine produces a function. The renderer evaluates it.**
+>
+> Nothing between the two reconstructs, smooths, fits or interpolates. Where the drawn position differs
+> from `path(dancer, beat)` by more than the display's own rounding, that is a defect in the renderer.
+
+That is S7 — *the drawn path is the planned path* — and everything else here follows from it.
+
+**The reason is §2.5's, and it is about verification rather than beauty.** §5.8.5 checks the taut path
+against seven tests to a tolerance of `Δ_len`; §6 checks every pair's separation against `w + 2Δ`; §14 puts
+diagrams in front of a human to sign off. **If the renderer draws something else, none of those checks is
+about what anybody sees.** A drawn path that is close is not the same as a drawn path that is the one
+verified, and the gap is invisible precisely because it looks plausible.
+
+### 11.2 Why this is a change, and what it costs today
+
+The current renderer **reconstructs**. `samplePath` takes a list of keyframes and, for each segment, fits a
+circle through the point behind and a circle through the point ahead, then blends the two — with
+`CORNER_DEG` deciding when a direction change is a genuine corner to leave sharp rather than a curve to
+round.
+
+**It is good code and it has been right until now**, which is worth saying plainly because the numbers
+below read like a criticism and are not. Measured against an exact circular arc it is **exact — 0.000
+units of error** at every radius, sweep and keyframe count tried. That is not luck: the circle through
+three samples of a circle *is* that circle, as the code's own comment says. Straight lines fall back to the
+chord and are exact too. And the paths today's engine produces are arcs and straight lines. **The
+reconstruction is losslessly matched to the curves it was written for.**
+
+**§5 and §6 produce different curves.** A taut path is straight runs joined *tangentially* to arcs (§5.8.1),
+so three consecutive keyframes routinely span a join and the circle through them is neither the line nor
+the arc. A deviation is a quintic swell in time (§6.7), which is not a circle anywhere. **Verified**, by
+sampling each shape as keyframes and redrawing it with the current renderer:
+
+| Shape | 8 keyframes | 16 | 24 | 40 |
+|---|---|---|---|---|
+| a circle or a straight line | **0.000** | 0.000 | 0.000 | 0.000 |
+| a taut path — 60 in, 120° round `ρ` = 35, 60 out | 0.861 | **0.116** | 0.082 | 0.029 |
+| a deviation swell — `L` = 154, amplitude 40 | 1.189 | **0.247** | 0.107 | 0.037 |
+| a swell on a short corridor — `L` = 16, amplitude 12 | 0.571 | **0.127** | 0.054 | 0.019 |
+
+The engine emits **16 keyframes** for a four-beat Dame today, so the middle column is the honest one.
+
+**What those numbers mean, in the document's own constants.** They are far below `Δ` = 1.5, so this never
+causes a collision — it is a fidelity problem, not a safety one. But they are **above `Δ_len` = 0.1**, which
+is the tolerance §5.8.5 verifies the taut path to and §5.10 requires every length comparison to use. So the
+engine would certify a corridor clears a feature to within a tenth of a unit and the renderer would draw it
+a quarter of a unit out. That is §2.5's sentence made arithmetic: *the thing verified is not the thing
+shown*.
+
+**And it cannot be fixed by adding keyframes.** The error falls roughly as the square of the count, so any
+particular figure can be brought under any particular tolerance — but only by choosing a count, and nobody
+can say what count is enough without measuring that figure. That is exactly the objection §6.5 raises to a
+fixed sample count in collision detection: *whether it is enough depends on how fast the pair closes, which
+varies by figure and couple count*. The answer there was to state the guarantee and let the implementation
+meet it. The answer here is better, because there is no need to approximate at all.
+
+### 11.3 What crosses the boundary
+
+The renderer receives **functions and exact geometry, never a list of points**:
+
+| | What it is | From |
+|---|---|---|
+| `path(dancer, beat)` | position, facing, and for a couple the unit's orientation, at any beat | §6.1, on §7.2's clock |
+| the **corridor** | a centreline as straight segments and arcs, each exact, plus a width | §5.8.1, §5.9 |
+| the **features** a group declared | centres and keep-out radii | §5.7 |
+| the **resolution** | every derived value, for drawing what the engine decided | §8.3 |
+| a **fault** | §10.4's shape, for the diagram §10.5 requires | §10 |
+
+**`path` is evaluable at any beat, not at a list of beats**, and that is the whole of the interface change.
+§5.8.1 insists the taut path is arcs and segments rather than sampled points for this reason, and §6.1
+defines a path as a function of `t` for the same one.
+
+**A keyframe list is not an acceptable substitute**, however dense. It is the thing being retired.
+
+### 11.4 What the renderer may not do
+
+- **It may not interpolate between samples.** It asks for the position it needs.
+- **It may not smooth, round or fit.** No splines, no circle-fitting, no corner detection.
+- **It may not clamp or nudge.** A dancer drawn outside the stage is a fault to report (§11.6), not a
+  position to pull back.
+- **It may not decide any geometry.** Where a path bends, how tightly, and whether a corner is real are all
+  settled before the renderer sees anything.
+
+**Retired with this section:** `samplePath`, `_circleArc`, `_arcFwd`, `CORNER_DEG` and `ARC_MIN_SAG`.
+
+`CORNER_DEG` deserves a note on the way out, because its derivation is exemplary and its retirement is not
+a judgement on it. It is 150°, chosen because the per-keyframe direction change across every movement is
+sharply bimodal — 31,801 samples below 30°, **nothing at all between 120° and 170°**, and 396 samples at
+170–190°, the genuine reversals — so the threshold sits in an empty band and is read off the data rather
+than tuned. That is exactly how a threshold should be chosen. It stops being needed because **the question
+it answers stops being asked**: the engine no longer hands over points for the renderer to guess the
+curvature between. §5.8.1 already says a taut path has no corners, and where a figure genuinely reverses,
+the function says so.
+
+### 11.5 Units, and the one place seconds live
+
+**All geometry crossing the boundary is in engine units** (§1.2). The engine never reads a screen
+dimension; the renderer owns the transform from engine units to the display, and owns it alone.
+
+**Beats become seconds here and nowhere else.** §7.1 allows exactly two places: physics, which is
+diagnostic, and rendering, which is this. The conversion is `beat_ms = 60000 / tempo`, with `tempo` a user
+control rather than a constant — so the renderer derives it per frame rather than caching it.
+
+**Frame rate is the renderer's business and affects nothing.** Because `path` is a function of the beat,
+sampling it at 60Hz, at 30Hz, or at whatever a browser grants gives the same dance at a different
+smoothness. **A dropped frame is a dropped sample, not an accumulated error** — there is no integration to
+drift, which is a property worth having and a direct consequence of §11.1.
+
+### 11.6 The stage
+
+> **Nothing danced falls outside the drawn area.**
+
+The margin is `STAGE_MARGIN = DOT_R + a` — a dancer's radius plus their arrow's reach — so a dancer at the
+very edge is drawn whole, arrow included.
+
+**The extent is computed from what is danced, not from the resting formation**, and that is a change the
+corridor model forces. A resting wheel's radius no longer bounds the dance: a corridor may swing wider than
+the ring, and a deviation may take a dancer up to `W/2 + w/2 + w` further out again, which is what S4 caps
+it at (§1.6). Since that cap is a bound rather than an observation, the extent is computable in advance —
+every corridor's furthest point, plus S4's cap, plus `STAGE_MARGIN` — and it does not need the dance to be
+run first.
+
+A dancer who would be drawn outside it is **a fault to report, not a position to clamp** (§11.4). The
+existing suite already asserts that nothing danced falls outside the render window; that assertion is the
+one thing here that is kept unchanged.
+
+### 11.7 What is drawn
+
+**A dancer** is a disc of radius `DOT_R` with a facing arrow reaching `a` from their centre (§1.2). Nothing
+about a dancer's appearance is geometry — a footprint is a circle whichever way they look (§3.10) — so the
+arrow is presentation and the disc is not.
+
+**For review, the engine's decisions are drawn too**: the corridor's centreline and width, each declared
+feature inflated to its keep-out radius (§5.7), and the deviations. That is what makes §1.6's S6 possible —
+*every figure is reviewed as a rendered diagram and signed off by a human* — because an author cannot sign
+off a route they cannot see, and a corridor drawn as a bare line does not show what the declaration
+actually constrained.
+
+**A fault diagram is the same drawing with §10.5's marks on it.**
+
+#### One renderer, three uses
+
+The running dance, §14's review diagrams and §10.5's fault diagrams are **produced by the same code**. That
+is not an economy; it is what makes a signed-off diagram mean anything. A review diagram drawn by a second
+implementation would certify a path the application does not draw, and the disagreement would be invisible
+in exactly the way §2.5 describes — which is the same reason the planner has no second code path.
+
+It is also why the formation diagrams already in the repository are generated rather than drawn:
+`test/formation-lines.js` and `test/formation-perpendicular.js` derive every number from the construction,
+so the picture cannot drift from the words. §11 applies that discipline to paths.
+
+### 11.8 What §11 does not do
+
+- **No geometry.** Every curve is settled by §5, §6 and §7 before it arrives.
+- **No look.** Colours, line weights, labels and animation easing of the *camera* are presentation and are
+  not specified here. What is specified is that none of them may move a dancer.
+- **No corpus.** Which diagrams are produced and which are reviewed is §14's.
+- **No interface.** How a user scrubs, pauses or steps through a figure is `ROADMAP.md`'s authoring surface,
+  not this contract — though everything it needs is available, since `path` is evaluable at any beat rather
+  than playable only forwards.
+
+---
+
+## 12. Alternatives considered and rejected
+
+Two implementations failed here before this one, and both failed in ways that looked reasonable while they
+were being built (§2). The defence against a third is not that this design is better argued — it is that
+**the arguments are written down where the next person will look**, so a proposal that has already been
+tried is recognised rather than re-attempted.
+
+This section gathers every alternative §1 to §11 rejected. Almost all of them are already stated where they
+arise; what is added here is one place to look, a grouping that makes the reasons transferable, and — for
+the ones that lacked it — **the condition that would revive them**.
+
+### 12.1 How to use this section
+
+> **Every rejection carries a revival condition. A rejection without one is a prejudice.**
+
+That matters because most of these are not rejections of bad ideas. They are rejections of *reasonable*
+ideas whose cost is paid somewhere the person proposing them was not looking — which is precisely why
+writing the cost down is the only thing that helps.
+
+So the question to ask of anything in this section is **not** "is this a good idea?" — several are — but
+**"has its revival condition been met?"**
+
+Three states appear:
+
+| | Meaning |
+|---|---|
+| **rejected** | considered and turned down; the revival condition says when to look again |
+| **superseded** | the design moved and the alternative no longer describes a choice anybody has |
+| **reversed** | it was rejected, and then we changed our minds. §12.7 collects these, because a mechanism that never reverses is not being used |
+
+**And a test for anything new.** Every rejection here protects one of five properties. Before proposing a
+change, ask which of them it costs:
+
+1. **A corridor is a pure function of the declarations** (§3.9).
+2. **One planner and one renderer, with no second path** (§2.5).
+3. **A definition means one thing at every couple count** (§4).
+4. **The author owns intent; the engine owns consequence** (§8.4).
+5. **What is verified is what is shown** (§1.6, S7).
+
+If it costs none of them it is probably fine. If it costs one, this section is where the previous attempt
+to pay that price is recorded.
+
+### 12.2 The two implementations that came before
+
+§2 describes both in full and this is a pointer rather than a repeat. What belongs here is the one-line
+lesson from each and whether anything could bring it back.
+
+| Rejected | Why | What would revive it |
+|---|---|---|
+| **Via points** (§2.2) — a displacement pinned to a unit at a time, placed where a collision was detected | a via is **state, and is never re-examined**: it outlives the collision that caused it, is pinned at a time the moment of closest approach then moves away from, and two vias within 0.06 of a figure overwrite each other | **Nothing.** Not a tuning failure — the defect is that a resolution is carried forward as state, and §6.9 is built on never doing that |
+| **An elastic relaxation** (§2.3) — separation and tension iterated to a fixed point | it **wiggles when nothing requires it**, because tension and separation reach an arbitrary equilibrium and nothing prefers a straight line; it **ignores declared sides**, because a side implemented as a force loses to a larger force; and it **cannot be steered** | **Nothing, as a whole.** But its one genuine gain was kept: *constraints re-derived every pass drop out the moment they stop binding* (§6.9). The failure was having nothing to relax *toward*, which the corridor now supplies |
+| **Per-formation planning** (§2.5) — Línea's mini-wheels solved one at a time | two dancers in different mini-wheels were **never compared at all** | Nothing. Cost measured and found to be nil: those pairs clear by 60.2 units, so the whole formation is planned together for no price |
+| **A tree of nested wheels** (`FORMATIONS.md §2.2`) | a formation exists in which two wheels are neither nested nor disjoint, so *"my wheel"* names two things | Nothing likely: a tree is a special case of the named model, so nothing is lost by not having it |
+
+### 12.3 Rejected to keep a corridor a pure function
+
+Property 1. Each of these would make a corridor depend on something outside the formation and the
+declarations, which is the property §3.9 says every benefit in this document follows from.
+
+| Rejected | Why | What would revive it |
+|---|---|---|
+| **A pass declared against a moving dancer** (§4.4) | the corridor would depend on where that dancer is, so it could no longer be computed before anybody moves, cached, or reviewed independently | Nothing. This is the load-bearing distinction: static features shape the corridor, moving dancers are collisions |
+| **An acceleration term in the corridor** (§7.7) | a corridor would stop being the shortest path satisfying the declarations and start being a compromise with physics | Nothing. §7.7 keeps acceleration as a *reported diagnostic* precisely so it cannot leak into geometry |
+| **A dead band that snaps a near-collinear pass to collinear** (§9.6) | the corridor would depend on a threshold rather than on the declaration, and §8.4 forbids deriving a static pass side | If the reported cost of a declaration (§9.6) shows authors are routinely surprised by the jump, the answer is still reporting rather than snapping — but that is when to look again |
+| **Declared corridor coordinates** (§8.4) | a second source of truth for the same thing; the two drift at the first change of couple count | Nothing |
+| **Tapering the corridor to follow a separation change** (§3.8) | width would become a function of time, and every downstream check — overlap screening, keep-out, S4 — would have to account for it | A figure where the conservative constant width genuinely costs something. None is known |
+| **Per-dancer keep-out for a couple** (§3.8) | the corridor's full width is conservative but keeps keep-out computable with no collision detection at all | A figure where the conservatism costs something; §3.10 records it as a known bound so it is recognised when it appears |
+
+### 12.4 Rejected to keep one planner and one renderer
+
+Property 2. The pattern in every row is the same: two code paths that agree today are two code paths that
+drift.
+
+| Rejected | Why | What would revive it |
+|---|---|---|
+| **Callers assembling the candidate set** (§2.5, §6.4) | assembled as every *cross-group* pair, it never contained two leaders — and during Adios Pequeña at eight couples two leaders passed **10.5 units apart**, bodies overlapping by more than 20, with **no test failing**, because nothing was asked | Nothing. A caller may declare what is held together; it may never declare what to compare |
+| **A fast path that skips the ramp in the solve** (§7.5) | where dancers share a window the separations are provably unchanged, so it would be correct — and it buys one evaluation per sample in exchange for a second route through the planner | Nothing. §7.5 keeps the *argument* (easing invalidates nothing) and discards the *code path* |
+| **A second renderer for review diagrams** (§11.7) | a diagram drawn by a second implementation certifies a path the application does not draw, and the disagreement is invisible | Nothing |
+| **Reconstructing the curve in the renderer** (§11.2) | it is exact on circles and lines, and drifts 0.12–0.25 units on the shapes §5.8 and §6.7 produce — above `Δ_len` = 0.1, the tolerance the taut path is verified to | Superseded rather than rejected: the engine now hands over an evaluable function, so there is nothing to reconstruct |
+
+### 12.5 Rejected to keep a definition meaning one thing at every couple count
+
+Property 3. Each of these is right at the couple count it was written at and wrong somewhere else, which is
+the worst failure mode available because it looks correct while you are looking at it.
+
+| Rejected | Why | What would revive it |
+|---|---|---|
+| **"Whichever way is shorter" for the derived turn** (§4.6) | the difference between two slot orientations depends on the couple count, so a turn of 170° at one count and 190° at another would have the couple **rotating the opposite way**, with nothing in the definition changing | Nothing. A fixed clockwise resolution is predictable, and `extra turns` corrects it deliberately |
+| **Reducing an offset modulo the wheel** (§3.4) | a reduction is valid only at the count it was performed at: `(grande, −3)` and `(grande, +1)` agree at two couples and differ at six | Nothing |
+| **A figure stating its rotation as a constant** (§4.6) | the primeros' turn is `180° + 360/n`, and `n` is not something a definition may know | Nothing |
+| **Pruning a declaration that does not bind** (§3.8, §4.4) | a side that is free at six couples can be the only thing saying which way round at two | Nothing. §9.6 reports what each declaration *costs* instead, which is the useful half of the idea |
+| **Counting offsets in whole slots on wheels without phases** (§4.3) | an author comparing figures across two wheels would be comparing two different units, and a `−4` meaning a full circuit on one and a half turn on another is a trap no care avoids | Nothing |
+| **Keying a corridor cache on the couple count, or on a figure's name** (§5.10) | the first is wrong the moment a formation supplies its own `g`; the second is wrong the first time a figure is edited | Nothing. Key on content |
+| **Stating `{ Perpendicular, Standard }` against the grande** (`FORMATIONS.md §3.3`) | its outer slot reads 331.6° at four couples and 332.3° at six — **not a constant** | Nothing. The pequeña reading is `±45°` at every size |
+
+### 12.6 Rejected to keep intent with the author
+
+Property 4. Each of these lets the engine decide something the author meant to say.
+
+| Rejected | Why | What would revive it |
+|---|---|---|
+| **An ordering rule for overlapping groups** — later wins, or more specific wins (§4.2) | a clause's meaning would depend on what else is in the figure, so adding a group would silently change groups that never mention it | A figure where writing the exception into both selectors is genuinely painful. Nothing in the corpus comes close |
+| **Inferring a pass side against a static feature** (§8.4) | it is the author's statement of the route; an engine that inferred it is §2.3 again, where a declared side was a force among forces and lost | Nothing |
+| **Interpolating a couple into the correct arrival orientation** (§4.6) | it was a correction rather than a danced turn, always a mistake when it happened, and nothing in the corpus wanted it. Removing the ability to express it removes a class of figure that looks right in the data and wrong on the floor | Nothing |
+| **An engine that slows a figure to keep it comfortable** (§7.7) | it would rewrite what the author wrote, and the author would have no way of knowing | Nothing. It is reported instead (§10.3, `acceleration`) |
+| **A `still` kind** (§3.6) | it could only ever have meant *a zero-length progression that yields* or *a scripted movement that does not*, and never said which | Nothing. Both are wanted and the author now picks |
+| **Guessing a side inside `Δ_side`** (§4.5, §8.1) | the engine would be right about half the time and the author would never learn which half | Nothing. This is what "asked" is for |
+
+### 12.7 Rejections that have since been reversed
+
+The most useful subsection here, because a rejection mechanism that never reverses is not being used — it is
+being recited. Four have changed since they were written, and each changed for a reason worth recording.
+
+| Was rejected or asserted | What changed it | Now |
+|---|---|---|
+| **Retiring priority and encounter overrides** if the migration turned up no uses (§4.5) | a figure is already known that needs **both** an override of the yielding order and of the side, so the question was never whether they are needed | Both stay. The migration counts *how often* each is written, which says which derived default is weaker |
+| **A slot in two wheels meeting at an odd angle has no description** — recorded as a known bound (§9.3, §3.10) | making a slot-position a **rotation and a separation** dissolved it: the axis is absolute, so both readings give the same two points at any angle | Not a bound. What remains is that not every rotation has a familiar *name*, which is a formation's business |
+| **An enumerated list of four slot-places** (§3.2) | two unbuilt formations need rotations no list of four reaches — `Perpendicular` at ±45° and 90°, `Two Lines` at 90° and 135° | Superseded. Eight named *directions*, with the distance coming from the separation |
+| **§1.4's acceleration table** — that a Dame covers one couple-spacing in two beats | measured: it covers **16 units**, making it the slowest-travelling figure in the corpus rather than the fastest | Corrected. The four-beat change stands, as **uniformity** rather than physics |
+
+**What those four have in common is worth naming.** Three were overturned by *measurement* and one by a
+concrete figure. None was overturned by a better argument. That is the pattern to expect, and it is why
+§14's corpus matters more than any amount of care in this document.
+
+### 12.8 Vocabulary rejected for saying too little, or two things at once
+
+Not alternatives to a mechanism — alternatives to a *word*. Each was rejected because a reader could not
+tell what it meant.
+
+| Rejected | Why |
+|---|---|
+| **`select: { leader, outer }`** — bare values, the axis inferred (§3.5) | it forces every value declared by any formation to be globally unique, hides what kind of distinction is being drawn, and gives tooling a set where an axis map would let it diff and complete |
+| **The `LM ` prefix** on formation positions (§4.1) | `{ formation, position }` says which formation without a naming convention to remember |
+| **"Winding" as something a figure declares** (§5.8) | a declared pass already asserts that a pass *happens*, and loops fall out of that; a winding is a second way to say the same thing that can disagree with the first |
+| **`parity` offered wherever it can be evaluated** (§3.5) | computable is not meaningful: in Línea Moderna the count comes out cleanly and sorts the couples into groups no figure would want |
+| **`primeros` / `segundos` as selectors** (§3.5) | no formation could declare them — the split exists in the Rueda *at the moment of entering* Línea Moderna, which is a figure's business |
+| **A place address left in its `Afuera` or `Exhibela` form** (§4.7) | the same point with two transformations to hold in your head. The engine suggests the Casino form and never rewrites it, because nothing is wrong — only harder to read |
+
+### 12.9 What §12 does not do
+
+- **It does not decide anything.** Every rejection here was made where it arises, and that section remains
+  authoritative. If this table and a section disagree, the section is right and this is a stale copy.
+- **It does not list mistakes.** An earlier draft carrying a wrong sign in a tangent formula (§5.8.2), or a
+  radius quoted to two decimals (§3.1), is a correction rather than a rejected alternative. Those live
+  where they were fixed.
+- **It does not cover `SCHEDULING.md`.** The cap of two concurrent figures, and what it rules out, is
+  argued there — §7.8 records only the arithmetic that makes the cap load-bearing.
+- **It is not closed.** A rejection made after this section is written belongs here, with its revival
+  condition, on the same day it is made.
+
+---
+
+## 13. Scripted movements, and what the engine reads from one
+
+A **scripted movement** is prescribed choreography — an Enchufla, a Dile Que No, a bow — whose shape is
+*authored as a curve* rather than derived from a corridor (§3.6). §1.2 calls a figure all of whose
+movements are scripted a **scripted figure**, which is what the existing codebase means by the term.
+
+This section says what one is, what the engine reads from it, and what the engine may never do to it. The
+last of those is the shortest list and the most important.
+
+### 13.1 Why it is a separate class
+
+A progression's shape is **derived**: it falls out of a corridor, which falls out of the declarations. A
+scripted movement's shape is **authored**: a bow is a drawn curve and there is no corridor that would
+produce it.
+
+**Merging the two was rejected** (§3.6, §12.6): it would mean giving the declarative language enough power
+to describe an arbitrary curve, and that power would then be present in every progression definition —
+which is where it would do harm, because the figures that most need to be simple to author are the ones the
+extra vocabulary would complicate. So the two stay distinct and share only the header they genuinely have
+in common: a name, a `from`, a `to`, a beat length, and groups (§3.6).
+
+**The consequence is the useful part.** Because a scripted movement is expressed in its unit's own frame
+(§13.2), the engine has no representation in which it *could* be bent. *Never deformed* is not a rule
+anybody enforces — it is a fact about the model, and that is a much stronger guarantee than a rule.
+
+### 13.2 The frame
+
+Everything else in this section depends on getting this right.
+
+> A scripted movement gives each of its dancers a **position in the unit's frame**, as a function of the
+> movement's own normalised time `u ∈ [0, 1]`.
+
+The frame is:
+
+| | |
+|---|---|
+| **origin** | the unit's point on its corridor at that instant, **including any deviation** (§6.7) |
+| **direction** | the unit's rotation at that instant — the derived turn of §5.6, interpolated across the figure |
+
+For a **standalone** scripted group (`kind: scripted`) the unit does not travel, so the frame is its
+resting place and orientation and does not move. For a **carried** one (`repeating`, §4.6) the frame
+translates along the corridor and turns, and the movement rides on it unchanged. That is why a scripted
+movement which stays on the spot when danced alone still travels and still turns when a progression carries
+it: **the frame does, and the movement never restates the travel** (§4.6).
+
+#### The origin is the corridor point, not the couple's midpoint
+
+§3.8 calls a couple's reference point *the couple's midpoint*, which is exact while they dance nothing. A
+scripted movement may move the two dancers independently, so their instantaneous midpoint can drift away
+from the frame's origin — and in the library today it does. **Measured**: `exhibela` moves the couple's
+midpoint up to **2.2 units** from where it started and `dile` up to 1.1, both returning to 0.00 by the end.
+
+So the origin is **where the unit's reference point would be if it danced nothing** — a point on the
+corridor — and the scripted movement displaces the dancers relative to it. Taking the origin to be the
+couple's live midpoint instead would make the frame depend on the movement being expressed in it, which is
+circular.
+
+### 13.3 What the engine reads
+
+**Two things, and no more:**
+
+```
+beats                the movement's length, a whole number of beats
+position(role, u)    that role's position in the frame, at normalised time u ∈ [0, 1]
+```
+
+Everything else the engine needs is **derived from those two**, which is what keeps the library from
+growing fields that can disagree with the curve:
+
+| Derived | How | Used by |
+|---|---|---|
+| the **accumulated turn** | the signed, unwrapped total rotation of the follower-to-leader direction over `u` | §4.6 subtracts it from the derived turn |
+| **`c_scripted`** | the greatest distance between the partners at any `u` | §3.8 widens the corridor to hold it |
+| each dancer's **actual position** at a time sample | the frame at that instant, plus `position(role, u)` | §6.5's collision detection |
+
+**§6.5 uses the actual positions and not an approximation of the unit**, which matters: a couple is not a
+disc, and treating one as a disc is how the Adios Pequeña overlap in §2.5 stayed invisible.
+
+### 13.4 The turn is accumulated, not net
+
+**This is the one place an implementation will get it wrong**, and the measurement makes the trap plain.
+
+| | net turn | accumulated turn |
+|---|---|---|
+| `enchufla` | 180.00° | **+180.00°** |
+| `reverse_enchufla` | 180.00° | **−180.00°** |
+| `adios` | 180.00° | +180.00° |
+| `reverse_adios` | 180.00° | **−180.00°** |
+| `dile` | 180.00° | −180.00° |
+| `dile4` | −90.00° | −90.00° |
+| `leaders_right_turn` | 0.00° | 0.00° |
+| `exhibela` | 0.00° | 0.00° |
+
+**A figure and its reverse are indistinguishable by their endpoints.** `enchufla` and `reverse_enchufla`
+both leave the couple facing the opposite way; they differ only in which way they got there. §4.6 subtracts
+*"whatever the scripted movements in `repeating` have already turned the couple through"*, and subtracting
+a **net** turn would be wrong by 360° for exactly half the library — the couple would arrive correctly
+oriented having spun a whole revolution too far or too few.
+
+So the quantity is the **signed sum of the incremental rotations across `u`**, never the difference between
+the first and last. And it is derived from the curve rather than declared, so a movement cannot claim a turn
+its dancers do not perform.
+
+### 13.5 `c_scripted` is load-bearing, not theoretical
+
+§3.8 widens a couple's corridor to hold the widest separation it ever reaches:
+
+    W  =  max(c_start, c_travel, c_end, c_scripted) + 2w
+
+**Measured, and the last term earns its place.** The greatest partner separation in the library today is
+`exhibela` at **85.07** units — well above `open` = 64.04:
+
+| | `beats` | greatest partner separation |
+|---|---|---|
+| `exhibela` | 8 | **85.07** |
+| `dile` | 8 | 72.63 |
+| `dile4` | 4 | 72.50 |
+| `enchufla`, `vacilala`, `adios`, `leaders_enchufla`, `leaders_right_turn`, and their reverses | 4 | 64.04 |
+
+A couple carrying `exhibela` therefore needs a corridor of `85.07 + 2w` = **149.07** units against the
+128.04 that `open` alone would give — **21.03 units wider**. Drop the `c_scripted` term and that couple's
+corridor no longer contains the couple, which is the one thing a corridor is for.
+
+### 13.6 What the engine may never do to one
+
+- **Never deform it.** Not a rule but a consequence (§13.1). When the unit deviates, the frame moves and
+  the movement rides on it unchanged.
+- **Never make it yield.** A scripted group never yields (§3.6, §6.6): contention with a progression is
+  absorbed entirely by the progression, whatever the corridor lengths say, because priority does not apply.
+  Two scripted groups in contention cannot be separated by anybody and are the `scripted-contention` fault
+  (§10.3).
+- **Never ease it twice.** One ease per **unit**, at the figure's ends (§7.6). A standalone scripted group
+  gets it because the group is the unit; a carried one does not, because its carrier already has it.
+  Easing each repetition would make a couple dancing three of something pulse three times.
+- **Never truncate or compress it to fit.** §4.6's alignment rule requires the carrier's `beats` to land on
+  a cumulative boundary of the series, and a definition that does not is refused (`series-does-not-land`,
+  §10.3). Truncating the last repetition or squeezing the series would silently dance something other than
+  what was authored.
+
+### 13.7 Standalone and carried
+
+| | `kind: scripted` | `repeating:` |
+|---|---|---|
+| who dances it | the group, in place | a couple, while it travels |
+| the frame | fixed at the unit's resting place | translating along the corridor and turning |
+| how many | one | as many as `beats` allows, in order, then from the first |
+| eased | yes, as its own unit | no — its carrier is |
+| widens the corridor | not applicable | yes, through `c_scripted` |
+
+**How many repetitions is derived, never declared** (§4.6): the progression's `beats` decides it, because a
+count and a duration can disagree and then something has to lose.
+
+**`hold` is the one the corpus needs and the engine does not yet have.** §4.2 and §4.7 both write
+`scripted: hold` — a movement of zero motion, used to say *these dancers stay where they are and are
+immovable*. It is the simplest possible member of the library: `position(role, u)` constant, accumulated
+turn 0°, `c_scripted` equal to the separation they are standing at. It has to exist before any figure that
+names it.
+
+### 13.8 The library today, and what is open
+
+Measured from the existing engine at six couples. Every one of these lands exactly back on a resting
+arrangement — midpoint displacement **0.00** at the end — which is what makes them expressible as scripted
+movements at all:
+
+| | `beats` | accumulated turn | `c_scripted` |
+|---|---|---|---|
+| `enchufla` | 4 | +180° | 64.04 |
+| `reverse_enchufla` | 4 | −180° | 64.04 |
+| `adios` | 4 | +180° | 64.04 |
+| `reverse_adios` | 4 | −180° | 64.04 |
+| `vacilala` | 4 | +180° | 64.04 |
+| `leaders_enchufla` | 4 | +180° | 64.04 |
+| `leaders_right_turn` | 4 | 0° | 64.04 |
+| `dile4` | 4 | −90° | 72.50 |
+| `dile` | 8 | −180° | 72.63 |
+| `exhibela` | 8 | 0° | 85.07 |
+
+**Which of these are canonical is open**, and is `ROADMAP.md`'s question rather than this document's. What
+§13 fixes is the *interface*, so that answering it later changes a list and nothing else.
+
+**They are not yet scripted movements.** Today they are `MOVEMENTS` generators that produce keyframes; the
+migration turns each into `beats` plus a `position(role, u)` in its unit's frame. The numbers above are
+what that conversion must reproduce, and §14 is where they become assertions.
+
+### 13.9 What §13 does not do
+
+- **It does not author any choreography.** What an Enchufla looks like is a curve somebody draws; this
+  section says only what shape that curve is stored in.
+- **It does not decide the library's membership.** `ROADMAP.md` holds that question.
+- **It does not give a scripted movement a corridor.** It has none, takes no part in §5, and declares no
+  passes — it is a body in the way, and §6 treats it as one.
+- **It does not let a scripted movement progress.** Its dancers end where the frame puts them. A figure
+  that moves dancers between slots does it with a progression, and may carry a scripted movement while it
+  does (§4.6).
+
+---
+
 ## Status and handover
 
 **§1 to §8 are written and reviewed.** Purpose · How we got here · The model · The figure definition
 language · Geometry and constants · From corridor to path · Timing · Declared versus derived. Each was
 read section by section and revised, and the text above is what those revisions left.
+
+**§9 Edge cases is reviewed.** Every quantity that goes to zero and something divides by, gathered with an
+answer each: the couple counts a formation has, a slot in more than one wheel, a corridor with no length, a
+figure with no duration, a pass that barely turns, two features with no room between them, and a unit with
+nowhere to go.
+
+**§10 Failure is reviewed.** Three kinds — refusal, fault, report — a catalogue of 35 named kinds drawn
+from the text, what a failure carries, and the rendered diagram §6.10 asked for.
+
+**§11 The renderer contract is reviewed.** The engine produces a function and the renderer evaluates it;
+the case rests on the measurement that the current reconstruction is exact on circles and lines and drifts
+past `Δ_len` on the shapes §5.8 and §6.7 produce.
+
+**§12 Alternatives considered and rejected is reviewed.** Around forty alternatives, grouped by which of
+five properties each protects, every one carrying the condition that would revive it.
+
+**§13 Scripted movements is reviewed.** The engine reads exactly two things from one —
+its `beats` and each dancer’s `position(role, u)` in the unit’s frame — and derives the rest. Two
+measurements shaped it: the turn must be **accumulated, not net**, because `enchufla` and
+`reverse_enchufla` have identical endpoints and opposite turns; and `c_scripted` is load-bearing, because
+`exhibela` reaches a partner separation of 85.07 and so needs a corridor 21.03 units wider than `open`
+alone would give.
+
+**Writing §9 to §13 moved thirteen passages of the reviewed text**, listed in §9.9 and §10.3, each
+because a derivation or a measurement contradicted what was there. In rough order of consequence:
+
+- **§1.4** — its acceleration table gave the Dame a speed no figure travels at. Measured against the
+  engine, the Dame from Casino covers 16 units in two beats, not a couple-spacing; the table is now
+  measurement, and the Dame family's move to four beats is recorded as **uniformity** rather than physics.
+  §6.2 and §7.7, which quoted its numbers, follow.
+- **§3.1** — `s` belongs to the dance and only `g` to a formation, because a slot-place is the slot's
+  midpoint offset by half the slot-position's separation along its axis, with the radius dropping out
+  (§3.2, §5.5, §9.3).
+- **§4.7** — the Dame's midpoint declaration binds nowhere on an evenly-spaced wheel; it is written for a
+  wheel that is not one, and Dame Dos at two couples is where the same declaration already earns its place.
+- **§1.6** — S3 carries a floor of `Δ_len`, and S3 and S4 are distinguished: distance travelled against
+  distance from the route.
+- **§3.5, §3.9** — `parity` only at even couple counts, and the instance product bounded accordingly.
+- **§3.2, §4.3, §5.5** — a slot-position is now a **rotation and a separation**, and the four familiar
+  standing points are named cases of it. Written because drawing `FORMATIONS.md` §3.3 showed that neither
+  it nor §3.4 has a slot-position the old list of four could name. Three things follow: `FORMATIONS.md`
+  §2.5 **owns the rule and the list of names** and this document points at it rather than repeating it; a
+  position may be stated against the floor where a formation's orientation is `fixed`, so §3.2's *always
+  against a named wheel* and §4.3's place address both carry that case; and a bound §9.3 had recorded
+  dissolves, because the axis is an absolute direction and a slot in two wheels therefore has one set of
+  places at any angle between their spokes.
+- **§3.10** — two known bounds, one of them now narrowed to *naming* rather than expressiveness;
+  **§5.2, §8.2** follow §3.1.
 
 The document carried a *review status* table while that was happening. It has been removed rather than
 allowed to go stale: with §1–§8 read, it would say only that. What is worth drawing is the line between
@@ -3542,13 +5002,20 @@ exists rather than by argument:
 | `Δ_ang` | 0.01° | a floating-point-noise guard, not a design threshold (§1.2) |
 | `d_engage` | `w + 2Δ` | shapes a swell only, and never decides whether a collision is real (§6.7) |
 
-**One claim in §4.7 is asserted and not yet measured:** that `Línea Moderna` is the figure declaring
-`extra turns` and `Adios Línea` the one declaring none. It follows from the derived turn resolving
-clockwise, and §4.7 records it as the first thing to check numerically when §5 is implemented. If it
-resolves the other way, the direction swaps between those two definitions and nothing else changes.
+**One claim in §4.7 is derived but not yet run:** that `Línea Moderna` is the figure declaring `extra
+turns` and `Adios Línea` the one declaring none. §5.6 derives it — `turn = 180° + 360/n`, giving **270° at
+four couples** — so it is no longer an assertion; what has not happened is checking it against a running
+implementation, because there isn't one. It is the first number to confirm when §5 is built. If it comes
+out otherwise, the direction swaps between those two definitions and nothing else changes.
 
-**Outstanding, in order:** §9 Edge cases · §10 Failure — including the rendered diagram a fault carries (§6.10) · §11 The renderer contract · §12 Alternatives considered and
-rejected · §13 Scripted movements, and what the engine reads from one · §14 Verification — including the cold-versus-warm cache comparison §5.10 requires · §15
+**One clarification lives in §13 rather than in the section it corrects.** §3.8 calls a travelling couple's
+reference point *the couple's midpoint*, which is exact only while they dance nothing: a carried scripted
+movement moves the two dancers independently, and `exhibela` shifts their midpoint up to 2.2 units off the
+corridor before returning it. §13.2 states the resolution — the frame's origin is the point on the corridor
+where the reference point *would* be, and the movement displaces the dancers relative to it. §3.8's wording
+was left alone rather than reopened; if it is ever reworded, that is what it should say.
+
+**Outstanding, in order:** §14 Verification — including the cold-versus-warm cache comparison §5.10 requires · §15
 Implementation plan — including the authoring skill of §4.8, the `MOVEMENTS` → `FIGURES` rename, and
 carrying that same rename into what the interface shows a user · §16 Open questions.
 
@@ -3558,12 +5025,18 @@ Then `SCHEDULING.md` in full.
 addressed, and `ROADMAP.md` for where this work sits in the larger picture.
 
 **`FORMATIONS.md` is unreviewed, and is the only unreviewed dependency.** Much of it was rewritten as a
-consequence of reviewing this document rather than from a reading of its own — §2.4, §2.6, §3.1 and §3.2
-changed, and §2.7 and §3.4 are new. It should be read before implementation begins.
+consequence of reviewing this document rather than from a reading of its own — §2.4, §2.5, §2.6, §3.1,
+§3.2, §3.3 and §3.4 changed, and §2.7 is new. Two of those are recent and load-bearing here: **§2.5**
+now states a slot-position as a rotation and a separation, which §3.2 and §5.5 of this document depend on;
+and **§3.3** was regenerated from its own construction, which corrected its geometry and produced
+`test/formation-perpendicular.js`. It should be read before implementation begins.
 
 **Still open, and needing an answer before the sections that use them:**
 
 - How a wheel's placement is stated in general (`FORMATIONS.md §6`).
+- **`hold` does not exist.** §4.2 and §4.7 both write `scripted: hold`, and the engine has no such
+  movement. §13.7 specifies it — constant position, 0° accumulated turn — and it has to be built before
+  any figure naming it can resolve.
 - Whether the corridor work lands on top of the module split that exists on two unmerged branches, which
   would change every file path in §15 but nothing in the design.
 - The verification corpus: how many diagrams constitute the first review pass, against the full corpus of
