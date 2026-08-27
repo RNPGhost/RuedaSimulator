@@ -6,7 +6,7 @@ the picture sharpens.
 
 ## The eventual vision
 
-Users define **everything** through the UI — formations, configurations, phases, figures, and calls —
+Users define **everything** through the UI — formations, formation positions, figures and calls —
 and the system **suggests natural, collision-free paths** for the dancers (especially through partner
 changes), visualises those paths, and lets the user refine them without pixel-pushing. Control over a
 path is **topological, not geometric**: the user says *which other dancers this dancer passes to the left
@@ -21,7 +21,7 @@ So the end state is really two things bolted together:
    produces natural paths — generalising the per-move lane/dip/solver logic that today lives inside each
    generator (`dameToEnchufla`, the Dile pinch, the evasion solver, the naturalness metric).
 
-### The five user-definable entities
+### The four user-definable entities
 
 - **Formation** — a hierarchy of **rueda groups**. Each group has a centre, a spoke layout with angular
   separations that are whole divisions of 360° (180/90/45/30…), and a rule for how couples are assigned
@@ -30,15 +30,22 @@ So the end state is really two things bolted together:
   around the outside; or Línea's inner/outer rings). A group may be centred on a *parent group's spoke
   position* — that is the general form of today's off-centre pequeña mini-wheels and the `runOnWheel`
   seam. Formations carry a **couple-count constraint** (exact count, or divisible-by-N).
-- **Configuration** — a discrete rest arrangement within a formation. (Today: the two-config spoke model.)
-- **Phase** — whether a progression changes configuration. The user sets **phase-change: yes/no**; that
-  choice selects which figure variant is used (e.g. Dame vs. Dame Pequeña) and which configuration the
-  dancers land in. (Today: `phase` 0/1, offset 180/N°.)
+- **Formation position** — a named assignment of **slot-positions** to slots within a formation: Casino,
+  Exhibela, Dile Que No and the Afuera forms (`CORRIDORS.md` §3.3). A slot-position is itself a **rotation
+  and a separation** (`FORMATIONS.md` §2.5), so a formation position is what a figure's `from` and `to`
+  name, and a figure never restates one per group.
+
+  **`configuration` is retired as vocabulary.** It and `phase` were two words for one thing — the
+  two-spoke-set rest model — and the design now calls that **phase** and nothing else. Phase is no longer a
+  user-definable entity either: a wheel declares whether it *permits* phases (`FORMATIONS.md` §2.4), and
+  which phase it is *in* is an outcome of the offsets figures have given its dancers, never a yes/no
+  anybody sets. What used to be called a configuration — the named arrangement the couples rest in — is the
+  formation position above.
 - **Figure** — one named thing the dance does over a fixed number of beats. A figure is made of
   **movements**, one per group of dancers: a movement is that group’s start and end positions, its
   rotation and facing, and its path hints. Standard figures (Enchufla, Dile Que No, …) ship
   **built-in**; users mostly define **progressions**, by specifying which slot in the (possibly new)
-  configuration each dancer ends on, plus the **pass-sides**. Defined against abstract roles + groups so
+  formation position each dancer ends on, plus the **pass-sides**. Defined against abstract roles + groups so
   a figure generalises across couple counts. (Today: `MOVEMENTS` generators — renamed to `FIGURES` as an
   early step of the corridor work, so the code and the design documents never disagree about what the
   word means.)
@@ -102,8 +109,8 @@ paths over each beat window.
 
    | Document | Covers | State |
    |---|---|---|
-   | `FORMATIONS.md` | How a formation is structured and addressed: named overlapping wheels, anchoring, traversals, phases per wheel, axes, a formation with a right way round; the authoring language and interface | §1–§6 drafted and substantially rewritten as consequences of the `CORRIDORS.md` review — §2.4, §2.6 and §3.1–§3.2 changed, §2.7 and §3.4 added. **Unreviewed, and next to be read.** The authoring half (§4–§5) may be implemented later than the addressing half (§2), which the corridor work depends on |
-   | `CORRIDORS.md` | The corridor model, the figure definition language, the path engine, verification, migration | **§1–§4 written and reviewed in full**, over two passes; §5–§16 outstanding, beginning with §5 Geometry and constants |
+   | `FORMATIONS.md` | How a formation is structured and addressed: named overlapping wheels, anchoring, traversals, phases per wheel, axes, a formation with a right way round; the authoring language and interface | §1–§6 drafted and substantially rewritten as consequences of the `CORRIDORS.md` review — §2.4, §2.6 and §3.1–§3.2 changed, §2.7 and §3.4 added, §2.6 corrected again while §9 was written (`parity` alternates only at an even couple count), and **§2.5 and §3.3 rewritten** while §3.3 was drawn — a slot-position is now a rotation and a separation, and the perpendicular formation's geometry was corrected and generalised. **Unreviewed, and next to be read.** The authoring half (§4–§5) may be implemented later than the addressing half (§2), which the corridor work depends on |
+   | `CORRIDORS.md` | The corridor model, the figure definition language, the path engine, verification, migration | **§1–§13 written and reviewed in full**; §14–§16 outstanding, beginning with §14 Verification. Then `SCHEDULING.md` |
    | `SCHEDULING.md` | Call validity, the end of chained calls, interrupt points, and concurrent figures | not started |
 
    **Order of work:** finish `CORRIDORS.md`, implement it, then `SCHEDULING.md`. The formation
@@ -142,8 +149,10 @@ The path engine is not a rewrite-from-zero; the pieces are accreting:
    count; weird shapes supported later on the same primitives.
 3. **Pass-side is the only progression path control**; pathing rules do the rest.
 4. **Asymmetry via group predicates** (parity-by-clockwise-index, inside/outside, …).
-5. **Phase-change is a user yes/no** that selects figure variants and the landing configuration; the
-   user maps each dancer's end slot.
+5. ~~**Phase-change is a user yes/no**~~ — *superseded.* A wheel declares whether it permits phases
+   (`FORMATIONS.md` §2.4), and the phase a figure lands in follows from the offsets it gives its dancers:
+   odd lands in the other phase, even in the same one (`CORRIDORS.md` §3.1). The user maps each dancer's
+   end slot; the phase falls out.
 6. **Calls apply to all couples**, produce per-group figures, and schedule on a **beat clock with
    overlap** across different dancers.
 7. **The engine auto-checks collisions and auto-resolves what it can** (incl. variable passing widths);
@@ -207,7 +216,7 @@ here is built; the same steps are being followed by hand, through prompts, in th
 2. Select a **group identifier**, then an example dancer from that group to demonstrate with. Everything
    authored against that dancer applies to the whole group.
 3. Select the **end slot** and the **ending position** from a drop-down, including whether the figure
-   changes configuration.
+   changes formation position.
 4. Select the **static obstacles** to avoid on the way, and the side to pass each on. These are stored
    as *relative* addresses — "the wheel this dancer starts in", never "the wheel at the bottom of the
    screen" — so a definition made at six couples still means something at ten.
@@ -243,6 +252,50 @@ outer ring sits in Casino — so the machinery is shared rather than special-cas
 it is declared; pass sides as topological constraints against static places rather than against moving
 dancers; priority and yielding; the beat clock and how deviation is absorbed; what a group is and the
 minimum vocabulary for naming one; how concurrency is admitted; how figures are verified.
+
+*Resolved while §5–§9 were being written:* the **taut path** — a corridor's centreline is the shortest
+route from start to finish that clears every declared feature and satisfies every declared pass, with
+"satisfies" meaning the bearing to the feature genuinely turns, in the declared direction; loops fall out
+of that where the endpoints leave nothing shorter, so **winding is retired as a concept** and no figure
+ever declares one. That everything **precomputes at author time**, and the four decisions that keep the
+space finite — integer start beats, back-timing, relative addressing, and a cap of two concurrent figures.
+That **`s` is fixed for the whole dance** while `g` belongs to a formation, because a slot-place turns out
+to be the slot's midpoint offset by `s/2` and the wheel's radius drops out. That a wheel has a **minimum
+couple count derived from `s` and `g`** (two, at today's values) and that `parity` is offered only at even
+counts. And definite answers for the degenerate cases: a corridor of no length, a figure of no duration, a
+pass that barely turns, two features with no room between them, and a dancer with nowhere to go.
+
+*Resolved while `FORMATIONS.md` §3.3's diagram was being drawn:* a **slot-position is a rotation and a
+separation**, and
+the four familiar standing points (`ccw`, `cw`, `outer`, `inner`) are named cases of it
+(`FORMATIONS.md §2.5`). The enumerated form could not describe either of the two formations still to be
+built — the perpendicular one turns slots by 90° and ±45°, Two Lines by 90° and 135° — and the derived form
+describes both without new machinery. It also means a slot belonging to two wheels has one set of places at
+any angle between their spokes, because the axis is an absolute direction.
+
+*Resolved while the two unbuilt formations were being written up:* a slot-position is **a rotation and a
+separation**, `FORMATIONS.md` §2.5 owns the rule and the list, and a rotation may be stated **against the
+floor** where a formation's orientation is fixed. The general rule is *state a formation position in the
+frame that makes it uniform* — Línea Moderna names its pequeña, Two Lines names the floor, and where no
+frame is uniform the declared axes carry the difference. `ring` is defined by **grande membership**, which
+puts no bound on how many slots a ring holds. Measured evidence behind all of it: Línea Moderna reads
+`{180°, 0°}` against the grande and `{0°}` against the pequeña, and the perpendicular formation's grande
+reading is not even independent of the couple count.
+
+*Corrected while `FORMATIONS.md` §3.3's diagram was being drawn:* generating that formation from its written
+construction put two of its centre dancers **31.14 units apart, inside the 35 the engine requires**. Its
+centre wheel now takes a **stated** radius, derived so the closest two inboard leaders sit `g − s/√2`
+apart — the gap its pequeñas already fix — and generalised to `2k` couples so that distance is the same at
+every size. `test/formation-perpendicular.js` regenerates the numbers and the drawing from the
+construction, as `formation-lines.js` does for Two Lines.
+
+*Corrected while §9 was being written:* `CORRIDORS.md` §1.4's acceleration table described a Dame as covering **one
+couple-spacing in two beats**, and it does not — leader and follower each move one half-slot toward each
+other, about **16 units**, making the Dame from Casino the slowest-travelling figure in the corpus rather
+than the fastest. Measured against the engine, the figures that genuinely approach human limits are the
+**Dame Dos family at 0.9–1.4 g**, and they are already at four beats. The Dame family still moves to a
+uniform four beats, but **the reason is uniformity**, not physics — with Dame Línea the one figure the
+physics also argues for.
 
 *Resolved while §1–§4 were being reviewed:* the split between a **figure** (the whole named thing) and a
 **movement** (what one group of dancers does inside it), which makes a *scripted figure* a figure all of
