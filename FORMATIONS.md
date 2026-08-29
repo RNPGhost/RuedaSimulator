@@ -11,9 +11,17 @@
 
 ## Review status
 
+**A project-wide methodology now governs this document — see `METHOD.md`.** Under it, a document is not reviewed while a normative dependency is unreviewed, which makes reading this one the gate on `CORRIDORS.md` as well.
+
 **None of this document has been reviewed**, and it should be read next: `CORRIDORS.md` §1–§13 have been
-read and reviewed in full, only §14–§16 remain unwritten there, and all of it depends on this one
-throughout. §2.5 and §3.3 are the most recently changed and the most load-bearing.
+read and reviewed in full, §14 is written and awaiting review, only §15–§16 remain unwritten there, and
+all of it depends on this one throughout. §2.5 and §3.3 are the most recently changed and the most
+load-bearing.
+
+**`CORRIDORS.md` §14 reaches into this document in two places**, and both are read here rather than
+restated there: §2.6's rule that only the Rueda offers `parity`, and only at an even couple count, is what
+confines three figures to four of the seven couple counts its corpus verifies; and §3.3's measured closest
+pair of **49.90** at every `k` is one of its geometry fixtures.
 
 It began as a single pass written at the end of a long design conversation, to get the decisions out of
 that conversation and into a file before the context was lost. Much of it has since been rewritten —

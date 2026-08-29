@@ -4287,12 +4287,21 @@ The distinction is the whole of whether the author has something to act on.
 | `override-moved` | a stored override still matching by ordinal, with its geometry moved | §4.5 |
 | `override-usage` | how often priority and encounter overrides were written, by kind | §4.5 |
 | `acceleration` | peak lateral acceleration per figure per couple count | §7.7, §14 |
+| `route-distortion` | §1.6's S3 ratio — a unit's final path length divided by its corridor length | §1.6, §9.4, §14.3 |
 | `cache-miss` | a content-keyed miss on a definition nobody meant to change | §5.10 |
 
 **Half of these exist to be counted rather than read**, and that is not a lesser purpose. `coverage` is
 §2.5's argument made into data — a collision test can only find what it looked at, so the size of the
 search is asserted directly. `override-usage` is what tells §4.5 which derived default is the weaker.
 `declaration-cost` is the only way §9.6's discontinuity is ever visible.
+
+**`route-distortion` is the odd one, and it is a report for a reason worth stating.** S3 is the one
+success criterion in §1.6 that the solver does **not** cap on — §6.8 caps on S4, and §9.4 explains that
+S3 is held under observation because *a system working as intended should never approach it*. So the
+ratio is recorded per unit per instance and nothing stops when it is large. What acts on it is §14.3,
+which fails the corpus above 1.5 without faulting the instance: the figure still runs and the suite still
+goes red. A criterion nobody watches is not held under observation, and a number nobody records cannot
+be watched.
 
 ### 10.4 What a failure carries
 
@@ -4935,6 +4944,653 @@ what that conversion must reproduce, and §14 is where they become assertions.
 
 ---
 
+## 14. Verification
+
+Twenty-two passages defer to this section. §1.6 states seven success criteria and says they are *checked
+by the verification in §14*; §5.8.5 states seven acceptance tests a taut path must satisfy; §2.5 states
+the one lesson that shaped both — **a collision test can only find what it looked at**. §8.3 and §5.10
+each require something of an artifact this section has to produce.
+
+What is missing is one place saying **what is generated, what is asserted about it, what a person looks
+at, and what it means when they sign it off.**
+
+### 14.1 Three jobs, and one discipline
+
+Verification here is not one activity. It is three, and running them together is how a suite goes blind
+rather than red.
+
+| | The question it answers | The failure it catches |
+|---|---|---|
+| **Property checks** | *Is this output correct?* | an engine that computes the wrong thing |
+| **Size-of-the-search assertions** | *How much was looked at?* | an engine that computes the right thing about too little |
+| **The human pass** | *Is this what the author meant?* | an engine that is correct, complete, and dancing something nobody asked for |
+
+The second is the one that is routinely left out, and §2.5 is the record of what that costs: during Adios
+Pequeña at eight couples two leaders passed **10.5 units apart**, bodies overlapping by more than 20,
+with not one test failing — because nothing was asked. A green suite was a statement about the size of
+the search and was read as a statement about the floor.
+
+Alongside the three there is one thing that is **not a check but a discipline**: the artifact. §8.3
+stores every derived value so that a change of default arrives as a diff rather than as a surprise, and
+§5.10 requires the corpus computed cold and again warm to agree to the last decimal. Neither asserts
+anything about a dancer. Both are what make the other three worth running twice.
+
+**The line against §10.** §10 says what a failure *is* — three kinds, 36 named cases, what one carries.
+§14 says what the suite asserts about **the set of them**: that this corpus has none, or that this
+instance has exactly this one and is expected to. §10 is the vocabulary; §14 is the claim.
+
+#### What carries over from the suite that exists
+
+`test/README.md` already draws the distinction that matters and draws it correctly:
+
+> The **golden** is a *characterisation* test: it records behaviour as it currently is… **Invariants**
+> are *property* tests: they state something any engine must be true of.
+
+Both survive. What changes is what each holds.
+
+- **The golden's keyframes retire with `samplePath`** (§11.4). A baseline of sampled positions was the
+  right artifact while the engine's output *was* a list of positions; §11 makes the output a function,
+  and a function is characterised by the decisions that built it rather than by 16 samples of it.
+- **The resolution replaces the golden**, and is the same idea with better contents. §8.3 already says a
+  figure's stored form is regenerated and committed, holds every derived value, and is never hand-edited
+  — which is a golden baseline in all but name. §5.10 notices the third thing it is: *a stored resolution
+  is a warm cache, a golden baseline, and a change detector at once.*
+- **The invariants become §14.3 and §14.4.** They are already property tests and already independent of
+  the stored values, which is the property worth keeping: a mistaken re-baseline is still caught.
+- **The coverage probe becomes §14.5**, unchanged in spirit and wider in scope. It is `test/invariants.js`
+  §33f, and it is the one check in today's suite that asserts the size of the search rather than its
+  verdict.
+
+**Every check is shown an input it must fail on.** Today's suite does this — *every section self-tests,
+so that a green run means something* — and §14 requires it, because a check that has never failed is a
+check nobody has tested. §14.5 states the specific experiment that each of the three size assertions must
+go red on.
+
+### 14.2 The corpus
+
+§3.9 resolves a definition into **one instance per distinguishable starting circumstance** — couple count
+× phase × placement, within the formation position the definition is keyed by. §14 is where that product
+becomes a number: it fixes the couple counts, measures the phase collapse, and says what is stored.
+
+#### The couple counts, and why each is in
+
+| count | why it is in the corpus |
+|---|---|
+| **2** | the smallest wheel `s` and `g` admit (§9.2), and the count at which §4.7's and §9.6's numbers live: Dame Dos's leader subtends **+157.87°** about the wheel's midpoint — the *left* side — against a declared `right`, and clears the centre by **11.01** against a 19-unit keep-out. It is the only instance in the corpus where a midpoint declaration is known to bind, and it is **not verified today**. |
+| **3** | the smallest odd count. `parity` is not offered there (§3.5), so the narrowing to even counts is *exercised* rather than asserted in prose. |
+| **4** | the smallest count today's golden holds, and the one §4.7 and §5.6 carry the derived turn of **270°** at. |
+| **5** | the odd count §9.2 works the parity split through — distances `0, 1, 2, 2, 1` round the ring, parities `even, odd, even, even, odd`, a three-two split with two evens side by side. |
+| **6** | the baseline. `s` and `g` are read off this wheel (§3.1), so `R(6)` must come back at **exactly 154** and `delta` at **exactly 12°**. It is the row that checks the rest of the table rather than being checked by it. |
+| **8** | today's largest golden count, and where §2.5's Adios Pequeña overlap lived. |
+| **12** | well beyond anything authored at, to catch a rule that quietly assumed a small wheel. |
+
+**Three of those are genuinely new.** Today's golden runs `{4, 6, 8}` and today's invariants run
+`{4, 6, 8, 10, 12}`, so 12 is already exercised and **2, 3 and 5 have never been run against any check**.
+That is the gap this set closes, and it is the gap that matters: every couple count the reviewed text
+reasons about at the small end is a count nothing has ever verified.
+
+**Verified — today's engine reaches all of them.** A Dame from Casino captures at 2, 3, 4, 5, 6, 8 and 12
+couples, with `2n` dancers each and the ring radius solved per count: **57.31, 104.34, 153.99, 204.17**
+and **305.04** at 2, 4, 6, 8 and 12, against §5.3's table of 57.36, 104.35, 154.00 and 204.18. So the
+counts are reachable, and the migration is not being asked for a formation nobody can build.
+
+#### Which counts a definition resolves at
+
+Three bounds, each stated elsewhere and applied here:
+
+- **A Rueda's single wheel holds `n` couples**, so `n >= 2` (§9.2).
+- **Línea Moderna's inner `grande` holds `n/2`**, so `n >= 4`, and `n` is even (`FORMATIONS.md §3.2`).
+- **A figure naming `parity` resolves at even counts only** (§3.5).
+
+The three transitions — `Línea Moderna`, `Adios Línea`, `Dame Línea` — are confined twice over, and the
+two mechanisms agree: `parity` is not offered at an odd count, and independently §4.3's step 3 refuses
+their hop there because an odd-count parity set is not evenly spaced and so is not a rigid rotation of the
+hop's `from` set. **That agreement is itself an assertion** — a change that broke one of the two would
+otherwise be invisible behind the other.
+
+#### Phase collapses, and the collapse is measured rather than assumed
+
+§3.9 step 2 says almost everything collapses, and gives the reason: every address in this language is
+relative, so a figure is phase-independent unless something **absolute** enters it. §5.10 says the same
+thing from the other side — the taut-path problem is rotation-equivariant, so a corridor is cached in the
+formation's own frame and rotated at the point of use.
+
+**Verified**, at the root of the claim rather than at its consequences. Across five formation positions —
+Casino, Exhibela, Afuera Casino, Afuera Exhibela and the Dile Que No position — at every one of the seven
+couple counts, **the resting formation in phase 1 is the resting formation in phase 0 rotated by exactly
+one half-slot**, `180/n` degrees:
+
+| | |
+|---|---|
+| configurations compared | 35 (5 positions × 7 counts) |
+| dancers per configuration | `2n`, checked before comparing |
+| rotation found | exactly ±`180/n`: ±90°, ±60°, ±45°, ±36°, ±30°, ±22.5°, ±15° |
+| worst point error | **9.0 × 10⁻¹⁴** |
+
+If the floor is a rigid rotation, so is everything built on it by relative addressing. **So the corpus
+holds one instance per couple count and not two**, which halves it in depth.
+
+**The collapse is still asserted per definition**, and that is not redundancy. Measuring it for the
+resting floor is not the same as measuring it for every figure, and §3.9 step 3 asks for the count
+directly: *a definition that was expected to have one behaviour and turns out to have two has either
+found something real or been written wrongly, and both are worth being told about.* §14.5 carries it.
+
+**The one thing that will not collapse is already identified.** A hop into a formation whose orientation
+is `fixed` (`FORMATIONS.md §2.7`) sweeps the dancers round to meet spokes that were known in advance, so
+the sweep differs by half a slot between phases and the corridors genuinely differ (§4.3, §5.10). No such
+formation is built — Two Lines is identified and not built — so **that axis has one value today**, and it
+stays in the rule so the first one adds values to a product rather than a rule to a document.
+
+#### The size
+
+**412 instances, from 64 definitions.** Derived rather than counted: `test/corpus-size.js` applies the
+rule above to the definitions that exist today and prints the result, so the numbers here cannot drift
+from the corpus as definitions are added or the count set is changed.
+
+| starting formation | definitions | counts supported | instances |
+|---|---|---|---|
+| Rueda | 52 | `{2, 3, 4, 5, 6, 8, 12}` | 364 |
+| Rueda, naming `parity` | 3 | `{4, 6, 8, 12}` | 12 |
+| Línea Moderna | 9 | `{4, 6, 8, 12}` | 36 |
+| | **64** | | **412** |
+
+Today's golden holds **357** cases — definitions × `{4, 6, 8}` × two phases. So the corpus **grows
+sideways and halves in depth**, and the growth is entirely in couple counts nothing has ever checked. It
+is the same size for about a quarter of the redundancy.
+
+A definition is keyed `(name, from)` (§4.1), which is why 26 figure names give 64 definitions: a Dame from
+Casino and a Dame from the Dile Que No position are one word to a caller and different geometry to the
+engine.
+
+#### What is stored per instance
+
+The resolution of §8.3, and nothing that is not derived from the definition:
+
+```
+the corridor        centreline as segments and arcs, width, length
+the declarations    each one's bound / did not bind flag, and its cost (§9.6)
+the instance set    which counts this definition resolved at, and how many instances
+coverage            dancers in play, pairs compared                        (§6.4)
+contention          who yielded and why — derived or overridden            (§4.5, §6.6)
+the deviations      which units moved, by how much, over which swells      (§6.7, §6.8)
+the criteria        S1's worst clearance, S3's ratio, S4's worst gap
+timing              every start beat, back-timed                           (§7.3)
+the failures        every fault of this instance, in order                 (§10.6)
+diagnostics         peak lateral acceleration, at the default tempo        (§7.7)
+```
+
+**No sampled positions.** A path is a function (§11.3) and is characterised by the decisions that built
+it. Storing 16 samples of it would reintroduce exactly the artifact §11 retires, and would make the
+baseline agree with a renderer that is no longer allowed to exist.
+
+### 14.3 S1 to S7, as checks
+
+§1.6 states the seven. This is where each becomes something a machine runs.
+
+| # | What is measured | Where it runs | Tolerance | Job |
+|---|---|---|---|---|
+| **S1** | `min` over `t` of `\|position(a,t) − position(b,t)\|`, for every candidate pair | solve, every instance | §6.5's guarantee: proved clear at `w + 2Δ + δ/2`, otherwise refined until the true minimum is known to `Δ_len` | property |
+| **S2** | T3 and T4 of §5.8.5, on the **final** path | solve, every declared pass | 100%, no dead band | property |
+| **S3** | final path length ÷ corridor length | per unit per instance, for corridors longer than `Δ_len` | reported; `< 1.5` expected, near 1.0 in health | reported |
+| **S4** | `gap = d − W/2 − w/2`, `d` from the centre to the nearest point of the corridor's centreline | per unit per sample | `gap < w` — 64 units at today's values | property |
+| **S5** | the corpus, cold against warm; and regeneration against the committed resolution | per corpus, §14.7 | to the last decimal | artifact |
+| **S6** | a human signature against a resolution | staged, §14.9 | — | human |
+| **S7** | the renderer's drawn position against `path(dancer, beat)` at the beats it drew | per rendered frame | the display's own rounding | property |
+
+**S1 and S2 are listed first because both have failed silently before**, and each now has a size
+assertion standing behind it. S1's is §14.5's coverage count — the check that the pair was *looked at*,
+which is the half that was missing when two leaders overlapped. S2's is **T3**, which asserts that the
+pass *happened* rather than that the dancer was never seen on the wrong side.
+
+**S3 is a reported number and not a cap, and the distinction is load-bearing.** §6.8 caps on S4; §9.4
+says why S3 is held under observation instead: *if the system works as intended it is never approached,
+and if it is approached the number is the evidence.* §9.4 also says where the two cross —
+
+| corridor length | S3 permits | S4 permits | the tighter |
+|---|---|---|---|
+| 15.9 — a Dame's leader at six couples | 7.9 | 64.0 | S3 |
+| 128.2 | 64.0 | 64.0 | they agree |
+| 267.9 — Dame Dos from the Dile Que No position | 133.7 | 64.0 | S4 |
+
+— and the corpus lies on both sides of 128.2. The shortest corridor in it is **15.9 units**, which would
+score 8.23 against S3 if it ever took S4's full deviation. So every instance reports its worst S3 ratio
+and the corpus reports the maximum over all of them; **a ratio above 1.5 fails the corpus without
+faulting the instance.** The figure still runs, and the suite still goes red, which is exactly the
+behaviour a criterion held under observation should have.
+
+*One consequence for §10.* §10.4 gives `{ got: 8.23, required: "< 1.5" }` as an example of a `measured`
+pair, and §10.3's catalogue has no kind for it — correctly, because §10.3 catalogues what the **engine**
+raises and an S3 breach is raised by the **suite**. The ratio is recorded in the resolution exactly as
+`acceleration` is, under the kind `route-distortion` — a **report**, because nothing stops when it is
+large and §14.3 is what acts on it.
+
+**S4 is checked twice, and deliberately.** The solver caps on it (§6.8) and §14 re-measures it from the
+output. A solver that caps on a quantity it computes wrongly caps on nothing, and the two computations
+are independent: the solver's is a constraint on an amplitude it is choosing, §14's is a distance from a
+finished path to a stored centreline.
+
+**S7 needs a test, and it is the easiest one in the section.** §11.2 measures the cost of the
+reconstruction being retired — 0.116 to 0.247 units at the 16 keyframes the engine emits today, against
+`Δ_len` = 0.1, which is the tolerance the taut path is verified to. Since §11 makes the renderer evaluate
+the function, **the check should return exactly zero**, and a check whose expected value is zero is the
+easiest kind to keep honest. It is run because S7 has failed silently before and because a renderer that
+starts interpolating again would otherwise be invisible.
+
+### 14.4 T1 to T7, on every taut path
+
+§5.8.5's seven acceptance tests, written against the *definition* of a taut path rather than against
+§5.8.3's construction, so an implementation that computes the path some other way is checked by the same
+rules. §14 says where they run.
+
+- **On every corridor of every instance** — 412 corridors, and every declaration on each.
+- **T2, T3 and T4 again on the final path**, after deviation (§6.8). Never on the intent: two dancers who
+  start on the wrong shoulder and are correctly carried across by the deviation have passed on the
+  declared side, and condemning them for where they began was a defect in an earlier implementation of
+  exactly this check.
+- **T7 is §14.7's**, since reproducibility is a property of the corpus rather than of one path.
+
+**T3 and T6 are the two that are easy to omit, and they fail in opposite directions.** §5.8.5 says so;
+§14 names the instance that catches each, because a test with no fixture that fails on it is a test
+nobody has run.
+
+| | The failure | The fixture that must go red |
+|---|---|---|
+| **T3** — the bearing turns | a path fails to go past a feature at all and still passes every other check: it clears the disc, never appears on the wrong side, and lands in the right place | **Dame Dos Pequeña's leaders**, from `{ Línea Moderna, Exhibela }`. Its start and end are the same place, so without T3 the figure collapses into standing still and nothing notices. `Φ` must come out at **−360.00°** and the path at **180.75** units, against a straight line of zero |
+| **T6** — only binding features are touched | a path wraps a feature it did not need to — the "deviation with no reason" §1.4 rules out — and looks entirely plausible on a diagram, because it is still smooth and still legal | any corridor with a declaration that does not bind. **Dame's leaders at six couples** are the standing case: the declaration is written and binds nowhere, so the taut path must be the straight 15.9-unit chord and touch nothing |
+
+**T4 is not a substitute for T3**, and the reason is worth keeping in front of an implementer: a path that
+never approaches the feature still *has* a closest approach, and the side at that instant may well be the
+declared one by accident.
+
+**§5.8's two verified configurations are the section's fixtures.** Both are checked at the values already
+computed there:
+
+| | tangent runs | arc | `Φ` | length |
+|---|---|---|---|---|
+| Dame Dos Pequeña's leaders, `R(2)` = 57.35, keep-out 19, `side: right` | 54.11 each | 218.69° anti-clockwise | **−360.00°** | **180.75** |
+| `A`, `B` and the feature collinear in that order, 100 and 50 away, keep-out 35, `side: right` | −69.51° and −45.57° | −244.91° | **−360.00°** | **278.99** |
+
+The second is the odd-looking one and it is correct: the author said the dancer passes that feature, and
+there is no other way to pass something that sits directly beyond where you stop.
+
+### 14.5 The three assertions about the size of the search
+
+All three descend from §2.5, and the sentence they descend from is the one to keep: **a number that
+describes the size of what was checked is itself worth checking.**
+
+#### Coverage — dancers in play, and pairs compared
+
+§6.4 makes the planner report both, and the suite asserts them directly. The set is *every pair of
+dancers in play, except two partners inside one rigid unit*, so with `D` dancers in play and `U` rigid
+couples the count is `C(D,2) − U`:
+
+| `n` | dancers | a solo-unit figure | a couple-unit figure | the retired cross-group-only set | pairs it never saw |
+|---|---|---|---|---|---|
+| 2 | 4 | 6 | 4 | 4 | 2 |
+| 4 | 8 | 28 | 24 | 16 | 12 |
+| 6 | 12 | 66 | 60 | 36 | 30 |
+| 8 | 16 | **120** | 112 | **64** | **56** |
+| 12 | 24 | 276 | 264 | 144 | 132 |
+
+**At eight couples the retired set saw 64 of 120 pairs.** The 28 leader-leader pairs it could not contain
+— it was built as every *cross-group* pair, and the groups were the leaders and the followers — are
+exactly where the Adios Pequeña overlap lived. "In play" means every dancer the engine is drawing, not
+every dancer this figure governs (§6.4).
+
+#### Instances — how many a definition resolved to
+
+§3.9 step 3. Expected today: one per supported couple count, by §14.2's measurement. A definition that
+resolves to two where its siblings resolve to one has either found something real or been written
+wrongly, and the assertion is what makes the engine say which.
+
+#### Overrides — how many were written, by kind
+
+§4.5. **This is the one that is not a safety check**, and it is worth being clear about what it is for.
+Priority and encounter overrides both stay — a figure is already known that needs both — so the question
+was never whether they are needed. The question is **how often**, broken down by kind, because that says
+*which derived default is the weaker*: a high count argues for improving that default rather than for
+accepting the overrides, and a low one says the defaults are close to right. The migration is the only
+cheap chance to take the measurement, and the count is recorded either way.
+
+#### Each of the three is shown the input it must fail on
+
+Assertions about coverage are exactly as capable of being wrong as the coverage they describe, so:
+
+- **Narrow the candidate set back to cross-group-only.** §14.5's coverage assertion must go red **while
+  every behavioural check stays green** — because the pairs nobody looks at happen to clear anyway at the
+  couple counts and figures that exist right now. That is not a hypothetical; it is the experiment §2.5
+  describes, and it is the only way to know the assertion works.
+- **Restrict a definition to one couple count.** The instance assertion must go red.
+- **Delete an override.** The override count must go red, and — this is the point of separating them —
+  the figure it belonged to must fault or move, so that the two failures are distinguishable.
+
+### 14.6 Faults, as data
+
+§10.6 makes a fault part of the stored resolution rather than a log line, and gives §14 the two
+assertions it needs:
+
+- **"This corpus has no faults."** A whole-corpus claim, and one that is only meaningful because a fault
+  is stored: a new fault arrives as a diff against a corpus a human has already approved, naming exactly
+  which instances moved.
+- **"This definition faults at two couples and is expected to."** A per-instance claim, and it is how a
+  known limitation stops being rediscovered every run.
+
+**Both directions fail.** A fault that appears where none was expected fails; a fault that *disappears*
+where one was expected fails too. That second half is what stops an expected-fault table becoming a
+place where things are quietly filed and forgotten — a change that fixes six instances and breaks one
+shows both halves in the same diff.
+
+**Kind and `measured` are both compared**, so a fault that changes character is as visible as one that
+appears: `clearance-unreachable` becoming `deviation-exceeds-cap` at the same instance is a different
+figure, not the same problem. And the order is fixed (§10.4), because a fault list that reorders between
+runs makes every diff noise and §8.3's whole mechanism depends on an unchanged definition producing no
+diff at all.
+
+**The expected-fault table starts empty, and an empty table is a claim rather than an absence.** Nothing
+in the corpus is presently known to fault. If the first run says otherwise, the table is where the answer
+is written down, with the instance and the reason.
+
+#### A corpus of good definitions exercises none of the 36 kinds
+
+This is the obligation that is easy to miss, and it is the largest single piece of work in §14. §10.3
+catalogues **10 refusals, 14 faults and 12 reports**. A corpus of definitions that are all correct
+contains, by construction:
+
+- **no refusals at all** — a refused definition never enters the corpus (§10.6), so the corpus cannot
+  contain one and no amount of it tests one;
+- **no faults**, if the assertion above holds;
+- **reports only** — and only the ones today's figures happen to produce.
+
+So **every kind needs a fixture**: a deliberately malformed definition, or a deliberately impossible
+instance, that must produce **exactly that kind** and no other. Ten of those are cheap, because §10.3's
+refusals are decidable from the definition alone and each already names what it must report — the dancers
+no clause reached, the axis and the formation, the group and the offset, the lengths that would have been
+accepted. The fourteen faults are the work: each needs a configuration that genuinely cannot be resolved,
+which is a small piece of geometry rather than a bad definition.
+
+**The fixtures are not part of the corpus and are not reviewed by a human.** They are how the failure
+machinery is tested; the corpus is how the figures are. Keeping them apart is what stops a fixture drifting
+into the corpus and being signed off as a figure somebody wanted.
+
+### 14.7 Cold, warm, and no diff
+
+Two requirements, from two sections, satisfied by one run.
+
+**§5.10 — the corpus is computed cold and again warm, and the two must be identical to the last
+decimal.** That is S5 turned on the cache rather than on the geometry. Without it, *caching cannot change
+the answer* is a claim rather than a property, and a stale corridor is invisible: it is a perfectly
+plausible path for a figure that no longer says that.
+
+**§8.3 — regenerating an unchanged definition must produce no diff.** This is what makes every other diff
+meaningful. If regeneration is noisy, nobody reads the diffs, and the whole mechanism is decoration.
+
+**They are one run because the cache and the baseline are the same artifact** (§5.10). Corridors are pure
+and the corpus is fixed, so a precomputed corpus *is* a warm cache and a warm cache *is* a golden
+baseline. There is no second thing to build.
+
+**What "identical to the last decimal" costs an implementation**, since it is stricter than it sounds and
+none of it is about geometry:
+
+- **Serialisation is byte-identical**, which needs a fixed key order and one number format. A resolution
+  written from a hash map in its own iteration order fails this while computing every number correctly.
+- **Angles are normalised once**, into `[0°, 360°)`, at the point they are compared (§5.10).
+- **Comparisons use the named tolerances** — `Δ_len`, `Δ_ang`, `Δ_side` — and no other. A bare epsilon is
+  a threshold nobody can find and nobody can change.
+- **Failures are deterministic in kind, number and order** (§10.4).
+
+**`cache-miss` is asserted empty.** §5.10 makes a content-keyed miss on a definition nobody meant to
+change worth reporting; §14 asserts there are none across a corpus run, which is what turns "keyed
+completely" from an instruction into a property. A miss means the key does not hold every input, or a
+definition changed and nobody said so, and both are worth stopping for.
+
+### 14.8 The numbers that become assertions
+
+Scattered through §1 to §13 are figures that were measured or derived while the argument was being made.
+Each is an assertion waiting for an engine. Gathered here so none is lost, and so an implementer knows
+which numbers their implementation is expected to reproduce.
+
+#### The scripted movement library — the migration's contract
+
+§13.8 measures ten movements from the existing engine. They are `MOVEMENTS` generators today; the
+migration turns each into `beats` plus a `position(role, u)` in its unit's frame (§13.3), and **these are
+the numbers that conversion must reproduce**:
+
+| | `beats` | accumulated turn | `c_scripted` |
+|---|---|---|---|
+| `enchufla` | 4 | +180° | 64.04 |
+| `reverse_enchufla` | 4 | **−180°** | 64.04 |
+| `adios` | 4 | +180° | 64.04 |
+| `reverse_adios` | 4 | **−180°** | 64.04 |
+| `vacilala` | 4 | +180° | 64.04 |
+| `leaders_enchufla` | 4 | +180° | 64.04 |
+| `leaders_right_turn` | 4 | 0° | 64.04 |
+| `dile4` | 4 | −90° | 72.50 |
+| `dile` | 8 | −180° | 72.63 |
+| `exhibela` | 8 | 0° | **85.07** |
+
+Three of those rows carry a specific trap and each is asserted for its own reason:
+
+- **The pairs with identical endpoints and opposite turns.** `enchufla` and `reverse_enchufla` both have a
+  *net* turn of 180°, so an implementation that takes the net rather than the accumulated turn is wrong by
+  360° for half the library — and wrong in a way that **looks like success**, because §4.6's subtraction
+  still lands the couple correctly oriented and only the spin on the way is wrong (§13.4).
+- **`exhibela`'s 85.07.** Well above `open` = 64.04, so a couple carrying it needs a corridor of
+  **149.07** against the 128.04 `open` alone would give — 21.03 units wider. Drop the `c_scripted` term
+  and that couple's corridor no longer contains the couple (§13.5).
+- **Every one of them ends with a midpoint displacement of 0.00**, which is what makes them expressible as
+  scripted movements at all. `exhibela` reaches 2.2 units off the corridor on the way and `dile` 1.1
+  (§13.2), so the *end* value is the assertion and the *maximum* is the reason §13.2's frame origin is
+  the corridor point rather than the couple's live midpoint.
+
+**`hold` must exist before any figure naming it resolves.** §4.2 and §4.7 both write `scripted: hold` and
+the engine has no such movement. §13.7 specifies it — `position(role, u)` constant, accumulated turn 0°,
+`c_scripted` the separation they are standing at — and it joins the table with those three values.
+
+#### The derived turn — the first number to confirm
+
+§5.6 derives a primero's turn on entering Línea Moderna as `180° + 360/n`, resolved clockwise:
+
+| `n` | derived turn | with `Línea Moderna`'s one anti-clockwise extra turn |
+|---|---|---|
+| 4 | **270°** | 90° anti-clockwise |
+| 6 | 240° | 120° anti-clockwise |
+| 8 | 225° | 135° anti-clockwise |
+
+**This is derived and has never been run**, and §4.7 says exactly why it is carried as a verification case
+rather than left to be noticed on a diagram: *it can fail in a way that looks like success.* If an
+implementation derives some other angle, both `Línea Moderna` and `Adios Línea` still run — the primeros
+still arrive in the right slot facing the right way, because `extra turns` cannot make them arrive wrong.
+They simply spin the wrong amount getting there, and the two figures become the same dance, or swap.
+
+**270° at four couples is the first number to confirm when §5 is built.** If it comes out otherwise, the
+direction swaps between those two definitions and nothing else changes.
+
+#### The geometry fixtures
+
+Each was computed while a section was being written and each is now a regression floor:
+
+| | | from |
+|---|---|---|
+| ring radii at 2, 3, 4, 6, 8 couples | 57.36, 80.11, 104.35, **154.00**, 204.18 | §5.3 |
+| `delta` at six couples | **exactly 12°**, and `R(6)` exactly 154 | §3.1, §5.3 |
+| Línea Moderna at six couples | inner grande 80.1, pequeña 57.35, pequeña centre 121.0, outer midpoint 168.6, outer grande 171.6 | §5.4 |
+| one slot in two wheels, resolved twice | the same point to **1.4 × 10⁻¹⁴** | §5.5 |
+| a resting Casino couple from its midpoint | **32.018** = `open`/2; a Dile Que No couple **23.000** = `closed`/2 | §3.2 |
+| keep-out, solo corridor | 35.00 against a place, 19.00 against an abstract point | §5.7 |
+| the closest two places in any formation position | **46.00** = `min(s, 2·R_step)`, the two partners of one slot | §9.4 |
+| the closest pair in *different* slots | **49.18** = `g − 2·R_step` | §9.4 |
+| the two margins §9.4 records nowhere else | `a >= 19` within a slot, `g >= 81` across a two-slot wheel | §9.4 |
+| walking between two dancers needs them | **> 70** apart for a solo corridor, **> 166.04** for a couple at `open` | §9.7 |
+| Dame Dos Pequeña's follower from the Dile Que No position | straight line 39.42, taut path **99.12** — the cost of a binding declaration | §9.6 |
+| Dame Dos's leader at two couples | subtends **157.87°**, 22.13° from the flip; clears the centre by 11.01 | §4.7, §9.6 |
+| the minimum couple count | per-couple supremum 132.28°, so `k >= 1.361`, so **`k >= 2`** | §9.2 |
+| `FORMATIONS.md §3.3`'s closest pair | **49.90** at every `k` from 2 to 8 | `FORMATIONS.md §3.3` |
+
+**Two of those are cross-checks rather than measurements**, and they are the most valuable rows in the
+table because each was arrived at twice from different directions. §9.7's **70** is reached by §5.8.2's
+tangent condition with §3.7's keep-out, and independently by §6.5's two bodies and a margin — *had the two
+disagreed, one of them would have been wrong and neither would have said so.* And `R(6)` = 154 with
+`delta` = 12° is where `s` and `g` were read from (`index.html` derives both as `2 × 154 × sin 12°` and
+`2 × 154 × sin 18°`), so the six-couple row of §5.3's table must come back exact rather than solved.
+
+#### Acceleration is reported, and never asserted
+
+§7.7 is explicit about which of these is which, and §14 keeps the line where §7.7 draws it.
+
+**§14 reports peak lateral acceleration per figure per couple count, at the default tempo**, as a number
+an author reads. It is not a threshold and nothing in the engine adapts to it: a figure that is erratic is
+*told to its author*, who can change its `beats`, its declarations, or nothing at all. An engine that
+quietly slowed a figure to keep it comfortable would be rewriting what the author wrote, and the author
+would have no way of knowing.
+
+**§1.4's table is re-taken, and there is one trap in re-taking it** — recorded because it has already
+caught somebody, and because the migration will compare the two engines and must compare them from the
+same place.
+
+**Today's captured keyframes begin one animation step after the resting position, not at it.** At four
+couples a Dame's leader is already **0.189 units** along when the first frame is recorded. Measuring a
+figure's travel from that frame instead of from the dancer's resting place therefore undercounts every row
+of §1.4's table by one step, and it undercounts it *consistently*, which is what makes the result look
+like a discrepancy in the table rather than a fault in the measurement.
+
+**Verified**, at four couples, where the check is cleanest because a dancer's identity survives the figure:
+the leader rests at 162.132°, his first keyframe is at 162.028°, and he ends at 152.868°. From the resting
+place he covers **16.853** units — against the chord `2R sin(90/k − delta)` of 16.841 and §1.4's recorded
+16.9. From the first keyframe he covers 16.664, which is exactly 16.853 less that first step. **§1.4 is
+measured correctly**; a re-measurement that starts one frame late is not.
+
+**The trap disappears with the interface, which is worth noticing as evidence for §11.** §11.3 makes
+`path` evaluable at any beat rather than at a list of beats, so `path(dancer, 0)` **is** the resting
+position and there is no first frame to be one step past. A whole class of measurement error exists only
+because the engine's output was a list of samples, and retiring the list retires the error with it.
+
+### 14.9 The review pass, and how it grows
+
+S6 asks that **every figure is reviewed as a rendered diagram and signed off by a human**. §14 says how
+many, and the answer is not a number: it is a **staging**, because the first pass and the tenth are asking
+different questions.
+
+#### Gate 1 — five diagrams, chosen to fail loudly
+
+The first pass is not coverage. It is an answer to *is the method roughly right at all* — and a person
+looking at five drawings can say "that is a Dame" or "that is not". If the answer is "that is not",
+nothing whatever is learnt by having drawn four hundred.
+
+So the first set is **five instances, and each is chosen because it fails in a different way**:
+
+| | The instance | What a wrong drawing would be telling you |
+|---|---|---|
+| **1** | **Dame**, `{ Rueda, Casino }`, six couples | The commonest figure in the dance and the **shortest corridor in the corpus** — 15.9 units, two dancers each covering half a slot toward one another. Both groups declare a side and neither binds, so the taut path must be a straight chord touching nothing. If this is not straight, §1.4's first criterion is not implemented; if it is not 15.9 units, the corridor is being built at the wrong scale. |
+| **2** | **Dame Dos**, `{ Rueda, Casino }`, **two couples** | The smallest wheel there is, and the only instance where a midpoint declaration is known to bind: the straight chord subtends **+157.87°** — the *left* side — against a declared `right`, and passes **11.01** units from the centre against a 19-unit keep-out. It binds twice over, by side and by clearance. A drawing that shows the straight line means a declaration was pruned for not binding at the count it was authored at (§4.4), which is the failure that takes a figure's meaning with it at every other count. |
+| **3** | **Dame Dos Pequeña**'s leaders, `{ Línea Moderna, Exhibela }`, four couples | **The loop.** Start and end are the same place, and what sends the leaders round their mini wheel is the declared pass, not the offset. `Φ` must be **−360.00°** and the path **180.75** units. If it collapses into standing still, §5.8's *a pass asserts that a pass happens* was implemented as *do not appear on the wrong side*, T3 is missing, and winding has been reintroduced by the back door. |
+| **4** | **Línea Moderna**, `{ Rueda, Casino }` → `{ Línea Moderna, Casino }`, **four couples** | The formation change: a hop, `unit: couple`, a corridor width from a travelling separation, and §5.6's derived turn of **270°** that has never been run. This is the diagram where the primeros spinning the wrong amount is visible, and §4.7 records that nothing else would show it — the figure runs and lands correctly either way. |
+| **5** | **Dame Eñe**, `{ Línea Moderna, Exhibela }`, six couples | The figure the previous engine could not resolve. A place-address feature the outer leaders route around; inner leaders walking **straight through** their pequeña's centre because nobody declared it; and holding followers who are static features rather than obstacles. It is the one drawing that shows §3.7's distinction — *keep-out is about declarations, collision is about dancers* — being got right or wrong. |
+
+Between them: a straight corridor and a curved one, a binding declaration and a free one, a loop, a
+formation change, a couple travelling as one object, a scripted group, a declared feature and an
+undeclared one, and couple counts of two, four and six. **Five drawings, and almost every mechanism in
+§5 is in one of them.**
+
+#### The gates after it
+
+Width is bought with confidence, and each gate is opened only when the one before it is signed:
+
+| | What is drawn | How many |
+|---|---|---|
+| **Gate 1** | the five above | **5** |
+| **Gate 2** | every definition once, at six couples — the baseline, so the drawings are comparable with one another | **64** |
+| **Gate 3** | every instance the engine flags as interesting: a declaration that binds, an override written, an expected fault, an S3 ratio or S4 gap within a stated margin of its threshold | **the engine reports it** — nobody chooses the number |
+| **Gate 4** | the whole corpus | **412** |
+
+**Gate 3's number is deliberately not stated here.** It is the set of instances where something actually
+happened, and how large that set is *is itself a finding*: a corpus where four hundred instances have a
+binding declaration is a different system from one where nine do, and either would be worth knowing before
+a person starts drawing.
+
+#### What a diagram must show
+
+§11.7's list, and it is not negotiable, because an author cannot sign off a route they cannot see and a
+corridor drawn as a bare line does not show what the declaration actually constrained:
+
+- the formation at that instance's couple count and phase, with every dancer at rest;
+- the **corridor's centreline and its width**;
+- **every declared feature inflated to its keep-out radius** (§5.7);
+- the deviations.
+
+**And it is drawn by the same code that draws the running dance** (§11.7). A review diagram drawn by a
+second implementation would certify a path the application does not draw, and the disagreement would be
+invisible in exactly the way §2.5 describes.
+
+#### What a signature means, and what takes it away
+
+**A signature is against a resolution, not against a figure.** That is the whole of what makes it worth
+having. §8.3 stores every derived value and makes any change to one a diff, so:
+
+> **A diagram whose resolution has moved is unsigned again, automatically, and is named in the diff.**
+
+A signature cannot silently outlive what it was given. A default changes, a tolerance moves, a rule is
+reworded — and the figures whose resolutions moved come back for review by name, rather than a person
+being asked to remember which of four hundred drawings might have been affected. That is §8.3's argument
+about diffs arriving as *a diff against figures a human has already approved*, applied to the approval
+itself.
+
+### 14.10 The three provisional values, and what settles them
+
+§1.2 and §5.2 name three values the reviewed text records as provisional. Each is to be settled **by this
+corpus rather than by argument**, and each is settled by a different measurement.
+
+**`t_blend` = 1 beat** (§7.5). The reasoning is sound and the value is a feel decision: a ramp measured in
+beats lands where the dance already pauses, on 4 and on 8. What the corpus can say is what the value
+*costs*. Peak speed is `beats / (beats − t_blend)` and lateral acceleration goes as its square, so
+choosing `t_blend` is choosing how much of §1.4's headroom to spend:
+
+| `t_blend` | a 4-beat figure | a 8-beat figure | the worst figure in the corpus at 250 bpm |
+|---|---|---|---|
+| 0 | 1.00 | 1.00 | 3.79 g |
+| 1 | 1.33 (`v²` 1.78) | 1.14 (`v²` 1.31) | **≈ 6.7 g** |
+
+So the corpus reports, for each candidate `t_blend`, the peak lateral acceleration of every figure at
+both ends of the tempo range — and the value is chosen against that table. **It is a decision made against
+numbers rather than an argument**, which is the only reason it is in §14 at all.
+
+**`Δ_ang` = 0.01°** (§1.2). A floating-point-noise guard, not a design threshold — so the corpus settles
+it the way `CORNER_DEG` was settled, and §11.4 calls that derivation exemplary: the threshold sits in an
+**empty band** in the data and is read off it rather than tuned. Across every declared pass in 412
+instances, record the largest `|Φ|` that should have been zero and the smallest `|Φ|` that should not
+have been. `Δ_ang` is right when it sits between them with room on both sides. **If there is no empty
+band, `Δ_ang` is not a noise guard** and something else is wrong — which is a more useful answer than a
+number.
+
+**`d_engage` = `w + 2Δ`** (§6.7). It shapes a swell and plays no part in deciding whether a collision is
+real, so it cannot be wrong in a way that hurts anybody: widening it makes a deviation begin earlier and
+more gently, and cannot make one appear where none was needed. The corpus settles it by reporting
+`PASSING.md`'s naturalness triple — **deviation, quickness, abruptness** — per encounter at several
+values, and taking the value that lowers abruptness without raising deviation. Since the metric is the
+residual against the corridor rather than the raw path, a legitimately curved figure scores as calm and
+only the dodge is being measured (§6.8).
+
+**All three are reported before they are chosen.** None of them is a value somebody should defend in
+prose, and the corpus is the first moment any of them can be looked at across the whole system at once —
+which §8.5 says is also the only moment a newly derived value is ever in front of you in full.
+
+### 14.11 What §14 does not do
+
+- **It adds no rules.** Every criterion here is §1.6's or §5.8.5's, every number is measured or was
+  derived where it arose, and every failure kind is §10.3's. What §14 adds is where each is run, what
+  input it must fail on, and what a person looks at.
+- **It does not verify concurrency.** The corpus is one figure at a time — the case §7.8 calls *the empty
+  concurrent set*. Which figures may run alongside which, and therefore which concurrent sets need
+  entries, is `SCHEDULING.md`'s, and it extends this corpus rather than replacing it.
+- **It does not order the work.** When each of these is built, and in what order relative to the
+  `MOVEMENTS` → `FIGURES` rename and the authoring skill, is §15's.
+- **It does not draw.** §10.5 says what a fault diagram must contain and §11.7 says what draws it; §14
+  says only which diagrams are produced and which are reviewed.
+- **It does not claim that a green corpus means the figures are good.** Every check here is about whether
+  the engine did what the definitions said. Whether the definitions say what a dancer wants is S6's
+  question, and it is the reason there is a human in this at all.
+
+---
+
 ## Status and handover
 
 **§1 to §8 are written and reviewed.** Purpose · How we got here · The model · The figure definition
@@ -4946,7 +5602,7 @@ answer each: the couple counts a formation has, a slot in more than one wheel, a
 figure with no duration, a pass that barely turns, two features with no room between them, and a unit with
 nowhere to go.
 
-**§10 Failure is reviewed.** Three kinds — refusal, fault, report — a catalogue of 35 named kinds drawn
+**§10 Failure is reviewed.** Three kinds — refusal, fault, report — a catalogue of 36 named kinds drawn
 from the text, what a failure carries, and the rendered diagram §6.10 asked for.
 
 **§11 The renderer contract is reviewed.** The engine produces a function and the renderer evaluates it;
@@ -4962,6 +5618,20 @@ measurements shaped it: the turn must be **accumulated, not net**, because `ench
 `reverse_enchufla` have identical endpoints and opposite turns; and `c_scripted` is load-bearing, because
 `exhibela` reaches a partner separation of 85.07 and so needs a corridor 21.03 units wider than `open`
 alone would give.
+
+**Writing §14 changed one line of the reviewed text**, and only one: §10.3's report catalogue gains
+`route-distortion`, the per-instance S3 ratio, making 36 named kinds rather than 35. §10.4 already used an
+S3 breach as its example of a `measured` pair while §10.3 had no kind for it. It is a *report* because
+nothing stops when the ratio is large — §6.8 caps on S4, and §9.4 holds S3 under observation — and §14.3
+is what acts on it, failing the corpus without faulting the instance.
+
+**§14 Verification is written and awaiting review.** *(A project-wide methodology now governs this document — see `METHOD.md`. Under it, this document has never been reviewed as a whole and never seam-reviewed against `FORMATIONS.md`; both are on the backlog.)* Three jobs — property checks, size-of-the-search
+assertions, and the human pass — plus the artifact discipline §5.10 and §8.3 require. A corpus of **412
+instances** from 64 definitions at seven couple counts, with phase collapsed; S1–S7 and T1–T7 turned into
+checks; the three size assertions, each with the input it must go red on; a fixture per failure kind,
+because a corpus of good definitions exercises none of the 36; and a **staged** review pass beginning at
+five diagrams. `test/corpus-size.js` derives the corpus numbers from the definitions that exist, so they
+cannot drift.
 
 **Writing §9 to §13 moved thirteen passages of the reviewed text**, listed in §9.9 and §10.3, each
 because a derivation or a measurement contradicted what was there. In rough order of consequence:
@@ -4994,7 +5664,8 @@ allowed to go stale: with §1–§8 read, it would say only that. What is worth 
 written and unwritten, and this section draws it.
 
 **Three values in the reviewed text are provisional**, and are the ones to revisit once §14's corpus
-exists rather than by argument:
+exists rather than by argument. **§14.10 now says what settles each** — a table of peak accelerations for
+`t_blend`, an empty band in the `Φ` data for `Δ_ang`, and the naturalness triple for `d_engage`:
 
 | | | |
 |---|---|---|
@@ -5006,7 +5677,8 @@ exists rather than by argument:
 turns` and `Adios Línea` the one declaring none. §5.6 derives it — `turn = 180° + 360/n`, giving **270° at
 four couples** — so it is no longer an assertion; what has not happened is checking it against a running
 implementation, because there isn't one. It is the first number to confirm when §5 is built. If it comes
-out otherwise, the direction swaps between those two definitions and nothing else changes.
+out otherwise, the direction swaps between those two definitions and nothing else changes. §14.8 carries
+it as the first number to confirm, and §14.9 puts it on one of the five diagrams of the first review pass.
 
 **One clarification lives in §13 rather than in the section it corrects.** §3.8 calls a travelling couple's
 reference point *the couple's midpoint*, which is exact only while they dance nothing: a carried scripted
@@ -5015,7 +5687,7 @@ corridor before returning it. §13.2 states the resolution — the frame's origi
 where the reference point *would* be, and the movement displaces the dancers relative to it. §3.8's wording
 was left alone rather than reopened; if it is ever reworded, that is what it should say.
 
-**Outstanding, in order:** §14 Verification — including the cold-versus-warm cache comparison §5.10 requires · §15
+**Outstanding, in order:** §15
 Implementation plan — including the authoring skill of §4.8, the `MOVEMENTS` → `FIGURES` rename, and
 carrying that same rename into what the interface shows a user · §16 Open questions.
 
@@ -5039,8 +5711,6 @@ and **§3.3** was regenerated from its own construction, which corrected its geo
   any figure naming it can resolve.
 - Whether the corridor work lands on top of the module split that exists on two unmerged branches, which
   would change every file path in §15 but nothing in the design.
-- The verification corpus: how many diagrams constitute the first review pass, against the full corpus of
-  roughly 357 figure cases.
 - **How often §4.5 is needed.** Priority and encounter overrides stay — a figure is already known that
   needs both — but the migration counts how often each kind is written, because that says which derived
   default is the weaker (§4.5).

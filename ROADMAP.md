@@ -98,19 +98,31 @@ paths over each beat window.
 
 ## Near-term milestones (before the overhaul)
 
+**How work is done here is `METHOD.md`'s**, and this section is the **backlog** it refers to: what is
+next, what is in flight, and what was noticed and deliberately parked. An entry here is self-contained —
+enough to act on without the conversation that produced it.
+
 1. ~~**Confirm the current build is solid.**~~ *Done.* The suite gates every change: golden 357/132/6,
    invariants 10,659 checks, and the Windows repo is current.
 2. ~~**Rueda ↔ Línea Moderna transitions.**~~ *Done.* `Línea Moderna` / `Adios Línea` / `Dame Línea` go
    in; `Rueda` / `Adios Rueda` come out. They stressed the wheel-context seam as intended, and are the
    reason a figure must be able to travel a couple as one rigid object.
-3. **The pathing rework — in progress.** Design documents written in full *before any code*, on branch
+3. **Settle the methodology — the current work, and the next agent's whole job.** `METHOD.md` and
+   `AGENTS.md` were written from research into how spec-driven and agentic development actually work in
+   practice, then reviewed five times by isolated reviewers. The reviews stopped converging at round five:
+   the method goldfish went 20 → 11 → 8 → 8 findings on its key category while contradictions went back
+   up, which is churn rather than progress. **The remaining work is not another review round.** It is a
+   deliberate reduction: the smallest document that still tells an agent everything it needs, with every
+   rule traceable to a source. See the handover note below.
+
+4. **The pathing rework — in progress.** Design documents written in full *before any code*, on branch
    `engine/pathing_rework`, following the elephant-and-goldfish method: each document must be
    implementable by an agent that has only that document.
 
    | Document | Covers | State |
    |---|---|---|
    | `FORMATIONS.md` | How a formation is structured and addressed: named overlapping wheels, anchoring, traversals, phases per wheel, axes, a formation with a right way round; the authoring language and interface | §1–§6 drafted and substantially rewritten as consequences of the `CORRIDORS.md` review — §2.4, §2.6 and §3.1–§3.2 changed, §2.7 and §3.4 added, §2.6 corrected again while §9 was written (`parity` alternates only at an even couple count), and **§2.5 and §3.3 rewritten** while §3.3 was drawn — a slot-position is now a rotation and a separation, and the perpendicular formation's geometry was corrected and generalised. **Unreviewed, and next to be read.** The authoring half (§4–§5) may be implemented later than the addressing half (§2), which the corridor work depends on |
-   | `CORRIDORS.md` | The corridor model, the figure definition language, the path engine, verification, migration | **§1–§13 written and reviewed in full**; §14–§16 outstanding, beginning with §14 Verification. Then `SCHEDULING.md` |
+   | `CORRIDORS.md` | The corridor model, the figure definition language, the path engine, verification, migration | **§1–§13 reviewed section by section**; **§14 Verification written and awaiting Sam's review** — a corpus of 412 instances at seven couple counts, phase collapsed, and a review pass starting at five diagrams. §15–§16 outstanding. **Never reviewed as a whole document, and never seam-reviewed against `FORMATIONS.md`** — both are on the backlog and neither is optional under `METHOD.md` |
    | `SCHEDULING.md` | Call validity, the end of chained calls, interrupt points, and concurrent figures | not started |
 
    **Order of work:** finish `CORRIDORS.md`, implement it, then `SCHEDULING.md`. The formation
@@ -122,7 +134,119 @@ paths over each beat window.
    the application and the design documents disagree about the most common word in both. Mechanical, and
    worth doing as its own commit before any behaviour changes.
 
-4. **Then** — the rest of the overhaul, incrementally (order to be agreed).
+5. **Then** — the rest of the overhaul, incrementally (order to be agreed).
+
+### The methodology's own remaining work
+
+**This is the next agent's task and it comes before everything else here.** `METHOD.md` is 1,030 lines
+and works; it is not yet as small or as well-sourced as it should be.
+
+- **Reduce it to its smallest correct form.** Every rule that survives should be one an agent needs in
+  *every* session. Anything executed inside a subagent belongs in a skill; anything true only of this
+  project belongs in `AGENTS.md`; anything that expires belongs here. §4 is 415 lines — 40% of the
+  document — and is the place to look first.
+- **Make every rule traceable.** Several rules are currently argued rather than sourced. The Sources
+  section lists what has been read; the gap is that not every rule points at the finding behind it, so a
+  future reader cannot tell a researched rule from a plausible one.
+- **The known open questions**, all raised by reviewers and none yet answered: what Stage 3 actually
+  produces — prose acceptance criteria in the Layer 1 document, or committed executable checks; whether
+  GATE 2, GATE 3 and the seam review get stated pass conditions or remain the author's judgement; and
+  whether `METHOD.md` should say that nothing reviews the second family, since that is a decision and
+  currently reads as an oversight.
+- **What is deliberately settled and should not be reopened without a reason:** plans are deleted after
+  execution, not archived; no finding is ever applied without the author's say-so; a review runs once and
+  stops; there is no standardised process for reviewing process documents; `METHOD.md` names nothing
+  belonging to this project.
+
+### Deferred — noticed, parked deliberately
+
+Each of these was found while writing `METHOD.md` and is real work rather than a note to self. None
+blocks the pathing rework.
+
+- **Delete `METHOD.md`'s "What is specified here and not yet built" section.** It lists the mechanisms
+  the method specifies and this project has not built, so that a reader hitting one of those rules knows
+  why it will not work. **It is true only until the codebase catches up, and then it rots immediately** —
+  which makes it exactly the kind of expiring content `METHOD.md` §2 forbids inside a durable document.
+  It is there deliberately and temporarily. **Delete it, and every `NOT BUILT` marker it explains, as
+  soon as the mechanisms exist**; if some are never going to be built, delete the rules that depend on
+  them instead. Either way the section goes, and `METHOD.md` gets shorter rather than accumulating a
+  record of its own history.
+
+- **Build the normative-reference machinery, and pin what exists.** `METHOD.md` §3 requires every Layer 1
+  document to carry a `Normative references` table listing the sections of other documents it depends on,
+  each pinned to a hash of that section as it stood when this document was last reviewed against it. None
+  exists yet. Measured, the whole repository needs **26 pinned entries** — 11 from `CORRIDORS.md` into
+  `FORMATIONS.md`, 11 the other way, and 4 from `METHOD.md` — out of 1,261 total references, because only
+  cross-document normative ones are pinned. Two pieces: generate the tables from the reference graph
+  `test/xref.js` already parses, and add a check that reports a pin whose section has changed. **The seam
+  is concentrated and that tells you where to start:** `FORMATIONS.md` §2.5 is cited 12 times from
+  `CORRIDORS.md`, §3.3 eight times, §2.7 seven times, and `CORRIDORS.md` §4.3 seven times from
+  `FORMATIONS.md`.
+
+- **Run the reviews `METHOD.md` now requires and this project has never had.** Three, in this order, and
+  the first two are cheap:
+
+  1. **The seam review, `CORRIDORS.md` against `FORMATIONS.md`** — using `prompts/goldfish-seam.md`. No
+     review has ever asked whether these two agree, and single-document review *cannot by construction*
+     find a contradiction between them. Order by citation count above.
+  2. **The whole-document goldfish on `CORRIDORS.md`** — using `prompts/goldfish-spec.md`. §1–§14 were
+     reviewed section by section as they were written, so cross-section contradictions have never been
+     looked for. `METHOD.md` §4 is explicit that this gate is not waivable on the grounds that every
+     section passed.
+  3. **The same on `FORMATIONS.md`**, after it has been read section by section.
+
+  Expect findings. That is the point, and it does not devalue what the section-by-section reviews caught —
+  they were looking for a different thing.
+
+- **Audit every existing document against `METHOD.md`, and bring it into line.** The methodology was
+  written after most of these documents existed, so none of them was written to it. This is the sweep that
+  fixes that, and it is one pass over the whole repository rather than a series of opportunistic edits —
+  the point is to know that every file has been looked at, which is not a claim a scattered cleanup can
+  make. Per document, four questions:
+
+  1. **Which layer is it?** Intent, map, plan, or check — and if it is more than one, it is split or the
+     exception is recorded with a reason. `ROADMAP.md` itself is the known case: durable direction and an
+     expiring backlog in one file, deliberately, because the backlog needs somewhere to live.
+  2. **Which state is it in?** Current, live-but-scheduled, or superseded. Superseded means extract and
+     delete (see the entry above); live-but-scheduled means a header naming what will replace it.
+  3. **Does it obey the rules for its layer?** Chiefly the no-code-names rule for Layer 1, and for a
+     document that is really a plan, whether it has outlived its execution.
+  4. **Where it makes a checkable claim, is there a check?** A claim with no Layer 4 check behind it is an
+     opinion, and this is the pass that finds out how many of those there are.
+
+  Documents in scope and not yet classified: `CALLING.md`, `PATHING.md`, `PASSING.md`,
+  `ENGINE_MODEL.md`, `DECLARATIVE.md`, `MOVEMENT_SPEC.md`, `CLEANUP_PLAN.md`, `CHANGELOG.md`,
+  `README.md`, `test/README.md`, and the two skill files. `MOVEMENT_SPEC.md` is the interesting one —
+  it is a **method-layer** document that predates `METHOD.md`, so the question is whether it folds in,
+  stays as the per-figure procedure `METHOD.md` points at, or is rewritten as a fifth prompt.
+
+  **Do this after the corridor engine is built.** Several of these describe the engine being replaced, and
+  classifying a document that is about to be deleted is work done twice.
+
+- **Bring the Layer 1 documents into line with the no-code-names rule.** `METHOD.md` §2 settles that a
+  Layer 1 document names no file, symbol or line — it states the behaviour or the derivation, and the
+  name lives in a Layer 4 check where rot fails loudly instead of silently. `CORRIDORS.md` predates that
+  rule and carries debt against it: it names several code symbols, and **its own header still states the
+  two purposes the rule now excludes** — *"to locate work or to identify what is being replaced"*. Two
+  pieces of work: reword that header, and sweep the symbols, either into behavioural descriptions or into
+  checks. §11.4's retirement list is the clearest case — it is a plan task plus an assertion that those
+  symbols no longer exist, and neither of those is Layer 1. **Do this after the corridor engine is built**,
+  not before: several of the names are about code that is being deleted anyway, and sweeping them now
+  would be rewriting sentences that are about to be removed.
+
+- **Delete the superseded documents, after extracting what survives.** `METHOD.md` §3 settles that a
+  superseded document is deleted rather than kept with a *historical* header — git holds it, and a marked
+  file still costs context in every search. Three are ready, and the reference sweep is done:
+  `SMOOTH_PATHS_PLAN.md` is referenced by nothing but `METHOD.md`; `ARCHITECTURE_REVIEW.md` only by
+  `METHOD.md` and `REFACTOR_PLAN.md`, itself historical; `REFACTOR_PLAN.md` is referenced by
+  `test/README.md`, which is **live and must be reworded first**, and by `CHANGELOG.md`, where a
+  reference to a deleted document is correct because the changelog is a record of what happened. Extract
+  any surviving lesson into the document that replaced it, delete, and name in the commit message what
+  moved and where.
+
+  `CALLING.md`, `PATHING.md`, `PASSING.md` and `ENGINE_MODEL.md` are **not** in this set. They describe
+  the engine that exists, agents need them until the corridor engine lands, and they become deletable on
+  the day it does.
 
 ## How the current work already feeds the vision
 
