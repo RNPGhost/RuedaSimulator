@@ -51,9 +51,29 @@ says something, or that nothing implements a rule takes seconds to test — and 
 context gets these wrong predictably: *"not specified"* often means *"not specified to me"*, and it cannot
 tell the difference. Check, then say what you checked.
 
-**Then summarise and stop.** Say what was found, say which findings you would reject and why, and wait
-for the author. Do not fix anything, and do not soften or inflate a finding — the author is adjudicating
-every item and both distortions cost them time.
+**Then present in this order, and stop.** The order is not cosmetic. An author handed conclusions
+before evidence can judge neither, and the observed failure is not that they judge badly — it is that
+they stop reading. This sequence was written after exactly that happened.
+
+1. **Headline.** What was reviewed, how many findings, whether any of them blocks, and that nothing
+   has been changed. One or two lines.
+2. **What was written or edited.** One line per file, each a link, saying what it now does. Assume it
+   has never been read: a finding about a document nobody has opened is unreadable.
+3. **The findings.** Each one quoting the text it concerns, so it can be understood without opening
+   anything. The blocking ones in full, the rest at one line each.
+4. **A link to the full report.**
+5. **What you would reject, and why.**
+6. **What you would accept**, as a list that can be answered in a single message.
+
+Five and six are split because they ask different things: one is you arguing, the other is a decision
+to make. Bundling them makes both harder.
+
+**Keep the reply small.** Only what needs deciding now belongs in it; the rest stays in the report
+file. Reproducing a report wholesale defeats the point: the text then occupies context for the
+remainder of the session, and buries the few items that mattered.
+
+**Do not fix anything, and do not soften or inflate a finding.** Every item is being adjudicated by
+hand, and both distortions cost the reader time.
 
 **If most of the report is wrong**, the likely cause is the wrong material or the wrong prompt, not a
 stupid reviewer. Say so and offer to re-run it differently.

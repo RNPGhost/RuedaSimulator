@@ -24,13 +24,33 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-/* Every document that carries process guidance. Any pair saying the same thing is a finding, so adding
- * one here means it must earn every sentence against all the others. */
+
+/* Every family-2 document — everything that says how work is done here, rather than what the software
+ * must do. Any pair saying the same thing is a finding, so adding one here means it must earn every
+ * sentence against all the others.
+ *
+ * THE SKILLS ARE DISCOVERED, NOT LISTED, because there will be seven of them and a hard-coded list is
+ * one more thing to forget. PILOT.md arrives in slice 7; absent files are dropped rather than reported,
+ * so the check stays green on a repository that has not written them yet.
+ *
+ * DELIBERATELY ABSENT: MOVEMENT_SPEC.md and skills-rueda-movements.md. Measured, they share 1,051 words
+ * across 52 passages — 23.5% of MOVEMENT_SPEC.md, including one 530-word block. That is real duplicated
+ * ownership and it is on the backlog, but wiring it in here would make this check red on the day it was
+ * written, with nothing able to clear it. A gate nobody can satisfy is a gate somebody switches off. */
+const skillFiles = () => {
+  const dir = path.join(ROOT, '.claude/skills');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .filter(e => e.isDirectory())
+    .map(e => `.claude/skills/${e.name}/SKILL.md`);
+};
+
 const DOCS = [
-  'METHOD.md',                          // the method: the rules
-  'AGENTS.md',                          // the inventory: what this project has
-  '.claude/skills/goldfish/SKILL.md',   // the skill: how a review is dispatched
-];
+  'METHOD.md',      // the method: the rules
+  'AGENTS.md',      // the inventory: what this project has
+  'PILOT.md',       // the author's guide: how a person drives the process
+  ...skillFiles(),  // the skills: how each piece of the process is actually carried out
+].filter(f => fs.existsSync(path.join(ROOT, f)));
 
 /* MEASURED, not guessed — an earlier version of this file asserted a threshold it had never tested, set
  * it at 10, and passed clean while a nine-word verbatim duplication sat in both files. Counting actual

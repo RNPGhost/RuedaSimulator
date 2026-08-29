@@ -33,9 +33,11 @@ const UNWRITTEN = { 'CORRIDORS.md': /^1[56](\.|$)/ };
 const elsewhere = (H, self, ref) => DOCS.some(d => d !== self && H[d].has(ref));
 const ADJACENT = 40;            // characters before a §ref in which a filename claims it
 
-function headings(file) {
+/* The optional root exists so other checks can reuse this parser against a fixture directory. Nothing
+ * in this file passes it; test/plan-citations.js does. */
+function headings(file, root = ROOT) {
   const set = new Set();
-  for (const line of fs.readFileSync(path.join(ROOT, file), 'utf8').split(/\r?\n/)) {
+  for (const line of fs.readFileSync(path.join(root, file), 'utf8').split(/\r?\n/)) {
     const m = line.match(/^#{2,4}\s+§?(\d+(?:\.\d+)*)[.\s]/);
     if (!m) continue;
     set.add(m[1]);
@@ -50,7 +52,8 @@ function run() {
   for (const d of DOCS) H[d] = headings(d);
 
   const dangling = [];
-  let total = 0, forward = 0, external = 0, crossfile = 0;
+  const crossfile = [];
+  let total = 0, forward = 0, external = 0;
 
   for (const file of DOCS) {
     const lines = fs.readFileSync(path.join(ROOT, file), 'utf8').split(/\r?\n/);
@@ -71,7 +74,10 @@ function run() {
         }
 
         if (H[target].has(ref)) continue;
-        if (target === file && elsewhere(H, file, ref)) { crossfile++; continue; }
+        if (target === file && elsewhere(H, file, ref)) {
+          crossfile.push({ doc: file, line: i + 1, ref });
+          continue;
+        }
         /* A section that exists in no document yet is a forward reference whichever document names it,
          * so this is checked across all of them rather than against the guessed target. */
         if (DOCS.some(d => UNWRITTEN[d] && UNWRITTEN[d].test(ref) && !H[d].has(ref))) { forward++; continue; }
@@ -83,15 +89,64 @@ function run() {
   return { dangling, total, forward, external, crossfile };
 }
 
+/* Unqualified cross-file references that already existed when this check started failing on them.
+ *
+ * METHOD.md §6 requires every cross-document reference to name its document: a bare §ref cannot be
+ * attributed to a file by any tool, so a reference nobody can attribute is a reference nobody can
+ * check. These ten predate the rule being enforced and are cleared by the family-1 alignment task.
+ * They are DEBT, not an exemption on principle — nothing new may join this list.
+ *
+ * KEYED ON DOCUMENT AND SECTION, NOT LINE. Line numbers move the moment anything above them is
+ * edited, and a list that fails whenever a document is touched is a list somebody deletes. The four
+ * in METHOD.md sit inside its illustrative Normative-references table, which is scheduled for removal.
+ *
+ * A STALE ENTRY IS ALSO A FAILURE. When one of these is cleared, this list must shrink with it —
+ * otherwise the list slowly stops describing anything and quietly re-permits what it once recorded. */
+const UNQUALIFIED_ALLOWED = [
+  { doc: 'CORRIDORS.md',  ref: '2.7' },
+  { doc: 'CORRIDORS.md',  ref: '2.6' },
+  { doc: 'FORMATIONS.md', ref: '13' },
+  { doc: 'FORMATIONS.md', ref: '14' },
+  { doc: 'FORMATIONS.md', ref: '9.2' },
+  { doc: 'METHOD.md',     ref: '3.2' },
+  { doc: 'METHOD.md',     ref: '5.5' },
+  { doc: 'METHOD.md',     ref: '9.3' },
+  { doc: 'METHOD.md',     ref: '2.5' },
+];
+
+const key = c => `${c.doc} §${c.ref}`;
+
+function adjudicate(crossfile) {
+  const allowed = new Set(UNQUALIFIED_ALLOWED.map(key));
+  const found = new Set(crossfile.map(key));
+  return {
+    notAllowed: crossfile.filter(c => !allowed.has(key(c))),
+    stale: UNQUALIFIED_ALLOWED.filter(a => !found.has(key(a))),
+  };
+}
+
 function main() {
   const r = run();
+  const { notAllowed, stale } = adjudicate(r.crossfile);
+
   for (const d of r.dangling)
     console.log(`  DANGLING ${d.file}:${d.line}  §${d.ref} -> ${d.target}\n     ${d.text}`);
-  console.log(`XREF  ${r.total} references checked — ${r.crossfile} unqualified cross-file, ` +
+  for (const c of notAllowed)
+    console.log(`  UNQUALIFIED ${c.doc}:${c.line}  §${c.ref} — name the document it belongs to`);
+  for (const s of stale)
+    console.log(`  STALE ALLOWANCE ${key(s)} no longer occurs — remove it from UNQUALIFIED_ALLOWED`);
+
+  /* Occurrences, not list entries: one allowed entry can cover several occurrences of the same
+   * document-and-section, so quoting the list length here would read as though some were unallowed. */
+  console.log(`XREF  ${r.total} references checked — ${r.crossfile.length} unqualified cross-file, ` +
+              `${r.crossfile.length - notAllowed.length} of them allowed pre-existing debt, ` +
               `${r.external} into a test file, ${r.forward} forward to unwritten sections`);
-  console.log(r.dangling.length ? `\n❌ ${r.dangling.length} DANGLING` : '\n✅ no dangling references');
-  process.exit(r.dangling.length ? 1 : 0);
+  const bad = r.dangling.length + notAllowed.length + stale.length;
+  console.log(bad
+    ? `\n❌ ${r.dangling.length} dangling, ${notAllowed.length} unqualified, ${stale.length} stale allowance(s)`
+    : '\n✅ no dangling references');
+  process.exit(bad ? 1 : 0);
 }
 
 if (require.main === module) main();
-module.exports = { run, headings };
+module.exports = { run, headings, adjudicate };

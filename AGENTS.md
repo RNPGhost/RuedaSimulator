@@ -53,12 +53,16 @@ restated here is a rule that will one day disagree with itself.
 
 | | |
 |---|---|
-| `test/run.js` | **the gate.** Characterisation compare plus property checks. Ends `✅ ALL GREEN`. Takes about 15 seconds |
+| `test/run.js` | **the gate.** Characterisation compare plus property checks. Ends `✅ ALL GREEN`. Measured at 22.1 seconds |
 | `test/invariants.js` | property checks — 10,659 of them, in numbered sections. Every section carries its own negative case |
 | `test/golden.js` | characterisation — 357 movement, 132 engine, 6 interaction cases. `--update` re-baselines |
 | `test/xref.js` | every `§X.Y` cited in the design documents resolves |
 | `test/prompts.js` | every prompt is referenced by something, and nothing names a prompt that does not exist |
-| `test/dedupe.js` | no run of five or more words appears in more than one of `METHOD.md`, `AGENTS.md` and the goldfish skill |
+| `test/dedupe.js` | no run of five or more words appears in more than one family-2 document. The skills are discovered on disk, not listed |
+| `test/markers.js` | emphasis and backtick markers balance, section by section, across the five documents edited by script |
+| `test/lineendings.js` | every `.md` and `.js` file is LF. 37 examined |
+| `test/skills.js` | every skill is named somewhere, and nothing names a skill that is absent |
+| `test/plan-citations.js` | every task in a plan cites a section of its spec, or the plan states why it has none |
 | `test/corpus-size.js`, `test/formation-lines.js`, `test/formation-perpendicular.js` | generators — the numbers and diagrams the documents quote are computed here |
 | `test/harness.js` | loads the engine into a Node sandbox. **This is what "measure, don't assert" measures through** |
 | `test/visual.js` | Chromium screenshots. Needs `playwright`; its browser path is hard-coded to Linux, so it does not run on this checkout |
@@ -69,6 +73,23 @@ restated here is a rule that will one day disagree with itself.
 |---|---|
 | `.claude/skills/goldfish/SKILL.md` | runs a goldfish review — picks the prompt, dispatches a fresh reviewer, brings findings back. The main agent does not need to know how |
 | `skills-rueda-movements.md` | adding or changing one figure, call, position or formation. Predates `METHOD.md`; not yet reconciled with it |
+
+### Hooks
+
+Wired in `.claude/settings.json`, each invoked as `node <script>` so one configuration works from every
+shell. They exist because a rule the harness enforces cannot be forgotten late in a long session, and a
+rule written down can.
+
+| | Fires on | Does |
+|---|---|---|
+| `.claude/hooks/post-doc-edit.js` | `PostToolUse`, `Edit\|Write` | runs the five fast audits after any `.md` edit — about 220ms. Reports failures; cannot block |
+| `.claude/hooks/pre-commit-gate.js` | `PreToolUse`, `Bash\|PowerShell` | on a `git commit` or `git push`, runs all eight and denies if any is red. On green it decides nothing, so the permission prompt still asks |
+| `.claude/hooks/pre-compact-handoff.js` | `PreCompact`, `auto` | offers a handoff and a fresh session instead of compacting |
+| `.claude/hooks/remind.js` | `UserPromptSubmit` | one line, every turn: findings are never applied unasked, and commits are never started unasked |
+| `.claude/hooks/lib.js` | — | shared stdin/stdout plumbing. Never throws: a broken hook must not take the session with it |
+
+`test/visual.js` is the one check the gate cannot run here, and it says so every time rather than
+counting it as passing.
 
 ### Reviewer prompts
 
@@ -89,14 +110,16 @@ date; deleting them is on the backlog. It is not the same marker as an executed 
 
 ## Commands
 
-After any document edit, and before any commit:
-
 ```bash
-node test/run.js && node test/xref.js && node test/prompts.js && node test/dedupe.js
+node test/run.js && node test/xref.js && node test/prompts.js && node test/dedupe.js && node test/markers.js && node test/lineendings.js && node test/skills.js && node test/plan-citations.js
 ```
 
-`test/run.js` must end `✅ ALL GREEN`; the rest must report no problems. **All four green before anything
-is committed** — and committing is not yours to start, so ask.
+`test/run.js` must end `✅ ALL GREEN`; the rest must report no problems.
+
+**You no longer have to remember to run these.** The five fast ones fire automatically after any `.md`
+edit, and the commit gate runs all eight and refuses a red one. What the gate cannot know is whether
+the commit was wanted, so it decides nothing on a green tree and leaves the asking to the permission
+prompt — starting one is still not yours to do.
 
 ## Things that have gone wrong here before
 
@@ -109,7 +132,9 @@ Each is an instance of a rule in `METHOD.md` §6 — the rule is there, the loca
   four-couple case match and every other count diverge, and read as confirmation.
 - **Captured keyframes begin one animation step after rest.** Travel measured from frame 0 is short by
   that step. Start from the resting place.
-- **`ROADMAP.md` is CRLF; every other document is LF.** A multi-line exact match against the wrong one
-  matches zero times and says so to nobody.
+- **Every file is LF**, pinned by `.gitattributes` and asserted by `test/lineendings.js`. It was not
+  always so — 13 files were CRLF, and a multi-line exact match against the wrong one matches zero times
+  and says so to nobody. The measurement that found them examined 37 files; an earlier one had looked
+  at five and reported the answer as though it covered the repository.
 - **Splicing near a status section has twice produced a truncated sentence here.** Look at the emphasis
   markers afterwards.

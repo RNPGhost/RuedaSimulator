@@ -148,20 +148,92 @@ and works; it is not yet as small or as well-sourced as it should be.
 - **Make every rule traceable.** Several rules are currently argued rather than sourced. The Sources
   section lists what has been read; the gap is that not every rule points at the finding behind it, so a
   future reader cannot tell a researched rule from a plausible one.
-- **The known open questions**, all raised by reviewers and none yet answered: what Stage 3 actually
-  produces — prose acceptance criteria in the Layer 1 document, or committed executable checks; whether
-  GATE 2, GATE 3 and the seam review get stated pass conditions or remain the author's judgement; and
-  whether `METHOD.md` should say that nothing reviews the second family, since that is a decision and
-  currently reads as an oversight.
+- **The three open questions are answered**, and the answers are being built. Stage 3 produces committed
+  executable checks, not prose criteria — which means it spans two layers, since a check names code and
+  a Layer 1 document may not. The pass condition is the same for every review — every finding
+  adjudicated — so it is stated once rather than four times. And the method says in one line that this
+  family is not gated but reviewed by hand, rarely, because a decision and an oversight are otherwise
+  indistinguishable.
 - **What is deliberately settled and should not be reopened without a reason:** plans are deleted after
-  execution, not archived; no finding is ever applied without the author's say-so; a review runs once and
-  stops; there is no standardised process for reviewing process documents; `METHOD.md` names nothing
-  belonging to this project.
+  execution, not archived; no finding is ever applied without the author's say-so; nothing re-runs a
+  review automatically, though how many times to run one is the author's call; there is no standardised
+  process for reviewing process documents; `METHOD.md` names nothing belonging to the system this
+  project builds, though it names its own furniture.
+
+#### The nine slices
+
+Slice 1 is `plans/2026-08-29-process-tooling.md`. Each later slice gets its own plan when it is reached.
+
+| | Slice | Delivers |
+|---|---|---|
+| 1 | **Checks and hooks** | seven checks, four hooks, the inventory brought up to date |
+| 2 | **`SOURCES.md`** | the evidence behind every rule, keyed by rule; the places the method departs from a source it cites; the rationale removed from `METHOD.md` |
+| 3 | **The method core** | `METHOD.md` cut to what is required in every session — eight imperatives and four tables, written to be injected |
+| 4 | **`SessionStart` injection** | a fifth hook putting the core into every session, so reading it is not the agent's decision |
+| 5 | **Seven skills** | `goldfish` (updated), `slice`, `plan`, `execute`, `checks`, `handoff`, `bug` — each with a *Use when* trigger |
+| 6 | **The prompts** | a new whole-document prompt; forced quotation and a stated concern outlet in three of the four; the disposition record's format |
+| 7 | **`PILOT.md`** | the author's guide: what should have fired, what to say when it did not, what the agent will refuse and why |
+| 8 | **`AGENTS.md`** | rewritten as the inventory of all of the above |
+| 9 | **Review it** | the method prompt over `METHOD.md` and `PILOT.md` — the process applied to itself |
+
+**Slice 5 carries this rule into the `plan` skill**, settled while adjudicating slice 1's own plan
+review. It is recorded here because the plan that produced it is deleted on completion:
+
+> Quote what the implementer must have in front of them to perform the task and to verify it. Nothing
+> else — an over-quoted plan buries its own instruction.
+>
+> - **A change** — quote the lines that change.
+> - **A deletion** — quote the bounds, and give a check that pins the extent. Not the contents: a plan
+>   need not reproduce what it is about to destroy, only say how far the destruction goes and how to
+>   tell it went that far.
+> - **A value the plan cannot state** — do not quote it; add the step that produces it. Anything created
+>   is given its name and its location, not left to the implementer to choose.
+> - **Something an earlier task alters** — quote that earlier task's stated output, not the file as it
+>   stands today, which by then will be wrong.
+>
+> Rot is not a consideration: a plan is executed once and deleted, so a quoted copy has no time to
+> diverge. Noise is the only cost, and the first clause bounds it.
 
 ### Deferred — noticed, parked deliberately
 
 Each of these was found while writing `METHOD.md` and is real work rather than a note to self. None
 blocks the pathing rework.
+
+- **Build the map, and make it answer *which spec owns this?*** There is no Layer 2 map, so nothing in
+  this project can tell an agent which file to open — and, worse, which of the design documents it must
+  read before changing a thing. Until it exists an agent reads the whole repository or guesses. Three
+  requirements, and the second is the one most likely to be skipped:
+
+  1. It carries **architecture part → owning spec**, not only file → contents. That is the direction an
+     agent needs when it has been asked to change something and does not know which document governs it.
+  2. Each spec's one-line summary is **asserted equal to that spec's own statement of purpose by a
+     check**, never hand-written. A second statement of what a document is about will disagree with it
+     at the first edit, which is the duplicated ownership `test/dedupe.js` exists to prevent.
+  3. It is a **structured format with a schema**, not prose. Measured, architecture context cuts agent
+     navigation steps by 33–44% and behavioural variance by about half; format matters to that result,
+     and markdown is the weakest of the ones tested.
+
+- **Clear the ten unqualified cross-file references.** `test/xref.js` now fails on any new one, and
+  holds these ten in `UNQUALIFIED_ALLOWED` as recorded debt: two in `CORRIDORS.md`, three in
+  `FORMATIONS.md`, four in `METHOD.md`. The `METHOD.md` ones sit inside its illustrative
+  Normative-references table and disappear when that section does. Clearing one means deleting its
+  entry — a stale allowance is itself a failure, so the list cannot quietly outlive the debt.
+
+- **Resolve the duplication between `MOVEMENT_SPEC.md` and `skills-rueda-movements.md`.** Measured, they
+  share **1,051 words across 52 passages — 23.5% of `MOVEMENT_SPEC.md`**, including one 530-word block.
+  Two copies of one rule diverge at the first edit to either. `test/dedupe.js` deliberately does **not**
+  gate on this yet: wiring it in would make the check red with nothing able to clear it, and a gate
+  nobody can satisfy is a gate somebody switches off. Add them to `DOCS` as the last step of fixing it.
+  `skills-rueda-movements.md` is also a skill file that is not installed — it has the frontmatter but
+  sits in the repository root, where nothing will ever load it — and `rueda-movements.skill` and
+  `rueda-movements.zip` are byte-identical archives of it. Three copies, none of them live.
+
+- **Build the pin check, when there is something to pin.** `METHOD.md` requires a document to be
+  re-reviewed when a section it normatively depends on changes. The mechanism agreed is not hashing:
+  a table of *(citing document, cited section, date last reviewed)*, and a check comparing that date to
+  git's answer for when the section last changed. It is **not** built in slice 1 because no document
+  carries such a table, and a check with nothing to examine passes vacuously — which is worse than no
+  check, because it looks like an assurance.
 
 - **Delete `METHOD.md`'s "What is specified here and not yet built" section.** It lists the mechanisms
   the method specifies and this project has not built, so that a reader hitting one of those rules knows
