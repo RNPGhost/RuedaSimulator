@@ -13,9 +13,9 @@
  * for one. Such a plan says `Spec: none` and gives a reason on the same line. A bare `none` fails,
  * because "there is no spec" and "I did not look for one" are different states and must not look alike.
  *
- * A CITATION NAMES ITS DOCUMENT. `METHOD.md §6`, never a bare `§6`: adjacency is what attributes a
- * reference, and one nobody can attribute is one nobody can check. That is the same rule test/xref.js
- * holds the design documents to, applied to plans.
+ * A CITATION NAMES ITS DOCUMENT. `CORRIDORS.md §4.3`, never a bare `§4.3`: adjacency is what
+ * attributes a reference, and one nobody can attribute is one nobody can check. That is the same rule
+ * test/xref.js holds the design documents to, applied to plans.
  */
 const fs = require('fs');
 const path = require('path');

@@ -307,14 +307,19 @@ green while a nine-word copy sat in two files. An assertion that has never gone 
 ### The two families
 
 **Kind:** reasoned
-**Evidence:** none. The argument for it is in `METHOD.md` and is not repeated here — restating it would
-put one rule in two places, which is the thing this document least wants to do.
+**Evidence:** none, and the case for it is argument rather than measurement. Writing about how work
+is carried out and writing about what a program has to do serve different readers and are revised
+for different reasons; a specification that admits the first begins to collect procedural asides,
+one at a time, until nobody can tell which of the two it is. It rests on argument alone.
 **Departs:** no
 
 ### The four layers
 
 **Kind:** reasoned
-**Evidence:** none. As above: argued in `METHOD.md`, not evidenced anywhere.
+**Evidence:** none. It rests on argument alone, and the argument is that structure follows
+lifetime: each layer is defined by how long its contents stay true, so the prohibition on mixing
+lifetimes has something to bite on. Without the layers that prohibition is advice; with them it is
+a question anybody can answer about any paragraph.
 **Departs:** no
 
 ### The lifetime rule

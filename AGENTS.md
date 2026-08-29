@@ -14,6 +14,16 @@ commands. `METHOD.md` holds the rules. The split is enforced by `test/dedupe.js`
 or more words shared between the two, bar a short allow list of terms both must be able to name. A rule
 restated here is a rule that will one day disagree with itself.
 
+**What it carries, for each thing it lists:** the file, and one line on what it owns; which of the four
+layers or which of the four kinds of work-document it belongs to; what state it is in — current, live
+but scheduled, or superseded, reviewed or not, built or not yet; the command that proves it works, and
+what its output says when it has; and, where two of a kind both apply, which one wins.
+
+**Three habits keep it honest.** It is written in the present tense, with no history and no rationale —
+both belong elsewhere and would rot here at the first refactor. It says what is absent, because a
+missing row and a thing that does not exist are indistinguishable otherwise, and the second is far more
+useful. And it is where an agent starts, so it stays short enough to read in full every time.
+
 ## The documents
 
 `METHOD.md` defines four layers — intent, the map, plans, checks. This is what this project has in each.
@@ -22,8 +32,8 @@ restated here is a rule that will one day disagree with itself.
 
 | Document | Owns | State |
 |---|---|---|
-| `METHOD.md` | how work is done here — the method | **written, reviewed five times by isolated reviewers, and not yet reduced.** 1,030 lines; the next task is making it smaller and fully sourced |
-| `AGENTS.md` | this inventory | current. Does not yet meet every requirement `METHOD.md` §3 sets for an inventory — exact commands are given for some checks and not others |
+| `METHOD.md` | how work is done here — the method | **reduced to the core in slice 3**: 195 lines, eight imperatives and six tables, and injected from slice 4 into every session. Every rule in it is sourced in `SOURCES.md` |
+| `AGENTS.md` | this inventory | current. Does not yet meet the requirements it states above — exact commands are given for some checks and not others |
 | `ROADMAP.md` | the vision and the locked decisions, **and the backlog** | current |
 | `SOURCES.md` | the evidence behind each of the method's rules, and where the method knowingly goes against a source it cites | in progress. **Nothing loads it and no workflow points at it**; its audience is whoever is reconsidering the process |
 
@@ -105,8 +115,9 @@ Run by the `goldfish` skill, not read directly.
 | `prompts/goldfish-seam.md` | do these two documents disagree? |
 
 Three documents in this repository carry a legacy `HISTORICAL — not current guidance` header:
-`ARCHITECTURE_REVIEW.md`, `REFACTOR_PLAN.md` and `SMOOTH_PATHS_PLAN.md`. Do not follow them. Under
-`METHOD.md` §3 those three should have been removed rather than labelled, so the header is itself out of
+`ARCHITECTURE_REVIEW.md`, `REFACTOR_PLAN.md` and `SMOOTH_PATHS_PLAN.md`. Do not follow them. The
+method's rule about superseded documents means those three should have been removed rather than
+labelled, so the header is itself out of
 date; deleting them is on the backlog. It is not the same marker as an executed plan's, which `METHOD.md`
 §4 Stage 8 defines and which stays.
 
@@ -125,7 +136,7 @@ prompt — starting one is still not yours to do.
 
 ## Things that have gone wrong here before
 
-Each is an instance of a rule in `METHOD.md` §6 — the rule is there, the local detail is here.
+Each is an instance of a rule in `METHOD.md` — the rule is there, the local detail is here.
 
 - **`restDancers()` needs its arguments.** Called without them it hands back an empty array, and every
   subsequent assertion vacuously holds. Check for `2n` dancers first.

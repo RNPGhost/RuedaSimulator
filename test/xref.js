@@ -28,8 +28,8 @@ const ROOT = path.join(__dirname, '..');
 const UNWRITTEN = { 'CORRIDORS.md': /^1[56](\.|$)/ };
 
 /* An unqualified §ref that does not resolve in its own document but does resolve in another is accepted
- * as a cross-file reference. METHOD.md asks its authors to qualify every one anyway (METHOD.md §6),
- * because adjacency is what attributes them and an unqualified ref is only accepted by luck. */
+ * as a cross-file reference. This check is what requires a cross-document reference to name its
+ * document; adjacency is what attributes them, and an unqualified ref is only accepted by luck. */
 const elsewhere = (H, self, ref) => DOCS.some(d => d !== self && H[d].has(ref));
 const ADJACENT = 40;            // characters before a §ref in which a filename claims it
 
@@ -91,14 +91,16 @@ function run() {
 
 /* Unqualified cross-file references that already existed when this check started failing on them.
  *
- * METHOD.md §6 requires every cross-document reference to name its document: a bare §ref cannot be
+ * THIS CHECK IS WHAT REQUIRES a cross-document reference to name its document: a bare §ref cannot be
  * attributed to a file by any tool, so a reference nobody can attribute is a reference nobody can
- * check. These ten predate the rule being enforced and are cleared by the family-1 alignment task.
+ * check. Five entries covering six occurrences predate the rule being enforced, and are cleared by the
+ * family-1 alignment task. The two numbers differ because this array counts entries while the summary
+ * line below counts occurrences: one entry can cover a section cited from several places.
  * They are DEBT, not an exemption on principle — nothing new may join this list.
  *
  * KEYED ON DOCUMENT AND SECTION, NOT LINE. Line numbers move the moment anything above them is
- * edited, and a list that fails whenever a document is touched is a list somebody deletes. The four
- * in METHOD.md sit inside its illustrative Normative-references table, which is scheduled for removal.
+ * edited, and a list that fails whenever a document is touched is a list somebody deletes. Four entries
+ * naming METHOD.md were cleared in slice 3, when the table they sat inside was removed with it.
  *
  * A STALE ENTRY IS ALSO A FAILURE. When one of these is cleared, this list must shrink with it —
  * otherwise the list slowly stops describing anything and quietly re-permits what it once recorded. */
@@ -108,10 +110,6 @@ const UNQUALIFIED_ALLOWED = [
   { doc: 'FORMATIONS.md', ref: '13' },
   { doc: 'FORMATIONS.md', ref: '14' },
   { doc: 'FORMATIONS.md', ref: '9.2' },
-  { doc: 'METHOD.md',     ref: '3.2' },
-  { doc: 'METHOD.md',     ref: '5.5' },
-  { doc: 'METHOD.md',     ref: '9.3' },
-  { doc: 'METHOD.md',     ref: '2.5' },
 ];
 
 const key = c => `${c.doc} §${c.ref}`;

@@ -138,16 +138,9 @@ enough to act on without the conversation that produced it.
 
 ### The methodology's own remaining work
 
-**This is the next agent's task and it comes before everything else here.** `METHOD.md` is 1,030 lines
-and works; it is not yet as small or as well-sourced as it should be.
+**The reduction is done.** `METHOD.md` is now the core an agent needs in every session, and the evidence
+behind each of its rules is in `SOURCES.md`. What remains of the methodology work is slices 4 to 9.
 
-- **Reduce it to its smallest correct form.** Every rule that survives should be one an agent needs in
-  *every* session. Anything executed inside a subagent belongs in a skill; anything true only of this
-  project belongs in `AGENTS.md`; anything that expires belongs here. §4 is 415 lines — 40% of the
-  document — and is the place to look first.
-- **Make every rule traceable.** Several rules are currently argued rather than sourced. The Sources
-  section lists what has been read; the gap is that not every rule points at the finding behind it, so a
-  future reader cannot tell a researched rule from a plausible one.
 - **The three open questions are answered**, and the answers are being built. Stage 3 produces committed
   executable checks, not prose criteria — which means it spans two layers, since a check names code and
   a Layer 1 document may not. The pass condition is the same for every review — every finding
@@ -214,10 +207,25 @@ review. It is recorded here because the plan that produced it is deleted on comp
 > Rot is not a consideration: a plan is executed once and deleted, so a quoted copy has no time to
 > diverge. Noise is the only cost, and the first clause bounds it.
 
+#### What slice 5 must recover, and from where
+
+Slice 3 leaves this material out of the method core, and slice 5 recovers it with `git show 7013a33:METHOD.md`.
+
+| Destination | Lines in the source object |
+|---|---|
+| the slice skill | 660 to 726 |
+| the plan skill | 727 to 758 |
+| the execute skill | 766 to 799 |
+| the checks skill | 364 to 390 |
+| the bug skill | 846 to 850, 858 to 870 |
+| PILOT.md, slice 7 | 506 to 509, 1001 to 1002 |
+
 #### Slice 3 in detail — where each part of `METHOD.md` goes
 
 Worked out before slice 2 was built, and recorded here because it is the whole of slice 3's judgement
-and exists nowhere else. Line numbers are against the 1,010-line version at commit `21c0aa8`.
+and exists nowhere else. Line numbers are measured against the 1,010-line version at commit `21c0aa8`, which is byte-identical
+to `HEAD`. Three of them were wrong when this table was written and were corrected in slice 3; the two
+that would have done damage are noted in the plan that found them.
 
 **Target: roughly 170 lines** — eight imperatives, four tables, and three rules rescued from §7. Not
 `METHOD.md` made tidier: `METHOD.md` reduced to what an agent needs in **every** session, because
@@ -239,10 +247,11 @@ which review fires when, and which skill runs it.
 
 | Where it goes | Which parts |
 |---|---|
-| **Stays** ≈170 lines | the overriding rule; §2's two families, four layers, lifetime rule; §3's one-document-per-subject, what a section is, superseded-means-deleted, the backlog discipline; §4's ceremony table, the four reviews, argue-don't-agree, section-review timing, the three dispositions, the pass condition **stated once for all reviews**, seam re-review, review-runs-once; §5's discriminator as one routing line; §6's measure/guard, constants named, assertion-checked edits; §8's never-commit-unasked |
-| **Deleted** ≈340 | §3's normative-reference machinery (179–231) and *not yet built* table (392–421) — both now backlog; §7's anti-pattern table (963–984); §9's quick reference (986–1004), which summarises a document from inside it |
+| **Stays** ≈170 lines | the overriding rule; §2's two families, four layers, lifetime rule; §3's one-document-per-subject, what a section is, superseded-means-deleted, the backlog discipline; §4's ceremony table, the four reviews, argue-don't-agree, section-review timing, the three dispositions, the pass condition **stated once for all reviews**, seam re-review, review-runs-once; §5's discriminator as one routing line; §6's measure/guard, numbers derived in a generator, constants named, assertion-checked edits, every
+check shown an input it must fail on; §8's never-commit-unasked |
+| **Deleted** ≈340 | §3's normative-reference machinery (179–231) and *not yet built* table (392–428) — both now backlog; §7's anti-pattern table (934–952); §9's quick reference (974–1002), which summarises a document from inside it |
 | **To skills** ≈230 | §4 Stage 4 slicing → `slice` · Stage 5 plan template → `plan` · Stage 7 execute and Stage 8 close-out → `execute` · §3 Layer 4 property-vs-characterisation, corpora, negative cases → `checks` · §5 triage → `bug` |
-| **To `SOURCES.md`** | §1's failure-mode table (40–63); §2's no-code-names worked comparison (96–112); the long-form arguments under §2–§4 |
+| **To `SOURCES.md`** | §1's failure-mode table (44–61); §2's no-code-names worked comparison (104–114); the long-form arguments under §2–§4 |
 | **To `AGENTS.md`** | §3's *what an inventory must contain* → `AGENTS.md`'s own header, self-describing; precedence between two documents of a kind |
 | **To hooks and checks** | §6's run-the-audits, line endings, marker balance, qualified references; §8's every-audit-green — **all five already built in slice 1** |
 
@@ -286,11 +295,12 @@ blocks the pathing rework.
      navigation steps by 33–44% and behavioural variance by about half; format matters to that result,
      and markdown is the weakest of the ones tested.
 
-- **Clear the ten unqualified cross-file references.** `test/xref.js` now fails on any new one, and
-  holds these ten in `UNQUALIFIED_ALLOWED` as recorded debt: two in `CORRIDORS.md`, three in
-  `FORMATIONS.md`, four in `METHOD.md`. The `METHOD.md` ones sit inside its illustrative
-  Normative-references table and disappear when that section does. Clearing one means deleting its
-  entry — a stale allowance is itself a failure, so the list cannot quietly outlive the debt.
+- **Clear the unqualified cross-file references.** `test/xref.js` now fails on any new one, and holds
+  five entries covering six occurrences in `UNQUALIFIED_ALLOWED` as recorded debt: two in
+  `CORRIDORS.md` and three in `FORMATIONS.md`. The array counts entries and the check's summary line
+  counts occurrences, which is why the two numbers differ. Slice 3 clears the four that were in
+  `METHOD.md`, by deleting the table they sat in. Clearing one means deleting its entry — a stale
+  allowance is itself a failure, so the list cannot quietly outlive the debt.
 
 - **Resolve the duplication between `MOVEMENT_SPEC.md` and `skills-rueda-movements.md`.** Measured, they
   share **1,051 words across 52 passages — 23.5% of `MOVEMENT_SPEC.md`**, including one 530-word block.
@@ -303,8 +313,8 @@ blocks the pathing rework.
 
 - **Give `test/dedupe.js` stale-allowance detection.** `test/xref.js` fails when an entry in its
   allow list no longer occurs, so the list cannot quietly outlive the debt it records. `dedupe.js` has
-  no equivalent, and it now carries two allowances that expire when slice 3 rewrites `METHOD.md` — the
-  two claims `SOURCES.md` quotes verbatim in order to correct them. Copy the mechanism across.
+  no equivalent, so an allowance there can go on permitting something that stopped happening and nothing
+  will say so. Copy the mechanism across.
 
 - **Build the pin check, when there is something to pin.** `METHOD.md` requires a document to be
   re-reviewed when a section it normatively depends on changes. The mechanism agreed is not hashing:
@@ -313,17 +323,9 @@ blocks the pathing rework.
   carries such a table, and a check with nothing to examine passes vacuously — which is worse than no
   check, because it looks like an assurance.
 
-- **Delete `METHOD.md`'s "What is specified here and not yet built" section.** It lists the mechanisms
-  the method specifies and this project has not built, so that a reader hitting one of those rules knows
-  why it will not work. **It is true only until the codebase catches up, and then it rots immediately** —
-  which makes it exactly the kind of expiring content `METHOD.md` §2 forbids inside a durable document.
-  It is there deliberately and temporarily. **Delete it, and every `NOT BUILT` marker it explains, as
-  soon as the mechanisms exist**; if some are never going to be built, delete the rules that depend on
-  them instead. Either way the section goes, and `METHOD.md` gets shorter rather than accumulating a
-  record of its own history.
-
-- **Build the normative-reference machinery, and pin what exists.** `METHOD.md` §3 requires every Layer 1
-  document to carry a `Normative references` table listing the sections of other documents it depends on,
+- **Build the normative-reference machinery, and pin what exists.** The requirement lives here now, not
+  in the method: every Layer 1 document should carry a `Normative references` table listing the sections
+  of other documents it depends on,
   each pinned to a hash of that section as it stood when this document was last reviewed against it. None
   exists yet. Measured, the whole repository needs **26 pinned entries** — 11 from `CORRIDORS.md` into
   `FORMATIONS.md`, 11 the other way, and 4 from `METHOD.md` — out of 1,261 total references, because only
@@ -331,7 +333,8 @@ blocks the pathing rework.
   `test/xref.js` already parses, and add a check that reports a pin whose section has changed. **The seam
   is concentrated and that tells you where to start:** `FORMATIONS.md` §2.5 is cited 12 times from
   `CORRIDORS.md`, §3.3 eight times, §2.7 seven times, and `CORRIDORS.md` §4.3 seven times from
-  `FORMATIONS.md`.
+  `FORMATIONS.md`. Slice 3 ends that contradiction: it removes the hash specification from
+  the method, leaving this entry as the only place the mechanism is described.
 
 - **Run the reviews `METHOD.md` now requires and this project has never had.** Three, in this order, and
   the first two are cheap:
@@ -341,8 +344,8 @@ blocks the pathing rework.
      find a contradiction between them. Order by citation count above.
   2. **The whole-document goldfish on `CORRIDORS.md`** — using `prompts/goldfish-spec.md`. §1–§14 were
      reviewed section by section as they were written, so cross-section contradictions have never been
-     looked for. `METHOD.md` §4 is explicit that this gate is not waivable on the grounds that every
-     section passed.
+     looked for. The method is explicit that a whole-document review **cannot be merged** with the
+     section reviews, and is not waivable on the grounds that every section passed.
   3. **The same on `FORMATIONS.md`**, after it has been read section by section.
 
   Expect findings. That is the point, and it does not devalue what the section-by-section reviews caught —
@@ -373,8 +376,8 @@ blocks the pathing rework.
   **Do this after the corridor engine is built.** Several of these describe the engine being replaced, and
   classifying a document that is about to be deleted is work done twice.
 
-- **Bring the Layer 1 documents into line with the no-code-names rule.** `METHOD.md` §2 settles that a
-  Layer 1 document names no file, symbol or line — it states the behaviour or the derivation, and the
+- **Bring the Layer 1 documents into line with the no-code-names rule.** The method settles it: intent
+  **names no code** — no file, symbol or line. It states the behaviour or the derivation, and the
   name lives in a Layer 4 check where rot fails loudly instead of silently. `CORRIDORS.md` predates that
   rule and carries debt against it: it names several code symbols, and **its own header still states the
   two purposes the rule now excludes** — *"to locate work or to identify what is being replaced"*. Two
@@ -384,7 +387,7 @@ blocks the pathing rework.
   not before: several of the names are about code that is being deleted anyway, and sweeping them now
   would be rewriting sentences that are about to be removed.
 
-- **Delete the superseded documents, after extracting what survives.** `METHOD.md` §3 settles that a
+- **Delete the superseded documents, after extracting what survives.** The method settles it: a
   superseded document is deleted rather than kept with a *historical* header — git holds it, and a marked
   file still costs context in every search. Three are ready, and the reference sweep is done:
   `SMOOTH_PATHS_PLAN.md` is referenced by nothing but `METHOD.md`; `ARCHITECTURE_REVIEW.md` only by
@@ -397,6 +400,17 @@ blocks the pathing rework.
   `CALLING.md`, `PATHING.md`, `PASSING.md` and `ENGINE_MODEL.md` are **not** in this set. They describe
   the engine that exists, agents need them until the corridor engine lands, and they become deletable on
   the day it does.
+
+- **Work out the dependency closure — what a section transitively depends on.** It is the input every
+  section review should get, and nothing computes it. Until it exists a person picks what the reviewer is
+  shown and says so in the dispatch, which at least makes the choice visible enough to argue with.
+  Picking it up needs the reference graph, so it follows the entry above rather than standing alone.
+
+- **Find somewhere for the review-state record — whether a document is reviewed or not.** The method
+  holds that a document is not reviewed while a normative dependency is unreviewed; cite that rule by its
+  words, never by a number. Nothing records the status, so this inventory carries it as prose and it
+  cannot be checked. Picking it up needs a durable place to write a status, which is the same want as the
+  disposition record slice 6 delivers, and the two should be settled together.
 
 ## How the current work already feeds the vision
 
