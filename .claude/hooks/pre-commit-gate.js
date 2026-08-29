@@ -21,6 +21,7 @@ const AUDITS = [
   'test/lineendings.js',
   'test/skills.js',
   'test/plan-citations.js',
+  'test/sources.js',
 ];
 
 /* Checks that cannot run here, and why. Empty this list when the reason goes away. */
@@ -56,7 +57,9 @@ readInput().then(input => {
    * granting anything, so the prompt still fires. The plan specified 'allow' here; following it
    * literally would have silently removed the ask. */
   if (UNRUNNABLE.length) {
-    emit('PreToolUse', { additionalContext: `All eight audits green.${skippedNote()}` });
+    /* Counted from the list, never written out. A hard-coded "eight" survived a check being added
+     * and reported the wrong number back for a whole slice. */
+    emit('PreToolUse', { additionalContext: `All ${AUDITS.length} audits green.${skippedNote()}` });
   }
   process.exit(0);
 });
