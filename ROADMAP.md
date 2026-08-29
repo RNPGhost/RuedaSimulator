@@ -160,6 +160,26 @@ and works; it is not yet as small or as well-sourced as it should be.
   process for reviewing process documents; `METHOD.md` names nothing belonging to the system this
   project builds, though it names its own furniture.
 
+  Added while slices 1 and 2 were built, and settled the same way:
+
+  - **No metrics on how many findings a review returns.** Sam adjudicates every one, so he sees
+    convergence directly. Counting is decision-support for an automated stopping rule, and there isn't
+    one. The **disposition record** is a separate thing and is kept: its job is to stop a rejected
+    finding being re-argued by the next review, not to be measured.
+  - **Seven skills, split rather than merged.** Selection degrades on semantic confusability at library
+    sizes far beyond seven, while over-broad guidance has a measured cost — so splitting is close to
+    free and merging is not. Adjacent pairs get descriptions that name each other.
+  - **The core is injected, not read on request.** A line telling an agent to open a file depends on the
+    agent choosing to; a `SessionStart` hook does not. It delivers the text and guarantees nothing about
+    compliance, which is why the core has to be small.
+  - **A handoff carries what was decided and never the reasoning that reached it.** Importing the
+    argument recreates the context a fresh session exists to escape. Anything in a handoff that outlives
+    the transition belongs in a durable document instead.
+  - **`TreeReview`'s machinery is not adopted, only its diagnosis.** Measured at ~23× document size per
+    pass — about 2.1M tokens for `CORRIDORS.md`. What was taken from it: that running the
+    implementability prompt over a whole document is the flat pass it measures as worst, which is why
+    GATE 1 gets a prompt of its own.
+
 #### The nine slices
 
 Slice 1 is `plans/2026-08-29-process-tooling.md`. Each later slice gets its own plan when it is reached.
@@ -193,6 +213,44 @@ review. It is recorded here because the plan that produced it is deleted on comp
 >
 > Rot is not a consideration: a plan is executed once and deleted, so a quoted copy has no time to
 > diverge. Noise is the only cost, and the first clause bounds it.
+
+#### Slice 3 in detail — where each part of `METHOD.md` goes
+
+Worked out before slice 2 was built, and recorded here because it is the whole of slice 3's judgement
+and exists nowhere else. Line numbers are against the 1,010-line version at commit `21c0aa8`.
+
+**Target: roughly 170 lines** — eight imperatives, four tables, and three rules rescued from §7. Not
+`METHOD.md` made tidier: `METHOD.md` reduced to what an agent needs in **every** session, because
+slice 4 injects it into every session including trivial ones.
+
+**The eight imperatives**, each kept because a miss is unrecoverable — you would not find out:
+
+1. No finding from any review is applied without the author saying so, item by item.
+2. Argue. Agreement is the defect. Object first, never capitulate to be agreeable.
+3. One section at a time; stop; **findings come back with the section, not after it**.
+4. Settle it against the running system before writing it down, and prove you have data first.
+5. Never put an expiring thing inside a durable one.
+6. Which layer is this, and what does the work therefore owe?
+7. One session per unit of work; hand off rather than continue.
+8. End every exchange with what changed, and flag anything nobody asked for.
+
+**The four tables:** the two families · the four layers and their lifetimes · what a change owes ·
+which review fires when, and which skill runs it.
+
+| Where it goes | Which parts |
+|---|---|
+| **Stays** ≈170 lines | the overriding rule; §2's two families, four layers, lifetime rule; §3's one-document-per-subject, what a section is, superseded-means-deleted, the backlog discipline; §4's ceremony table, the four reviews, argue-don't-agree, section-review timing, the three dispositions, the pass condition **stated once for all reviews**, seam re-review, review-runs-once; §5's discriminator as one routing line; §6's measure/guard, constants named, assertion-checked edits; §8's never-commit-unasked |
+| **Deleted** ≈340 | §3's normative-reference machinery (179–231) and *not yet built* table (392–421) — both now backlog; §7's anti-pattern table (963–984); §9's quick reference (986–1004), which summarises a document from inside it |
+| **To skills** ≈230 | §4 Stage 4 slicing → `slice` · Stage 5 plan template → `plan` · Stage 7 execute and Stage 8 close-out → `execute` · §3 Layer 4 property-vs-characterisation, corpora, negative cases → `checks` · §5 triage → `bug` |
+| **To `SOURCES.md`** | §1's failure-mode table (40–63); §2's no-code-names worked comparison (96–112); the long-form arguments under §2–§4 |
+| **To `AGENTS.md`** | §3's *what an inventory must contain* → `AGENTS.md`'s own header, self-describing; precedence between two documents of a kind |
+| **To hooks and checks** | §6's run-the-audits, line endings, marker balance, qualified references; §8's every-audit-green — **all five already built in slice 1** |
+
+**Three rules must survive §7's deletion**, each a Layer 1 authoring rule whose failure is silent, and
+each homeless otherwise: do not reverse-engineer a specification from code; never hand-edit a derived
+artifact; and leaving a case out because the answer is obvious is indistinguishable from forgetting it.
+§9 has one line worth keeping — that reaching for *obviously* or *clearly* marks a gap — which belongs
+in `PILOT.md`.
 
 **And three conventions the `plan` skill states once, so that no individual plan has to.** GATE 2 raised
 each of these against **both** plans written so far. Each was fixed in the plan it was raised against,
