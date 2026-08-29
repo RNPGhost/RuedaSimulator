@@ -49,6 +49,7 @@ const DOCS = [
   'METHOD.md',      // the method: the rules
   'AGENTS.md',      // the inventory: what this project has
   'PILOT.md',       // the author's guide: how a person drives the process
+  'SOURCES.md',     // the evidence, not the rules
   ...skillFiles(),  // the skills: how each piece of the process is actually carried out
 ].filter(f => fs.existsSync(path.join(ROOT, f)));
 
@@ -69,6 +70,17 @@ const ALLOWED = [
   'what state each is in',          // the inventory's job, described in both by necessity
   'per slice or per fix',           // the unit a plan covers; there is no other way to say it
   'the backlog what is next',       // as above
+
+  /* Claims quoted verbatim by SOURCES.md's Corrections section. A correction has to reproduce the
+   * sentence it corrects: paraphrase it and a reader can neither find the text to change nor confirm
+   * the correction is about what it claims to be about. These are the only two passages in this
+   * repository that repeat another document ON PURPOSE.
+   *
+   * BOTH EXPIRE. Slice 3 rewrites METHOD.md and removes the erroneous claims; these allowances should
+   * go in the same change. Nothing here detects a stale allowance, which test/xref.js's equivalent
+   * list does detect — adding that is on the backlog. */
+  'measurably as input grows even on simple tasks',
+  'when you agree with me you are not being helpful',
 ];
 
 function words(file) {

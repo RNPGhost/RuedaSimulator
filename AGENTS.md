@@ -25,6 +25,7 @@ restated here is a rule that will one day disagree with itself.
 | `METHOD.md` | how work is done here — the method | **written, reviewed five times by isolated reviewers, and not yet reduced.** 1,030 lines; the next task is making it smaller and fully sourced |
 | `AGENTS.md` | this inventory | current. Does not yet meet every requirement `METHOD.md` §3 sets for an inventory — exact commands are given for some checks and not others |
 | `ROADMAP.md` | the vision and the locked decisions, **and the backlog** | current |
+| `SOURCES.md` | the evidence behind each of the method's rules, and where the method knowingly goes against a source it cites | in progress. **Nothing loads it and no workflow points at it**; its audience is whoever is reconsidering the process |
 
 ### Layer 1 — intent
 
@@ -63,6 +64,7 @@ restated here is a rule that will one day disagree with itself.
 | `test/lineendings.js` | every `.md` and `.js` file is LF. 37 examined |
 | `test/skills.js` | every skill is named somewhere, and nothing names a skill that is absent |
 | `test/plan-citations.js` | every task in a plan cites a section of its spec, or the plan states why it has none |
+| `test/sources.js` | every rule in `SOURCES.md` declares its kind — published, measured here, or reasoned — and carries a citation only where one fits |
 | `test/corpus-size.js`, `test/formation-lines.js`, `test/formation-perpendicular.js` | generators — the numbers and diagrams the documents quote are computed here |
 | `test/harness.js` | loads the engine into a Node sandbox. **This is what "measure, don't assert" measures through** |
 | `test/visual.js` | Chromium screenshots. Needs `playwright`; its browser path is hard-coded to Linux, so it does not run on this checkout |
@@ -111,7 +113,7 @@ date; deleting them is on the backlog. It is not the same marker as an executed 
 ## Commands
 
 ```bash
-node test/run.js && node test/xref.js && node test/prompts.js && node test/dedupe.js && node test/markers.js && node test/lineendings.js && node test/skills.js && node test/plan-citations.js
+node test/run.js && node test/xref.js && node test/prompts.js && node test/dedupe.js && node test/markers.js && node test/lineendings.js && node test/skills.js && node test/plan-citations.js && node test/sources.js
 ```
 
 `test/run.js` must end `✅ ALL GREEN`; the rest must report no problems.

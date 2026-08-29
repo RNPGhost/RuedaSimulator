@@ -194,6 +194,21 @@ review. It is recorded here because the plan that produced it is deleted on comp
 > Rot is not a consideration: a plan is executed once and deleted, so a quoted copy has no time to
 > diverge. Noise is the only cost, and the first clause bounds it.
 
+**And three conventions the `plan` skill states once, so that no individual plan has to.** GATE 2 raised
+each of these against **both** plans written so far. Each was fixed in the plan it was raised against,
+and each came back in the next one — which is the signal that they are not plan defects but missing
+conventions, and belong in the thing that produces plans.
+
+1. **`ROOT` is declared, not assumed.** Every check opens with
+   `const ROOT = path.join(__dirname, '..')`. A plan that specifies a check says so, rather than using
+   the constant as though it arrived from somewhere.
+2. **A file being modified is quoted at the point of change**, not merely named. Raised against
+   `test/xref.js`, `test/dedupe.js`, `test/prompts.js`, two separate tables in `AGENTS.md`, its command
+   block, and `ROADMAP.md`.
+3. **A verification asserts the change, not the suite.** *"All checks green"* after a document edit is
+   equally satisfied by having made no edit at all. The assertion names the text that must now be
+   present and the text that must now be gone.
+
 ### Deferred — noticed, parked deliberately
 
 Each of these was found while writing `METHOD.md` and is real work rather than a note to self. None
@@ -227,6 +242,11 @@ blocks the pathing rework.
   `skills-rueda-movements.md` is also a skill file that is not installed — it has the frontmatter but
   sits in the repository root, where nothing will ever load it — and `rueda-movements.skill` and
   `rueda-movements.zip` are byte-identical archives of it. Three copies, none of them live.
+
+- **Give `test/dedupe.js` stale-allowance detection.** `test/xref.js` fails when an entry in its
+  allow list no longer occurs, so the list cannot quietly outlive the debt it records. `dedupe.js` has
+  no equivalent, and it now carries two allowances that expire when slice 3 rewrites `METHOD.md` — the
+  two claims `SOURCES.md` quotes verbatim in order to correct them. Copy the mechanism across.
 
 - **Build the pin check, when there is something to pin.** `METHOD.md` requires a document to be
   re-reviewed when a section it normatively depends on changes. The mechanism agreed is not hashing:
