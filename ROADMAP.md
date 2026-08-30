@@ -185,7 +185,7 @@ behind each of its rules is in `SOURCES.md`. What remains of the methodology wor
   - **`TreeReview`'s machinery is not adopted, only its diagnosis.** Measured at ~23× document size per
     pass — about 2.1M tokens for `CORRIDORS.md`. What was taken from it: that running the
     implementability prompt over a whole document is the flat pass it measures as worst, which is why
-    GATE 1 gets a prompt of its own.
+    the document review gets a prompt of its own.
 
 #### The nine slices
 
@@ -294,10 +294,10 @@ artifact; and leaving a case out because the answer is obvious is indistinguisha
 §9 has one line worth keeping — that reaching for *obviously* or *clearly* marks a gap — which belongs
 in `PILOT.md`.
 
-**And three conventions the `plan` skill states once, so that no individual plan has to.** GATE 2 raised
-each of these against **both** plans written so far. Each was fixed in the plan it was raised against,
-and each came back in the next one — which is the signal that they are not plan defects but missing
-conventions, and belong in the thing that produces plans.
+**And three conventions the `plan` skill states once, so that no individual plan has to.** The plan
+review raised each of these against **both** plans written so far. Each was fixed in the plan it was
+raised against, and each came back in the next one — which is the signal that they are not plan
+defects but missing conventions, and belong in the thing that produces plans.
 
 1. **`ROOT` is declared, not assumed.** Every check opens with
    `const ROOT = path.join(__dirname, '..')`. A plan that specifies a check says so, rather than using
@@ -453,6 +453,24 @@ blocks the pathing rework.
   words, never by a number. Nothing records the status, so this inventory carries it as prose and it
   cannot be checked. Picking it up needs a durable place to write a status, which is the same want as the
   disposition record slice 6 delivers, and the two should be settled together.
+
+- **Close the seam between the corridor the app promises and the floor the suite enforces.** Two
+  independently written expressions of one margin, half a pixel apart: `test/harness.js` exposes a floor
+  of `2 · (DOT_R + 1)` = 34, while the app plans against `2 · (DOT_R + PATH_CLEAR)` = 35, with
+  `PATH_CLEAR = 1.5` behind six call sites. **The floor sits a pixel below the target, so the suite
+  passes a planner under-delivering by up to a pixel** — and `MOVEMENT_SPEC.md` records that costing
+  something real once, a figure shipped at 33.84px against a 34px floor, which read as a rounding error
+  rather than a figure tearing itself apart. The fix is to derive the floor from the app's own constants
+  rather than restate it, which is the same rule as every number being derived in a generator. **Lower
+  priority than the methodology rework and than the pathing work itself** — nothing is failing today, and
+  the measured worst case sits exactly on 35.00 at every couple count from 4 to 12.
+
+  Three separable pieces, none started: the derived floor itself; the daylight printed on every run, so
+  the number stops being discoverable only by eye; and `PATHING.md`'s *"only just larger than one dancer
+  diameter"* gaining the figure behind it, which is Layer 1 text and so owes a section review and a
+  generator rather than a typed-in number. There is also a coverage hole worth noting when it is picked
+  up: the clearance sweep walks Línea calls movement-by-movement and circle calls only from constructed
+  rest states.
 
 ## How the current work already feeds the vision
 
