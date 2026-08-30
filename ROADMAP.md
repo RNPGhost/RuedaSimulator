@@ -423,7 +423,13 @@ blocks the pathing rework.
   the method, leaving this entry as the only place the mechanism is described.
 
 - **Run the reviews `METHOD.md` now requires and this project has never had.** Three, in this order, and
-  the first two are cheap:
+  the first two are cheap.
+
+  **Two things must happen first, and the second is the larger.** The nine methodology slices finish, so
+  the reviews run under the method as it will actually stand; and every existing document is brought onto
+  that method by the audit entry below. Reviewing a document that has not been audited spends the review
+  on defects the audit was going to find anyway, and a goldfish runs once — a second pass over the same
+  text is a decision somebody has to make rather than something to burn on foreseeable findings.
 
   1. **The seam review, `CORRIDORS.md` against `FORMATIONS.md`** — using `prompts/goldfish-seam.md`. No
      review has ever asked whether these two agree, and single-document review *cannot by construction*
@@ -573,6 +579,25 @@ blocks the pathing rework.
   to its adjacency sentence — and that change went out unmeasured**, recorded here rather than blessed
   by a scenario invented to bless it. Building the scenarios — seven that must fire, and at least one
   that must not — is what would make the instruction real.
+
+- **Deleting a spent plan only records it if the plan was committed first, and nothing says so.**
+  `METHOD.md` holds that a plan is deleted once executed, and the `execute` skill's close-out that
+  *"the commit that removes it is the record of what was done, and git holds the text"*. The second
+  half is conditional and reads as though it were not: git holds the text **only if the plan was
+  committed before it was deleted**. A plan written and executed inside one session is untracked the
+  whole time, so a close-out that deletes it destroys it outright and the commit records a deletion of
+  nothing.
+
+  **Slice 6 walked up to this.** Its plan was untracked when close-out told it to delete the file; the
+  step was stopped rather than performed, and the plan was committed with the slice first. The
+  established pattern is visible in the history for slices 3, 4, 5 and 6 — one commit adds the slice
+  **with** its plan, a second deletes the plan — but that pattern lives nowhere except in the shape of
+  past commits, and the `execute` skill's close-out simply says to delete.
+
+  Two ways to fix it, and the first is nearly free: say in the `execute` skill that the plan is
+  committed before it is deleted, and why. A check is harder — nothing in the suite can see a deletion
+  about to happen, so it would have to run at close-out and ask git whether the file has ever been
+  committed, which is the same question the skill would be telling a person to ask.
 
 ## How the current work already feeds the vision
 
