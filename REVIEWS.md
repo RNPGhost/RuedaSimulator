@@ -121,7 +121,7 @@ declared `none` and a missing line are different states, so every block carries 
 
 | Review | State | At | Prompt |
 |---|---|---|---|
-| plan | reviewed | `8ccbb03` | `prompts/goldfish-plan.md` |
+| plan | spent | `8ccbb03` | `prompts/goldfish-plan.md` |
 
 #### Rejected findings
 
