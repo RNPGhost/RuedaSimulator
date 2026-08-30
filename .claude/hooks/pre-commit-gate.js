@@ -20,6 +20,7 @@ const AUDITS = [
   'test/markers.js',
   'test/lineendings.js',
   'test/skills.js',
+  'test/hooks.js',
   'test/plan-citations.js',
   'test/sources.js',
 ];

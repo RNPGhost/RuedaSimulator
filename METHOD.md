@@ -55,7 +55,7 @@ proportional to what a change produces, never to how large it feels. A one-line 
 alters what the system promises owes the whole loop; a large one that alters no promise owes the checks
 alone. Sizing it by the diff is the commonest way this method fails.
 
-**Seven.** One unit of work, one session. Hand off rather than run on: obedience to instructions falls
+**Seven. One unit of work, one session.** Hand off rather than run on: obedience to instructions falls
 as a session lengthens, and the fall is not visible from inside it. Write down what was decided and
 start again, carrying no reasoning across — importing the argument recreates what a fresh session exists
 to escape.

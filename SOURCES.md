@@ -122,6 +122,17 @@ difference, with Bayes factors supporting that null. The pressure is instruction
 [Instruction Adherence](https://arxiv.org/abs/2605.10039)
 **Departs:** no
 
+### What is injected has a size ceiling, and passing it fails silently
+
+**Kind:** measured here
+**Evidence:** a session-start hook here emitted 12,483 characters of method. Roughly the first 1,900
+reached the agent's context; the remainder was written to a file, and nothing anywhere reported a
+problem. The agent answered correctly only because it noticed the spill and opened that file — which is
+the behaviour the injection existed to remove. Bracketed from the transcript, the surviving prefix ended
+between 1,851 and 2,096 characters. So an injected payload is not a document: it is a budget, and
+exceeding it is indistinguishable from succeeding until somebody asks the agent what it was told.
+**Departs:** no
+
 ### A rule that must always hold is enforced, not written down
 
 **Kind:** published

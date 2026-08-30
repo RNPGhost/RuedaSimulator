@@ -6,8 +6,10 @@ circle and perform called figures simultaneously, exchanging partners as they go
 
 ## Read this first
 
-**[`METHOD.md`](METHOD.md) is the procedure for all work here.** Read it first. It says when it applies,
-and this file does not repeat any of it.
+**[`METHOD.md`](METHOD.md) governs all work here.** A `SessionStart` hook puts its overriding rule and
+its eight imperatives into every session, so those are already in front of you; the rest of it —
+the layers, what a change owes, the reviews, the dispositions — is not injected and is read from the
+file. This inventory does not repeat any of what it says.
 
 **This file is the inventory** — what exists, what each thing owns, what state each is in, and the exact
 commands. `METHOD.md` holds the rules. The split is enforced by `test/dedupe.js`, which fails on any run of five
@@ -73,6 +75,7 @@ useful. And it is where an agent starts, so it stays short enough to read in ful
 | `test/markers.js` | emphasis and backtick markers balance, section by section, across the five documents edited by script |
 | `test/lineendings.js` | every `.md` and `.js` file is LF. 37 examined |
 | `test/skills.js` | every skill is named somewhere, and nothing names a skill that is absent |
+| `test/hooks.js` | every hook file is wired in `settings.json`, nothing is wired that is absent, and the injected text is still derivable and still fits |
 | `test/plan-citations.js` | every task in a plan cites a section of its spec, or the plan states why it has none |
 | `test/sources.js` | every rule in `SOURCES.md` declares its kind — published, measured here, or reasoned — and carries a citation only where one fits |
 | `test/corpus-size.js`, `test/formation-lines.js`, `test/formation-perpendicular.js` | generators — the numbers and diagrams the documents quote are computed here |
@@ -95,9 +98,10 @@ rule written down can.
 | | Fires on | Does |
 |---|---|---|
 | `.claude/hooks/post-doc-edit.js` | `PostToolUse`, `Edit\|Write` | runs the five fast audits after any `.md` edit — about 220ms. Reports failures; cannot block |
-| `.claude/hooks/pre-commit-gate.js` | `PreToolUse`, `Bash\|PowerShell` | on a `git commit` or `git push`, runs all eight and denies if any is red. On green it decides nothing, so the permission prompt still asks |
+| `.claude/hooks/pre-commit-gate.js` | `PreToolUse`, `Bash\|PowerShell` | on a `git commit` or `git push`, runs all ten and denies if any is red. On green it decides nothing, so the permission prompt still asks |
 | `.claude/hooks/pre-compact-handoff.js` | `PreCompact`, `auto` | offers a handoff and a fresh session instead of compacting |
 | `.claude/hooks/remind.js` | `UserPromptSubmit` | one line, every turn: findings are never applied unasked, and commits are never started unasked |
+| `.claude/hooks/session-start.js` | `SessionStart`, `startup\|resume\|clear\|compact` | injects the overriding rule and the eight imperatives, cut out of `METHOD.md` at fire time — 1,691 of a measured 1,900-character budget. Past that the runtime truncates and says nothing |
 | `.claude/hooks/lib.js` | — | shared stdin/stdout plumbing. Never throws: a broken hook must not take the session with it |
 
 `test/visual.js` is the one check the gate cannot run here, and it says so every time rather than
@@ -124,13 +128,13 @@ date; deleting them is on the backlog. It is not the same marker as an executed 
 ## Commands
 
 ```bash
-node test/run.js && node test/xref.js && node test/prompts.js && node test/dedupe.js && node test/markers.js && node test/lineendings.js && node test/skills.js && node test/plan-citations.js && node test/sources.js
+node test/run.js && node test/xref.js && node test/prompts.js && node test/dedupe.js && node test/markers.js && node test/lineendings.js && node test/skills.js && node test/hooks.js && node test/plan-citations.js && node test/sources.js
 ```
 
 `test/run.js` must end `✅ ALL GREEN`; the rest must report no problems.
 
 **You no longer have to remember to run these.** The five fast ones fire automatically after any `.md`
-edit, and the commit gate runs all eight and refuses a red one. What the gate cannot know is whether
+edit, and the commit gate runs all ten and refuses a red one. What the gate cannot know is whether
 the commit was wanted, so it decides nothing on a green tree and leaves the asking to the permission
 prompt — starting one is still not yours to do.
 

@@ -155,6 +155,13 @@ behind each of its rules is in `SOURCES.md`. What remains of the methodology wor
 
   Added while slices 1 and 2 were built, and settled the same way:
 
+  - **The core has no line cap, and 200 was never one.** It landed at 195 and stays there. The size test
+    is whether each rule earned its place — whether a session would go wrong without it and nobody would
+    find out — not a number. What actually degrades compliance is the count of separable instructions,
+    which decays roughly exponentially, while file length between 25 and 500 lines produced no
+    detectable effect in the one study that measured it. So a line target is a proxy, and a proxy is not
+    a gate. **Slice 4 now injects the core, and this rule stands.**
+
   - **No metrics on how many findings a review returns.** Sam adjudicates every one, so he sees
     convergence directly. Counting is decision-support for an automated stopping rule, and there isn't
     one. The **disposition record** is a separate thing and is kept: its job is to stop a rejected
@@ -165,6 +172,10 @@ behind each of its rules is in `SOURCES.md`. What remains of the methodology wor
   - **The core is injected, not read on request.** A line telling an agent to open a file depends on the
     agent choosing to; a `SessionStart` hook does not. It delivers the text and guarantees nothing about
     compliance, which is why the core has to be small.
+    Slice 4 built it, and measured its ceiling: a `SessionStart` payload is truncated past roughly 1,900
+    characters, with nothing said about it. So what is injected is the overriding rule and the eight
+    imperatives — about 400 tokens — and the rest of the method is named rather than shipped. The
+    guarantee is narrower than it was written to be, and it is the part where a miss is unrecoverable.
   - **A handoff carries what was decided and never the reasoning that reached it.** Importing the
     argument recreates the context a fresh session exists to escape. Anything in a handoff that outlives
     the transition belongs in a durable document instead.
@@ -188,6 +199,25 @@ Slice 1 is `plans/2026-08-29-process-tooling.md`. Each later slice gets its own 
 | 7 | **`PILOT.md`** | the author's guide: what should have fired, what to say when it did not, what the agent will refuse and why |
 | 8 | **`AGENTS.md`** | rewritten as the inventory of all of the above |
 | 9 | **Review it** | the method prompt over `METHOD.md` and `PILOT.md` — the process applied to itself |
+
+**Slice 4 narrowed what the later slices can assume, and this is the correction.** The core is not
+injected: only its overriding rule and its eight imperatives are, because a session-start payload is
+truncated past roughly 1,900 characters with nothing said about it. Three consequences that outlive
+slice 4:
+
+- **Slice 3's judgement rested on a premise that turned out false.** What stayed in `METHOD.md` stayed
+  there because it would be injected. Two thirds of it is not. The tables and the rules are now in the
+  same delivery tier as the skills — read on demand — so the line slice 3 drew between *stays* and
+  *goes to a skill* was drawn against a guarantee that does not hold. It is still defensible, because
+  opening one named file is more reliable than a skill firing, but it was not re-derived and slice 9
+  should not assume it was.
+- **Slice 7's `PILOT.md` owes a section on what actually arrives.** An agent that has not opened
+  `METHOD.md` knows the imperatives and does not know the layers, what a change owes, the reviews or
+  the dispositions. That is the first thing an author needs when a session behaves oddly, and it is
+  exactly the *what should have fired, and what to say when it did not* that slice 7 is for.
+- **Slice 9 reviews a document the reviewer will only partly have been given.** The method prompt asks
+  whether the process can be followed without inventing anything; the answer differs depending on
+  whether the reviewer was handed the whole file or the injected part. Say which, in the dispatch.
 
 **Slice 5 carries this rule into the `plan` skill**, settled while adjudicating slice 1's own plan
 review. It is recorded here because the plan that produced it is deleted on completion:
@@ -400,6 +430,15 @@ blocks the pathing rework.
   `CALLING.md`, `PATHING.md`, `PASSING.md` and `ENGINE_MODEL.md` are **not** in this set. They describe
   the engine that exists, agents need them until the corridor engine lands, and they become deletable on
   the day it does.
+
+- **Re-measure the injection ceiling, because it is one reading on one runtime.** `test/hooks.js` holds
+  a budget of 1,900 characters, bracketed from a single session in which a 12,483-character payload was
+  cut somewhere between 1,851 and 2,096. Nothing re-checks it. If the runtime raises the limit the
+  budget is merely conservative; if it lowers one, the check stays green while the injection silently
+  stops arriving — which is the failure it was written to catch, wearing the check's own colours. There
+  is no way to measure it from inside a session, so this is an artefact test: emit a payload of known
+  length, start a session, ask what arrived. Worth doing when the harness updates, or when the
+  imperatives grow.
 
 - **Work out the dependency closure — what a section transitively depends on.** It is the input every
   section review should get, and nothing computes it. Until it exists a person picks what the reviewer is
