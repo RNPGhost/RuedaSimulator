@@ -225,9 +225,35 @@ behind each of its rules is in `SOURCES.md`. What remains of the methodology wor
     deleted, and its block outlives it — the record of a review is the thing that must not go when the
     plan does.
 
+  Added while slice 7 was built:
+
+  - **`PILOT.md` is read by a person and never by an agent.** It is the guide for a human contributor —
+    what actually arrives in a session, which skill should have fired, what to say when none did, and
+    what a refusal means. It states no rule, and its opening paragraph says so, which is the test every
+    section under it has to pass.
+  - **A recovered passage is re-checked against what has been decided since, not just re-pasted.** One
+    of slice 7's two ranges was a quotation the old `METHOD.md` presented as verbatim and unattributed;
+    `SOURCES.md` had since ruled that it be marked adapted rather than quoted, because the original
+    could not be verified. Pasting it back would have reinstated the defect that entry records, and
+    would have collided with `SOURCES.md`. The other range was a first-person self-check in a
+    quick-reference list, and only its content fits a document a person reads.
+  - **Recovering is not copying, and that has now been measured twice.** Slice 5's five ranges carried
+    sixteen references to a document `METHOD.md` no longer is — five `§` references into a file with no
+    numbered sections, seven stage names, four gate names — and four passages `test/dedupe.js` reported
+    as said twice; two of the five also needed adjusting for where the blank lines fell. Slice 7 built
+    the whole outcome in a scratch tree before writing its plan, as slice 5's experience said to, and
+    found eight collisions — **seven of them in prose the plan had written itself**, one in the
+    recovered text, and a ninth later in an inventory row the plan specified. The dry run is what earns
+    its keep, and the recovered text is not where the trouble is.
+  - **A collision between a new document and its new inventory row is cleared by dropping text the row
+    did not need.** `AGENTS.md`'s row for `PILOT.md` restated in its third column what its second
+    column already said, and the restatement was what collided. Removing it cost nothing. Rewording
+    around the check and adding to the allow list were both available and both worse — the allow list
+    admits only phrases that cannot be paraphrased away, and this one could.
+
 #### The nine slices
 
-Slice 1 is `plans/2026-08-29-process-tooling.md`. Each later slice gets its own plan when it is reached.
+Slices 1 to 7 are built. Each remaining slice gets its own plan when it is reached.
 
 | | Slice | Delivers |
 |---|---|---|
@@ -243,7 +269,7 @@ Slice 1 is `plans/2026-08-29-process-tooling.md`. Each later slice gets its own 
 
 **Slice 4 narrowed what the later slices can assume, and this is the correction.** The core is not
 injected: only its overriding rule and its eight imperatives are, because a session-start payload is
-truncated past roughly 1,900 characters with nothing said about it. Three consequences that outlive
+truncated past roughly 1,900 characters with nothing said about it. Two consequences that outlive
 slice 4:
 
 - **Slice 3's judgement rested on a premise that turned out false.** What stayed in `METHOD.md` stayed
@@ -252,10 +278,6 @@ slice 4:
   *goes to a skill* was drawn against a guarantee that does not hold. It is still defensible, because
   opening one named file is more reliable than a skill firing, but it was not re-derived and slice 9
   should not assume it was.
-- **Slice 7's `PILOT.md` owes a section on what actually arrives.** An agent that has not opened
-  `METHOD.md` knows the imperatives and does not know the layers, what a change owes, the reviews or
-  the dispositions. That is the first thing an author needs when a session behaves oddly, and it is
-  exactly the *what should have fired, and what to say when it did not* that slice 7 is for.
 - **Slice 9 reviews a document the reviewer will only partly have been given.** The method prompt asks
   whether the process can be followed without inventing anything; the answer differs depending on
   whether the reviewer was handed the whole file or the injected part. Say which, in the dispatch.
@@ -277,24 +299,6 @@ review. It is recorded here because the plan that produced it is deleted on comp
 >
 > Rot is not a consideration: a plan is executed once and deleted, so a quoted copy has no time to
 > diverge. Noise is the only cost, and the first clause bounds it.
-
-#### What slice 7 must recover, and from where
-
-Slice 3 left this material out of the method core. Slice 5 recovered five of the six destinations with
-`git show 7013a33:METHOD.md`; the last is still outstanding.
-
-| Destination | Lines in the source object | State |
-|---|---|---|
-| PILOT.md, slice 7 | 506 to 509, 1001 to 1002 | outstanding |
-
-**Recovering is not copying, and slice 5 measured how far from copying it is.** The five recovered
-ranges carried sixteen references to a document `METHOD.md` no longer is — five `§` references into a
-file with no numbered sections, seven stage names, four gate names — and four passages `test/dedupe.js`
-reports as said twice. Two of the five ranges also needed a one-line adjustment for where the blank
-lines fell. Slice 7 should expect the same of its two ranges, and should build the whole outcome in a
-scratch tree before writing its plan: slice 5's first probe compared only the recovered bodies and
-found four collisions, while the full dry run found sixteen, twelve of them in text the plan had
-written itself.
 
 #### Slice 3 in detail — where each part of `METHOD.md` goes
 
@@ -598,6 +602,46 @@ blocks the pathing rework.
   committed before it is deleted, and why. A check is harder — nothing in the suite can see a deletion
   about to happen, so it would have to run at close-out and ask git whether the file has ever been
   committed, which is the same question the skill would be telling a person to ask.
+
+- **`test/visual.js` cannot run anywhere but the container it was written in.** It requires
+  `playwright`, which is not installed and for which there is no `package.json`; and it launches with
+  `executablePath: '/opt/pw-browsers/chromium'`, a path it has carried since its first commit, so no
+  run on this project's own platform has ever produced anything. The repository is already prepared for
+  the dependency — `.gitignore` lists `node_modules/` and `package-lock.json`, and
+  `test/lineendings.js` skips `node_modules` by name, so nothing in the suite sees it.
+  `playwright-core` driving an already-installed Edge or Chrome by channel avoids the browser download
+  entirely; both are present on the machine this was written on.
+
+  **It is slice-shaped rather than a small edit.** Making it runnable falsifies two things that
+  currently say it is not: `.claude/hooks/pre-commit-gate.js` exempts it because *"its browser path is
+  hard-coded to Linux"*, and `AGENTS.md` repeats that. And the moment it runs it goes red, for the
+  reason the entry below gives. **A check that runs and always fails is worse than one that says it
+  cannot run**, so this entry and the next are done together or not at all.
+
+- **Re-baselining `test/visual.js` — DO THIS CAREFULLY, never as a routine `--update`.** The fifteen
+  PNGs under `test/golden/visual/` were last captured on 15 August 2026 and record a render that no
+  longer exists. Four things make a casual re-baseline destructive:
+
+  1. **`index.html` has changed in 61 commits since that capture** — among them the window being fitted
+     to the wheel, the two panels becoming one tabbed box, and the count being redrawn to the dancers'
+     scale. Every one of those changes what is drawn.
+  2. **`test/visual.js` itself changed two days after the last capture**, when the tempo control became
+     a BPM picker, which alters how every scene is set up.
+  3. **The baselines were captured by Linux Chromium**, so platform rendering differences arrive
+     together with the sixty-one commits of real change, and the two are indistinguishable in the
+     result.
+  4. **`--update` overwrites without showing anything**, and nothing valid remains to compare against,
+     so no comparison can separate a regression from an intended change from a font.
+
+  **So this is an artefact review and not a check run:** somebody looks at all fifteen images and
+  decides whether each render is right. Once captured they are that machine's baselines and the check
+  can only run there — acceptable while one person runs this repository, and worth writing down when it
+  is done. **`test/golden/baseline.json` is a different artefact, is green, and must not be touched** —
+  `node test/golden.js --update` destroys a working characterisation and is one word away from
+  `node test/visual.js --update`.
+
+  One detail to settle in passing: the file's header claims a threshold of 0.4% while the constant is
+  0.1%, and they have disagreed since the file was written.
 
 ## How the current work already feeds the vision
 

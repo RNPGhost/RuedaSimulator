@@ -40,7 +40,7 @@ const skillFiles = () => {
     .map(e => `.claude/skills/${e.name}/SKILL.md`);
 };
 
-const DOCS = ['METHOD.md', 'AGENTS.md', 'ROADMAP.md', 'CORRIDORS.md', 'FORMATIONS.md', ...skillFiles()];
+const DOCS = ['METHOD.md', 'PILOT.md', 'AGENTS.md', 'ROADMAP.md', 'CORRIDORS.md', 'FORMATIONS.md', ...skillFiles()];
 
 /* A heading, and everything up to the next heading of equal or higher level. */
 function sections(text) {

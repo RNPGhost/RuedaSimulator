@@ -37,6 +37,7 @@ const REFERRERS = [
   'METHOD.md',
   'AGENTS.md',
   'ROADMAP.md',
+  'PILOT.md',
 ];
 
 /* Line wrapping and bolding are formatting, not content. Without this, a correct prompt fails

@@ -40,6 +40,7 @@ useful. And it is where an agent starts, so it stays short enough to read in ful
 | `ROADMAP.md` | the vision and the locked decisions, **and the backlog** | current |
 | `SOURCES.md` | the evidence behind each of the method's rules, and where the method knowingly goes against a source it cites | in progress. **Nothing loads it and no workflow points at it**; its audience is whoever is reconsidering the process |
 | `REVIEWS.md` | which reviews have run against each document and each plan, and which findings were rejected and why | current, and the only place review state lives. `test/reviews.js` checks it |
+| `PILOT.md` | the author's guide — how a person drives this process, and what their part in it is | current. It states no rule, and nothing loads it. Reviewed in slice 9 |
 
 ### Layer 1 — intent
 
@@ -74,7 +75,7 @@ useful. And it is where an agent starts, so it stays short enough to read in ful
 | `test/xref.js` | every `§X.Y` cited in the design documents resolves |
 | `test/prompts.js` | every prompt is referenced by something, and nothing names a prompt that does not exist |
 | `test/dedupe.js` | no run of five or more words appears in more than one family-2 document. The skills are discovered on disk, not listed |
-| `test/markers.js` | emphasis and backtick markers balance, section by section, across the five documents edited by script |
+| `test/markers.js` | emphasis and backtick markers balance, section by section, across the six documents edited by script |
 | `test/lineendings.js` | every `.md` and `.js` file is LF. 37 examined |
 | `test/skills.js` | every skill is named somewhere, and nothing names a skill that is absent |
 | `test/hooks.js` | every hook file is wired in `settings.json`, nothing is wired that is absent, and the injected text is still derivable and still fits |
