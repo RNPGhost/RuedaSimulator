@@ -186,6 +186,21 @@ behind each of its rules is in `SOURCES.md`. What remains of the methodology wor
     pass — about 2.1M tokens for `CORRIDORS.md`. What was taken from it: that running the
     implementability prompt over a whole document is the flat pass it measures as worst, which is why
     the document review gets a prompt of its own.
+  - **The seven skills carry their own routing, and `METHOD.md` names them.** Each description names its
+    adjacent skills, so the one that should have fired is reachable from the one that did; and the core
+    names all seven in a line, because a skill that never triggers and a skill that does not exist look
+    identical from inside a session.
+  - **New process text is measured against the whole family before it is written down.** A collision is
+    cleared by moving the text that does not exist yet, never by rewording a document already in the
+    repository and never by the allow list.
+  - **A test of which skill fires needs a case where none should.** Without one, a library that fires on
+    everything scores a perfect sweep and looks identical to one that discriminates — slice 5's did,
+    until a last scenario with no right answer among the seven returned silence. It is the rule that
+    every check is shown an input it must fail on, applied to a review of an artefact rather than to a
+    check.
+  - **Slice 5's close-out could not update the map, because there is none.** Building one is on the
+    backlog; this is recorded rather than skipped, because a process step that silently cannot be
+    performed teaches everybody that close-out items are advisory.
 
 #### The nine slices
 
@@ -240,18 +255,23 @@ review. It is recorded here because the plan that produced it is deleted on comp
 > Rot is not a consideration: a plan is executed once and deleted, so a quoted copy has no time to
 > diverge. Noise is the only cost, and the first clause bounds it.
 
-#### What slice 5 must recover, and from where
+#### What slice 7 must recover, and from where
 
-Slice 3 leaves this material out of the method core, and slice 5 recovers it with `git show 7013a33:METHOD.md`.
+Slice 3 left this material out of the method core. Slice 5 recovered five of the six destinations with
+`git show 7013a33:METHOD.md`; the last is still outstanding.
 
-| Destination | Lines in the source object |
-|---|---|
-| the slice skill | 660 to 726 |
-| the plan skill | 727 to 758 |
-| the execute skill | 766 to 799 |
-| the checks skill | 364 to 390 |
-| the bug skill | 846 to 850, 858 to 870 |
-| PILOT.md, slice 7 | 506 to 509, 1001 to 1002 |
+| Destination | Lines in the source object | State |
+|---|---|---|
+| PILOT.md, slice 7 | 506 to 509, 1001 to 1002 | outstanding |
+
+**Recovering is not copying, and slice 5 measured how far from copying it is.** The five recovered
+ranges carried sixteen references to a document `METHOD.md` no longer is — five `§` references into a
+file with no numbered sections, seven stage names, four gate names — and four passages `test/dedupe.js`
+reports as said twice. Two of the five ranges also needed a one-line adjustment for where the blank
+lines fell. Slice 7 should expect the same of its two ranges, and should build the whole outcome in a
+scratch tree before writing its plan: slice 5's first probe compared only the recovered bodies and
+found four collisions, while the full dry run found sixteen, twelve of them in text the plan had
+written itself.
 
 #### Slice 3 in detail — where each part of `METHOD.md` goes
 
