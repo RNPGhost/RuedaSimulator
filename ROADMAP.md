@@ -251,9 +251,12 @@ behind each of its rules is in `SOURCES.md`. What remains of the methodology wor
     around the check and adding to the allow list were both available and both worse — the allow list
     admits only phrases that cannot be paraphrased away, and this one could.
 
-#### The nine slices
+#### The slices
 
-Slices 1 to 7 are built. Each remaining slice gets its own plan when it is reached.
+Slices 1 to 7 are built. Each remaining slice gets its own plan when it is reached. **Slice 7.1 was not
+foreseen**: writing `PILOT.md` exposed that the whole of the design phase — everything before a Layer 1
+document exists — was represented in the process as a single unexplained step, and the correction is
+larger than the document that revealed it.
 
 | | Slice | Delivers |
 |---|---|---|
@@ -264,6 +267,7 @@ Slices 1 to 7 are built. Each remaining slice gets its own plan when it is reach
 | 5 | **Seven skills** | `goldfish` (updated), `slice`, `plan`, `execute`, `checks`, `handoff`, `bug` — each with a *Use when* trigger |
 | 6 | **The prompts** | a new whole-document prompt; forced quotation and a stated concern outlet in three of the four; the disposition record's format |
 | 7 | **`PILOT.md`** | the author's guide: what should have fired, what to say when it did not, what the agent will refuse and why |
+| 7.1 | **The elephant** | the design conversation and section-by-section authoring: what happens before any document exists. Runs before slice 8 |
 | 8 | **`AGENTS.md`** | rewritten as the inventory of all of the above |
 | 9 | **Review it** | the method prompt over `METHOD.md` and `PILOT.md` — the process applied to itself |
 
@@ -299,6 +303,88 @@ review. It is recorded here because the plan that produced it is deleted on comp
 >
 > Rot is not a consideration: a plan is executed once and deleted, so a quoted copy has no time to
 > diverge. Noise is the only cost, and the first clause bounds it.
+
+#### Slice 7.1 in detail — what the elephant is, and what was settled
+
+Designed in conversation before any of it was built, and recorded here because `ELEPHANT.md` — the
+design document it produces — will be superseded by `METHOD.md`, the skill and `PILOT.md`, and then
+deleted. **This entry outlives that document.** It holds what was decided; `ELEPHANT.md` holds how it
+works and the evidence behind it.
+
+**The elephant is the design conversation plus section-by-section authoring**, and `METHOD.md` names it.
+Two documents already use the word as established vocabulary and define it nowhere; imperative Two is the
+elephant already, unnamed.
+
+**The interrogation**
+
+- **Mandatory for all new or changed intent**, not only for a new document. It is bounded by its stopping
+  rule rather than by size, so a one-paragraph change ends after a question or two — which is the ceremony
+  table's proportionality arriving from the other side.
+- **Structured questions with candidate answers and an explicit defer**, aimed at ambiguity, because an
+  ambiguity marks knowledge the author holds and has not passed on.
+- **Stopping is a claim, never a default.** The agent states what it believes remains unknown and why it
+  judges that immaterial, and hands the decision over.
+- **The author may refuse to leave the interrogation**, and that refusal is what stops a mandatory phase
+  decaying into a rubber stamp.
+- **The skill must ask what else the author wants to discuss** before proposing to stop. Not optional: it
+  is what prevents a feature being defined in one line.
+
+**The artefacts, and both die at close-out**
+
+- **A checklist**, seeded from what designs habitually omit — non-goals, alternatives considered and
+  rejected, cross-cutting concerns, none of which any document here carries today — and grown as the
+  conversation opens new ground. It carries open items across sessions.
+- **A decisions ledger.** Decisions only, never reasoning. Layer 3.
+- **Only the document survives.** A design that needs two files to be understood has failed.
+
+**The reviews**
+
+- **A new goldfish kind, the interview review.** Its own prompt file. Fires per session when the elephant
+  believes its questions are done, **before any section is written**. Reads a mechanically extracted
+  conversation from the session's own transcript — a filter, never a summary, because a summary omits
+  exactly what the elephant failed to notice. **Fails loudly** when it cannot find one. Writes nothing.
+- **A seam review between the ledger and the document**, before the document review: every entry in the
+  ledger must be findable in the document.
+- **The document review prompt gains the design-is-wrong question.** Nothing asks today whether a design
+  is wrong rather than badly expressed, and the `bug` skill already names that as the case the literature
+  does not handle.
+
+**Writing, and finishing**
+
+- Sections one at a time, reviewed as they settle. Mid-section questions are the exception, asked only
+  when the answer would change what gets written rather than raise confidence in what was going to be
+  written anyway; the section review is the net for what goes unnoticed.
+- **Finished** means every section written and reviewed, the checklist empty — with a disposition for
+  *deliberately not doing this* — and the author saying so.
+- **`handoff` is extended** to sweep and point at the two artefacts, **with the stage inferred from the
+  tree**: their presence on disk is the stage. A skill told the wrong stage fires correctly and does the
+  wrong thing, silently.
+- **Close-out lives in the elephant skill.** `SOURCES.md` gains the research, a back-index from source to
+  the rules using it, and the departures.
+
+**Rejected while designing it, and recorded so they are not re-proposed**
+
+- **A premortem before the document review.** The prospective-hindsight result measures generating
+  explanations, not finding defects; the technique targets suppressed dissent in a committed team, which
+  imperative Two already attacks and which does not arise with one author; the only premortem work for
+  models is safety alignment; and this project's own evidence has an adversarial critic scoring below
+  baseline until forced into discrete grounded verdicts. The gap it aimed at moved into the document
+  review prompt.
+- **A transcript kept as a working artefact.** Unnecessary rather than wrong — the harness writes one.
+- **A stage parameter on `handoff`.** Detection beats declaration.
+- **The interview review as inline instructions.** A prompt is calibrated and paraphrasing recalibrates
+  it; a check can guard a file and cannot guard a paragraph.
+- **Two loops in `PILOT.md`**, and **the elephant firing only for new documents.**
+
+**Two defects this work must fix, both in already-reviewed text.** Imperative Three's authoring half is
+unsourced — `SOURCES.md` justifies *reviewing* one section at a time and nothing justifies *writing* that
+way. And writing section by section is an undeclared departure: the implementation this method is named
+after writes the design document whole.
+
+**The one fragility, measured.** The interview review depends on the session transcript at
+`~/.claude/projects/<slug>/<session-id>.jsonl`, whose session id is recoverable only because the scratch
+directory is named after it. That is undocumented harness layout, and if it moves the review stops
+running — so the skill fails loudly rather than skipping, and a check asserts the path resolves.
 
 #### Slice 3 in detail — where each part of `METHOD.md` goes
 
@@ -431,7 +517,9 @@ blocks the pathing rework.
 
   **Two things must happen first, and the second is the larger.** The nine methodology slices finish, so
   the reviews run under the method as it will actually stand; and every existing document is brought onto
-  that method by the audit entry below. Reviewing a document that has not been audited spends the review
+  that method by the audit entry below. **`CORRIDORS.md` and `FORMATIONS.md` wait until after slice 9 and
+  a further review round**, and their conformance work is done exceptionally carefully: they were written
+  this way manually, over a long time, and **no context may be lost from them**. Reviewing a document that has not been audited spends the review
   on defects the audit was going to find anyway, and a goldfish runs once — a second pass over the same
   text is a decision somebody has to make rather than something to burn on foreseeable findings.
 
