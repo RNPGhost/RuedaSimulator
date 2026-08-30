@@ -198,6 +198,11 @@ behind each of its rules is in `SOURCES.md`. What remains of the methodology wor
     until a last scenario with no right answer among the seven returned silence. It is the rule that
     every check is shown an input it must fail on, applied to a review of an artefact rather than to a
     check.
+  - **No check guards a single term against being reused.** Proposed after `GATE` was found meaning two
+    things at once — the method's plan review, and `CORRIDORS.md`'s second drawing gate — and declined:
+    the same collision could happen to any term this repository defines, so a check watching one of them
+    is machinery for the instance rather than the class. Recurrence is the argument for revisiting; one
+    occurrence is not.
   - **Slice 5's close-out could not update the map, because there is none.** Building one is on the
     backlog; this is recorded rather than skipped, because a process step that silently cannot be
     performed teaches everybody that close-out items are advisory.
@@ -491,6 +496,27 @@ blocks the pathing rework.
   generator rather than a typed-in number. There is also a coverage hole worth noting when it is picked
   up: the clearance sweep walks Línea calls movement-by-movement and circle calls only from constructed
   rest states.
+
+- **Investigate making the handoff arrive rather than being pasted.** A handoff sits on disk and nothing
+  makes the next session open it. The `SessionStart` hook delivers the imperatives and says nothing about
+  this file, so the line that gets it read is written by the author and pasted by hand — and a session
+  where that is forgotten starts blind while looking normal. A hook that detects a handoff at the
+  repository root and injects one line naming it would remove the dependency, which is the same argument
+  slice 4 made for injecting the core instead of telling an agent to go and read it.
+
+  **The budget is the constraint, and it is measured:** 1,691 of 1,900 characters are used, so about 209
+  remain, and a line of the shape needed is around 115. It fits, but only just — and the ceiling is one
+  reading on one runtime, which is why re-measuring it already sits on this list. Two further questions
+  the investigation owes: what the hook says when the handoff is stale rather than current, since nothing
+  distinguishes them; and whether it should fire on all four session origins or only startup. Touches
+  `.claude/hooks/session-start.js` and `test/hooks.js`, so it is slice-shaped rather than a small edit.
+
+- **The `handoff` skill's description names a section that no longer exists under that title**, and it
+  was left that way on purpose. The skill gained two sections after slice 5 closed, and one rename made
+  the description's *"where each part belongs afterwards"* stale. It was not corrected because that
+  exact string is what the trigger test selected on, and editing it makes the one measurement of this
+  skill's selection no longer describe the file. **Recorded so that nobody tidies it without knowing
+  what the tidying costs.** Whoever changes it should re-run the trigger scenario afterwards.
 
 ## How the current work already feeds the vision
 
