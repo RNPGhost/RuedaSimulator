@@ -59,7 +59,7 @@ useful. And it is where an agent starts, so it stays short enough to read in ful
 
 | | | State |
 |---|---|---|
-| `plans/` | one plan per slice or per fix | **does not exist yet** |
+| `plans/` | one plan per slice or per fix | current, holding the plan for the slice in progress |
 | `CLEANUP_PLAN.md` | de-duplicating Grande/Pequeña, and the UI | a live plan, written before the convention existed |
 
 ### Layer 4 — checks
@@ -84,9 +84,18 @@ useful. And it is where an agent starts, so it stays short enough to read in ful
 
 ### Skills
 
+Seven of these carry the method. Each states its own *Use when*; this table says what each owns, which
+is the inventory's question and not the skill's.
+
 | | |
 |---|---|
 | `.claude/skills/goldfish/SKILL.md` | runs a goldfish review — picks the prompt, dispatches a fresh reviewer, brings findings back. The main agent does not need to know how |
+| `.claude/skills/slice/SKILL.md` | where to cut a settled design, and what each entry in the resulting list holds |
+| `.claude/skills/plan/SKILL.md` | turning a chosen slice into something executable, and the conventions each one must carry |
+| `.claude/skills/execute/SKILL.md` | carrying a plan out task by task, and closing it down |
+| `.claude/skills/checks/SKILL.md` | choosing which kind of check to write, and what each kind's failure means |
+| `.claude/skills/bug/SKILL.md` | which of three things a failure actually is — silent specification, missing check, or a design that is simply wrong |
+| `.claude/skills/handoff/SKILL.md` | shutting one session down and opening the next without losing what was settled |
 | `skills-rueda-movements.md` | adding or changing one figure, call, position or formation. Predates `METHOD.md`; not yet reconciled with it |
 
 ### Hooks

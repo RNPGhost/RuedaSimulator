@@ -1,6 +1,6 @@
 ---
 name: goldfish
-description: Run a goldfish review — hand a document, a section, a plan, or two documents to an isolated reviewer that has been given no other context, and bring its findings back. Use when design text is ready to be checked, before a plan is executed, when an edit may have broken agreement between two documents, or whenever the user asks to review, check, or goldfish anything.
+description: Run a goldfish review — hand a document, a section, a plan, or two documents to an isolated reviewer that has been given no other context, and bring its findings back. Use when design text is ready to be checked, when an edit may have broken agreement between two documents, or whenever the user asks to review, check, or goldfish anything. A plan written by the `plan` skill is reviewed here before the `execute` skill carries it out.
 ---
 
 # Running a goldfish review
@@ -22,6 +22,9 @@ to which kind of finding, and each review's pass condition. Read it there; it is
 | **plan** | `prompts/goldfish-plan.md` | the plan, and the map it names |
 | **seam** | `prompts/goldfish-seam.md` | the two documents |
 | **method** | `prompts/goldfish-method.md` | a process document |
+
+**There is no artefact review here.** A goldfish cannot look at what was built; that review is a person,
+and the `execute` skill is where a slice hands them the artefact.
 
 **`method` is used only for settling a procedure document itself**, which is rare. On a design document
 it asks the wrong questions.

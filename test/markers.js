@@ -26,8 +26,21 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 /* The documents that are edited by script and therefore at risk. Filtered by existence so a fixture
- * root need only contain one of them. */
-const DOCS = ['METHOD.md', 'AGENTS.md', 'ROADMAP.md', 'CORRIDORS.md', 'FORMATIONS.md'];
+ * root need only contain one of them.
+ *
+ * THE SKILLS ARE DISCOVERED, NOT LISTED, exactly as test/dedupe.js finds them — five of the seven were
+ * assembled by appending a range of a git object to a written header and then substituting into it,
+ * which is the splice this check exists to catch. A hard-coded list is one more thing to forget when
+ * skill eight arrives. */
+const skillFiles = () => {
+  const dir = path.join(ROOT, '.claude/skills');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .filter(e => e.isDirectory())
+    .map(e => `.claude/skills/${e.name}/SKILL.md`);
+};
+
+const DOCS = ['METHOD.md', 'AGENTS.md', 'ROADMAP.md', 'CORRIDORS.md', 'FORMATIONS.md', ...skillFiles()];
 
 /* A heading, and everything up to the next heading of equal or higher level. */
 function sections(text) {

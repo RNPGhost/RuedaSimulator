@@ -172,6 +172,9 @@ behind each of its rules is in `SOURCES.md`. What remains of the methodology wor
   - **The core is injected, not read on request.** A line telling an agent to open a file depends on the
     agent choosing to; a `SessionStart` hook does not. It delivers the text and guarantees nothing about
     compliance, which is why the core has to be small.
+    It fires on **all four** session origins — startup, resume, clear and compact — not startup alone.
+    Re-stating rules that are already present costs a few hundred tokens; omitting them on the one origin
+    that discards context costs the method, and compaction is exactly that origin.
     Slice 4 built it, and measured its ceiling: a `SessionStart` payload is truncated past roughly 1,900
     characters, with nothing said about it. So what is injected is the overriding rule and the eight
     imperatives — about 400 tokens — and the rest of the method is named rather than shipped. The

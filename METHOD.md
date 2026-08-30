@@ -123,8 +123,14 @@ what makes the review worth running, so whatever it needs must be put in front o
 |---|---|---|
 | a section is finished, and again once it settles | the section review | `goldfish` |
 | the author says the change is ready | seam reviews on whatever seams were touched, and the checks | `goldfish` |
-| a document is finished; a slice is finished | the document review, the plan review, the look at the artefact | `goldfish` |
+| a document is finished; a slice is finished | the document review and the plan review | `goldfish` |
+| a slice is finished | a person looking at what was built | `execute` hands it over |
 | a schedule | the full sweep — every seam, and the documents against the code | `goldfish` |
+
+Six more skills hold the rest, loaded at the moment each is wanted: `slice` cuts settled design into
+slices, `plan` turns one of them into an executable plan, `execute` carries that out and closes it down,
+`checks` picks the kind of check, `bug` triages a defect before anybody opens the code, and `handoff`
+shuts the session down cleanly.
 
 ## The three dispositions
 

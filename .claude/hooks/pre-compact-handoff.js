@@ -12,7 +12,8 @@
 const { readInput, emit } = require('./lib.js');
 
 const MESSAGE =
-  'Context is about to compact. Write the handoff and propose a fresh session instead: ' +
+  'Context is about to compact. Write the handoff with the handoff skill and propose a fresh session ' +
+  'instead: ' +
   'compacting keeps a degraded context, where starting again does not. The handoff carries what was ' +
   'decided, what is next, which files are in play, and which findings were already rejected — not the ' +
   'conversation that produced them.';
