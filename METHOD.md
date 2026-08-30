@@ -123,7 +123,8 @@ what makes the review worth running, so whatever it needs must be put in front o
 |---|---|---|
 | a section is finished, and again once it settles | the section review | `goldfish` |
 | the author says the change is ready | seam reviews on whatever seams were touched, and the checks | `goldfish` |
-| a document is finished; a slice is finished | the document review and the plan review | `goldfish` |
+| a document is finished | the document review | `goldfish` |
+| a plan is written, before any of it is carried out | the plan review | `goldfish` |
 | a slice is finished | a person looking at what was built | `execute` hands it over |
 | a schedule | the full sweep — every seam, and the documents against the code | `goldfish` |
 
@@ -159,6 +160,10 @@ Every finding gets one, and the third is the one most processes forget to offer.
   you happened to be writing when you noticed it.
 - **Intent names no code** — no path, no line, no symbol as the code spells it. State the behaviour or
   the derivation instead; the name belongs in a check, where it rots loudly rather than in silence.
+- **A document names no person.** Say *the author* or *the user* — whichever the sentence means. A
+  process that depends on who is at the keyboard stops working the day somebody else sits down, and
+  nothing about the document says so. Attribution of a ruling survives the change: it still separates
+  what the person who owns the domain decided from what an agent inferred.
 - **A map never explains why.** The moment it justifies a decision it has become intent, and nobody
   updates a rationale while moving a function.
 - **A claim with no check behind it is an opinion**, however carefully it was argued.

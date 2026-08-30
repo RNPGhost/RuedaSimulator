@@ -20,6 +20,10 @@ while doing so, because the author knows what they meant. If a step tells you to
 tell you *how*, that is a finding even when you can imagine a reasonable way. Especially then. The
 question is never *could this be made to work* but *is it specified*.
 
+**Every finding quotes the text it is about.** Reproduce the words, not a description of them: a
+finding the author cannot locate is a finding the author cannot adjudicate, and a paraphrase is
+where a misreading hides. If you cannot quote it, it belongs in CONCERNS YOU COULD NOT GROUND.
+
 Report in this order. If a category is empty, write "none" — do not pad it.
 
 1. **STEPS YOU COULD NOT PERFORM** — a stage or instruction naming an action you could not carry out as
@@ -39,10 +43,14 @@ Report in this order. If a category is empty, write "none" — do not pad it.
 7. **WHAT YOU WOULD HAVE TO INVENT** — the complete list of things you would have to make up to get
    through one full pass. This is the practical measure of the document's completeness, so be exhaustive
    and rank it: what blocks you hardest first.
-8. **WHAT PROCESS YOU UNDERSTOOD THIS TO BE** — three to six sentences, in your own words: what this
+8. **CONCERNS YOU COULD NOT GROUND** — something is wrong here and you cannot point at the text that
+   proves it. Say what worries you, and say plainly that you could not ground it. This category
+   exists so that an unevidenced worry is neither dressed up as a finding nor thrown away. Both are
+   worse than an honest entry here.
+9. **WHAT PROCESS YOU UNDERSTOOD THIS TO BE** — three to six sentences, in your own words: what this
    process is, what it produces, and what it is protecting against.
 
-**Section 8 is not optional and is not a summary of your findings.** A reviewer who had no findings and
+**Section 9 is not optional and is not a summary of your findings.** A reviewer who had no findings and
 understood a different process from the one the author described is the worst outcome available here, and
 it is invisible unless you write down what you understood. Do not skip it because the earlier sections
 went well.

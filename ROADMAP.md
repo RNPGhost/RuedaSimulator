@@ -198,14 +198,32 @@ behind each of its rules is in `SOURCES.md`. What remains of the methodology wor
     until a last scenario with no right answer among the seven returned silence. It is the rule that
     every check is shown an input it must fail on, applied to a review of an artefact rather than to a
     check.
-  - **No check guards a single term against being reused.** Proposed after `GATE` was found meaning two
-    things at once — the method's plan review, and `CORRIDORS.md`'s second drawing gate — and declined:
-    the same collision could happen to any term this repository defines, so a check watching one of them
-    is machinery for the instance rather than the class. Recurrence is the argument for revisiting; one
-    occurrence is not.
+  - **A rejected review finding is recorded in `REVIEWS.md`, not here.** The one this list used to
+    carry — that no check should guard a single term against reuse — moved there when that file was
+    written, keeping its wording exactly.
   - **Slice 5's close-out could not update the map, because there is none.** Building one is on the
     backlog; this is recorded rather than skipped, because a process step that silently cannot be
     performed teaches everybody that close-out items are advisory.
+
+  Added while slice 6 was built:
+
+  - **A prompt is one self-contained file, and its shared text is duplicated into it on purpose.** A
+    reviewer is handed one file and reads it whole, so text common to several prompts is one
+    instruction delivered several times rather than one rule with several homes. `test/prompts.js`
+    holds the canonical copy and names which prompt has drifted. It collapses runs of whitespace and
+    strips emphasis before comparing, because measured, the shared passages wrap and bold differently
+    in every file: only two of the four prompts were byte-identical on any passage, and a comparison
+    without that step fails on formatting alone.
+  - **Forced quotation and the concern outlet are one mechanism, and neither ships alone.** Requiring
+    every finding to quote its text, with nowhere to put a worry that cannot be quoted, suppresses real
+    concerns rather than grounding them.
+  - **The section review and the document review have separate prompts.** They ask different questions,
+    and running the implementability prompt over a whole document is the flat pass measured as the
+    worst-performing option.
+  - **Review state and rejected findings live in `REVIEWS.md`.** Not in the inventory, which cannot be
+    checked, and not in a handoff, which expires. `spent` means a plan was reviewed, executed and
+    deleted, and its block outlives it — the record of a review is the thing that must not go when the
+    plan does.
 
 #### The nine slices
 
@@ -353,6 +371,16 @@ blocks the pathing rework.
      navigation steps by 33–44% and behavioural variance by about half; format matters to that result,
      and markdown is the weakest of the ones tested.
 
+  **Slice 6 measured what its absence costs, and the cost is larger than "an agent reads more files".**
+  The `goldfish` skill hands a plan reviewer *"the plan, and the map it names"*. With no map, a reviewer
+  forbidden from opening the codebase must report every task that writes or changes code as one it could
+  not start — and did: five such findings in slice 6's third round, one for each code-touching task,
+  each saying it would have had to open a file it was not given. They were rejected as findings against
+  that plan and recorded here instead. **Until a map exists, no plan that touches code can pass a plan
+  review cleanly**, and the review's most valuable category is the one it cannot use. Quoting the four
+  files wholesale into each plan is the only alternative, and the `plan` skill forbids it: an
+  over-quoted plan buries its own instruction.
+
 - **Clear the unqualified cross-file references.** `test/xref.js` now fails on any new one, and holds
   five entries covering six occurrences in `UNQUALIFIED_ALLOWED` as recorded debt: two in
   `CORRIDORS.md` and three in `FORMATIONS.md`. The array counts entries and the check's summary line
@@ -400,7 +428,7 @@ blocks the pathing rework.
   1. **The seam review, `CORRIDORS.md` against `FORMATIONS.md`** — using `prompts/goldfish-seam.md`. No
      review has ever asked whether these two agree, and single-document review *cannot by construction*
      find a contradiction between them. Order by citation count above.
-  2. **The whole-document goldfish on `CORRIDORS.md`** — using `prompts/goldfish-spec.md`. §1–§14 were
+  2. **The whole-document goldfish on `CORRIDORS.md`** — using `prompts/goldfish-document.md`. §1–§14 were
      reviewed section by section as they were written, so cross-section contradictions have never been
      looked for. The method is explicit that a whole-document review **cannot be merged** with the
      section reviews, and is not waivable on the grounds that every section passed.
@@ -473,12 +501,6 @@ blocks the pathing rework.
   shown and says so in the dispatch, which at least makes the choice visible enough to argue with.
   Picking it up needs the reference graph, so it follows the entry above rather than standing alone.
 
-- **Find somewhere for the review-state record — whether a document is reviewed or not.** The method
-  holds that a document is not reviewed while a normative dependency is unreviewed; cite that rule by its
-  words, never by a number. Nothing records the status, so this inventory carries it as prose and it
-  cannot be checked. Picking it up needs a durable place to write a status, which is the same want as the
-  disposition record slice 6 delivers, and the two should be settled together.
-
 - **Close the seam between the corridor the app promises and the floor the suite enforces.** Two
   independently written expressions of one margin, half a pixel apart: `test/harness.js` exposes a floor
   of `2 · (DOT_R + 1)` = 34, while the app plans against `2 · (DOT_R + PATH_CLEAR)` = 35, with
@@ -517,6 +539,40 @@ blocks the pathing rework.
   exact string is what the trigger test selected on, and editing it makes the one measurement of this
   skill's selection no longer describe the file. **Recorded so that nobody tidies it without knowing
   what the tidying costs.** Whoever changes it should re-run the trigger scenario afterwards.
+
+- **Take the author's personal name out of every document that carries it.** This system must not depend
+  on which person is at the keyboard, so a document says *the author* or *the user* — whichever the
+  sentence actually means. Slice 6 writes the rule into `METHOD.md`; this entry is the sweep that
+  applies it, and it waits until the nine slices are done, because most of its occurrences sit in the
+  very documents that must be brought onto the method anyway.
+
+  **Measured: 117 occurrences across 13 files.** The method family is already clean — `METHOD.md`,
+  `AGENTS.md`, `SOURCES.md`, all seven skills, all four prompts and all five hooks carry none. The
+  rest splits four ways, and the last two are the ones to settle before starting:
+
+  1. `ROADMAP.md`, 9 — ownership, locked decisions, and three section headings.
+  2. `MOVEMENT_SPEC.md`, `CALLING.md`, `DECLARATIVE.md`, `ENGINE_MODEL.md`, `PASSING.md`,
+     `PATHING.md`, `skills-rueda-movements.md`, 31 — design attributions in Layer 1 text.
+  3. `test/invariants.js` and `test/golden.js`, 24 — mostly attributed quotations of a ruling, and the
+     attribution is load-bearing: it separates what the person who owns the domain decided from what an
+     agent inferred. *The author* keeps that separation, so these are safe to reword and must not
+     instead be dropped.
+  4. `CHANGELOG.md`, 46, and the two plans, 17 — a record of who did what. **Renaming here falsifies a
+     record rather than de-personalising a rule, and it is the one part of the sweep that is not
+     obviously right.** Either exempt it or remove it under the superseded-documents rule; do not
+     quietly rewrite it.
+
+  A check can hold the rule afterwards, and that check will be the one file here containing the name it
+  forbids — which is correct, since a check names things as they are spelled, and is worth knowing
+  before somebody reports it as a defect.
+
+- **The skill-selection measurement has no artefact, and two descriptions have now changed without
+  it.** Slice 5 measured that all seven skills fired on their triggers, and on a case where none
+  should; that exercise left nothing behind, so *"re-run the trigger scenario"* names a procedure
+  nobody can perform. **Slice 6 changed the `plan` skill's description — adding the `goldfish` skill
+  to its adjacency sentence — and that change went out unmeasured**, recorded here rather than blessed
+  by a scenario invented to bless it. Building the scenarios — seven that must fire, and at least one
+  that must not — is what would make the instruction real.
 
 ## How the current work already feeds the vision
 

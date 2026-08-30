@@ -50,6 +50,7 @@ const DOCS = [
   'AGENTS.md',      // the inventory: what this project has
   'PILOT.md',       // the author's guide: how a person drives the process
   'SOURCES.md',     // the evidence, not the rules
+  'REVIEWS.md',     // the review record: what has been reviewed, and what was rejected
   ...skillFiles(),  // the skills: how each piece of the process is actually carried out
 ].filter(f => fs.existsSync(path.join(ROOT, f)));
 

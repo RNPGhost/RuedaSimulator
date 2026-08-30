@@ -18,8 +18,9 @@ restated here is a rule that will one day disagree with itself.
 
 **What it carries, for each thing it lists:** the file, and one line on what it owns; which of the four
 layers or which of the four kinds of work-document it belongs to; what state it is in — current, live
-but scheduled, or superseded, reviewed or not, built or not yet; the command that proves it works, and
-what its output says when it has; and, where two of a kind both apply, which one wins.
+but scheduled, or superseded, built or not yet; the command that proves it works, and what its output
+says when it has; and, where two of a kind both apply, which one wins. **Whether a thing has been
+reviewed is not here**; `REVIEWS.md` holds that, so it can be checked rather than merely written down.
 
 **Three habits keep it honest.** It is written in the present tense, with no history and no rationale —
 both belong elsewhere and would rot here at the first refactor. It says what is absent, because a
@@ -38,13 +39,14 @@ useful. And it is where an agent starts, so it stays short enough to read in ful
 | `AGENTS.md` | this inventory | current. Does not yet meet the requirements it states above — exact commands are given for some checks and not others |
 | `ROADMAP.md` | the vision and the locked decisions, **and the backlog** | current |
 | `SOURCES.md` | the evidence behind each of the method's rules, and where the method knowingly goes against a source it cites | in progress. **Nothing loads it and no workflow points at it**; its audience is whoever is reconsidering the process |
+| `REVIEWS.md` | which reviews have run against each document and each plan, and which findings were rejected and why | current, and the only place review state lives. `test/reviews.js` checks it |
 
 ### Layer 1 — intent
 
 | Document | Owns | State |
 |---|---|---|
-| `CORRIDORS.md` | the corridor model, the figure definition language, the path engine, verification | §1–§14 written; §15–§16 outstanding. Reviewed section by section, but **never reviewed as a whole document**, and its normative dependency below is unreviewed |
-| `FORMATIONS.md` | how a formation is structured and addressed; the authoring language | drafted, **unreviewed**. §2.5 and §3.3 are the most load-bearing and the most recently changed |
+| `CORRIDORS.md` | the corridor model, the figure definition language, the path engine, verification | §1–§14 written; §15–§16 outstanding. Review state in `REVIEWS.md` |
+| `FORMATIONS.md` | how a formation is structured and addressed; the authoring language | drafted. §2.5 and §3.3 are the most load-bearing and the most recently changed. Review state in `REVIEWS.md` |
 | `SCHEDULING.md` | call validity, interrupts, what may run alongside what | not started |
 | `MOVEMENT_SPEC.md` | the intake questions and conformance checklist for adding one figure | current, and a **second method-layer document**. **Precedence: `METHOD.md` wins wherever the two overlap**; this one covers only the per-figure intake, and reconciling them is on the backlog |
 | `CALLING.md`, `PATHING.md`, `PASSING.md`, `ENGINE_MODEL.md`, `DECLARATIVE.md` | the engine **as it stands today** | **live but scheduled** — needed until the corridor engine lands, deletable the day it does |
@@ -78,6 +80,7 @@ useful. And it is where an agent starts, so it stays short enough to read in ful
 | `test/hooks.js` | every hook file is wired in `settings.json`, nothing is wired that is absent, and the injected text is still derivable and still fits |
 | `test/plan-citations.js` | every task in a plan cites a section of its spec, or the plan states why it has none |
 | `test/sources.js` | every rule in `SOURCES.md` declares its kind — published, measured here, or reasoned — and carries a citation only where one fits |
+| `test/reviews.js` | every review recorded in `REVIEWS.md` resolves — the documents, the prompts, the states — and no plan is unreviewed |
 | `test/corpus-size.js`, `test/formation-lines.js`, `test/formation-perpendicular.js` | generators — the numbers and diagrams the documents quote are computed here |
 | `test/harness.js` | loads the engine into a Node sandbox. **This is what "measure, don't assert" measures through** |
 | `test/visual.js` | Chromium screenshots. Needs `playwright`; its browser path is hard-coded to Linux, so it does not run on this checkout |
@@ -107,7 +110,7 @@ rule written down can.
 | | Fires on | Does |
 |---|---|---|
 | `.claude/hooks/post-doc-edit.js` | `PostToolUse`, `Edit\|Write` | runs the five fast audits after any `.md` edit — about 220ms. Reports failures; cannot block |
-| `.claude/hooks/pre-commit-gate.js` | `PreToolUse`, `Bash\|PowerShell` | on a `git commit` or `git push`, runs all ten and denies if any is red. On green it decides nothing, so the permission prompt still asks |
+| `.claude/hooks/pre-commit-gate.js` | `PreToolUse`, `Bash\|PowerShell` | on a `git commit` or `git push`, runs all eleven and denies if any is red. On green it decides nothing, so the permission prompt still asks |
 | `.claude/hooks/pre-compact-handoff.js` | `PreCompact`, `auto` | offers a handoff and a fresh session instead of compacting |
 | `.claude/hooks/remind.js` | `UserPromptSubmit` | one line, every turn: findings are never applied unasked, and commits are never started unasked |
 | `.claude/hooks/session-start.js` | `SessionStart`, `startup\|resume\|clear\|compact` | injects the overriding rule and the eight imperatives, cut out of `METHOD.md` at fire time — 1,691 of a measured 1,900-character budget. Past that the runtime truncates and says nothing |
@@ -122,7 +125,8 @@ Run by the `goldfish` skill, not read directly.
 
 | | Asks |
 |---|---|
-| `prompts/goldfish-spec.md` | could you implement this document without asking anything? |
+| `prompts/goldfish-section.md` | could you implement this section without asking anything? |
+| `prompts/goldfish-document.md` | does this whole document hold together, and could somebody build from it? |
 | `prompts/goldfish-method.md` | could you *follow* this process without inventing anything? — **not part of the standing loop**; a bespoke reviewer used while settling `METHOD.md` itself |
 | `prompts/goldfish-plan.md` | could you execute this plan without reading anything it did not give you? |
 | `prompts/goldfish-seam.md` | do these two documents disagree? |
@@ -137,13 +141,13 @@ date; deleting them is on the backlog. It is not the same marker as an executed 
 ## Commands
 
 ```bash
-node test/run.js && node test/xref.js && node test/prompts.js && node test/dedupe.js && node test/markers.js && node test/lineendings.js && node test/skills.js && node test/hooks.js && node test/plan-citations.js && node test/sources.js
+node test/run.js && node test/xref.js && node test/prompts.js && node test/dedupe.js && node test/markers.js && node test/lineendings.js && node test/skills.js && node test/hooks.js && node test/plan-citations.js && node test/sources.js && node test/reviews.js
 ```
 
 `test/run.js` must end `✅ ALL GREEN`; the rest must report no problems.
 
 **You no longer have to remember to run these.** The five fast ones fire automatically after any `.md`
-edit, and the commit gate runs all ten and refuses a red one. What the gate cannot know is whether
+edit, and the commit gate runs all eleven and refuses a red one. What the gate cannot know is whether
 the commit was wanted, so it decides nothing on a green tree and leaves the asking to the permission
 prompt — starting one is still not yours to do.
 

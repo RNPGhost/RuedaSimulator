@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Write the implementation plan for one slice or one fix — a Layer 3 document under plans/ describing a delta from the code as it is now, with the conventions every plan must carry and the rule for what to quote. Use when a slice has been chosen and is about to be built, or when asked to plan, spec out, scope, or write up how something will be done. Cutting work into slices comes first and is the `slice` skill; carrying the plan out is the `execute` skill.
+description: Write the implementation plan for one slice or one fix — a Layer 3 document under plans/ describing a delta from the code as it is now, with the conventions every plan must carry and the rule for what to quote. Use when a slice has been chosen and is about to be built, or when asked to plan, spec out, scope, or write up how something will be done. Cutting work into slices comes first and is the `slice` skill; the finished plan goes to the `goldfish` skill for review, and only then to the `execute` skill.
 ---
 
 # Writing a plan
@@ -69,3 +69,10 @@ else — an over-quoted plan buries its own instruction.
 
 Rot is not a consideration: a plan is executed once and deleted, so a quoted copy has no time to
 diverge. Noise is the only cost, and the first clause bounds it.
+
+## Then it goes to review
+
+A finished plan is not a started plan. It goes to a plan review first, run by the `goldfish` skill
+with `prompts/goldfish-plan.md`, and the findings come back to the author with the plan rather than
+after it. How a review is dispatched and what its findings then mean belong to `goldfish` and to
+`METHOD.md`; neither is repeated here.

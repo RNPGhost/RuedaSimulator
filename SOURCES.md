@@ -362,6 +362,14 @@ independently.
 **Sources:** [ClaudeFlows](https://omnipragmatic.github.io/claudeflows/)
 **Departs:** no
 
+### Documents do not name people
+
+**Kind:** reasoned
+**Evidence:** none. An argument, not a measurement. What was measured is only the size of the problem
+it describes: 117 occurrences of one personal name across 13 files, and none of them in the documents
+that carry the method itself. That is illustration, not proof.
+**Departs:** no
+
 ### Superseded documents are removed
 
 **Kind:** reasoned

@@ -23,6 +23,7 @@ const AUDITS = [
   'test/hooks.js',
   'test/plan-citations.js',
   'test/sources.js',
+  'test/reviews.js',
 ];
 
 /* Checks that cannot run here, and why. Empty this list when the reason goes away. */

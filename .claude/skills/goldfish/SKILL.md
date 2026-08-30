@@ -17,8 +17,8 @@ to which kind of finding, and each review's pass condition. Read it there; it is
 
 | Kind | Prompt | Hand the reviewer |
 |---|---|---|
-| **section** | `prompts/goldfish-spec.md` | one section, plus what it depends on |
-| **document** | `prompts/goldfish-spec.md` | one whole design document |
+| **section** | `prompts/goldfish-section.md` | one section, plus what it depends on |
+| **document** | `prompts/goldfish-document.md` | one whole design document |
 | **plan** | `prompts/goldfish-plan.md` | the plan, and the map it names |
 | **seam** | `prompts/goldfish-seam.md` | the two documents |
 | **method** | `prompts/goldfish-method.md` | a process document |
@@ -67,9 +67,22 @@ they stop reading. This sequence was written after exactly that happened.
 4. **A link to the full report.**
 5. **What you would reject, and why.**
 6. **What you would accept**, as a list that can be answered in a single message.
+7. **Whether a further round will be worth running once the accepted findings have been applied**, in
+   one line. Not whether to run one against the text as it stands — that text is about to change, so it
+   was never the question.
 
 Five and six are split because they ask different things: one is you arguing, the other is a decision
 to make. Bundling them makes both harder.
+
+Seven is a recommendation and never a finding. How many rounds to buy belongs to the author, and
+nothing here starts one unasked; what the recommendation owes is evidence.
+
+**Answer it about the text as it will be, not as it is.** *Not until these are fixed* is not an answer:
+it hands the findings back and leaves the author exactly where they were. Judge how far the accepted
+items move the text. *They rewrite nine tasks of sixteen and reorder three, so what comes out is close
+to new text and has never been read by anyone* argues one way; *they transcribe wording already agreed
+into places already agreed, so a further pass re-reads what this one read* argues the other. *Two is
+usually enough* is a habit with nothing behind it.
 
 **Keep the reply small.** Only what needs deciding now belongs in it; the rest stays in the report
 file. Reproducing a report wholesale defeats the point: the text then occupies context for the

@@ -15,7 +15,11 @@ review catches is a step that reads perfectly to somebody who already knows the 
 impossible for somebody who does not. If a step tells you to change something without telling you where
 it is, that is a finding even if you could obviously find it.
 
-Report in this order. If a category is empty, write "none".
+**Every finding quotes the text it is about.** Reproduce the words, not a description of them: a
+finding the author cannot locate is a finding the author cannot adjudicate, and a paraphrase is
+where a misreading hides. If you cannot quote it, it belongs in CONCERNS YOU COULD NOT GROUND.
+
+Report in this order. If a category is empty, write "none" — do not pad it.
 
 1. **TASKS YOU COULD NOT START** — which task, and what you would have had to go and look at first.
 2. **UNNAMED FILES** — anywhere the plan says to add, change or delete something without an exact path.
@@ -28,5 +32,19 @@ Report in this order. If a category is empty, write "none".
 6. **PLACEHOLDERS** — "handle edge cases", "similar to task N", "as appropriate", "TBD", "etc.", or any
    step whose content is a description of work rather than the work.
 7. **SIZE** — any task you estimate at more than a few minutes' work, with what you would split it into.
+8. **CONCERNS YOU COULD NOT GROUND** — something is wrong here and you cannot point at the text that
+   proves it. Say what worries you, and say plainly that you could not ground it. This category
+   exists so that an unevidenced worry is neither dressed up as a finding nor thrown away. Both are
+   worse than an honest entry here.
+9. **WHAT YOU UNDERSTOOD THIS PLAN TO BUILD** — three to six sentences, in your own words: what this
+   plan produces, and what it changes about the system it is run against.
 
-Do not attempt any of the work. Do not propose a better plan. Report only what you could not do and why.
+**Section 9 is not optional and is not a summary of your findings.** A reviewer who could start every
+task and understood a different piece of work from the one the plan describes is the worst outcome
+available here, and it is invisible unless you write down what you understood.
+
+Do not attempt any of the work. Do not propose a better plan.
+
+**Report findings; do not propose fixes, and do not edit anything.** Deciding what to change needs
+context you were deliberately not given, and a fix proposed from here invites somebody to apply it
+without thinking. Say what you could not do and why, and stop there.
