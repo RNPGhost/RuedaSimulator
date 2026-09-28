@@ -731,6 +731,16 @@ blocks the pathing rework.
   One detail to settle in passing: the file's header claims a threshold of 0.4% while the constant is
   0.1%, and they have disagreed since the file was written.
 
+- **`SOURCES.md` hand-writes the size of its own source table, and nothing derives it.** The table
+  under *The sources themselves* is introduced as *"Forty-one, in the order they entered the method.
+  The first twenty-nine came from `METHOD.md`’s own list"* — and holds **34** rows, measured at
+  `9723548`. Slice 7.1 adds eleven more sources, which takes the true count to **45** and neither
+  stated number to it. **The count is the defect and the arithmetic is the symptom:** `METHOD.md`
+  says every number a document quotes is derived in a generator that runs with the checks, and
+  `test/sources.js` derives the breakdown by kind for the rules and nothing at all for this table.
+  Fix it where it is derived, never by editing the two words. Noticed while writing `ELEPHANT.md`,
+  whose §6 is what adds the eleven.
+
 ## How the current work already feeds the vision
 
 The path engine is not a rewrite-from-zero; the pieces are accreting:
