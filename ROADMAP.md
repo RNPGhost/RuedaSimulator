@@ -313,6 +313,27 @@ the evidence behind it, and is **kept rather than deleted** — the evidence doc
 while a design document is integrated, so neither reconstructs the other. The folder entry under
 *Deferred* says where it goes.
 
+**Ten sections, and each answers a question somebody will ask.** *Open questions* was dropped as a
+section: one that survives is a checklist item carrying a disposition, and the checklist dies at
+close-out while a section would not.
+
+| § | Answers |
+|---|---|
+| 1 | what is it? — the definition, what it is and is not for, the two words already used for it here
+and defined nowhere, the home it gives imperative Two, and the wording destined for `METHOD.md` |
+| 2 | what is it deliberately not? — the non-goals |
+| 3 | what happens, in what order, and where does each part end? |
+| 4 | what files does it create? |
+| 5 | what reviews run? |
+| 6 | what comes out, and what never does? |
+| 7 | what happens when a document is replaced? |
+| 8 | what has to change to build this? — **the list a slicer reads, and what makes the work cuttable** |
+| 9 | why is it like this? — written in the evidence document’s own entry format from the start |
+| 10 | what else was considered? |
+
+**The authoring is cut two sections to a session**, on the grounds that the only variable ever measured
+as affecting instruction-following is how long a session has run.
+
 **The elephant is the design conversation plus section-by-section authoring**, and `METHOD.md` names it.
 Two documents already use the word as established vocabulary and define it nowhere; imperative Two is the
 elephant already, unnamed.
