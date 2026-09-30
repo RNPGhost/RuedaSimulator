@@ -307,35 +307,108 @@ review. It is recorded here because the plan that produced it is deleted on comp
 #### Slice 7.1 in detail — what the elephant is, and what was settled
 
 Designed in conversation before any of it was built, and recorded here because `ELEPHANT.md` — the
-design document it produces — will be superseded by `METHOD.md`, the skill and `PILOT.md`, and then
-deleted. **This entry outlives that document.** It holds what was decided; `ELEPHANT.md` holds how it
-works and the evidence behind it.
+design document it produces — is superseded by `METHOD.md`, two skills, `PILOT.md` and `SOURCES.md`.
+**This entry outlives it either way.** It holds what was decided; `ELEPHANT.md` holds how it works and
+the evidence behind it, and is **kept rather than deleted** — the evidence document is keyed by rule
+while a design document is integrated, so neither reconstructs the other. The folder entry under
+*Deferred* says where it goes.
 
 **The elephant is the design conversation plus section-by-section authoring**, and `METHOD.md` names it.
 Two documents already use the word as established vocabulary and define it nowhere; imperative Two is the
 elephant already, unnamed.
 
+**The phases, in order.** Prior art, interrogate, review the interview, the author decides, write
+section by section, review the ledger against the document, review the document, close out. Two of
+those are new since the first draft of this entry.
+
+- **Prior art runs first.** Before anything is asked, look for an existing specification that already
+  covers this, and say what was searched and what was found — *nothing covering this* is a claim the
+  author rules on, because **I did not look** and **I looked and found nothing** must not look alike.
+  Where something is found, the author is asked which they mean: replace it, extend it, change it, or
+  leave it and build beside it — four candidates, always those four, never the agent choosing one and
+  waiting to be corrected. **It depends on a map this project does not have**, so it ships weak and
+  says so; manual search over existing specifications is measured elsewhere as arduous and error-prone.
+- **Close-out is a sorting step, not a review.** It asks one question of everything the conversation
+  produced: does this belong somewhere permanent, or should it stop existing? Four actions — the
+  evidence moves to `SOURCES.md`, with a back-index from source to the rules that use it and the
+  departures; the review record gains its rows; the two working files are deleted; and the document is
+  declared finished, which is what releases it to be cut into slices. It changes nothing about the
+  design, and its first action is the only route the evidence has out of a conversation, so a close-out
+  nobody performed leaves no trace downstream.
+- **What becomes of the document afterwards is not a phase.** Usually nothing: the output is a
+  specification and specifications live. Only in the rare case below is there anything to decide.
+
 **The interrogation**
 
-- **Mandatory for all new or changed intent**, not only for a new document. It is bounded by its stopping
-  rule rather than by size, so a one-paragraph change ends after a question or two — which is the ceremony
-  table's proportionality arriving from the other side.
+- **Not mandatory. Proposing it is.** At the start of any change to intent the agent says which it
+  believes this is — elephant work, or a tweak — and why, and the author rules. Nothing begins until
+  they do. The same shape as *stopping is a claim, never a default*, applied to starting.
+- **What it is for:** a new system, a substantial rework, a feature whose shape is not yet known, or a
+  design bug where the specification works exactly as written and is wrong anyway. **What it is not
+  for:** a correction, an edge case somebody missed, a clarification, or anything that conforms to a
+  decision already taken.
+- **An earlier draft of this entry made it mandatory, with a list of documents that fired it and a list
+  of exemptions. Both are withdrawn**, along with the record on each document of whether one had run
+  and the check behind it. `METHOD.md` already holds the test — ceremony is proportional to what a
+  change produces, and the question is whether new or changed intent came out of it, never whether a
+  file was edited. A second and blunter trigger needed exemptions bolted onto it; the original needs
+  none. **Nothing detects a skipped one, which is a stated non-goal rather than an omission.**
+- **Why not mandatory:** a heavy process required for a corrected edge case is one that gets skipped,
+  and skipping any of them teaches that all of them are optional. Three sources agree — the design-doc
+  guidance says not to write one where the answer is unambiguous, the most-used framework leaves
+  elicitation optional with a standing offer to proceed, and the strongest measured clarification
+  result came from conserving questions on the simple cases. **The two departures this design was
+  going to have to declare therefore dissolve.**
+- **Why proposing is mandatory**, which is the half that must not be lost: models are measured as
+  unable to reliably separate a well-specified request from an underspecified one, so an agent
+  deciding in silence hands that judgement to the party that cannot make it. Once it has begun it is
+  bounded by its stopping rule rather than by size, so a one-paragraph change can end after a
+  question or two.
 - **Structured questions with candidate answers and an explicit defer**, aimed at ambiguity, because an
   ambiguity marks knowledge the author holds and has not passed on.
 - **Stopping is a claim, never a default.** The agent states what it believes remains unknown and why it
-  judges that immaterial, and hands the decision over.
-- **The author may refuse to leave the interrogation**, and that refusal is what stops a mandatory phase
-  decaying into a rubber stamp.
+  judges that immaterial, and hands the decision over. **The claim carries evidence** — that the last
+  several questions changed nothing — so it can be argued with rather than merely felt.
+- **A question the author cannot answer is a measurement, not a question.** Relevance is only half of
+  it: the second measured property of a useful question is that the person asked can realistically
+  supply the answer. Where they cannot, imperative Four already says what to do — go and measure, and
+  bring the number back.
+- **The author may refuse to leave the interrogation**, and that refusal is what stops the phase
+  decaying into a rubber stamp once it has begun.
 - **The skill must ask what else the author wants to discuss** before proposing to stop. Not optional: it
   is what prevents a feature being defined in one line.
 
-**The artefacts, and both die at close-out**
+**How a question and a finding reach the author** — settled while the design itself was being
+interrogated, because the first attempt got it wrong in both directions.
+
+- **Every item needing a ruling carries one sentence saying what the issue is and why it is one**,
+  before any option is offered. An item written as a diagnosis leaves the author to invent the
+  resolutions, which is the work they asked for.
+- **Then two or more resolution options, and the recommended one is always the first**, marked so
+  it cannot be missed. A recommendation at the end of an option’s description is not found.
+- **An item must carry its own background.** A question whose first sentence only makes sense to
+  somebody who read the previous round costs a whole exchange. Name the thing, say what breaks
+  without it, then propose; the artefact names and rule citations come after that, not instead.
+- **The closing question is asked as prompted areas, never open-ended.** *What else do you want to
+  discuss?* was asked in exactly the form the author had already rejected, and went unanswered while
+  the stage was closed — so the one question the phase may not skip was skipped on its first use.
+
+**The two working files — a directory of their own, and both dead at close-out**
 
 - **A checklist**, seeded from what designs habitually omit — non-goals, alternatives considered and
   rejected, cross-cutting concerns, none of which any document here carries today — and grown as the
   conversation opens new ground. It carries open items across sessions.
 - **A decisions ledger.** Decisions only, never reasoning. Layer 3.
-- **Only the document survives.** A design that needs two files to be understood has failed.
+- **Two files rather than one**, although their lifetimes are identical. Combining them breaks the
+  review that reads the ledger: that review runs before the checklist is required to be empty, so it
+  would be handed rows that are by definition absent from the document, and would fire on every one.
+- **They are written to disk, not held in the conversation.** Measured on the first elephant ever run:
+  held in the conversation and retyped each round, the checklist **silently lost an item within two
+  rounds** — and it is the artefact whose emptiness defines *finished*.
+- **Their presence on disk is also the stage**, which is what lets `handoff` detect where the work is
+  rather than being told.
+- **Neither outlives the conversation.** A design needing two extra files to be understood has failed;
+  what the two exist for is to make *finished* a state somebody can check rather than a feeling.
 
 **The reviews**
 
@@ -343,24 +416,83 @@ elephant already, unnamed.
   believes its questions are done, **before any section is written**. Reads a mechanically extracted
   conversation from the session's own transcript — a filter, never a summary, because a summary omits
   exactly what the elephant failed to notice. **Fails loudly** when it cannot find one. Writes nothing.
-- **A seam review between the ledger and the document**, before the document review: every entry in the
-  ledger must be findable in the document.
+- **A review of the ledger against the document**, before the document review: every decision in the
+  ledger must be findable in the document, and **only in that direction.** The document says far more
+  than was ever discussed, and requiring otherwise would make the conversation unending. The existing
+  two-document prompt cannot be reused: measured against it, five of its eight categories do not apply
+  and one inverts — it would report every correctly landed decision as duplicated ownership. **A prompt
+  of its own**, and not a check: a pointer from each decision to the section carrying it could only be
+  written after that section existed, which would make the ledger a maintained document.
 - **The document review prompt gains the design-is-wrong question.** Nothing asks today whether a design
   is wrong rather than badly expressed, and the `bug` skill already names that as the case the literature
   does not handle.
+- **Four instruments change, not two:** the new interview-review prompt, the new ledger prompt, the
+  document-review prompt's added question, and two rows in the `goldfish` skill's table of review kinds.
+- **The review record gains a row for the one a person performs** — somebody reading the artefact
+  rather than an account of it — and a sixth state, `waived` with a reason on the same line, for a
+  document whose author does not intend to read it themselves. `not run` for ever and *deliberately
+  not going to* are different states and must not look alike. Nothing recorded that review before, and
+  the consequence was visible: `PILOT.md` went unread for a whole slice with nothing saying so.
 
 **Writing, and finishing**
 
 - Sections one at a time, reviewed as they settle. Mid-section questions are the exception, asked only
   when the answer would change what gets written rather than raise confidence in what was going to be
   written anyway; the section review is the net for what goes unnoticed.
-- **Finished** means every section written and reviewed, the checklist empty — with a disposition for
-  *deliberately not doing this* — and the author saying so.
+- **Finished** means every section written and reviewed, the checklist empty, and the author saying so.
+  An item counts as empty when it is `landed` — it is in the document — or `omitted, with a reason`.
+  **Two dispositions, deliberately not three**: the only thing they must enforce is that a case left
+  out on purpose and a case forgotten do not look alike, and a second near-copy of the three that
+  findings already get would cost recall and buy nothing.
 - **`handoff` is extended** to sweep and point at the two artefacts, **with the stage inferred from the
   tree**: their presence on disk is the stage. A skill told the wrong stage fires correctly and does the
   wrong thing, silently.
-- **Close-out lives in the elephant skill.** `SOURCES.md` gains the research, a back-index from source to
-  the rules using it, and the departures.
+- **Close-out belongs to the second of the two skills**, and what it does is above.
+- **The library goes from seven skills to nine.** One skill cannot carry both *I want this built* and,
+  several sessions later, *the design is finished* — two triggers sharing no words, which is the
+  measured way a skill comes never to fire. `METHOD.md`, `PILOT.md` and this file all say seven today.
+
+**What it produces, and what it never produces**
+
+- **One document, and usually that document is its own permanent home** — a specification, written
+  directly, section by section. **A separate staged document is produced only when the change has no
+  single document that is the home of what it says.** A specification is its own home and needs none;
+  this change lands in about thirteen files and has nowhere to be written, so it needs one.
+- **That staged kind has a lifetime the layer table does not accommodate**: Layer 1’s question and tense,
+  Layer 3’s lifetime. It is filed by lifetime, because lifetime is the column imperative Five is about.
+- **The elephant never produces a skill, a prompt or a check.** It produces a document; cutting and
+  planning turn that into plans; plans change the skills and the prompts. So none of them is a thing
+  that triggers an elephant of its own. The residual — editing a skill or a prompt in place, neither
+  carrying out a plan nor conforming to a decision already taken — is a change with no single home, so
+  the rule above already asks for one. **An application of the rule, not an exception to it.**
+- **A new document about the work gets one; the ones already written are not given one after the fact.**
+- **Retiring a document is the second mode.** Every rejected alternative in it is sorted into: no longer
+  applicable, because what it was an alternative to is gone; carried into the successor with its reason
+  brought up to date; or carried across as the thing now being proposed. Often no edit at all, because
+  the successor already records it. And **one mandatory question**: here is what the old document said
+  that the new one does not — is each of these intentionally dropped? Where the successor is not itself
+  a design document, the alternatives go to `SOURCES.md`.
+- **No archive and no chain of custody.** Knowing where an alternative was first rejected is not worth
+  a maintained record; that an alternative might be re-proposed is a cost the author accepted. **And no
+  archive of spent plans either** — the deleting commit, the review block that outlives the plan, and
+  the change log are three records already, and the rule that plans are deleted rests on a measurement
+  about the harm of keeping them.
+- **A new elephant reads the previous document’s rejected alternatives** and asks whether the reasons
+  still hold. One that no longer holds is an alternative to reconsider, which is the point of keeping
+  them anywhere at all.
+- **Where the reasoning lives, and `METHOD.md` only says it for half the cases.** A Layer 1 document
+  carries its own why, because whoever writes a plan against it and whoever writes the next one both
+  need it. The map explains nothing. But nothing states the other two: the rules and the skills carry
+  no reasoning, and the evidence document is where it goes — useless to an agent following the process
+  and essential to one changing it. `METHOD.md` gains that line, and close-out only owes an evidence
+  entry for work on the process.
+- **The evidence section of a staged document is written in the evidence document’s own entry format**
+  from the start — the rule as a heading, the kind declared, what was measured, the sources, whether it
+  departs — so close-out copies rather than translates. A translation step is where content is lost.
+- **One check enumerates the documents** so that a hand-maintained list cannot quietly go stale: every
+  markdown file is either in each list that names documents or in that list’s declared exclusions. It
+  exists for the duplication comparison, whose list drops an absent file in silence — measured, one
+  document sat in it unnoticed for six slices.
 
 **Rejected while designing it, and recorded so they are not re-proposed**
 
@@ -384,7 +516,13 @@ after writes the design document whole.
 **The one fragility, measured.** The interview review depends on the session transcript at
 `~/.claude/projects/<slug>/<session-id>.jsonl`, whose session id is recoverable only because the scratch
 directory is named after it. That is undocumented harness layout, and if it moves the review stops
-running — so the skill fails loudly rather than skipping, and a check asserts the path resolves.
+running — so the skill fails loudly rather than skipping. **Asserting that the path resolves is not
+enough**, and that is measured. The log holds nine record types of which two carry conversation and the
+rest are undocumented; a record wearing the author’s role is more often a tool result than the author,
+at 76 such records against 13 real turns. A renamed type would halve the conversation with the path
+still resolving and everything still green. So the check asserts the extraction is not empty, that both
+sides are present, and that **no unrecognised record type appeared** — failing on one rather than
+dropping it. It earned that immediately: a tenth type appeared inside the session that wrote it.
 
 #### Slice 3 in detail — where each part of `METHOD.md` goes
 
@@ -740,6 +878,58 @@ blocks the pathing rework.
   `test/sources.js` derives the breakdown by kind for the rules and nothing at all for this table.
   Fix it where it is derived, never by editing the two words. Noticed while writing `ELEPHANT.md`,
   whose §6 is what adds the eleven.
+
+- **Separate the process documents from the content documents, and the rules from the reasoning.**
+  Twenty-three markdown files sit at the repository root and nothing about their location says which
+  family a reader is in, whether a document states rules or explains them, or whether it is still live.
+  The shape agreed:
+
+  ```
+  root/                AGENTS.md, README.md, ROADMAP.md, REVIEWS.md
+  process/
+    rules/             the method, the prompts        — read in order to follow the process
+    guide/             the pilot                      — read by a person learning it
+    rationale/         the evidence, and the design documents that produced the process
+  content/
+    specs/             every Layer 1 design document
+    plans/             execution plans, usually empty
+  test/                unchanged — Layer 4 sits above the split
+  ```
+
+  **Why `rationale` holds two things that look different.** The evidence document and a spent
+  process-design document serve one purpose: they carry why the process says what it says, and they
+  are read and updated only by somebody changing it. Neither is read in order to follow the process.
+  They are not merged into one file, because the evidence is keyed by rule and a design document is
+  integrated — one does not reconstruct the other, which is why the design document is kept rather
+  than deleted, against the superseded-documents rule and needing a carve-out that names this class.
+
+  **Why the review record stays at the root and not in `rationale`.** It is not reasoning. It is a live
+  gate, checked on every commit, and it changes whenever anything else does. The four root documents
+  are coherent as a group: each answers what is true about this work right now — what the repository
+  holds, where it is going, what has been reviewed, and how to start.
+
+  **Three constraints that cannot be negotiated.** The inventory, the readme and the harness
+  instruction file must stay at the root, because the convention and the harness both look for them
+  there — and the measurement behind carrying an inventory at all is a measurement about a file in
+  that location. The skills and hooks directories are fixed by the harness. The prompts directory can
+  move, but its path appears in every review dispatch.
+
+  **No archive of spent execution plans.** The record already exists three times: the deleting commit,
+  the review block that outlives the plan by design with state `spent`, and the change log. And the
+  rule that plans are deleted rests on a measurement about keeping them — two specifications, one of
+  which an agent will try to obey. An archive is the thing that evidence warns against.
+
+  **It is slice-shaped and it runs after the nine methodology slices.** Measured: about four hundred
+  path references across twenty files, eight of them checks — the cross-reference resolver, the
+  duplication comparison, the prompt comparison, the marker balance, the skill audit and the review
+  resolver all resolve paths, and the review record’s headings *are* paths, reported as unresolvable
+  when the file is absent. Reorganising underneath the remaining slices makes every plan’s paths wrong.
+
+  **Four things to settle when it is reached, not before.** Where the change log goes, since it spans
+  the split. Whether the test directory moves under either branch. Whether the change log is already
+  the outcome record that an archive would otherwise duplicate. And what becomes of four root files
+  that read as spent plans — the architecture review, the cleanup plan, the refactor plan and the
+  smooth-paths plan: if they are spent, the superseded-documents rule already says they should be gone.
 
 ## How the current work already feeds the vision
 
