@@ -900,6 +900,13 @@ blocks the pathing rework.
   Fix it where it is derived, never by editing the two words. Noticed while writing `ELEPHANT.md`,
   whose §6 is what adds the eleven.
 
+- **`METHOD.md`'s list of the *about the work* family's members is short of what the family holds.**
+  Its families table names *"this file, the inventory, direction, the backlog"*, and leaves out
+  `SOURCES.md`, `PILOT.md` and `REVIEWS.md`, all of which sit in that family. Nothing says whether the
+  list is meant to be complete, so a reader cannot tell an omission from a deliberate boundary.
+  Noticed by the second section review of `ELEPHANT.md` §1, which could not decide from it whether
+  that file belongs to the family.
+
 - **Separate the process documents from the content documents, and the rules from the reasoning.**
   Twenty-three markdown files sit at the repository root and nothing about their location says which
   family a reader is in, whether a document states rules or explains them, or whether it is still live.
