@@ -338,7 +338,7 @@ as affecting instruction-following is how long a session has run.
 Two documents already use the word as established vocabulary and define it nowhere; imperative Two is the
 elephant already, unnamed.
 
-**The phases, in order.** Prior art, interrogate, review the interview, the author decides, write
+**The phases, in order.** Prior art, the interview, review the interview, the author decides, write
 section by section, review the ledger against the document, review the document, close out. Two of
 those are new since the first draft of this entry.
 
@@ -359,7 +359,7 @@ those are new since the first draft of this entry.
 - **What becomes of the document afterwards is not a phase.** Usually nothing: the output is a
   specification and specifications live. Only in the rare case below is there anything to decide.
 
-**The interrogation**
+**The interview**
 
 - **Not mandatory. Proposing it is.** At the start of any change to intent the agent says which it
   believes this is — elephant work, or a tweak — and why, and the author rules. Nothing begins until
@@ -394,13 +394,13 @@ those are new since the first draft of this entry.
   it: the second measured property of a useful question is that the person asked can realistically
   supply the answer. Where they cannot, imperative Four already says what to do — go and measure, and
   bring the number back.
-- **The author may refuse to leave the interrogation**, and that refusal is what stops the phase
+- **The author may refuse to leave the interview**, and that refusal is what stops the phase
   decaying into a rubber stamp once it has begun.
 - **The skill must ask what else the author wants to discuss** before proposing to stop. Not optional: it
   is what prevents a feature being defined in one line.
 
-**How a question and a finding reach the author** — settled while the design itself was being
-interrogated, because the first attempt got it wrong in both directions.
+**How a question and a finding reach the author** — settled during the design's own
+interview, because the first attempt got it wrong in both directions.
 
 - **Every item needing a ruling carries one sentence saying what the issue is and why it is one**,
   before any option is offered. An item written as a diagnosis leaves the author to invent the
@@ -475,8 +475,8 @@ interrogated, because the first attempt got it wrong in both directions.
 
 **What it produces, and what it never produces**
 
-- **One document, and usually that document is its own permanent home** — a specification, written
-  directly, section by section. **A separate staged document is produced only when the change has no
+- **Usually its own permanent home** — specifications, written directly, section by section, one for
+  each subject the design touches, so one design may write into several. **A separate staged document is produced only when the change has no
   single document that is the home of what it says.** A specification is its own home and needs none;
   this change lands in about thirteen files and has nowhere to be written, so it needs one.
 - **That staged kind has a lifetime the layer table does not accommodate**: Layer 1’s question and tense,
