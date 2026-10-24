@@ -350,12 +350,12 @@ those are new since the first draft of this entry.
   waiting to be corrected. **It depends on a map this project does not have**, so it ships weak and
   says so; manual search over existing specifications is measured elsewhere as arduous and error-prone.
 - **Close-out is a sorting step, not a review.** It asks one question of everything the conversation
-  produced: does this belong somewhere permanent, or should it stop existing? Four actions — the
-  evidence moves to `SOURCES.md`, with a back-index from source to the rules that use it and the
-  departures; the review record gains its rows; the two working files are deleted; and the document is
-  declared finished, which is what releases it to be cut into slices. It changes nothing about the
-  design, and its first action is the only route the evidence has out of a conversation, so a close-out
-  nobody performed leaves no trace downstream.
+  produced: does this belong somewhere permanent, or should it stop existing? Three actions — the
+  review record gains its rows; the working files are deleted; and the document is declared finished,
+  which is what releases it to be cut into slices. It changes nothing about the design. The evidence
+  moves to `SOURCES.md`, with a back-index from source to the rules that use it and the departures, one
+  entry at a time in the slice that adds the rule it backs: `SOURCES.md` is keyed by rule, and the rule
+  does not exist until its slice adds it.
 - **What becomes of the document afterwards is not a phase.** Usually nothing: the output is a
   specification and specifications live. Only in the rare case below is there anything to decide.
 
@@ -509,7 +509,7 @@ interview, because the first attempt got it wrong in both directions.
   entry for work on the process.
 - **The evidence section of a staged document is written in the evidence document’s own entry format**
   from the start — the rule as a heading, the kind declared, what was measured, the sources, whether it
-  departs — so close-out copies rather than translates. A translation step is where content is lost.
+  departs — so the slice that moves it moves rather than translates. A translation step is where content is lost.
 - **One check enumerates the documents** so that a hand-maintained list cannot quietly go stale: every
   markdown file is either in each list that names documents or in that list’s declared exclusions. It
   exists for the duplication comparison, whose list drops an absent file in silence — measured, one
