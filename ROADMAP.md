@@ -350,9 +350,10 @@ those are new since the first draft of this entry.
   waiting to be corrected. **It depends on a map this project does not have**, so it ships weak and
   says so; manual search over existing specifications is measured elsewhere as arduous and error-prone.
 - **Close-out is a sorting step, not a review.** It asks one question of everything the conversation
-  produced: does this belong somewhere permanent, or should it stop existing? Three actions — the
-  review record gains its rows; the working files are deleted; and the document is declared finished,
-  which is what releases it to be cut into slices. It changes nothing about the design. The evidence
+  produced: does this belong somewhere permanent, or should it stop existing? Four actions — the
+  staged documents move out of the elephant's directory, marked finalised; the review record gains its
+  rows; the working files are deleted; and the document is declared finished, which is what releases it
+  to be cut into slices. It changes nothing about the design. The evidence
   moves to `SOURCES.md`, with a back-index from source to the rules that use it and the departures, one
   entry at a time in the slice that adds the rule it backs: `SOURCES.md` is keyed by rule, and the rule
   does not exist until its slice adds it.
@@ -385,8 +386,9 @@ those are new since the first draft of this entry.
   deciding in silence hands that judgement to the party that cannot make it. Once it has begun it is
   bounded by its stopping rule rather than by size, so a one-paragraph change can end after a
   question or two.
-- **Structured questions with candidate answers and an explicit defer**, aimed at ambiguity, because an
-  ambiguity marks knowledge the author holds and has not passed on.
+- **Structured questions with candidate answers**, aimed at ambiguity, because an ambiguity marks
+  knowledge the author holds and has not passed on. Deferring is never offered as an option; a deferral
+  is the author's to volunteer.
 - **Stopping is a claim, never a default.** The agent states what it believes remains unknown and why it
   judges that immaterial, and hands the decision over. **The claim carries evidence** — that the last
   several questions changed nothing — so it can be argued with rather than merely felt.
@@ -421,8 +423,9 @@ interview, because the first attempt got it wrong in both directions.
   conversation opens new ground. It carries open items across sessions.
 - **A decisions ledger.** Decisions only, never reasoning. Layer 3.
 - **Two files rather than one**, although their lifetimes are identical. Combining them breaks the
-  review that reads the ledger: that review runs before the checklist is required to be empty, so it
-  would be handed rows that are by definition absent from the document, and would fire on every one.
+  review that reads the ledger: a checklist topic left out on purpose, with its reason, is by definition
+  absent from the documents, so a combined file would hand that review entries it must report as
+  missing every time.
 - **They are written to disk, not held in the conversation.** Measured on the first elephant ever run:
   held in the conversation and retyped each round, the checklist **silently lost an item within two
   rounds** — and it is the artefact whose emptiness defines *finished*.
@@ -475,17 +478,20 @@ interview, because the first attempt got it wrong in both directions.
 
 **What it produces, and what it never produces**
 
-- **Usually its own permanent home** — specifications, written directly, section by section, one for
-  each subject the design touches, so one design may write into several. **A separate staged document is produced only when the change has no
-  single document that is the home of what it says.** A specification is its own home and needs none;
-  this change lands in about thirteen files and has nowhere to be written, so it needs one.
-- **That staged kind has a lifetime the layer table does not accommodate**: Layer 1’s question and tense,
+- **Specifications, or a process design** — specifications for a change to the system, one for each
+  subject the design touches, so one design may write into several, and never written into a live
+  document in place (below). **A change to the process always produces a process design**, however few
+  documents it touches, and plans written from it change the process documents: an elephant writes more
+  than the author oversees line by line, and writing that straight into the files that govern every
+  session is the risk. A small change the author makes to a process document directly is not an
+  elephant's work.
+- **A process design has a lifetime the layer table does not accommodate**: Layer 1’s question and tense,
   Layer 3’s lifetime. It is filed by lifetime, because lifetime is the column imperative Five is about.
 - **The elephant never produces a skill, a prompt or a check.** It produces a document; cutting and
   planning turn that into plans; plans change the skills and the prompts. So none of them is a thing
   that triggers an elephant of its own. The residual — editing a skill or a prompt in place, neither
-  carrying out a plan nor conforming to a decision already taken — is a change with no single home, so
-  the rule above already asks for one. **An application of the rule, not an exception to it.**
+  carrying out a plan nor conforming to a decision already taken — is a change to the process, so the
+  rule above already asks for one to be proposed. **An application of the rule, not an exception to it.**
 - **A new document about the work gets one; the ones already written are not given one after the fact.**
 - **Retiring a document is the second mode.** Every rejected alternative in it is sorted into: no longer
   applicable, because what it was an alternative to is gone; carried into the successor with its reason
@@ -507,13 +513,46 @@ interview, because the first attempt got it wrong in both directions.
   no reasoning, and the evidence document is where it goes — useless to an agent following the process
   and essential to one changing it. `METHOD.md` gains that line, and close-out only owes an evidence
   entry for work on the process.
-- **The evidence section of a staged document is written in the evidence document’s own entry format**
+- **The evidence section of a process design is written in the evidence document’s own entry format**
   from the start — the rule as a heading, the kind declared, what was measured, the sources, whether it
   departs — so the slice that moves it moves rather than translates. A translation step is where content is lost.
 - **One check enumerates the documents** so that a hand-maintained list cannot quietly go stale: every
   markdown file is either in each list that names documents or in that list’s declared exclusions. It
   exists for the duplication comparison, whose list drops an absent file in silence — measured, one
   document sat in it unnoticed for six slices.
+
+**Staged, never written in place** — ruled after `ELEPHANT.md`'s first draft of what an elephant
+produces, which assumed the opposite
+
+- **A live document is never edited in place by an elephant.** Other agents read it while the design is
+  under way, and one reading a half-written specification takes it as settled. Everything the elephant
+  writes is a working file in its own directory until sign-off.
+- **A change to an existing specification is a diff specification**: only the sections that change, each
+  whole and labelled added, changed or removed, with a header naming the document it amends and the
+  commit it was written against. A section changed in the target since that commit is a collision,
+  raised with the author. A brand-new specification carries no labels; no diff header means a new one.
+- **At sign-off a diff specification sits beside its target**, named `<target>.<name>.md`, and a new
+  specification goes to its final path. The target carries one fixed sentence naming the diff and
+  warning that the code may already follow parts of it; a check keeps the two in step.
+- **A diff folds in only once its implementation is complete**, as the last step of implementation: its
+  sections are copied into the target, the diff is deleted, and the target is marked active.
+- **Every specification carries a status** — draft, finalised, implementation ongoing, active, or
+  abandoned — set at fixed events by the skill that runs each: close-out, the first slice starting, the
+  last slice closing. A check fails on a missing or unknown status, on draft outside an elephant's
+  directory, and on a diff whose target is missing. Implementation ongoing does not say which parts are
+  built; the slice list does. The status is the only home for a specification's state. `CORRIDORS.md`
+  and `FORMATIONS.md` are draft, the only two allowed outside an elephant's directory, until their
+  design resumes under one.
+- **A process document is never the target of a diff.** A change to the process is a process design;
+  a new process document it calls for is created by a slice, its text drafted in the design or written
+  by the plan, as the author chooses.
+- **Reviews read the document as it will be.** One script applies a diff to its target; document and
+  seam reviews read the result, and the author reads each changed section whole beside the old one,
+  never interleaved. The ledger review checks the staged files. A diff's reviews are recorded at
+  close-out in its target's entry in the review record, naming the diff, and merge into the target's
+  ordinary line when it folds in.
+- **Abandoning deletes the staged changes**; nothing live needs undoing. A staged file the author keeps is
+  marked abandoned and is never sliced.
 
 **Rejected while designing it, and recorded so they are not re-proposed**
 
@@ -906,6 +945,11 @@ blocks the pathing rework.
   list is meant to be complete, so a reader cannot tell an omission from a deliberate boundary.
   Noticed by the second section review of `ELEPHANT.md` §1, which could not decide from it whether
   that file belongs to the family.
+
+- **Two specifications each repeat a heading.** `CORRIDORS.md` has two sections called *The frame* and
+  two called *Timing*; `FORMATIONS.md` has two called *Its resting position*. A section is cited and
+  matched by its heading, and a repeated one is ambiguous to both. `ELEPHANT.md` §4 forbids it in
+  every draft from now on; these three pairs predate the rule and want renaming. Measured on 2026-10-25.
 
 - **Separate the process documents from the content documents, and the rules from the reasoning.**
   Twenty-three markdown files sit at the repository root and nothing about their location says which
