@@ -353,6 +353,7 @@ rather than agreeing with me. End each round by listing exactly which sections y
 rewritten-in-full or changed-in-place, calling out separately anything that touched
 already-reviewed text, and flagging any decision I did not ask for with a one-word way to reverse it.
 
-Measure, don't assert — node is on PATH, python is not. Never put a script inside node -e and never
-use a heredoc for one. Write the script to a file and run it.
+Measure, don't assert — node and python are both on PATH. Write anything that may become a check in
+node, since every check here is. Never put a script inside node -e or python -c, and never use a
+heredoc for one. Write the script to a file and run it.
 ```
