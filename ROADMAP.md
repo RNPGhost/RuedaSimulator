@@ -307,11 +307,10 @@ review. It is recorded here because the plan that produced it is deleted on comp
 #### Slice 7.1 in detail — what the elephant is, and what was settled
 
 Designed in conversation before any of it was built, and recorded here because `ELEPHANT.md` — the
-design document it produces — is superseded by `METHOD.md`, two skills, `PILOT.md` and `SOURCES.md`.
-**This entry outlives it either way.** It holds what was decided; `ELEPHANT.md` holds how it works and
-the evidence behind it, and is **kept rather than deleted** — the evidence document is keyed by rule
-while a design document is integrated, so neither reconstructs the other. The folder entry under
-*Deferred* says where it goes.
+design document it produces — is the specification of the elephant: the slices change `METHOD.md`, add
+two skills, and change `PILOT.md` and `SOURCES.md` to carry it out, and it stays current afterwards, as
+any specification does. **This entry outlives it either way.** It holds what was decided; `ELEPHANT.md`
+holds how it works and the evidence behind it. The folder entry under *Deferred* says where it goes.
 
 **Ten sections, and each answers a question somebody will ask.** *Open questions* was dropped as a
 section: one that survives is a checklist item carrying a disposition, and the checklist dies at
@@ -485,20 +484,27 @@ interview, because the first attempt got it wrong in both directions.
   than the author oversees line by line, and writing that straight into the files that govern every
   session is the risk. A small change the author makes to a process document directly is not an
   elephant's work.
-- **A process design has a lifetime the layer table does not accommodate**: Layer 1’s question and tense,
-  Layer 3’s lifetime. It is filed by lifetime, because lifetime is the column imperative Five is about.
+- **A process design is the specification of the process**, with Layer 1's question, tense and
+  lifetime. The process documents are to it what code is to a specification — what executes, live, and
+  carrying no status. It stays current once built: through a diff when an elephant changes the process,
+  or through a seam review when the author changes a process document directly.
 - **The elephant never produces a skill, a prompt or a check.** It produces a document; cutting and
   planning turn that into plans; plans change the skills and the prompts. So none of them is a thing
   that triggers an elephant of its own. The residual — editing a skill or a prompt in place, neither
   carrying out a plan nor conforming to a decision already taken — is a change to the process, so the
   rule above already asks for one to be proposed. **An application of the rule, not an exception to it.**
 - **A new document about the work gets one; the ones already written are not given one after the fact.**
-- **Retiring a document is the second mode.** Every rejected alternative in it is sorted into: no longer
-  applicable, because what it was an alternative to is gone; carried into the successor with its reason
-  brought up to date; or carried across as the thing now being proposed. Often no edit at all, because
-  the successor already records it. And **one mandatory question**: here is what the old document said
-  that the new one does not — is each of these intentionally dropped? Where the successor is not itself
-  a design document, the alternatives go to `SOURCES.md`.
+- **Retiring a document is the second mode**, ruled at step 1 as *replace*. The old document stays in
+  force, untouched, until its successor is built, and the successor's last slice deletes it. Before the
+  ledger review, **a fresh reviewer lists everything the old document says that the successor does
+  not** — every claim, and every rejected alternative — and the author rules on each. A claim is
+  dropped on purpose or carried. A rejected alternative is no longer applicable, because what it was an
+  alternative to is gone; carried into the successor with its reason brought up to date; or carried
+  across as the thing now being proposed. Every successor is a design document, so none of it goes to
+  `SOURCES.md`. **Only an `active` specification is replaced side by side**: its successor is
+  `<target>.<name>.md` until the last slice deletes the old one and renames it to the final name agreed
+  at step 4. A `draft` or unbuilt one is reworked in place in the elephant's directory, and the review
+  still runs. Running old and new behind a flag during the move is not supported.
 - **No archive and no chain of custody.** Knowing where an alternative was first rejected is not worth
   a maintained record; that an alternative might be re-proposed is a cost the author accepted. **And no
   archive of spent plans either** — the deleting commit, the review block that outlives the plan, and
@@ -535,7 +541,12 @@ produces, which assumed the opposite
   specification goes to its final path. The target carries one fixed sentence naming the diff and
   warning that the code may already follow parts of it; a check keeps the two in step.
 - **A diff folds in only once its implementation is complete**, as the last step of implementation: its
-  sections are copied into the target, the diff is deleted, and the target is marked active.
+  sections are copied into the target, the diff is deleted, and the target stays active. **A diff is
+  made only against an active specification**: a finalised one nothing has been built from is changed
+  as a draft in the new elephant's directory, its slices cut again, and one being built is not changed
+  until it is active. **Two diffs against one target are discouraged and never built at once**: each
+  one's reviews read the target without the other, so the agent warns when a second is begun, when
+  either starts being built, and when one folds in, and a check refuses two being built together.
 - **Every specification carries a status** — draft, finalised, implementation ongoing, active, or
   abandoned — set at fixed events by the skill that runs each: close-out, the first slice starting, the
   last slice closing. A check fails on a missing or unknown status, on draft outside an elephant's
@@ -543,7 +554,8 @@ produces, which assumed the opposite
   built; the slice list does. The status is the only home for a specification's state. `CORRIDORS.md`
   and `FORMATIONS.md` are draft, the only two allowed outside an elephant's directory, until their
   design resumes under one.
-- **A process document is never the target of a diff.** A change to the process is a process design;
+- **An elephant designs the process or the system, never both**; whatever falls on the other side is
+  separate work. **A process document is never the target of a diff.** A change to the process is a process design;
   a new process document it calls for is created by a slice, its text drafted in the design or written
   by the plan, as the author chooses.
 - **Reviews read the document as it will be.** One script applies a diff to its target; document and
@@ -961,19 +973,18 @@ blocks the pathing rework.
   process/
     rules/             the method, the prompts        — read in order to follow the process
     guide/             the pilot                      — read by a person learning it
-    rationale/         the evidence, and the design documents that produced the process
+    designs/           the process designs — the specifications of the process
+    rationale/         the evidence
   content/
     specs/             every Layer 1 design document
     plans/             execution plans, usually empty
   test/                unchanged — Layer 4 sits above the split
   ```
 
-  **Why `rationale` holds two things that look different.** The evidence document and a spent
-  process-design document serve one purpose: they carry why the process says what it says, and they
-  are read and updated only by somebody changing it. Neither is read in order to follow the process.
-  They are not merged into one file, because the evidence is keyed by rule and a design document is
-  integrated — one does not reconstruct the other, which is why the design document is kept rather
-  than deleted, against the superseded-documents rule and needing a carve-out that names this class.
+  **Why the process designs are not in `rationale`.** A process design is the specification of the
+  process, kept current as the process changes, so it sits with what it specifies rather than with the
+  evidence. The evidence is keyed by rule and a design is one connected argument, which is why the two
+  are not merged.
 
   **Why the review record stays at the root and not in `rationale`.** It is not reasoning. It is a live
   gate, checked on every commit, and it changes whenever anything else does. The four root documents

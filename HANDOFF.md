@@ -1,4 +1,4 @@
-# Handoff — `ELEPHANT.md`: review the round-D mechanism, then write §7
+# Handoff — `ELEPHANT.md`: review rounds E and F's new text, then write §8
 
 > **Do not delete this file when you start.** Everything under *Not yet durable* exists nowhere else.
 > **Delete it once each of those has a home** — at that point this file is spent.
@@ -11,82 +11,114 @@ rest of `METHOD.md`** — open it now.
 ## Read these, in this order
 
 1. **`METHOD.md`**, whole.
-2. **`ROADMAP.md`**, *Slice 7.1 in detail*, including the block *Staged, never written in place*. It wins
-   wherever `ELEPHANT.md` disagrees with it.
+2. **`ROADMAP.md`**, *Slice 7.1 in detail*, including *What it produces* and *Staged, never written in
+   place*. It wins wherever `ELEPHANT.md` disagrees with it.
 3. **`ROADMAP.md`**, *Deferred*, the entry *"Separate the process documents from the content
-   documents"* — it defines where specifications and kept process designs live.
-4. **`ELEPHANT.md`** — opening block and §1–§6 are written. Read all of it.
+   documents"* — it now gives process designs a folder of their own, `designs/`.
+4. **`ELEPHANT.md`** — opening block and §1–§7 are written. Read all of it.
 5. **`REVIEWS.md`**, and **`.claude/skills/goldfish/SKILL.md`** for the order findings are presented in.
 
 ## Where things stand
 
-- **§1–§6 are written**, and every section has had at least one section review whose findings are all
-  ruled and applied. Last session ran one review each of §1, §3, §4, §5 and §6 (188 findings, 14 put to
-  the author) and applied the result in one scripted pass, *round D* — 80 edits across `ELEPHANT.md` and
-  `ROADMAP.md`.
-- **Round D's text has not been reviewed.** Most of it is small wording from accepted findings. Three
-  passages add mechanism, and are what the next review should read:
-  1. **§6 *What it produces*** — a change to the process is never drafted against a process document;
-     it always produces a process design, and a new process document is created by a slice. (Author's
-     ruling, below.) It reaches §1's close-out paragraph and `METHOD.md` wording, §4's drafts, and
-     `ROADMAP.md`'s *What it produces* and *Staged* blocks.
-  2. **§5 *Reading a document as it will be*** — the apply script renumbers the result, rewrites
-     citations of moved sections in every citing document, stops on a new repeated heading, and lists
-     citations of a removed section, which are raised as a question about structure.
-  3. **§3's new paragraph on arguing** — the agent may argue the approach, and against the change, but
-     not past the author's ruling that the work is wanted; it never offers abandoning.
-- **Nothing committed this session.** All ten fast checks green at the end of it; `test/run.js` was not
-  run (no code changed); `test/visual.js` cannot run here.
+- **§1–§7 are written.** This session ran round E, the section reviews of round D's three passages (86
+  findings), ruled and applied in 30 scripted edits; then wrote §7, reviewed it once (round F, 43
+  findings), and applied the rulings and the reach of two author rulings in 19 more edits.
+- **Nothing committed.** All ten fast checks green; `test/run.js` not run (no code changed);
+  `test/visual.js` cannot run here.
+- **Unreviewed text — what the next review should read:**
+  1. **§7, whole** — rewritten in full after its only review.
+  2. **§6 *What it produces*** — a process design is the live specification of the process; *A process
+     design is kept current in one of two ways*; the closed list of process documents; never both.
+  3. **§6 *A diff specification, from sign-off to fold-in*** — diffs only against `active`; an unbuilt one
+     reworked in place; two changes pending against one target; abandoning a `finalised` diff.
+  4. **§5 *Reading a document as it will be*** — the script's placing, stopping, numbering, citation and
+     leaving-out rules.
+  5. **§3** — the paragraph on arguing; step 1's not-designed bullet and its status and pending-diff
+     report; step 5's end at the retirement review.
+  6. **The opening block and §1 item 3**, and in `ROADMAP.md` slice 7.1's opening paragraph, its
+     process-design and retirement bullets, two *Staged* bullets, and the folder entry.
+
+  The rest of the change is wording from accepted findings: §4 *Drafts*, §5's table and *What is kept of
+  a review*, §6's status check and sort table.
 
 ## What to do
 
-**Recommended unit of work:** a section review of the three passages above, brought back together; then
-write §7 (replacing and retiring a document, now staged too), one section, with its review. The remaining
-cut after that: §8, then §9–§10, then the document review and close-out.
+**Recommended unit of work:** a section review of the six passages above, brought back together; then
+write §8 (what has to change to build this — the list a slicer reads), one section, with its review.
+The remaining cut after that: §9–§10, then the document review and close-out.
 
 ---
 
 ## Not yet durable — this is why the file survives
 
-### The author's rulings in round D — home: `ELEPHANT.md`, applied; recorded here until reviewed
+### The author's rulings in rounds E and F — home: `ELEPHANT.md`, applied; recorded here until reviewed
 
-- **A process change through an elephant never writes to a live process file**, not even as a diff that
-  folds in later. The elephant's output is a process design, from which plans change `METHOD.md`, the
-  skills, the hooks and the prompts. Reason given: an elephant writes far more than the author oversees,
-  and writing it into active process files adds risk. A small change the author makes directly is not
-  done through an elephant. **Whether a new process document is drafted inside the elephant or written
-  by a plan depends on its complexity and on how much control the author wants — "the nuances can be
-  agreed later".** That is an open question for whoever next designs a process change.
-- **No document should have two sections with the same heading.** Existing pairs are raised as a defect
-  (now a backlog entry); new drafts must not create one. A citation of a deleted section is flagged: the
-  citing document must change, carefully, and may need its own review.
-- **Arguing:** the agent may argue for a completely different way, or for reimagining the feature, but
-  once the author says the work is wanted, the author is the authority. Push-back is for testing the
-  approach; refusing is blocking.
-- **Deferral is expected to be rare or never used**; only the dependent work waits.
-- The rest were the agent's recommendations, accepted: the `METHOD.md` wording carries the exclusions,
-  the author's right to call for an elephant, and the hold; the review rows merge at fold-in; the
-  inventory points to the status convention instead of restating it; matching by heading chain;
-  renumbering by the apply script; the checklist re-read after a ledger change; a deferred question
-  goes on the checklist; separate work always goes to the backlog; a rerun report replaces the first;
-  `ROADMAP.md` amended to drop the explicit defer.
+**Round E:**
+
+- Arguing: the agent argues against making the change in prose and asks nothing; the author's answer
+  that the work is wanted, at any step, settles it unless they reopen it; reimagining is the approach.
+- The process documents are a closed list — `METHOD.md`, every skill, every reviewer prompt, every hook,
+  `PILOT.md`; `SOURCES.md`, process designs, the inventory and the checks are not.
+- **An elephant designs the process or the system, never both** (author). The line is what it designs,
+  not which files its slices touch: a process elephant may require a status line of every specification.
+- The paragraph *"A process document changes only through a plan, or by the author's own hand"* is
+  deleted, as restating §1 (author's challenge); replaced by *"never produces a skill, a prompt, a hook or
+  a check"*.
+- A new process document drafted in a design is chosen at step 4 and replaced by a pointer once built.
+- The apply script: numbers the levels the target numbers; a citation is a `§` number belonging to the
+  document named before it; the diff cites old numbers, added sections by heading; unchanged means equal
+  once numbers, citations, status and pointer lines are set aside; fold-in lists every section changed
+  since the recorded commit and the author decides on a re-review; an outside document citing a removed
+  section is new ground (reversing round D's *other*).
+- **A diff is written only against an `active` specification** (author). A `finalised` one with no slice
+  started moves back into the new elephant's directory as a draft; one `implementation ongoing` waits.
+- **Two diffs against one target: design allowed, discouraged; never built at once** (author). Warnings at
+  step 1, at a diff's first slice (the `execute` skill refuses while another is ongoing), and at fold-in.
+  Applied on reading *"accept your suggestions"* as covering the mechanism — reversal word *hold*.
+- §7 rulings Q1–Q5 as recommended: the old document stays until the successor is built and the last slice
+  deletes it; the list covers every claim and every rejected alternative (the author expects most claims
+  to be dropped); a fresh reviewer writes it (the retirement review, a sixth kind); abandoning undoes
+  nothing; a kept process design is found at step 1 like any document.
+
+**Round F:**
+
+- **Process documents are like code** (author): the source of truth that executes the agents, as code
+  executes the app; inherently live; no status; changed by a plan or by the author's hand.
+- **Process designs are the specifications of the process, kept current** (author): a status, diffs, and
+  replacement like any specification. A direct edit to a process document owes a seam review against
+  each process design covering it — the author accepted the agent's challenge that it is owed, not
+  offered. This removed the superseded-document exception, `rationale/` as their home, and *"Layer 3's
+  lifetime"*.
+- **A replacement is a large diff** (author): it may be designed while a diff is pending, is never built
+  at the same time, and both are warned; the block lasts until the other folds in or is abandoned. A
+  `finalised` diff may be abandoned; an `implementation ongoing` one cannot simply be deleted.
+- **Only an `active` specification is replaced side by side** (author). A `draft` — `CORRIDORS.md` is
+  `draft`, not `finalised` — or an unbuilt `finalised` one is reworked in place in the elephant's
+  directory, and the retirement review still runs when the ruling is *replace*. A document not designed
+  is offered no option; no status line counts as `active`; `implementation ongoing` waits.
+- **The successor is `<target>.<name>.md`** until the last slice deletes the old document and renames it
+  to its final name, agreed at step 4: the old name, or a new one where the concept has moved (the
+  author's idea; the agent's use of the elephant's name accepted). Citations of the replaced document
+  are listed and raised as new ground.
+- The replaced document's pointer line is not a change to what it says (author). `METHOD.md`'s
+  superseded rule gains a sentence for an elephant's replacement. Both the interview and the retirement
+  review ask about rejected alternatives. A diff folding into a document being replaced: the author
+  decides whether the retirement review runs again. **Running old and new behind a flag is a non-goal**
+  (author: one author, no production system).
+- Every other round-F finding as the agent recommended.
 
 ### Open questions — raise before they are needed
 
-1. **`ROADMAP.md` says a diff's fold-in marks the target `active`; `ELEPHANT.md` §6 says the target keeps
-   its status.** Usually the same thing, since a target is normally `active`. One must change; `ROADMAP.md`
-   wins until then.
-2. **Measure whether resuming a conversation keeps the same transcript file** — §5 relies on it. Needs
+1. **Measure whether resuming a conversation keeps the same transcript file** — §5 relies on it. Needs
    the author to resume a conversation.
-3. **Still unanswered from earlier sessions:** two hedged interview answers never placed (*"though I
-   could be persuaded otherwise"*, question 18; *"is fine, but I still don't really understand"*, a later
-   question 2); *"I believe"* that every rejected alternative is captured bears on §7.
+2. **Where a process design goes at close-out before the folder entry is carried out.** The sort table
+   sends it to the `designs/` folder, which does not exist yet; specifications have the same gap, and
+   §6's status check names the ones still at the root. Raise before §8, which lists the move.
 
 ### Rulings waiting for the section that is their home
 
 | Ruling | Home |
 |---|---|
-| Who retires a document, how retirement's mandatory list is produced and in what unit, whether retirement starts at the step-1 *replace* ruling or at sign-off, and what abandoning undoes after a *replace* ruling. **Revisit against the staging model**: a replacement is now staged too | §7 |
 | `METHOD.md`'s three outcomes renamed **accepted**, **immaterial**, **rejected**; `METHOD.md:175`'s *"fixed" by somebody* stays | §8 |
 | The memory file on how questions are put to the author is kept until the new elephant skill carries the same format, then deleted | §8 |
 | *"Not for new documents only"* is a rejected alternative | §10 |
@@ -97,9 +129,18 @@ cut after that: §8, then §9–§10, then the document review and close-out.
   its opening calls a goldfish the least-informed reviewer, which the interview review is not; the
   presenting agent shows a re-raised finding with its earlier ruling.
 - `METHOD.md`: the elephant section (§1's wording); imperative Two's clause; *"Record the rejections"*
-  changes — nothing is kept past close-out; the line on where reasoning lives (§6); the superseded-document
-  exception (§7).
+  changes — nothing is kept past close-out; the line on where reasoning lives (§6); the sentence added to
+  the superseded-document rule for an elephant's replacement (§7); *What a change owes* gains the seam
+  review owed after a direct edit to a process document (§6).
 - `prompts/goldfish-document.md`: the narrowed design-is-wrong question, and line 7's exception.
+- `goldfish/SKILL.md` again (author, round F): a finding or question put to the author after a review
+  must be understandable without the report, and use no term that needs it — name the documents,
+  never *"both documents"*.
+- Rounds E and F: a third new prompt, `goldfish-retirement.md`; the `execute` skill's warnings and
+  refusal on two changes pending against one target, and a replacement's last-slice steps (delete,
+  rename, remove the `Replaces:` line); the status check's new failures (two ongoing; the four pointer
+  failures; a successor's name); step 1's report giving each document's status and pending diffs;
+  `ROADMAP.md`'s folder entry gains `designs/`.
 - Two new prompts (`goldfish-interview.md`, `goldfish-ledger.md`), the extractor script, the apply script
   (renumbering and citation rewriting included).
 - `slice` and `plan`: read only `finalised` or `implementation ongoing`. `execute`: the status
@@ -278,6 +319,56 @@ matched against.
 - **Where an added section goes at fold-in** — reject — already resolved: §5 says the script "places an added section after the heading its `**After:**` line names"; renumbering is immaterial, since headings are matched ignoring the number.
 - **Order of the status check and the status-line slice** — reject — standing rejections 1 and 6: ordering is §8's.
 
+*Round E* (32)
+
+- **§3 — the paragraph on arguing U-work** (four words for the subject (change, work, it, feature)) — immaterial — all name the one change the elephant is about
+- **§3 — the paragraph on arguing U-argue** ("argue", "pressing") — rejected — standing rejection 5: judgement words are the author's
+- **§3 — the paragraph on arguing V1** (no check could tell an argument about the approach from one about the need) — rejected — §2 accepts that nothing checks the agent's conduct
+- **§3 — the paragraph on arguing V2** ("pressing further would test nothing" is unsupported) — rejected — it is the reason the author gave for the ruling (round D)
+- **§3 — the paragraph on arguing G2** (the paragraph adds a fifth ruling-like event to a list of four) — immaterial under option 1 — it is an answer to an argument, not a point in the process
+- **§6 — *What it produces* A1** ("one draft for each subject" vs "one for each document") — rejected — standing rejection 2, checked: §3 says "one document per subject the design touches"
+- **§6 — *What it produces* A4** (where the positive restatement of a non-goal is written) — rejected — standing rejection 2, checked: §2 *Where these end up* states it in the design ("stated positively, in §3")
+- **§6 — *What it produces* A5** (is the evidence section mandatory) — immaterial — "It has an evidence section" is unconditional
+- **§6 — *What it produces* A6** ("a plan" — any plan, or one cut from a process design) — immaterial — DECIDE 4's wording replaces the sentence
+- **§6 — *What it produces* A7** (is a large change by the author's own hand outside the elephant) — immaterial — the author decides whether any change has an elephant (§1)
+- **§6 — *What it produces* A10** (changing `CORRIDORS.md` / `FORMATIONS.md` while `draft`) — rejected — the status paragraph says each moves into the elephant's directory when its design resumes
+- **§6 — *What it produces* A12** ("Usually, specifications" — other outcomes?) — immaterial — backlog entries are not the design
+- **§6 — *What it produces* U-subject, U-step4, U-followed, U-restated, U-evidence** (five terms) — rejected — standing rejection 2: defined in §3, §2, the opening block, and §6's own evidence paragraph
+- **§6 — *What it produces* U-decision-taken, U-small, U-typo, U-put-in-place** (four terms) — immaterial — `decision already taken` is §1's and ROADMAP's own phrase; the rest are judgement words (standing rejection 5)
+- **§6 — *What it produces* V1** (an author's edit cannot be told from an agent's) — rejected — §2 accepts that nothing checks the agent's conduct
+- **§6 — *What it produces* V2** ("never put in place at close-out" uncheckable) — immaterial — the sort table is the whole of what close-out does
+- **§6 — *What it produces* V3** (non-goals in the specification uncheckable) — rejected — **re-raised; earlier ruling (round D, §6):** "the ledger review confirms at close-out that every ruling reached its document"
+- **§6 — *What it produces* V4** (which non-goals become rules uncheckable) — rejected — standing rejection 5
+- **§6 — *What it produces* V5** ("writes far more than the author oversees" unsourced) — rejected — the author's own reason for the round-D ruling
+- **§6 — *What it produces* G-hooks** (a hook is code; is it drafted like text?) — immaterial — a hook changes only through a plan, like any process document
+- **§6 — *What it produces* G-§2** (§2 not given) — rejected — standing rejection 2
+- **§5 — *Reading a document as it will be* B4** (the scratch directory, the output names, and the fold-in mode) — rejected for the directory — standing rejection 2: §5 *The interview review* defines it; immaterial for names and mode — a builder's choice, and §6 says fold-in writes the target
+- **§5 — *Reading a document as it will be* A5** ("same text" for a new repeated heading) — immaterial — §4 matches by heading text ignoring the number; the stop wording works either way
+- **§5 — *Reading a document as it will be* A7** (does "as it will be" include other pending diffs?) — rejected — **re-raised; earlier ruling (round D, §5 A10):** "the script applies this elephant's diff to the target as it is now; other pending diffs are not part of it"
+- **§5 — *Reading a document as it will be* A8** (does step 7 cover a document citing a removed section?) — rejected — **re-raised; earlier ruling (round D, §5 A11):** "§4 makes *removed* one of the three kinds of change". A renumbering alone owes no seam review
+- **§5 — *Reading a document as it will be* A9** ("status and pointer lines aside" applies to which sections) — immaterial — DECIDE 9's wording replaces the phrase
+- **§5 — *Reading a document as it will be* A11** (the reading copy's layout and order) — immaterial — the author reads it; any layout that keeps old and new apart serves
+- **§5 — *Reading a document as it will be* A11a** (may a changed section's heading level change?) — immaterial — the diff holds the section whole, heading included
+- **§5 — *Reading a document as it will be* U-collision, U-applied, U-reading, U-removed-mark** (four terms) — immaterial — each is used where it is explained
+- **§5 — *Reading a document as it will be* V2** ("the reviewers and the author read those documents as rewritten" depends on the dispatch) — immaterial — the agent does the dispatching, and §5 says what it hands over
+- **§5 — *Reading a document as it will be* G-process-fold** (at fold-in, citation rewrites reach process documents in place) — immaterial — fold-in is a slice's step, and a process document changes through a plan
+- **§5 — *Reading a document as it will be* G-by-name** (a citation by heading name goes stale on a rename) — immaterial, weakly — a rename is a removal and an addition, so its by-number citers are listed, but a by-name citer is found by nothing, here or anywhere in the repository today. Not measured how many exist. Accept would add "and every citation of its heading by name" to what the script lists
+
+*Round F* (12)
+
+- **A5** (does a rewritten section get a fresh section review?) — rejected — §3 *What goes back* says each is written again "each with its section review"
+- **U-beside, U-close-out, U-final-path** (three terms) — rejected — standing rejection 2: ROADMAP's folder entry, §3 step 8, and §4 define them
+- **U-alternative** (how a rejected alternative is identified) — immaterial — answered by A12
+- **V1** ("most are expected to be dropped") — immaterial — your expectation, setting no rule
+- **V2** (the writing agent is the reader least likely to see what it left out) — rejected — your Q3 ruling's own reason
+- **V3** ("a plan's lifetime" not in the ROADMAP text given) — rejected — standing rejection 2, checked: ROADMAP gives a process design "Layer 3's lifetime", and Layer 3 is plans
+- **V4** ("neither can be rebuilt from the other") — rejected — ROADMAP's own reason, in the folder entry and slice 7.1
+- **V6** ("nothing is followed from it") — rejected — the opening block states it
+- **G1** (a stretched match under *found* loses content with no ruling) — immaterial — the author sees every *found* match quoted, as with the ledger review
+- **G2** (*dropped on purpose* rulings do not outlive the deletion) — immaterial — §5's rule: a finding to be remembered is added to the design by a ruling of its own
+- **G3** ("a plan's lifetime" may imply deletion) — rejected — as V3; the next paragraph says what expires
+- **G6** (abandonment after close-out) — rejected — the elephant ends at close-out (§1); dropping a signed-off design later is a new decision
+
 ### Sources for §9, none yet in `SOURCES.md`
 
 As listed in `git show HEAD:HANDOFF.md` — that table and the one in the handoff before it.
@@ -311,6 +402,15 @@ They stand unless the author uses the word.
   about structure, its seam reviewed at step 7 (*other*); the measurement in §5 worded without counts,
   since they moved during the day (*counts*); a backlog entry for the repeated headings (*drop*); a
   deferral outside the interview carried by the handoff (*checklist*).
+- Rounds E and F: every review on Opus at high effort, following §5 rather than the goldfish skill's
+  *"cheap"* (*cheap*); the dependency sections each reviewer was handed (*repack*); the N1 warning
+  mechanism applied on reading *"accept your suggestions"* (*hold*); every successor is a design
+  document, so nothing goes to `SOURCES.md` (*restore*); no `REVIEWS.md` record for the retirement
+  review (*record*); the retirement review at the end of step 5, not a step of its own (*step*); the
+  goldfish-skill change recorded in the §8 list (*elephant*); a process design's final path is the
+  folder entry's `designs/` (*rationale*); a document reworked in place keeps its name unless renamed
+  at step 4 (*rename*); an accepted seam-review finding edits the process design directly, as a
+  conforming change (*elephant-only*).
 
 ---
 
@@ -326,6 +426,13 @@ They stand unless the author uses the word.
   and ruled on all process changes; carry the ruling, and say what else it moved.
 - **Questions carry their own background; outcomes say what they do.** Never offer *fixed*; never let a
   section or step number stand in for what it means.
+- **Questions name the documents** (author). Never *"both documents"*, never a case without an example:
+  three of round F's questions came back unanswerable for that reason.
+- **A `ROADMAP.md` sentence written in the same pass contradicted the `ELEPHANT.md` sentence beside it**
+  (round F, C1). After a pass that edits both, read the new `ROADMAP.md` text against the new
+  `ELEPHANT.md` text.
+- **Cut review packets by heading markers, each asserted unique**, never by line number: every edit
+  moves the lines. The guard caught a wrong end marker this session.
 
 ---
 
@@ -336,10 +443,10 @@ Continue the Rueda Simulator methodology rework on branch engine/pathing_rework.
 first — it is at the repository root and tells you what to read, in what order, and where things
 stand. Do NOT delete it when you start; it says when to delete it.
 
-You are continuing slice 7.1: ELEPHANT.md, the design for the elephant. §1–§6 are written. Your unit
-of work this session: run a section review over the three passages HANDOFF.md names as new mechanism,
-and bring them back together; then write §7, one section, brought back with its goldfish section
-review. Do not write §8 and do not write a plan.
+You are continuing slice 7.1: ELEPHANT.md, the design for the elephant. §1–§7 are written. Your unit
+of work this session: run a section review over the six passages HANDOFF.md names as unreviewed, and
+bring them back together; then write §8, one section, brought back with its goldfish section review.
+Do not write §9 and do not write a plan.
 
 Raise anything HANDOFF.md lists as open that bears on a section before you draft it, rather than
 deciding it for me.
