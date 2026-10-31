@@ -314,7 +314,8 @@ it works and the evidence behind it. **This entry wins where the two disagree un
 off**; at close-out, once everything here is confirmed to be in `ELEPHANT.md`, it is cut to one line
 pointing there. `ELEPHANT.md` is in `process/designs/`, which the folder entry under *Deferred* defines.
 
-**Ten sections, and each answers a question somebody will ask.** *Open questions* was dropped as a
+**Ten numbered sections, of which §8 is empty, and each of the others answers a question somebody will
+ask.** *Open questions* was dropped as a
 section: one that survives is a checklist item carrying a disposition, and the checklist dies at
 close-out while a section would not.
 
@@ -328,7 +329,7 @@ and defined nowhere, the home it gives imperative Two, and the wording destined 
 | 5 | what reviews run? |
 | 6 | what comes out, and what never does? |
 | 7 | what happens when a document is replaced? |
-| 8 | what has to change to build this? — **the list a slicer reads, and what makes the work cuttable** |
+| 8 | *empty*, with no heading: a design states what must be true, never what has to change to make it true, and the backlog entry *Inputs to cutting `ELEPHANT.md`* holds the notes for the cut. The numbers are closed up once §9's form is settled |
 | 9 | why is it like this? — written in the evidence document’s own entry format from the start |
 | 10 | what else was considered? |
 
@@ -527,10 +528,12 @@ interview, because the first attempt got it wrong in both directions.
   entry format — the rule as a heading, the kind declared, what was measured, the sources, whether it
   departs — since the evidence document is a Layer 1 document of the process family and takes diffs.
   Nothing is translated or moved later, and a translation step is where content is lost.
-- **One check enumerates the documents** so that a hand-maintained list cannot quietly go stale: every
-  markdown file is either in each list that names documents or in that list’s declared exclusions. It
-  exists for the duplication comparison, whose list drops an absent file in silence — measured, one
-  document sat in it unnoticed for six slices.
+- **One check enumerates the documents** so that no Markdown file is skipped by the checks without
+  anybody noticing. One table says, for every place and kind of Markdown file, which checks cover it or
+  why none does. A file the table does not account for fails, which catches a specification written
+  where the status check does not look; so does a check whose own hand-kept list names a file that does
+  not exist, or leaves out one the table says it covers. Measured: the duplication comparison's list
+  drops an absent file in silence, and one document sat in it unnoticed for six slices.
 
 **Staged, never written in place** — ruled after `ELEPHANT.md`'s first draft of what an elephant
 produces, which assumed the opposite
@@ -1024,6 +1027,46 @@ blocks the pathing rework.
   the outcome record that an archive would otherwise duplicate. And what becomes of four root files
   that read as spent plans — the architecture review, the cleanup plan, the refactor plan and the
   smooth-paths plan: if they are spent, the superseded-documents rule already says they should be gone.
+
+- **Inputs to cutting `ELEPHANT.md`** — notes for whoever cuts it into slices, deleted once the cut is
+  made. `ELEPHANT.md` states what must be true, never what has to change, so they are not in it.
+
+  **How it is built** (the author's ruling): cut and built once with the skills as they stand at
+  sign-off; then, once its own slices have improved the skills, cut and built again from the same
+  design, as an `active` document is cut again at the author's request. A first run done poorly is
+  repaired by the second, which finds only what is still untrue. Its status line is set by hand at
+  sign-off, since the skills that set it do not exist yet.
+
+  **Places the design reaches, gathered while writing it** — a starting point for the comparison with
+  the process documents, not a substitute for it:
+
+  - `METHOD.md`: the elephant's section, imperative Two's clause and the superseded-document exception,
+    in the wording the design gives; the line on where reasoning lives; the two families, with the four
+    layers dividing both; the outcomes renamed *accepted*, *immaterial* and *rejected*, in their table,
+    its heading and the pass condition, with the overriding rule's *"to rule on"* — the later warning
+    that a rejection is eventually *"fixed"* by somebody keeps that word; the rule on recording
+    rejections, excepted inside an elephant; the seam review after a direct edit to a process document,
+    in the table of when each review fires; the line naming the skills, which become nine.
+  - The session-start hook's closing line and `AGENTS.md` both say *dispositions*. The injected text
+    changes with the overriding rule: measured at 1,674 characters against the 1,900 limit.
+  - `goldfish/SKILL.md`: every review on the Opus tier at high effort, so *"Cheap for a section review"*
+    goes; its opening calls a goldfish the least-informed reviewer, which the interview reviewer is
+    not; a finding raised again shown with its earlier ruling; findings that stand without the report;
+    its table of review kinds gains the interview, retirement and ledger reviews and the seam review
+    after a direct edit.
+  - Prompts: three new ones, for the interview, ledger and retirement reviews; the document prompt's
+    design-is-wrong question and its exception to the instruction not to judge the design.
+  - Skills: the new `elephant` and `close-out`; `handoff` finding elephants by their directories;
+    `slice`, `plan` and `execute` carrying the status rules, the diff rules, the collision check, the
+    refusal, fold-in, a replacement's last-slice steps and cutting an `active` document again.
+  - Scripts and checks: the extractor, the apply script, the status check with all its failures, and
+    the check that every Markdown file is accounted for.
+  - Status lines on every existing specification and on `SOURCES.md`, with `CORRIDORS.md` and
+    `FORMATIONS.md` as `draft`; `REVIEWS.md`'s row for a person reading a document, and its `waived`
+    state; `PILOT.md`'s account of the elephant, and its count of skills.
+  - At `ELEPHANT.md`'s close-out, the slice 7.1 entry above is cut to one line pointing at it.
+  - The agent's memory note on how questions are put to the author is kept until the `elephant` skill
+    carries the same form, and then deleted.
 
 ## How the current work already feeds the vision
 

@@ -1,7 +1,8 @@
-# Handoff — `ELEPHANT.md`: write §8
+# Handoff — `ELEPHANT.md`: rule round H's remaining findings
 
 > **Do not delete this file when you start.** Everything under *Not yet durable* exists nowhere else.
-> **Delete it once each of those has a home** — at that point this file is spent.
+> **Delete it, and `HANDOFF-reports/` with it, once each of those has a home** — at that point this
+> file is spent.
 
 ## You already have the imperatives
 
@@ -11,142 +12,125 @@ rest of `METHOD.md`** — open it now.
 ## Read these, in this order
 
 1. **`METHOD.md`**, whole.
-2. **`ROADMAP.md`**, *Slice 7.1 in detail*, including *What it produces* and *Staged, never written in
-   place*. It wins wherever `ELEPHANT.md` disagrees with it, until sign-off.
-3. **`ROADMAP.md`**, *Deferred*, the entry *"Separate the process documents from the content
-   documents"*.
-4. **`process/designs/ELEPHANT.md`** — it moved there this session. Opening block and §1–§7 are written.
-   Read all of it.
+2. **`ROADMAP.md`**, *Slice 7.1 in detail*, including its section table, *What it produces* and *Staged,
+   never written in place*. It wins wherever `ELEPHANT.md` disagrees with it, until sign-off.
+3. **`ROADMAP.md`**, *Deferred*: the folder entry *"Separate the process documents from the content
+   documents"*, and the new last entry, *Inputs to cutting `ELEPHANT.md`*.
+4. **`process/designs/ELEPHANT.md`**, all of it. §1–§7 are written; there is no §8 (below).
 5. **`REVIEWS.md`**, and **`.claude/skills/goldfish/SKILL.md`** for the order findings are presented in.
+6. **`HANDOFF-reports/`** — the seven round-H section-review reports. Read only when you reach them.
 
 ## Where things stand
 
-- **§1–§7 are written.** This session ran round G: section reviews of the six passages round F left
-  unreviewed, 262 findings. The author ruled thirteen decisions and accepted every other
-  recommendation; 42 scripted edits applied them, all matched once, removed text confirmed gone.
-- **`ELEPHANT.md` moved to `process/designs/ELEPHANT.md`** (D9). Nothing else referred to its path but
-  `ROADMAP.md` and this file. `content/specs/` is not created; close-out creates it when first needed.
-- **Nothing committed.** The rename is staged; the edits are not. All eleven checks green after the
-  move; `test/visual.js` cannot run here.
-- **Unreviewed text — what the next review should read:**
-  - **Rewritten in full:** §5 *Reading a document as it will be*; §6 *What it produces*; §6 the status
-    check paragraph; §6 *A diff specification, from sign-off to fold-in*; §7, whole.
-  - **Changed in place, in already-reviewed text:** the opening block (layers, slices list, precedence);
-    §1 *The definition* (specification of the system), *When it is used* (process or system), the
-    `METHOD.md` wording of item 1 (successor and retirement review), item 3 (side by side); §3 the
-    abandonment paragraph (moving documents back), the arguing paragraph (deleted), step 1 (status
-    report, nothing designed, not-designed list), step 5's end, *What goes back*; §4 the ledger's sixth
-    kind and the successor's path; §5's table row for the retirement review; §6's status table,
-    status events, status-line sentence, sort table rows and evidence paragraph.
-  - **`ROADMAP.md`:** slice 7.1's opening paragraph; the close-out, process-design, never-produces,
-    new-document, replacing and evidence bullets; the *Staged* process-or-system bullet; the folder
-    entry's new paragraph.
+- **§8 no longer exists, by the author's ruling.** A design states what must be true, never what has to
+  change to make it true; each slice's plan finds what to change by comparing the design with the
+  process documents as they are. That principle is now in `ELEPHANT.md`'s opening block and §6 *What it
+  produces*. The heading is gone and the numbers are left with a gap (§7 then §9) until §9's form is
+  settled, so the citations are rewritten once. `ROADMAP.md`'s section table marks §8 empty.
+- **This session, round H:** every passage of the opening block and §1–§7 written as an edit to a
+  process document was restated as what must be true (27 scripted edits); homes were given to the two
+  skills, the outcome names, `PILOT.md`, findings that stand without the report, the check that every
+  Markdown file is accounted for, and cutting an `active` document again. Seven section reviews ran
+  over those passages: **242 findings**. The author ruled the 42 blocking and contradiction findings,
+  taking every recommendation; 31 scripted edits applied them, all matched once, removed text
+  confirmed gone. **The other 200 are not yet triaged.**
+- **Nothing committed.** `ELEPHANT.md`, `ROADMAP.md` and this file are modified; `HANDOFF-reports/` is
+  new and untracked. All eleven checks green; `test/visual.js` cannot run here.
 
 ## What to do
 
-**Recommended unit of work:** write §8 (what has to change to build this — the list a slicer reads, and
-what makes the work cuttable), one section, with its section review. Raise open question 3 below
-before drafting it. The remaining cut after that: a review of the round-G text, §9–§10, then the
-document review and close-out.
+**Recommended unit of work: rule round H's 200 remaining findings**, one report at a time, in the order
+the `goldfish` skill sets out. They were raised against the text **before** the 31 edits, so check each
+against `ELEPHANT.md` as it now reads first: a finding the edits already answered is put to the author
+as such. The ids that were ruled are listed under *Rejected and immaterial* and *Accepted* below; every
+other id in the reports is unruled. Do not apply anything unasked.
+
+The cut after that: a section review of every passage changed in rounds G and H that no review has read
+since (listed below); §9, raising open question 4 first; §10; the document review; close-out.
 
 ---
 
 ## Not yet durable — this is why the file survives
 
-### The author's rulings in round G — home: `ELEPHANT.md`, applied; recorded here until reviewed
+### The author's rulings in round H — home: `ELEPHANT.md` or `ROADMAP.md`, applied; recorded here until reviewed
 
-- **D1** — inside a diff, and in any draft of the same elephant, a bare `§` means the target as at the
-  diff's recorded commit; the script translates; another pending diff is never rewritten.
-- **D2** — a diff is checked against its target when its first slice is about to start; a collision
-  sends the still-`finalised` diff back to be reworked; a diff being built may be amended in place on
-  the author's ruling.
-- **D3** (author, against the recommendation) — diffs still pending against a replaced document are
-  **re-pointed at the successor** when the old document is deleted, marked so whoever builds one knows
-  to bring it into line, as for a diff whose target another diff folded into first.
-- **D4** — a carried claim's ledger line names the final path, and the ledger review reads the
-  successor's draft under it.
-- **D5** — the retirement review runs only once nothing more can fold into the replaced document: it
-  waits for a diff already being built, and from it on no pending diff may start; the re-run is gone.
-- **D6** — abandoning moves a document reworked in place back to its old path first.
-- **D7** (author) — `SOURCES.md` is not a record like `ROADMAP.md` and `REVIEWS.md`: it is updated only
-  as part of changing the process, and read only by somebody changing it, like `ELEPHANT.md`.
-- **D8** (author) — **the process family now has layers**; `SOURCES.md` and the process designs are its
-  Layer 1. q1: `SOURCES.md` takes a status line and diffs, so a process design's evidence is a diff of
-  it, not a section that moves later. q2: `ROADMAP.md` and `REVIEWS.md` are records, no status, no
-  diffs. q3: `AGENTS.md` is Layer 2, the map, for both families.
-- **D9** — `process/designs/` created now by moving `ELEPHANT.md`; close-out creates `content/specs/`.
-- **D10** — `ROADMAP.md`'s slice 7.1 entry wins only until sign-off; at close-out it is cut to one line
-  pointing at `ELEPHANT.md`, once everything in it is confirmed there.
-- **D11** (author) — the work is always assumed wanted; §3's paragraph on arguing against making the
-  change is deleted whole, adding no rule.
-- **D12** — after a direct edit to a process document, the agent dispatches the seam review when the
-  author says the change is ready, against `active` process designs; the full sweep catches edits made
-  outside a session; a typo owes nothing.
-- **D13** — the script writes copies before a review and the real files only at fold-in; it rewrites
-  `.md` and `.js` files.
+- **Q1** — this design is cut and built once with the skills as they stand at sign-off, then cut and
+  built again from the same design once its slices have improved the skills. Home: the backlog entry.
+- **Q2** — a design states what must be true, never what has to change. §8 goes; every *"§8 lists"*
+  passage was restated.
+- **Q3** — two skills, `elephant` and `close-out`; the seam review after a direct edit to a process
+  document is a row of `METHOD.md`'s table of when each review fires, run by `goldfish`.
+- **Q4 (partial)** — where `ELEPHANT.md` cites evidence, the citation names `SOURCES.md` by the rule's
+  name, never a diff file. Still open: open question 4 below.
+- **Q5** — the overriding rule reads *"for the **author** to rule on"*. Measured: the injected text
+  becomes 1,674 characters, against a 1,900 limit.
+- **A** — leave §8's number empty; close the numbers up once, when §9's form is settled.
+- **B** — the notes for the cut, and Q1, live in the backlog entry *Inputs to cutting `ELEPHANT.md`*.
+- **C** — the exact wordings destined for `METHOD.md` stay in the design, introduced as what
+  `METHOD.md` says.
+- **D** — `PILOT.md` describes the elephant from the author's side (§3).
+- **E** — one check, one table, accounting for every Markdown file, which also catches a hand-kept
+  list naming a missing file or leaving out a covered one (§6, and `ROADMAP.md`'s bullet).
+- **G** — an `active` document is cut again when the author asks (§6).
 
 ### Open questions — raise before they are needed
 
 1. **Measure whether resuming a conversation keeps the same transcript file** — §5 relies on it. Needs
    the author to resume a conversation.
-2. **D10's confirmation at close-out has no stated form.** The opening block says the `ROADMAP.md` entry
-   is cut once everything in it "has been confirmed to be in this file", without saying who confirms it
-   or how — a retirement-style review, or the ledger review run against the entry. Raise at close-out.
-3. **Are this design's own slices cut and planned under the old skills or the new?** It changes the
-   `slice`, `plan` and `execute` skills, and the status check. Round G's OR G2. §8 must answer it.
-4. **§9's form under q1.** `ROADMAP.md`'s section table says §9 is *"written in the evidence document's
-   own entry format from the start"*. Under q1 a process design's evidence is a diff of `SOURCES.md`, so
-   §9 may become `SOURCES.elephant.md` rather than a section. Raise before §9.
+2. **What close-out means for `ELEPHANT.md` itself**, which was written by hand, with no ledger and no
+   elephant directory: which items of §3 step 8 apply, what stands in for the ledger review, and how
+   `ROADMAP.md`'s entry is confirmed to be in `ELEPHANT.md` before it is cut to a pointer (D10). Round H
+   A-B1 was accepted as this question. Raise at close-out.
+3. **§9's form.** The author has ruled that citations name `SOURCES.md`. Still open: whether the
+   evidence waits in a diff beside `SOURCES.md` until the rules are built, as round G's q1 and §6 say,
+   or goes into `SOURCES.md` directly. Its background, from round H (F-C1, D-C2, A-B2, accepted as this
+   question): `ROADMAP.md`'s table says §9 is a section in the evidence document's format, §6 says a
+   process design's evidence is not a section of it, and the body cites §9 throughout. Under Q1, if the
+   evidence is a diff, the new build skill checks it against `SOURCES.md` before the first slice, which
+   needs the apply script. Raise before §9.
+
+### Text no review has read since it changed
+
+- **Round H, all of it.** The 31 edits applying the accepted findings, in: the opening block; §1 *What
+  `METHOD.md` says of the elephant* (intro, the `METHOD.md` wording, item 3); §3's two-skills paragraph,
+  the abandonment sentence, step 1's four options; §4 the recorded commit; §5 *How every review is
+  run* (dispatch sentence, the Opus rule), *The document review and the seam review*, *What is kept of
+  a review*; §6 *What it produces* (three places), the direct-edit review, the fenced-block sentence,
+  *The status of a specification* (the list, the table check, the exemptions, the pre-elephant
+  statuses), *A diff specification, from sign-off to fold-in* (the collision rework, amending, fold-in
+  stops, the slice rule), *The review record* (the successor's block); §7 *From sign-off to deletion*
+  (the `REVIEWS.md` bullet, the citation fold-in), *What `METHOD.md` says of a replaced document*;
+  `ROADMAP.md`'s §8 row.
+- **Round G text round H did not cover:** §5 *Reading a document as it will be*; §6 *The sort at
+  close-out*; §7 *What replacing means*, *The retirement review*, *Naming the successor*, *What a later
+  elephant reads*; §3 the abandonment paragraph's rest, step 1, step 5's end, *What goes back*; §4 the
+  ledger's sixth kind and the successor's path; `ROADMAP.md`'s slice 7.1 bullets listed in
+  `git show 7c839e1:HANDOFF.md`.
+- **Two one-sentence deletions** never reviewed: §5 *The interview review* (*"§8 lists building it"*),
+  §7 *The retirement review* (*"(§8)"*).
 
 ### Rulings waiting for the section that is their home
 
 | Ruling | Home |
 |---|---|
-| `METHOD.md`'s three outcomes renamed **accepted**, **immaterial**, **rejected**; `METHOD.md:175`'s *"fixed" by somebody* stays | §8 |
-| The memory file on how questions are put to the author is kept until the new elephant skill carries the same format, then deleted | §8 |
 | *"Not for new documents only"* is a rejected alternative | §10 |
 
-### §8's list — gathered so far
+### Round H rulings on findings — accepted, all applied
 
-- `goldfish/SKILL.md`: drop *"Cheap for a section review"*; every review on the Opus tier at high effort;
-  its opening calls a goldfish the least-informed reviewer, which the interview review is not; the
-  presenting agent shows a re-raised finding with its earlier ruling.
-- `METHOD.md`: the elephant section (§1's wording, now with the successor and retirement-review clause);
-  imperative Two's clause; *"Record the rejections"* changes — nothing is kept past close-out; the line on
-  where reasoning lives (§6); the sentence added to the superseded-document rule (§7, now worded as an
-  exception); *What a change owes* gains the seam review owed after a direct edit to a process document
-  (§6). **Round G:** the two families and the four layers — the layers now divide both families (D8).
-- `prompts/goldfish-document.md`: the narrowed design-is-wrong question, and line 7's exception.
-- `goldfish/SKILL.md` again (author, round F): a finding or question put to the author after a review
-  must be understandable without the report, and use no term that needs it — name the documents,
-  never *"both documents"*.
-- Rounds E and F: a third new prompt, `goldfish-retirement.md`; the `execute` skill's warnings and
-  refusal on two changes pending against one target, and a replacement's last-slice steps (delete,
-  rename, remove the `Replaces:` line); the status check's new failures (two ongoing; the four pointer
-  failures; a successor's name); step 1's report giving each document's status and pending diffs;
-  `ROADMAP.md`'s folder entry gains `designs/`.
-- Two new prompts (`goldfish-interview.md`, `goldfish-ledger.md`), the extractor script, the apply script
-  (renumbering and citation rewriting included).
-- `slice` and `plan`: cut and plan only from `finalised` or `implementation ongoing`; a plan reads an
-  `active` target beside its diff. `execute`: the status transitions and the fold-in step.
-- The status check and the enumeration check; every existing specification gains a status line;
-  `REVIEWS.md`'s person-reading row and `waived` state.
-- **Round G:**
-  - `SOURCES.md` gains a status line and takes diffs (q1); the move-one-entry-at-a-time machinery is
-    never built.
-  - The status check covers `content/specs/`, `process/designs/` and `SOURCES.md`, treats a missing
-    directory as empty, fails on a diff whose target is not `active`, and counts a `Replaces:` line among
-    two ongoing changes.
-  - `execute`: the collision check before a diff's first slice (D2); amending a diff being built; the
-    refusal is absolute; at a successor's last slice, re-pointing every diff still pending (D3) and
-    searching again for citations of the replaced document, stopping on any; no diff pending against a
-    replaced document starts once its retirement review has run (D5).
-  - The apply script: §5's full rules — every diff of an elephant in one run, copies before a review,
-    two runs at fold-in, `.md` and `.js` files, the citation translation of D1, every stop reported.
-  - The elephant skill: the ledger's sixth kind (an answer about a rejected alternative); the proposal
-    of an elephant says whether it is on the process or the system (D7); abandonment moves documents
-    back (D6); the seam review after a direct edit (D12).
-  - `ROADMAP.md` at `ELEPHANT.md`'s close-out: the slice 7.1 entry cut to a pointer (D10).
+Ids are the reports' own, in `HANDOFF-reports/` (A = opening, §1, §2; B = §3; C = §5; D = §6 *What it
+produces*; E = §6 status and diffs; F = `ROADMAP.md`; G = §7).
+
+A-C1, A-C2, A-C3, A-C4, A-C5, A-C6; B-B1, B-B2, B-C1, B-C2, B-C3; C-B1, C-B2, C-C1, C-C2, C-C3; D-B1,
+D-B2, D-B3, D-C1, D-C3, D-C4, D-C5; E-B1, E-B3, E-C1, E-C2, E-C3, E-C4, E-C5; F-B1 (the root named file
+by file), F-B2; G-B1, G-B2, G-C1. Accepted with their change made later: A-B1 (open question 2); F-C1,
+D-C2, A-B2 (open question 3). C-B2 re-raised round D's A16, whose reason (*"§8's to specify"*) fell with
+§8.
+
+**Carried to further places, as the reach of an accepted finding:** G-C1 to §1 item 3 and §7's
+*"already settled what is carried"*; E-C5 to §4's recorded commit (*"updated only when the diff is
+reworked, or amended to settle a collision"*) and to D1's citations (*"its own citations of the
+target brought to that commit's numbers"*); G-B1 to §6 *The review record* (a successor's own block);
+E-B3 to the reworked diff being *"renamed after"* its new elephant.
 
 ### Rejected and immaterial findings — carried until close-out (§5's rule)
 
@@ -155,7 +139,7 @@ the reviewer was denied is not unverifiable, but is checked against it; a sessio
 off; a dated measurement does not go false; the writing standard and judgement words are the author's to
 judge; where the `METHOD.md` wording is placed is §8's; bare numbers in the question rules are chosen.
 
-**Earlier rounds:** as listed in `git show HEAD:HANDOFF.md`, which this file replaced.
+**Earlier rounds:** as listed in `git show e03e4af:HANDOFF.md` and the handoffs before it.
 
 **Round D, in full** — every finding ruled rejected or immaterial, with its reason, as §5 requires.
 Ids are the review reports' own, which do not survive; the quoted reason is what a re-raised finding is
@@ -447,6 +431,16 @@ matched against.
 - **N1** ("Twenty-three markdown files") — immaterial — measured today, 23 at the root, `HANDOFF.md` included; a backlog entry's count, not a design's
 - **N2** ("two new skills") — reject — standing rejection 1
 
+*Round H* (4, of the 42 ruled; the other 200 are unruled)
+
+- **A-B3** (where the elephant section goes in `METHOD.md`) — reject — placement does not change what
+  `METHOD.md` says; the slice's plan chooses it and the plan review sees it
+- **E-B2**, and **F-B1**'s interface part (how the table check reads other checks' lists, and the
+  table's format) — reject — a builder's choice, as round E ruled for the apply script's inputs (B4)
+- **F-C2** (the backlog entry sets the status by hand; §6 says a skill does) — immaterial — the entry
+  records a one-off for a file written before the elephant existed; §6 states the rule for designs made
+  through one
+
 ### Sources for §9, none yet in `SOURCES.md`
 
 As listed in `git show e03e4af:HANDOFF.md`, and the tables it points to.
@@ -465,24 +459,29 @@ As listed in `git show e03e4af:HANDOFF.md`, and the tables it points to.
 - On 2026-10-31: `test/corpus-size.js` cites `CORRIDORS.md` §14 and §14.2 in its comments — the reason
   the apply script rewrites `.js` files (D13). References to move each document: `ELEPHANT.md` 13 in 2
   files, no checks; `CORRIDORS.md` 73 in 11 files, 5 checks; `FORMATIONS.md` 94 in 10 files, 4 checks.
+- On 2026-10-31: the injected session-start text is 1,691 characters; 1,674 with *"to rule on"*.
+  `test/dedupe.js`'s list does not name `process/designs/ELEPHANT.md`, and nothing says whether that is
+  deliberate — the case the table check exists for.
 
 ### `PILOT.md`'s artefact review, recorded nowhere
 
-The author read `PILOT.md`; one finding: it says nothing about the elephant. §5 adds the person-reading
-row and the `waived` state, and this finding is what it holds.
+The author read `PILOT.md`; one finding: it says nothing about the elephant. §3 now says what it must
+say (D), and §5 adds the person-reading row and the `waived` state; this finding is what that row
+will hold for `PILOT.md`.
 
 ### Unrequested decisions, flagged and not reversed
 
 They stand unless the author uses the word.
 
-- Earlier sessions: as listed in `git show e03e4af:HANDOFF.md` and the handoffs before it.
-- Round G: each reviewer given `METHOD.md` and the dependency sections I chose (*repack*); Opus at high
-  effort for section reviews (*cheap*); §7's examples changed to an invented `active` `CALLS.md` and
-  `CALLS.timing.md` (*formations*); §6's kinds of process-family document given as a table (*prose*);
-  the re-pointed diff's `Amends:` line wording, *"re-pointed from"* (*reword*); §5's table row for the
-  retirement review widened to every document of the design, as the reach of S7 A3 (*revert*); the
-  `ELEPHANT.md` move staged as a rename, uncommitted (*unstage*); the check names `SOURCES.md` among
-  what it covers, as the reach of q1 (*drop*).
+- Earlier sessions: as listed in `git show 7c839e1:HANDOFF.md` and the handoffs before it.
+- Round H: open questions 1 and 2 judged not to bear on §8 (*raise*); §1 *What the repository calls it
+  today* left as reasoning, not restated (*include*); the two identical *What changes in `METHOD.md`*
+  headings given distinct names (*rename*); the re-cut paragraph's sentences that a second cut leaves
+  earlier additions in place and that a document with a pending change is not re-cut (*trim*); the
+  backlog entry's sentence setting this file's status by hand at sign-off (*drop*); every reviewer
+  given the whole of `ELEPHANT.md` and `METHOD.md` as dependencies (*repack*); the two one-sentence
+  deletions left unreviewed (*review*); the seven reports copied into `HANDOFF-reports/` so they
+  outlive the scratch directory (*temp*).
 
 ---
 
@@ -490,21 +489,25 @@ They stand unless the author uses the word.
 
 - **Never put a script inside `node -e`, and never use a heredoc for one.** Write it to a file.
 - **Every document edit is an assertion-checked script** — exact strings, counted, nothing written
-  unless each count is one. Confirm each replacement landed. This session's tools: an `apply.js` taking
-  a file of `@@@ replace` / `@@@ range` blocks; rebuild it if the scratchpad is gone.
+  unless each count is one. Confirm each replacement landed. The tool: an `apply.js` taking a file of
+  `@@@ FILE` / `@@@ OLD` / `@@@ NEW` / `@@@ END` blocks, dry run by default, `--write` to write; rebuild
+  it if the scratchpad is gone.
 - **A measurement can be too literal.** Search for the idea, not one word.
 - **Each round of fixes produces the next round's findings**, in the newest text. Review only what is new.
 - **A rule added in one place must be carried to every place that depends on it**; list each.
-- **An author's answer can reach further than the question.** D7's answer about `SOURCES.md` reached
-  the layers, the evidence machinery and §9's form.
-- **Questions carry their own background; outcomes say what they do.** Never offer *fixed*; never let a
-  section or step number stand in for what it means. Round G needed D5, D9 and D13 explained twice:
-  say what the thing is before what is wrong with it.
+- **An author's answer can reach further than the question.** Round H's Q2 answer removed §8 and reached
+  fifteen passages of reviewed text.
+- **Questions carry their own background; outcomes say what they do.** Round H needed A, B, C and E
+  explained twice (*"not sure what this question means"*, four times in one reply): each had named the
+  artefact and the fix without saying what the thing was or giving an example. Lead with what it is, in
+  plain words, then a concrete case, then the options.
 - **Questions name the documents** (author). Never *"both documents"*, never a case without an example.
 - **After a pass that edits both, read the new `ROADMAP.md` text against the new `ELEPHANT.md` text.**
-- **Cut review packets by heading markers, each asserted unique**, never by line number. **Give each
-  reviewer every section its passage cites**: round G lost about twenty findings to passages I left out
-  of the packet — §3's reviewer was not given §7 *The retirement review*.
+- **Cut review packets by heading markers, each asserted unique**, never by line number. A marker that
+  is a prefix of another heading matches twice (`# The elephant` inside `## The elephant`).
+- **Reviewers read a design's present tense as a claim about today.** The opening block now says the
+  design states what must be true once built; a finding that a process document *"does not say"*
+  what the design says it says is that, not a contradiction.
 - **Do not spend design text on agent pushback against doing the work at all** (author, D11).
 
 ---
@@ -517,20 +520,21 @@ first — it is at the repository root and tells you what to read, in what order
 stand. Do NOT delete it when you start; it says when to delete it.
 
 You are continuing slice 7.1: process/designs/ELEPHANT.md, the design for the elephant. §1–§7 are
-written. Your unit of work this session: write §8, one section, brought back with its goldfish
-section review. Do not write §9 and do not write a plan.
+written and §8 has been removed. Your unit of work this session: rule the 200 remaining findings of
+round H's seven section reviews, whose reports are in HANDOFF-reports/. Check each against the text as
+it now reads before putting it to me. Do not write §9 and do not write a plan.
 
-Raise anything HANDOFF.md lists as open that bears on a section before you draft it, rather than
-deciding it for me.
+Raise anything HANDOFF.md lists as open that bears on what you are doing, rather than deciding it
+for me.
 
 How I work: I review everything and nothing is applied without my say-so, item by item. Present
-findings with the section, in the order .claude/skills/goldfish/SKILL.md sets out. Every item that
-needs a decision from me gets one sentence saying what the issue is and why, then options, with your
-recommendation first and clearly marked. Explain from the ground up — what the thing is and what
-breaks without it — and say what each option does rather than naming it. Challenge my thinking
-rather than agreeing with me. End each round by listing exactly which sections you changed, marked
-rewritten-in-full or changed-in-place, calling out separately anything that touched
-already-reviewed text, and flagging any decision I did not ask for with a one-word way to reverse it.
+findings in the order .claude/skills/goldfish/SKILL.md sets out. Every item that needs a decision from
+me gets one sentence saying what the issue is and why, then options, with your recommendation first
+and clearly marked. Explain from the ground up — what the thing is, a concrete example, and what
+breaks without it — and say what each option does rather than naming it. Challenge my thinking rather
+than agreeing with me. End each round by listing exactly which sections you changed, marked
+rewritten-in-full or changed-in-place, calling out separately anything that touched already-reviewed
+text, and flagging any decision I did not ask for with a one-word way to reverse it.
 
 Measure, don't assert — node and python are both on PATH. Write anything that may become a check in
 node, since every check here is. Never put a script inside node -e or python -c, and never use a
