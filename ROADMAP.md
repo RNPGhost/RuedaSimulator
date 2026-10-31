@@ -308,9 +308,11 @@ review. It is recorded here because the plan that produced it is deleted on comp
 
 Designed in conversation before any of it was built, and recorded here because `ELEPHANT.md` — the
 design document it produces — is the specification of the elephant: the slices change `METHOD.md`, add
-two skills, and change `PILOT.md` and `SOURCES.md` to carry it out, and it stays current afterwards, as
-any specification does. **This entry outlives it either way.** It holds what was decided; `ELEPHANT.md`
-holds how it works and the evidence behind it. The folder entry under *Deferred* says where it goes.
+two skills, and change `PILOT.md` and `SOURCES.md`, among other changes, to carry it out, and it stays
+current afterwards, as any specification does. This entry holds what was decided, and `ELEPHANT.md` how
+it works and the evidence behind it. **This entry wins where the two disagree until the design is signed
+off**; at close-out, once everything here is confirmed to be in `ELEPHANT.md`, it is cut to one line
+pointing there. `ELEPHANT.md` is in `process/designs/`, which the folder entry under *Deferred* defines.
 
 **Ten sections, and each answers a question somebody will ask.** *Open questions* was dropped as a
 section: one that survives is a checklist item carrying a disposition, and the checklist dies at
@@ -353,9 +355,8 @@ those are new since the first draft of this entry.
   staged documents move out of the elephant's directory, marked finalised; the review record gains its
   rows; the working files are deleted; and the document is declared finished, which is what releases it
   to be cut into slices. It changes nothing about the design. The evidence
-  moves to `SOURCES.md`, with a back-index from source to the rules that use it and the departures, one
-  entry at a time in the slice that adds the rule it backs: `SOURCES.md` is keyed by rule, and the rule
-  does not exist until its slice adds it.
+  is a diff of `SOURCES.md`, with a back-index from source to the rules that use it and the departures,
+  and folds in once the slices that add the rules it backs are built.
 - **What becomes of the document afterwards is not a phase.** Usually nothing: the output is a
   specification and specifications live. Only in the rare case below is there anything to decide.
 
@@ -484,18 +485,21 @@ interview, because the first attempt got it wrong in both directions.
   than the author oversees line by line, and writing that straight into the files that govern every
   session is the risk. A small change the author makes to a process document directly is not an
   elephant's work.
-- **A process design is the specification of the process**, with Layer 1's question, tense and
-  lifetime. The process documents are to it what code is to a specification — what executes, live, and
+- **A process design is the specification of the process**, a Layer 1 document of the process
+  family, as `SOURCES.md` is: the process family has layers too. The process documents are to it what code is to a specification — what executes, live, and
   carrying no status. It stays current once built: through a diff when an elephant changes the process,
-  or through a seam review when the author changes a process document directly.
-- **The elephant never produces a skill, a prompt or a check.** It produces a document; cutting and
-  planning turn that into plans; plans change the skills and the prompts. So none of them is a thing
-  that triggers an elephant of its own. The residual — editing a skill or a prompt in place, neither
+  or through a seam review when the author changes a process document directly, or rules that an
+  agent's change to one needs no elephant.
+- **The elephant never produces a skill, a prompt, a hook or a check.** It produces documents; cutting
+  and planning turn them into plans; plans change the skills, the prompts and the hooks. So none of them is a thing
+  that triggers an elephant of its own. The residual — editing a skill, a prompt or a hook in place, neither
   carrying out a plan nor conforming to a decision already taken — is a change to the process, so the
   rule above already asks for one to be proposed. **An application of the rule, not an exception to it.**
-- **A new document about the work gets one; the ones already written are not given one after the fact.**
-- **Retiring a document is the second mode**, ruled at step 1 as *replace*. The old document stays in
-  force, untouched, until its successor is built, and the successor's last slice deletes it. Before the
+- **A new document about the work is proposed one; the ones already written are not given one after the fact.**
+- **Replacing a document retires it**, ruled at step 1 as *replace*. The old document stays in
+  force, what it says unchanged, until its successor is built, and the successor's last slice deletes it;
+  one being built is not replaced until it is active, and diffs still pending against it are re-pointed
+  at the successor. Before the
   ledger review, **a fresh reviewer lists everything the old document says that the successor does
   not** — every claim, and every rejected alternative — and the author rules on each. A claim is
   dropped on purpose or carried. A rejected alternative is no longer applicable, because what it was an
@@ -519,9 +523,10 @@ interview, because the first attempt got it wrong in both directions.
   no reasoning, and the evidence document is where it goes — useless to an agent following the process
   and essential to one changing it. `METHOD.md` gains that line, and close-out only owes an evidence
   entry for work on the process.
-- **The evidence section of a process design is written in the evidence document’s own entry format**
-  from the start — the rule as a heading, the kind declared, what was measured, the sources, whether it
-  departs — so the slice that moves it moves rather than translates. A translation step is where content is lost.
+- **A process design's evidence is a diff of the evidence document**, written in that document's own
+  entry format — the rule as a heading, the kind declared, what was measured, the sources, whether it
+  departs — since the evidence document is a Layer 1 document of the process family and takes diffs.
+  Nothing is translated or moved later, and a translation step is where content is lost.
 - **One check enumerates the documents** so that a hand-maintained list cannot quietly go stale: every
   markdown file is either in each list that names documents or in that list’s declared exclusions. It
   exists for the duplication comparison, whose list drops an absent file in silence — measured, one
@@ -555,7 +560,7 @@ produces, which assumed the opposite
   and `FORMATIONS.md` are draft, the only two allowed outside an elephant's directory, until their
   design resumes under one.
 - **An elephant designs the process or the system, never both**; whatever falls on the other side is
-  separate work. **A process document is never the target of a diff.** A change to the process is a process design;
+  separate work. **A process document is never the target of a diff.** A change to the process made through an elephant is a process design;
   a new process document it calls for is created by a slice, its text drafted in the design or written
   by the plan, as the author chooses.
 - **Reviews read the document as it will be.** One script applies a diff to its target; document and
@@ -980,6 +985,12 @@ blocks the pathing rework.
     plans/             execution plans, usually empty
   test/                unchanged — Layer 4 sits above the split
   ```
+
+  **`process/` holds the whole *about the work* family**, not only the process documents: the rules and
+  the guide, which are followed, and the designs and the evidence, which say why. `elephant/`, holding
+  each running elephant's working files, sits at the root while one runs. `process/designs/` exists
+  ahead of the move, holding `ELEPHANT.md`; close-out creates `content/specs/` the first time it puts a
+  new specification there.
 
   **Why the process designs are not in `rationale`.** A process design is the specification of the
   process, kept current as the process changes, so it sits with what it specifies rather than with the

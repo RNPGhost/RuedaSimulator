@@ -1,18 +1,21 @@
 # The elephant — the conversation before a document, and the writing of it
 
 > **This is a design document about how work is done here, not about the system this repository
-> builds.** It belongs to the *about the work* family, which has no layers; layers divide the other
-> family.
+> builds.** It belongs to the *about the work* family, and is one of that family's Layer 1 documents:
+> the specification of the elephant, read by somebody changing the process rather than by somebody
+> following it (§6).
 >
 > **It is the specification of the elephant, and stays current once it is built.** Once the design is
 > signed off it is cut into slices, and the slices change `METHOD.md`, add two new skills, and change
-> `PILOT.md` and `SOURCES.md` to carry it out, as code is changed to carry out a specification. Until the
+> `PILOT.md` and `SOURCES.md`, among the changes §8 lists, to carry it out, as code is changed to carry out a specification. Until the
 > last slice is done, this file is what each slice works from. After that it stays in force, and a later
 > change to the elephant either changes this file first, through an elephant of its own, or is made
 > directly in the process documents and brought back into this file by a seam review (§6).
 >
-> **`ROADMAP.md`'s slice 7.1 entry records what was decided, and wins wherever the two disagree.** This
-> file says how the thing works and what stands behind it. Where that entry says a document is
+> **`ROADMAP.md`'s slice 7.1 entry records what was decided, and wins wherever the two disagree, until
+> this design is signed off.** At close-out, once everything the entry records has been confirmed to
+> be in this file, the entry is cut to one line pointing here. This file says how the thing works and
+> what stands behind it. Where that entry says a document is
 > *finished* when *"the author saying so"*, it means what this file calls signing off.
 >
 > **It contains no plan.** The design is signed off, then it is cut into slices, and one plan is written
@@ -43,7 +46,7 @@ the place it stays until it is built or cut into slices, the working files are d
 signed off (§3).
 **It never writes the design into a live document** — one outside every elephant's directory whose
 status is not `draft` (§6). Other agents read a live document while the design is under way, and would
-take half-written text as settled, so the design is written in the elephant's own directory first (§4). At close-out a new specification (a Layer 1 document) goes to its final path,
+take half-written text as settled, so the design is written in the elephant's own directory first (§4). At close-out a new specification of the system (a Layer 1 document of that family) goes to its final path,
 and a change to an existing specification goes beside it as a diff specification, which folds in only once
 the change is built (§6). A design touching several subjects is written into one specification for
 each (§3). A change to the process is never drafted against a process document: the design is written
@@ -64,8 +67,8 @@ session — not in the conversation.
 
 **The agent must raise it; the author decides.** At the start of any change that would produce new or
 changed intent, a new document about the work, or a change to what an existing one requires — never a typo, a
-change to code alone, a plan, a map update or a check — the agent says whether it thinks the change needs an elephant, and why.
-The author rules either way, and may call for one the agent did not propose or turn down one it did. No
+change to code alone, a plan, a map update or a check — the agent says whether it thinks the change needs an elephant, and why, and,
+if it does, whether it changes the process or the system (§6). The author rules either way, and may call for one the agent did not propose or turn down one it did. No
 work on the change begins until they have, beyond what the agent needs in order to propose. Work done inside an elephant already running needs no fresh
 proposal.
 
@@ -137,7 +140,9 @@ follows:
 > proposes that what remains unknown does not matter and the author agrees. The elephant ends at
 > close-out, when the author signs the design off. It never writes the design into a live document: a
 > change to a specification waits beside it until it is built, and only then folds in, and a change to
-> the process is a design of its own, which plans carry into the process documents.
+> the process is a design of its own, which plans carry into the process documents. When it replaces
+> a document, the new one is that document's successor, and before sign-off a retirement review lists
+> everything the old one says that the successor does not.
 >
 > Its counterpart is the goldfish: a reviewer that took no part in what it reviews, and is handed only
 > that. Both are named for what they remember.
@@ -153,7 +158,7 @@ each imperative. It is read by an agent that opens `METHOD.md`, which is where t
 too.
 
 **3. A sentence added to the rule that a superseded document is deleted.** When an elephant replaces a
-document, what is still true in it is carried into its successor long before the slice that deletes it,
+document side by side (§7), what is still true in it is carried into its successor long before the slice that deletes it,
 which that rule's *"both halves in one commit"* does not allow for. §7 gives the wording.
 
 ## 2. What the elephant deliberately does not do
@@ -276,41 +281,32 @@ distinguishable from a decision the author made.
 
 **The author may abandon an elephant at any point** by saying so — for instance when the interview
 concludes that the change should not be made. Nothing the design says has been written into a live
-document (§1), so the agent offers one clean-up: deleting the elephant's directory, drafts included.
+document (§1), so the agent offers one clean-up: deleting the elephant's directory, drafts included, after first moving back to its old path any document the elephant moved into it (§7).
 The author may accept it or keep any of its files; the elephant is abandoned either way. Nothing is
 signed off, and the abandonment is recorded nowhere outside the directory; entries the elephant added to
 the backlog stay, being separate work. If the author keeps any file, the ledger is kept with it, the agent adds a line to the ledger saying the elephant was abandoned, and each kept draft
 is marked abandoned, so that it is never cut into slices (§4, §6). An elephant the author has stopped
 replying to has not been abandoned.
 
-**The agent may argue against how the change is made, and against making it, but not past the author's
-answer that it is wanted.** At any step it may propose doing the work a completely different way, or
-reimagining it as a different feature; both are arguments about the approach, and arguing exists to
-test whether the approach is right (imperative Two). An argument against making the change at all is
-made in prose and asks the author nothing: its recommendation would be abandoning, which the agent
-never offers as an option, because abandoning is the author's to raise. Whether the work is wanted is
-the author's to know. Their answer that it is, given at any step and in any words, settles it for the
-rest of the elephant unless they reopen it themselves; it is an answer to an argument, not a ruling at
-one of the four points. From then on the agent argues the approach and not the need, since pressing
-further would test nothing and only block the work.
-
 ### The steps
 
 **1. Search for an existing document.** Before asking anything, the agent looks through the documents
 the inventory, `AGENTS.md`, lists for any that overlap the change, as the author described it when opting in, and
-reports what it searched and what it found, with each document's status (§6). Its report says each time that the search is weak: this
+reports what it searched and what it found, with each document's status (§6) — *not designed* for a document that is neither a specification nor a process design, and *no status line, counts as `active`* for a specification without one. Its report says each time that the search is weak: this
 project has no record of what lives where, so the search is done by hand over the documents and can miss
 one. It also reads the ledgers of any other running elephant (§4), and its report names each document one of
 them names, so that two working on the same document are noticed. It names, too, every diff pending
 beside a document it found, and warns that a further diff's reviews would read that document without
 the pending change (§6).
 
-- **If it finds nothing**, *nothing covers this* is a claim the author rules on, so that a search nobody
+- **If it finds nothing designed** — nothing at all, or only documents that are not designed —
+  *nothing covers this* is a claim the author rules on, so that a search nobody
   made and a search that found nothing cannot look alike. If the author rejects the claim, they name
   what was missed or ask for a further search. Any document found that way is ruled on as below; a
   further search that again finds nothing makes a fresh *nothing covers this* claim.
-- **A document found that is not designed** — `SOURCES.md`, the inventory, the review record, a check,
-  or a process document — is reported as such and offered no option. A change to what a process
+- **A document found that is not designed** — anything that is neither a specification nor a process
+  design, such as the inventory, `ROADMAP.md`, `REVIEWS.md`, a check or a process document — is
+  reported as such and offered no option. A change to what a process
   document says is designed in the process design that covers it, or in a new one (§6).
 - **For each specification or process design found**, the author rules on one of four options, always offered, with the
   agent's recommendation first: replace it, extend it (add to what it says), change it (alter what it
@@ -432,8 +428,8 @@ project's backlog, whose entry may say that it wants an elephant of its own. New
 side of the line between the process and the system is always separate work (§6).
 
 **It ends when every section is written, every finding on it has been ruled on, and every accepted one
-acted on, and, where the design replaces a document, the retirement review has run and its findings
-have been ruled on and acted on (§7).**
+acted on, and, where the design replaces a document, the retirement review has run, every finding
+on it has been ruled on, and every accepted one acted on (§7).**
 
 **6. The ledger review.** A reviewer checks that every line in the ledger that names a document can be
 found in that document (§5). Lines that name none, such as a ruling that nothing covers the change, are
@@ -491,7 +487,8 @@ seam between them**, both at step 7 (§5).
 in order from there. Work already done stands, except sections the agent lists as affected by a new
 decision and the author agrees are, which are written again at step 5, each with its section review; a
 review that has already run runs again only if the author asks,
-except the ledger review before close-out (step 8).
+except the ledger review before close-out (step 8), and the retirement review over a successor's
+rewritten sections (§7).
 Any return to step 2, whether from a finding answered at step 4 or because the author called for it,
 reopens the interview.
 
@@ -584,7 +581,7 @@ An answered item is never marked as landed. It has landed once the ledger review
 that settle it, and close-out infers that for every answered item at once from the ledger review having
 passed (§3, step 8).
 
-**`ledger.md` — the rulings.** Its entries are in order of first arrival, and there are five kinds:
+**`ledger.md` — the rulings.** Its entries are in order of first arrival, and there are six kinds:
 
 - **the search report** from step 1 — what was searched, what was found, and the warning that the
   search is weak. Fields: the report, *none*. A further search adds a further report.
@@ -597,6 +594,8 @@ passed (§3, step 8).
 - **an agreed section**, one for each section agreed at step 4. Fields: the section's title, written `Section "<title>"` so that the kind can be read
   from the entry, the question it answers, its document, its place in a single writing order across every document, and who
   agreed it. When the agreement is amended, the order is rewritten to match.
+- **an answer about a rejected alternative** of a document the elephant replaces, extends or changes:
+  whether its reason still holds (§7). Fields: the answer, *none*, and who gave it.
 - **the abandoned entry**, `- Abandoned by the author`, with no other field. If the author abandons the
   elephant and keeps any file, the ledger is kept too, and the agent adds this entry.
 
@@ -665,7 +664,8 @@ holding the target as it was when the diff was begun, which is not updated after
 ```
 
 A ledger entry names the document a ruling will reach — the target's path, or the new document's final
-path — not the draft's. §6 says what the status values are and what becomes of a draft afterwards.
+path — not the draft's. A successor's final path may be the path of the document it replaces; the
+ledger review then reads the successor's draft under it (§7). §6 says what the status values are and what becomes of a draft afterwards.
 
 ### Why the checklist and the ledger are separate
 
@@ -704,7 +704,7 @@ a diff specification to its target.
 |---|---|---|---|---|
 | interview | 3 | the conversation, extracted from the session's transcript | what the questioning missed or got wrong | new: `prompts/goldfish-interview.md` |
 | section | 5 | one section, and what it depends on | ambiguity, gaps and undefined terms in that section | `prompts/goldfish-section.md` |
-| retirement | end of 5, where the design replaces a document (§7) | the document replaced, and its successor as it will be | what the replaced document says that its successor does not | new: `prompts/goldfish-retirement.md` |
+| retirement | end of 5, where the design replaces a document (§7) | the document replaced, and the design's documents as they will be | what the replaced document says that none of them does | new: `prompts/goldfish-retirement.md` |
 | ledger | 6 | the ledger, and every document its entries name, as it will be | a ruling that did not reach its document | new: `prompts/goldfish-ledger.md` |
 | document | 7 | one whole document, as it will be | sections that contradict each other, and a design that is wrong | `prompts/goldfish-document.md`, with one question added |
 | seam | 7 | two documents, as they will be | disagreement between them, and one decision stated in both | `prompts/goldfish-seam.md` |
@@ -900,36 +900,54 @@ document that cites a section the design changed**, as `METHOD.md` requires of a
 ### Reading a document as it will be
 
 **A diff specification is never reviewed as a whole on its own.** It holds only the sections that
-change, and a reader given those alone cannot see what they sit among. So one script applies a diff
-specification to its target: it takes the target as it is now, replaces, removes and adds the sections
-the diff labels, and writes the result to the scratch directory. The agent runs it again before every
-review that reads an applied document, so that no review reads a result older than the drafts.
+change, and a reader given those alone cannot see what they sit among. So one script applies the
+elephant's diff specifications to their targets, every diff in one run, so that two diffs to documents
+that cite each other each see the other's renumbering. For each target it takes the target as it is
+now, replaces, removes and adds the sections the diff labels, and writes the result, the *applied
+document*, to the scratch directory. The agent runs it again before every review that reads an applied
+document, so that no review reads a result older than the drafts. A heading, for the script, is a line
+beginning with `#` outside a fenced block.
 
 - **Placing.** An added section goes after the whole section its `**After:**` line names, the sections
-  nested in it included, or first, before the target's first section, for `(start)`. The line may name
-  a section the same diff adds, and such sections are placed in the diff's order. Where the target
-  repeats the heading it names, it gives the chain of headings above it, as a change line does (§4).
+  nested in it included, or, for `(start)`, before the target's first section below its title. The
+  line may name a section the same diff adds; such sections are placed in the diff's order, so that the
+  result holds them in that order. Where the target repeats the heading it names, the line gives the
+  chain of headings down to it, in the form a change line uses (§4): `**After:** "Wheels" > "Shared
+  dancers"`.
 - **Stopping.** The script stops rather than guessing, and the agent raises the stop with the author as
-  a collision, when a section the diff changes or removes is missing from the target or has changed
-  since the commit the diff names; when a section it adds already exists in the target; when an
-  `**After:**` line names a heading neither the target nor the diff has, or a section the diff removes;
-  and when the result would hold two headings with the same text that the target did not already hold.
-  A section has not changed when its text matches that commit's once heading numbers, section
-  citations, and status and pointer lines are set aside; any other difference is a change.
+  a collision. It finds every stop before it stops, so that the author sees them together. It stops
+  when a section the diff changes or removes is missing from the target, was absent at the commit the
+  diff names, or has changed since that commit; when a section it adds already exists in the target;
+  when an `**After:**` line names a heading neither the target nor the diff has, a section the diff
+  removes, or a section the diff adds further on; when an added section has no `**After:**` line, or a
+  change line names a kind other than the three; when two of the diff's sections match one section of
+  the target, or one it changes or removes is nested inside another it changes or removes; when an
+  added section's heading level would make sections that follow it its own; and when the result would
+  hold two headings with the same text that the target did not already hold. A section has not changed
+  when its text, the sections nested in it included, matches that commit's once heading numbers and
+  section citations are normalised, every status and pointer line is set aside, and spaces at the ends
+  of lines are ignored; any other difference is a change.
 - **Numbering.** Once the sections are placed, it numbers the result's headings in order. It numbers
-  exactly the heading levels the target already numbers, in the form the target uses, and stops if it
-  cannot tell which those are.
-- **Citations.** A citation is a section number written after `§`. It refers to the document named
-  just before it, and otherwise to the document it sits in. The diff's own text cites the target's
-  sections by their numbers at the commit the diff names, and cites a section the diff adds by its
-  heading, never by a number. The script rewrites every citation of a section whose number changed, in
-  the result and in every other Markdown file outside the elephants' directories; the reviewers and the
-  author read those files as rewritten. A citation of a section absent from the result — one the diff
-  removes, one nested inside it, or one a changed section no longer contains — is never rewritten. The
-  script lists each, and the agent raises it with the author as new ground (§3, step 5): changing the
-  citing document is either part of this design, and the document joins the agreed documents and is
-  changed through a draft like any other, or separate work. Its seam with the design is reviewed at
-  step 7 either way.
+  exactly the heading levels the target already numbers, in the form the target uses. A level is
+  numbered when every heading at it carries a number; a target that numbers none has nothing to number,
+  and a level where only some headings do stops the script.
+- **Citations.** A citation is a section number written after `§`, outside code. It refers to the
+  nearest document named earlier in the same sentence, and otherwise to the document it sits in, with
+  one exception: in a diff, and in any other draft of the same elephant, a citation of the target, or
+  one naming no document, means the target as it was at the commit the diff names. A section the diff
+  adds is cited by its heading, never by a number, and the script writes its number in. The script
+  rewrites every citation of a section whose number changed, translating a diff's citations from that
+  commit's numbers and every other citation from the target's numbers now. Each end of a range is
+  rewritten on its own, and a section nested in a changed section is matched by its heading text within
+  its parent. It rewrites the result and every other `.md` and `.js` file outside `elephant/`, except
+  another diff pending against the same target, whose citations keep naming its own commit. Before a
+  review it writes those files as copies in the scratch directory, and the reviewers and the author read
+  the copies; only at fold-in does it write the files themselves. A citation of a section absent from
+  the result — one the diff removes, one nested inside it, or one a changed section no longer contains
+  — is never rewritten. The script lists each, and the agent raises it with the author as new ground
+  (§3, step 5): changing the citing document is either part of this design, and the document joins the
+  agreed documents and is changed through a draft like any other, or separate work. Its seam with the
+  design is reviewed at step 7 either way. At fold-in, each is raised before anything is written.
 - **Leaving out.** The diff's status, `Amends:`, change and `After:` lines, and the target's pointer
   line naming this diff, are never copied into the result. A pointer line naming another diff is.
 
@@ -945,7 +963,9 @@ interleaved sentence by sentence.
 **The same script is what folds a diff in** once its implementation is complete (§6), so the sections
 the diff changes become exactly what was reviewed. The rest of the target may have moved since: at
 fold-in the script also lists every section of the target that has changed since the commit the diff
-names, and the author decides whether the document review runs again before the fold-in goes ahead.
+names, and the author decides whether the document review runs again before the fold-in goes ahead. So
+at fold-in it runs twice: once to list, and once, after the author has ruled, to write the target and
+the other files in place, delete the diff, and remove the target's pointer line naming it.
 
 ### What is kept of a review
 
@@ -986,56 +1006,77 @@ requires; that is upkeep of a tool it uses, not something it produces.
 
 ### What it produces
 
-**Usually, specifications.** The design is drafted in the elephant's directory, one draft for each
-subject it touches (§3, §4): a new specification whole, and a change to an existing one as a diff
-specification. A specification carries its own reasoning: whoever writes a plan against it, and whoever
-changes it next, both need to know why it says what it says. So the non-goals and rejected alternatives
-the author settled are in the specification, in the sections agreed for them at step 4.
+**Usually, specifications of the system.** The design is drafted in the elephant's directory, one draft
+for each subject it touches (§3, §4): a new specification whole, and a change to an existing one as a
+diff specification. A specification carries its own reasoning: whoever writes a plan against it, and
+whoever changes it next, both need to know why it says what it says. So the non-goals and rejected
+alternatives the author settled are in the specification, in the sections agreed for them at step 4.
+An elephant on the process produces a process design instead (below).
 
 **An elephant designs the process or the system, never both.** What it designs decides which: an
 elephant on the process may require something of every specification, such as the status line below,
 but never designs what a specification says about the system, and an elephant on the system never
-designs the process. Any part of a change that falls on the other side is separate work, and goes to
+designs the process. The agent's proposal of an elephant says which it is, and the author rules on that
+with the proposal (§1). Any part of a change that falls on the other side is separate work, and goes to
 the backlog (§3, step 5).
 
-**A change to the process is never drafted against a process document.** The process documents are
-`METHOD.md`, every skill, every reviewer prompt, every hook and `PILOT.md`: the files read or run in
-order to follow the process. Nothing else is one — not `SOURCES.md`, which holds the evidence behind
-them, not a process design, whether still followed or kept, not the inventory, and not the checks. An elephant writes far more than the author
-oversees line by line, and writing that into the documents that govern every session is the risk that
-staging exists to avoid. So an elephant on the process always produces a process design, however few
-documents it touches. A small change the author makes to a process document directly is not an
-elephant's work.
+**The process family's documents fall into the same kinds as the system family's:**
 
-**A process design** is a file of its own, as this one is (§1), from which plans are written that change
-the process documents. It is the specification of the process. The process documents are to it what
-code is to a specification: what actually executes, inherently live, and carrying no status. So a
-process design carries a status like any specification, takes diffs like one, and stays current once
-it is built (below). It has an evidence section, agreed at step 4
-like any other, and carries its own non-goals and rejected alternatives, as a specification does. It says
+| Kind | In the process family | In the system family |
+|---|---|---|
+| Layer 1, read by somebody changing it | the process designs, this one among them, and `SOURCES.md`, the evidence behind the process | the specifications |
+| what executes | the process documents: `METHOD.md`, every skill, every reviewer prompt, every hook with its wiring in the harness's settings, and `PILOT.md` | the code |
+| records the running process keeps | `ROADMAP.md`, holding the direction and the backlog, and `REVIEWS.md` | — |
+| Layer 2, the map | the inventory, `AGENTS.md`, one document for both | |
+| Layers 3 and 4 | the plans and the checks, for both | |
+
+The process documents govern how the process is followed, and nothing else is one. The records are
+written directly as the process runs, carry no status and take no diffs; a change to what one of them
+must hold is a rule, designed in the process design that covers it. `METHOD.md` says today that the
+layers divide only the system family, and §8 lists the change.
+
+**A change to the process is never drafted against a process document.** An elephant writes far more
+than the author oversees line by line, and writing that into the documents that govern every session is
+the risk that writing a design in the elephant's directory first exists to avoid. So an elephant on the
+process always produces a process design, however few documents it touches, and the plans written from
+it may change any document of the process family. A change the author makes to a process document
+directly is not an elephant's work.
+
+**A process design** is a file of its own, as this one is (§1), from which plans are written that
+change the process documents. It is the specification of the process. The process documents are to it
+what code is to a specification: what actually executes, live, and carrying no status. So a process
+design carries a status like any specification, takes diffs like one, and stays current once it is
+built (below). It carries its own non-goals and rejected alternatives, as a specification does. It says
 itself which of its non-goals become rules in the process documents, restated positively, as §2's
-*Where these end up* does; a non-goal that becomes a rule also stays in the design as reasoning.
+*Where these end up* does; a non-goal that becomes a rule also stays in the design as reasoning. Its
+evidence is not a section of it: an elephant on the process writes the evidence for its rules as a diff
+of `SOURCES.md`, in that document's own entry format, since `SOURCES.md` takes diffs like any
+specification.
 
-**A new process document is never put in place at close-out.** Where a process design calls for one,
-the slice that carries out that part creates it. Its text may be drafted in full inside the process
-design, or left for that slice's plan to write; the author chooses at step 4, by how complex the document
-is and how closely they want to control it, and a document drafted in full is one of the process
-design's agreed sections. Once the slice has created the document, that section is replaced in the
-process design by a one-line pointer to it, as a moved evidence entry is: two copies of a live
-document's text would differ at its first edit.
+**A process document is never put in place at close-out.** Where a process design calls for a new
+process document, or a change to an existing one, the slice that carries out that part makes it. Its
+text may be drafted in full inside the process design, in a fenced block so that its headings are not
+the design's, or left for that slice's plan to write; the author chooses at step 4, by how complex the
+document is and how closely they want to control it, and a document drafted in full is one of the
+process design's agreed sections. Once the slice has made the change, the same slice replaces that
+section with a one-line pointer to the process document, as the step that completes it: two copies of a
+live document's text would differ at its first edit.
 
-**A process design is kept current in one of two ways.** Through an elephant, which changes the
-process design first, as a diff of it like any specification's, after which a plan brings the process
-documents into line. Or directly: the author changes a process document by their own hand, or rules
-that an agent's change to one needs no elephant (§1), and a seam review then runs between that process
-document and each process design that covers it, so that the design is brought into line. Its findings
-are ruled like any other, and an accepted one edits the process design directly, since it conforms to
-a decision already taken. A process document that no process design covers owes no seam review.
-Finding the designs that cover a process document is a search by hand, as step 1's is, until the
-project has a record of what lives where.
+**A process design is kept current in one of two ways.** Through an elephant, which changes the process
+design first, as a diff of it like any specification's, after which plans bring the process documents
+into line. Or directly: the author changes a process document by their own hand, or rules that an
+agent's change to one needs no elephant (§1). Then, when the author says the change is ready, the agent
+dispatches a seam review between that process document and each `active` process design that covers
+it; one not yet `active` is reviewed against the change once it is. A change the author makes outside
+any session is caught by the scheduled full sweep (`METHOD.md`), and a typo owes nothing. The findings
+are ruled like any other, and the author decides which side an accepted one changes; one that edits the
+process design does so directly, since it conforms to a decision already taken. A process document that
+no process design covers owes no seam review against one. Finding the designs that cover a process
+document is a search by hand, as step 1's is, until the map records which design covers which process
+document; a design the search misses is never reviewed against the change, and nothing reports it.
 
-**An elephant never produces a skill, a prompt, a hook or a check.** It produces documents, and the
-plans written from them change the rest.
+**An elephant never produces a process document or a check.** It produces documents, and the plans
+written from them change the rest.
 
 ### Where reasoning lives
 
@@ -1060,7 +1101,7 @@ value; anything after the value's full stop is not part of it. It takes one of f
 | `draft` | being designed, in an elephant's directory |
 | `finalised` | signed off, and waiting to be cut into slices and built |
 | `implementation ongoing` | its first slice has started, and not all of it is built |
-| `active` | everything designed for it is built |
+| `active` | everything designed for it is built; a change pending beside it may already be partly built |
 | `abandoned` | a draft kept after its elephant was abandoned; never cut into slices |
 
 **An `implementation ongoing` specification does not say which of its parts are built.** Slices need not
@@ -1076,27 +1117,29 @@ The inventory, which an agent reads first, points to where this convention is st
 restating it.
 
 **Each status is set at a fixed event, by the skill that runs that event.** Close-out sets `finalised`.
-The `execute` skill sets `implementation ongoing` when the first slice's plan starts, and `active` when
+The `execute` skill sets `implementation ongoing` when it begins carrying out the first slice's plan, and `active` when
 the last slice closes. The clean-up of an abandoned elephant sets `abandoned` on a draft the author
 keeps.
 
-**A check keeps the status lines true.** It covers every file in the specifications directory — the
-place the backlog's entry on separating the process documents defines for them, into which close-out
-puts every new specification — and the specifications still at the root until each is moved there,
-which it names; that list only shrinks. A specification written anywhere else is caught by a second
-check, which fails on any Markdown file not placed in a known location or a declared exclusion (§8).
-A diff is recognised by its `Amends:` line, and its name must match its target. Inside an elephant's
-directory the check tests only that each draft's status is one of the five. Everywhere else it fails on
-a specification, process design or diff with no status line, on a value outside the five, on `draft`,
-on a diff whose target does not exist, on a target that names a diff that does not exist, on a diff
-its target does not name, and on two diffs against one target that are both `implementation ongoing`; the rules about pointers do not apply to an `abandoned` diff.
-Whether every slice of a specification has finished is something the check cannot see; marking it
-`active` stays a step in the close-down of the last slice. `CORRIDORS.md` and `FORMATIONS.md` are
-`draft` at the root, because their design began before the elephant existed. The check names them as
-its only exemptions from the rule against `draft`, and each exemption is deleted when that document's design resumes in an elephant
-and the document moves into its directory.
+**A check keeps the status lines true.** It covers every file in `content/specs/`, where close-out puts
+every new specification and which it creates the first time; every file in `process/designs/`, where
+process designs go; `SOURCES.md`; every diff beside a document it covers; and the specifications still
+at the root until each is moved, which it names, a list that only shrinks. A directory that does not
+exist yet counts as empty. A specification written anywhere else is caught by a second check, which
+fails on any Markdown file not placed in a known location or a declared exclusion (§8). A diff is
+recognised by its `Amends:` line, and its name must match its target. Inside an elephant's directory
+the check tests only that each draft's status is one of the five. Everywhere else it fails on a
+specification, process design or diff with no status line, on a value outside the five, on `draft`, on
+a diff whose target does not exist or is not `active`, on a target that names a diff that does not
+exist, on a diff its target does not name, and on two changes against one target that are both
+`implementation ongoing`, a successor's `Replaces:` line counting as one; the rules about pointers do
+not apply to an `abandoned` diff. Whether every slice of a specification has finished is something the
+check cannot see; marking it `active` stays a step in the close-down of the last slice. `CORRIDORS.md`
+and `FORMATIONS.md` are `draft` at the root, because their design began before the elephant existed.
+The check names them as its only exemptions from the rule against `draft`, and each exemption is
+deleted when that document's design resumes in an elephant and the document moves into its directory.
 
-**Every existing specification gains a status line**, in a slice of its own (§8). Process designs carry
+**Every existing specification, `SOURCES.md` included, gains a status line**, in a slice of its own (§8). Process designs carry
 one too: their implementation is the slices that change the process documents. The live process documents themselves carry none. `AGENTS.md`'s *State* column keeps only what a
 status line cannot say, such as a document due to be deleted once a later one is built; `REVIEWS.md`
 keeps review state.
@@ -1104,51 +1147,63 @@ keeps review state.
 ### A diff specification, from sign-off to fold-in
 
 **At close-out a diff specification moves beside its target, under the same name**, its status
-`finalised`. The target gains a line directly beneath its own status line, or at its top where it has none, naming
-the diff:
+`finalised`. *Beside* means in the same directory, and the diff is *pending* from then until it folds
+in or is abandoned. The target gains a line directly beneath its own status line, or directly beneath
+its title where it has none, naming the diff; a status line added later goes above it:
 
 ```
 > **Pending change:** `CORRIDORS.shared-dancers.md`. While it is being implemented, parts of the code
 > may already follow it instead of this text.
 ```
 
+The whole sentence is fixed text, one block-quote paragraph however it wraps, and only the name varies.
+Several pointer lines sit one after another, in any order.
+
 **A diff is written only against an `active` specification**, one whose design is all built, so its
 target stays `active` throughout: a change folded into a document still being built would collide with
 the slices building it. The diff carries the status of the change — `finalised`, then `implementation
 ongoing` once its first slice starts. A specification that is not `active` takes no diff. One that is
-`finalised`, with no slice started, moves back into the new elephant's directory as a `draft` when the
-author rules to extend or change it (§3, step 1), and is changed there directly; any slices already cut
-from it are void, and are cut again once it is signed off. One that is `implementation ongoing` cannot
-be changed until it is `active`: step 1 reports its status, and the author decides whether to wait or
-to abandon.
+`finalised` with no slice started, or `draft` at the root, moves into the new elephant's directory as a
+`draft` when the author rules to extend or change it (§3, step 1), and is changed there directly; any
+slices already cut from it are void — deleted from the list of slices, with any plan written for them —
+and are cut again once it is signed off. One that is `implementation ongoing` cannot be changed until it
+is `active`: step 1 reports its status and offers no option for it, and the elephant waits until it is
+`active`, unless the author abandons it. These rules are about a whole specification; a diff that is
+itself being built is changed as below.
 
 **More than one diff may be pending against one target, each named on its own line, and a successor
-that replaces the target counts as one (§7), but it is discouraged, and only one is built at a time.** Each diff's reviews read the target without the
-others, so whichever folds in second becomes a slightly different document from the one its reviewers
-read, and a large first change may force a large second one. The agent warns at three points: at step
-1, when its search finds a diff already pending (§3); when a diff's first slice is about to start,
-where the `execute` skill names every other diff pending against the target, and refuses to start
-while one of them is `implementation ongoing`; and when a diff folds in, where the agent lists every
-other diff still pending against that target and says that their reviews read a document that has now
-changed (§5).
+that replaces the target counts as one (§7), but it is discouraged, and only one is built at a time.**
+Each diff's reviews read the target without the others, so whichever folds in second becomes a slightly
+different document from the one its reviewers read, and a large first change may force a large second
+one. The agent warns at three points: at step 1, when its search finds a diff already pending (§3);
+when a diff's first slice is about to start, where the `execute` skill names every other diff pending
+against the target, and refuses without exception to start while one of them is `implementation
+ongoing`; and when a diff folds in, where the agent lists every other diff still pending against that
+target and says that their reviews read a document that has now changed (§5).
+
+**A diff is checked against its target before it is built.** When its first slice is about to start,
+the `execute` skill runs the script's stops (§5) against the target as it is then. A collision there,
+such as a section another diff has since folded into, means the diff does not start: it is still
+`finalised`, so it moves into an elephant's directory and is reworked as a draft, as a `finalised`
+specification is. **A diff being built may be amended in place**, on the author's ruling, to settle a
+collision found at fold-in or to undo part of it: the sections the amendment changes get their section
+reviews, and the diff's remaining slices are cut again.
 
 **A diff may be abandoned after sign-off while it is still `finalised`.** The author says so; the diff
 is deleted, the pointer line naming it is removed, any slices cut from it are void, and a diff or
-successor that was waiting on it may start. One that is `implementation ongoing` cannot simply be
-deleted, because parts of the code already follow it; undoing that is a change of its own, raised like
-any other.
+successor the author was holding back until it was settled may start. One that is `implementation
+ongoing` cannot simply be deleted, because parts of the code already follow it; it is undone by
+amending it, as above.
 
-**A diff folds in only once its implementation is complete**, as the last step of the last slice that
-builds it. The script that applies a diff (§5) writes its sections into the target, the diff is deleted,
-the target's pointer line naming it is removed, and the target stays `active`. If a section the diff
-changes or removes has changed in the target since the commit its `Amends:` line names, the script stops, and the collision
-goes to the author.
+**A diff folds in only once the last slice of its list closes**, as that slice's last step. The script
+that applies a diff (§5) writes its sections into the target, the diff is deleted, the target's pointer
+line naming it is removed, and the target stays `active`. The script stops on any of the conditions §5
+lists, and the collision goes to the author, who settles it by amending the diff.
 
-**The `slice` and `plan` skills read only a `finalised` or `implementation ongoing` document.** They
-stop on a `draft` one, say why, and go on only if the author tells them to; an `abandoned` one they
-never read. A plan for one
-of a diff's slices reads the diff beside its target, so what is new and what is built are in separate
-files. §8 lists the change to both skills.
+**The `slice` and `plan` skills cut and plan only from a `finalised` or `implementation ongoing`
+document.** They stop on a `draft` one, say why, and go on only if the author tells them to; an
+`abandoned` one they never read. A plan for one of a diff's slices reads the diff beside its `active`
+target, so what is new and what is built are in separate files. §8 lists the change to both skills.
 
 ### The sort at close-out
 
@@ -1158,12 +1213,12 @@ sign-off, which approves the proposal as amended. What moves out of a process de
 
 | What the elephant made | Where it ends up |
 |---|---|
-| a new specification's draft | its final path, marked `finalised` |
+| a new specification's draft | its final path, in `content/specs/`, marked `finalised` |
 | a diff specification | beside its target, marked `finalised`; the target gains its pointer |
-| a process design | its final path, in the place the backlog's entry on separating the process documents defines for process designs, marked `finalised` |
+| a process design | its final path, in `process/designs/`, marked `finalised` |
 | a successor to an `active` specification it replaces | beside it, named as a diff is, marked `finalised`; each gains its pointer line (§7) |
-| a process design's evidence | `SOURCES.md`, one entry at a time, in the slice that adds the rule it backs, each source indexed back to the rules that use it and to any place the process departs from it. Inside the process design, each moved entry is replaced by a one-line pointer to its new place |
-| a new process document drafted in a process design | created by the slice that carries out that part; the drafted section is replaced by a one-line pointer to it |
+| a diff of `SOURCES.md` holding a process design's evidence | beside `SOURCES.md`, marked `finalised`, like any diff; it folds in once the rules it backs are built, each source indexed back to the rules that use it and to any place the process departs from it |
+| a process document drafted in a process design | made by the slice that carries out that part, which replaces the drafted section with a one-line pointer to it |
 | a process design's non-goals and rejected alternatives | the process design, where a later elephant reads them (§7). A non-goal the design turns into a rule also reaches the process documents, through the slices |
 | entries the elephant added to the backlog | the backlog, unchanged |
 | the checklist, the ledger and the interview reports | deleted |
@@ -1178,10 +1233,9 @@ agent, while proposing the sort, finds anything that has not reached a draft, it
 back (§3, *What goes back*). Close-out itself writes no design into any document; what it writes is the statuses, the pointer
 lines and the review record's rows.
 
-**A process design's evidence is written in `SOURCES.md`'s own entry format from the start**, so that
-the slice that moves an entry moves it rather than translating it. Translation is where content is lost.
-Moving it, rather than copying it, leaves each entry one home. It moves with its rule because
-`SOURCES.md` is keyed by rule, and the rule does not exist in `METHOD.md` until a slice adds it.
+**A process design's evidence is a diff of `SOURCES.md`**, written in that document's own entry format,
+so that nothing is translated or moved later: translation is where content is lost. It folds in like
+any diff, once the slices that add the rules it backs are built.
 
 ### The review record
 
@@ -1249,46 +1303,64 @@ it is changed by the plans written from its process design.
 | The replaced document | What happens |
 |---|---|
 | `active`, or a specification with no status line yet, which counts as `active` | replaced side by side: it stays in force, what it says unchanged, until its successor is built, and is deleted then (below) |
-| `draft`, or `finalised` with no slice started | reworked in place: it moves into the elephant's directory, and the successor is written over it there. Any slices already cut from it are void. It has no pointer lines and waits for nothing |
-| `implementation ongoing` | not replaced until it is `active`. Step 1 reports its status, and the author decides whether to wait or to abandon |
+| `draft`, or `finalised` with no slice started | reworked in place: when step 1 ends it moves into the elephant's directory, marked `draft`, and each section of the successor replaces its old counterpart there as it is written. Any slices already cut from it are void. It has no pointer lines and waits for nothing |
+| `implementation ongoing` | not replaced until it is `active`. Step 1 reports its status and offers no option for it; the elephant waits, unless the author abandons it |
+
+An `abandoned` document is never replaced: a new design for its subject is a new document. A diff is
+found beside its target, not as a document of its own. A `draft` in another running elephant's
+directory is reported as such, and offered no option until that elephant ends.
 
 **Running the old and the new side by side, switched by a flag while the system moves from one to the
-other, is not supported.** This project has one author and no production system to keep running: the
-code follows the replaced document until the successor is built, and the successor after that.
+other, is not supported.** This project has one author and no production system to keep running. The
+replaced document is in force until the successor is built, and the code follows it, except where a
+slice of the successor has already changed the code, as the replaced document's pointer line warns
+(below); from then on, the successor is in force.
 
 ### The retirement review
 
 **At the end of step 5, once the successor's last section is written, a reviewer compares the replaced
-document with it** (§3). It runs for a document reworked in place too, reading the replaced document as
-committed when it moved into the elephant's directory. It is given the replaced document and the
-successor as it will be, and nothing else. It reports each claim the replaced document makes that the
-successor does not — a *claim* being any rule, requirement, case or statement, taken one at a time —
-and each rejected alternative the successor does not carry. It reports in that direction only, since
-what the successor adds is the design itself.
+document with it** (§3). It is given the replaced document and every document of the design, each as it
+will be, and nothing else. It reports each claim the replaced document makes that none of them makes —
+a *claim* being any rule, requirement, case or statement, taken one at a time — and each rejected
+alternative none of them carries. It reports in that direction only, since what the successor adds is
+the design itself. It runs for a document reworked in place too, reading the replaced document as
+committed when it moved into the elephant's directory, or as last committed before the move where the
+move has not been committed. When sections of the successor are written again after it has run, it runs
+again over those sections.
+
+**It runs only once nothing more can fold into the replaced document.** If a diff pending against the
+replaced document is being built when the successor's last section is written, the review waits until
+that diff has folded in. From the review on, no diff pending against the replaced document may start
+being built: each waits, and is re-pointed at the successor when the replaced document is deleted
+(below). So everything the replaced document will ever say is in front of the reviewer.
 
 It is a reviewer and not the agent because the agent that wrote the successor believes it covered
 everything, which makes it the reader least likely to see what was left out. It matches as the ledger
-review does: an item is found when the successor says the same thing in any wording, and one the
-successor both says and contradicts is not found. Where the replaced document has no section of
-rejected alternatives, the reviewer reports what its text rejects, and says so when it finds nothing.
-It has a prompt of its own, `prompts/goldfish-retirement.md` (§8). Its report has four headings: *not
-carried*, each item quoted, with each rejected alternative marked as one; *found*, each item with the
-passage of the successor it relied on, so that a stretched match can be seen, and not ruled on;
-concerns it could not ground in the text; and what it understood the two documents to say.
+review does: an item is found when the design says the same thing in any wording, and one the design
+both says and contradicts is not found. A rejected alternative is found only when the design rejects it
+too; one the design adopts is not carried. Where the replaced document has no section of rejected
+alternatives, the reviewer reports what its text rejects, and says so when it finds nothing. It has a
+prompt of its own, `prompts/goldfish-retirement.md` (§8). Its report has four headings: *not carried*,
+each item quoted, with each rejected alternative marked as one; *found*, each item with the passage it
+relied on, so that a stretched match can be seen, and not ruled on; concerns it could not ground in the
+text; and what it understood the documents to say.
 
 **Each item not carried is a finding, and the author rules on it** (§3, *The four points in the
 process*):
 
 - **A claim** is *dropped on purpose*, which is ruling the finding immaterial, or *carried*, which is
-  accepting it: what the successor must say becomes a ledger line naming the successor, and the
-  section concerned is written again (§3, *What goes back*).
+  accepting it: what the successor must say becomes a ledger line naming the successor by its final
+  path, and the section concerned is written again (§3, *What goes back*). Where that path is the
+  replaced document's own, the ledger review reads the successor's draft under it, never the replaced
+  document.
 - **A rejected alternative** is *no longer applicable*, because what it was an alternative to is gone,
   which is ruling it immaterial; *carried with its reason brought up to date*, into the successor's
-  rejected alternatives; or *carried as the thing now proposed*, which changes what the design says.
-  Either way of carrying it accepts the finding, and becomes a ledger line. The agent shows each with
-  the answer the interview gave about it (*What a later elephant reads*, below), as it shows a finding
-  raised again with its earlier ruling.
-- A finding that the successor does say it after all is rejected.
+  rejected alternatives; or *carried as the thing now proposed*, which changes what the design says and
+  is the ruling for one the design adopts. Either way of carrying it accepts the finding, and becomes a
+  ledger line. The agent shows each with the answer the interview gave about it, which is a ledger line
+  of its own (§4, and *What a later elephant reads*, below), as it shows a finding raised again with its
+  earlier ruling.
+- A finding that the design does say it after all is rejected.
 
 Most claims a successor leaves out were left out because they no longer bear on the design, so most are
 expected to be dropped. The review exists so that a claim left out on purpose and one forgotten do not
@@ -1299,7 +1371,7 @@ successor.
 
 **While the replaced document exists, its successor is named `<target>.<name>.md`**, as a diff is (§4)
 — the replaced document's file name without its extension, then the elephant's name: for example
-`FORMATIONS.wheels.md`, beside `FORMATIONS.md`. The suffix says that it is not yet the live document,
+`CALLS.timing.md`, beside an `active` `CALLS.md`. The suffix says that it is not yet the live document,
 and which document it replaces. **Its final name is agreed at step 4**: the replaced document's own
 name, or a new one where the design departs far enough from the old concept to deserve it. A document
 reworked in place keeps its name, unless the author agrees a new one at step 4.
@@ -1311,57 +1383,66 @@ line of fixed text directly beneath its status line, after any `Pending change:`
 where it has none:
 
 ```
-> **Being replaced by:** `FORMATIONS.wheels.md`. While it is being implemented, parts of the code may
+> **Being replaced by:** `CALLS.timing.md`. While it is being implemented, parts of the code may
 > already follow it instead of this text.
 ```
 
 ```
-> **Replaces:** `FORMATIONS.md`, and becomes `FORMATIONS.md` when it does.
+> **Replaces:** `CALLS.md`, and becomes `CALLS.md` when it does.
 ```
 
-What the replaced document says does not change: it only gains the line naming its successor, so that
-an agent opening it sees that it is on its way out. The status check of §6 gains four failures, listed
-in §8: a `Being replaced by:` line naming a document that does not exist, a `Replaces:` line naming one
-that does not, either line without its partner, and a successor whose name does not match the document
-it replaces.
+The second name in the `Replaces:` line is the final name agreed at step 4, which the last slice reads
+from it. What the replaced document says does not change: it only gains the line naming its successor,
+so that an agent opening it sees that it is on its way out. The status check of §6 gains four failures,
+listed in §8: a `Being replaced by:` line naming a document that does not exist, a `Replaces:` line
+naming one that does not, either line without a partner naming it back, and a successor whose name does
+not match the document it replaces.
 
 **The last slice that builds the successor deletes the replaced document**, as its last step, as a diff
-folds in (§6). The successor is renamed to its final name and its `Replaces:` line removed in the same
-commit, whose message says what replaced what. Until then the `slice` and `plan` skills read the
-successor. Nothing is lifted from the replaced document at deletion, because the retirement review has
-already carried what was still true.
+folds in (§6). In the same commit, whose message says what replaced what:
 
-**Every citation of the replaced document in another document is listed when the successor is
-written**, as a citation of a removed section is (§5), and raised as new ground (§3, step 5). The
-successor's sections may be numbered differently, or the document renamed, so a citation such as
-*"`FORMATIONS.md` §2.5"* would otherwise point at nothing, or at the wrong section.
+- the successor is renamed to its final name and its `Replaces:` line removed;
+- every diff still pending against the replaced document is re-pointed at the successor: renamed to
+  match the successor's final name where that differs, its `Amends:` line naming the successor followed
+  by `re-pointed from` and the replaced document, its recorded commit unchanged, and its pointer line
+  moved to the successor. Whoever builds it then knows that it was written against a document since
+  replaced, and that it must be brought into line with the successor; the check before its first slice
+  (§6) shows where. This is how a diff is treated when another one folds into its target first.
 
-**A diff that folds into the replaced document after the retirement review has run** leaves the
-successor without what it added. The fold-in warning (§6) names the successor, and the author decides
-whether the retirement review runs again over the sections that folded in.
+Until then the `slice` and `plan` skills read the successor for its own slices. Nothing is lifted from
+the replaced document at deletion, because the retirement review has already carried what was still
+true.
 
-**If the elephant is abandoned, nothing is undone.** The replaced document is not touched before
-close-out, so abandoning leaves it exactly as it was (§3). A successor abandoned after sign-off is
-abandoned as a diff is (§6).
+**Every citation of the replaced document in another document is found by the agent's search, once at
+the end of step 5**, and raised as new ground (§3, step 5); the script that applies a diff does not
+read a successor, which is a whole document. The successor's sections may be numbered differently, or
+the document renamed, so a citation such as *"`CALLS.md` §2.5"* would otherwise point at nothing, or at
+the wrong section. The deleting slice searches again before it deletes, and stops on any citation it
+finds, raising each with the author.
+
+**If the elephant is abandoned, the replaced document is left as it was.** One replaced side by side is
+not touched before close-out. One reworked in place is moved back to its old path, as committed when it
+moved, before the agent offers the clean-up (§3). A successor abandoned after sign-off is abandoned as a
+diff is (§6).
 
 ### What a later elephant reads
 
 **When step 1 finds a document and the author rules to replace, extend or change it, the agent reads
 that document's rejected alternatives**, looking through its text for what it rejects where it has no
-section for them, and asks the author in the interview whether each one's reason still holds. One whose
-reason no longer holds is an alternative to reconsider, which is why rejected alternatives are kept in
-the document at all. Nothing records where an alternative was first rejected; that would need an
-archive, and §10 says why there is none.
+section for them, and asks the author in the interview whether each one's reason still holds, recording
+each answer as a ledger line (§4). One whose reason no longer holds is an alternative to reconsider,
+which is why rejected alternatives are kept in the document at all. Nothing records where an alternative
+was first rejected; that would need an archive, and §10 says why there is none.
 
 ### What changes in `METHOD.md`
 
 **`METHOD.md` says to lift what is still true from a superseded document into whatever replaced it,
-and to delete the original in the same commit.** Through an elephant the two halves come apart: the
-retirement review carries what is still true while the successor is written, and the deletion comes in
-the successor's last slice, often much later. The rule gains a sentence, worded as follows (§8 lists
-the change):
+and to delete the original in the same commit.** Through an elephant that replaces a document side by
+side, the two halves come apart: the retirement review carries what is still true while the successor
+is written, and the deletion comes in the successor's last slice, often much later. The rule gains a
+sentence, worded as follows (§8 lists the change):
 
 > **A superseded document is deleted, not kept.** Lift what is still true into whatever replaced it,
 > delete the original, and say in the commit message what moved and where — both halves in one commit.
-> Where an elephant replaced it, the retirement review has already carried what was still true, and the
-> commit that deletes it names its successor.
+> The one exception is a document an elephant replaced side by side: the retirement review carried what
+> was still true long before, so the commit that deletes it only names its successor.
