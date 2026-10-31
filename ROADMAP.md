@@ -321,8 +321,7 @@ close-out while a section would not.
 
 | § | Answers |
 |---|---|
-| 1 | what is it? — the definition, what it is and is not for, the two words already used for it here
-and defined nowhere, the home it gives imperative Two, and the wording destined for `METHOD.md` |
+| 1 | what is it? — the definition, what it is and is not for, the two words already used for it here and defined nowhere, and the `METHOD.md` wording that defines it, with imperative Two's pointer to it |
 | 2 | what is it deliberately not? — the non-goals |
 | 3 | what happens, in what order, and where does each part end? |
 | 4 | what files does it create? |
@@ -1028,14 +1027,24 @@ blocks the pathing rework.
   that read as spent plans — the architecture review, the cleanup plan, the refactor plan and the
   smooth-paths plan: if they are spent, the superseded-documents rule already says they should be gone.
 
-- **Inputs to cutting `ELEPHANT.md`** — notes for whoever cuts it into slices, deleted once the cut is
-  made. `ELEPHANT.md` states what must be true, never what has to change, so they are not in it.
+- **Nothing schedules `METHOD.md`'s full sweep.** Its table of when each review fires runs the sweep —
+  every seam, and the documents against the code — on *"a schedule"*, and `SOURCES.md` backs the rule
+  (*Documents are swept on a calendar, not only on change*). Measured on 2026-10-31: nothing in
+  `ROADMAP.md`, `AGENTS.md`, `PILOT.md` or the harness's settings sets a schedule, and `REVIEWS.md`
+  records no sweep. Until one runs, a process document the author changes outside any session is
+  reviewed by nothing, and `ELEPHANT.md` §6 relies on the sweep for exactly that case. Noticed by round
+  H's section review of that passage.
+
+- **Inputs to cutting `ELEPHANT.md`** — notes for whoever cuts it into slices, deleted once the second
+  cut is made. `ELEPHANT.md` states what must be true, never what has to change, so they are not in it.
 
   **How it is built** (the author's ruling): cut and built once with the skills as they stand at
   sign-off; then, once its own slices have improved the skills, cut and built again from the same
-  design, as an `active` document is cut again at the author's request. A first run done poorly is
-  repaired by the second, which finds only what is still untrue. Its status line is set by hand at
-  sign-off, since the skills that set it do not exist yet.
+  design, as an `active` document is cut again at the author's request. A first run that falls short
+  is completed by the second, which finds only what is still untrue; what the first run added beyond
+  the design stays, as in any second cut (`ELEPHANT.md` §6). Its status line is set by hand —
+  `finalised` at sign-off, then `implementation ongoing` and `active` as the first build starts and
+  ends — until a slice has given the skills the status rules.
 
   **Places the design reaches, gathered while writing it** — a starting point for the comparison with
   the process documents, not a substitute for it:
@@ -1046,12 +1055,14 @@ blocks the pathing rework.
     its heading and the pass condition, with the overriding rule's *"to rule on"* — the later warning
     that a rejection is eventually *"fixed"* by somebody keeps that word; the rule on recording
     rejections, excepted inside an elephant; the seam review after a direct edit to a process document,
-    in the table of when each review fires; the line naming the skills, which become nine.
+    in the table of when each review fires; the line naming the skills, which become nine; the five
+    statuses and the `implementation ongoing` sentence, which the inventory points to.
   - The session-start hook's closing line and `AGENTS.md` both say *dispositions*. The injected text
     changes with the overriding rule: measured at 1,674 characters against the 1,900 limit.
   - `goldfish/SKILL.md`: every review on the Opus tier at high effort, so *"Cheap for a section review"*
     goes; its opening calls a goldfish the least-informed reviewer, which the interview reviewer is
-    not; a finding raised again shown with its earlier ruling; findings that stand without the report;
+    not; a finding raised again shown with its earlier ruling; findings that stand without the report,
+    sorted so that only those bearing on a decision are put in full;
     its table of review kinds gains the interview, retirement and ledger reviews and the seam review
     after a direct edit.
   - Prompts: three new ones, for the interview, ledger and retirement reviews; the document prompt's
@@ -1065,8 +1076,9 @@ blocks the pathing rework.
     `FORMATIONS.md` as `draft`; `REVIEWS.md`'s row for a person reading a document, and its `waived`
     state; `PILOT.md`'s account of the elephant, and its count of skills.
   - At `ELEPHANT.md`'s close-out, the slice 7.1 entry above is cut to one line pointing at it.
-  - The agent's memory note on how questions are put to the author is kept until the `elephant` skill
-    carries the same form, and then deleted.
+  - The agent's memory notes on how questions and findings are put to the author — *Explain from the
+    ground up*, *Plain outcome words* and *Finding triage* — are kept until the `elephant` skill carries
+    the same form, and then deleted.
 
 ## How the current work already feeds the vision
 
