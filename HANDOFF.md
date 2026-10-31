@@ -1,4 +1,4 @@
-# Handoff — `ELEPHANT.md`: rule round H's remaining findings
+# Handoff — `ELEPHANT.md`: rule round H's reports D–G
 
 > **Do not delete this file when you start.** Everything under *Not yet durable* exists nowhere else.
 > **Delete it, and `HANDOFF-reports/` with it, once each of those has a home** — at that point this
@@ -18,7 +18,8 @@ rest of `METHOD.md`** — open it now.
    documents"*, and the new last entry, *Inputs to cutting `ELEPHANT.md`*.
 4. **`process/designs/ELEPHANT.md`**, all of it. §1–§7 are written; there is no §8 (below).
 5. **`REVIEWS.md`**, and **`.claude/skills/goldfish/SKILL.md`** for the order findings are presented in.
-6. **`HANDOFF-reports/`** — the seven round-H section-review reports. Read only when you reach them.
+6. **`HANDOFF-reports/`** — the seven round-H section-review reports. A, B and C are fully ruled; read
+   D, E, F and G, one at a time, as you reach them.
 
 ## Where things stand
 
@@ -33,20 +34,33 @@ rest of `METHOD.md`** — open it now.
   Markdown file is accounted for, and cutting an `active` document again. Seven section reviews ran
   over those passages: **242 findings**. The author ruled the 42 blocking and contradiction findings,
   taking every recommendation; 31 scripted edits applied them, all matched once, removed text
-  confirmed gone. **The other 200 are not yet triaged.**
-- **Nothing committed.** `ELEPHANT.md`, `ROADMAP.md` and this file are modified; `HANDOFF-reports/` is
-  new and untracked. All eleven checks green; `test/visual.js` cannot run here.
+  confirmed gone. **The other 200 are being ruled one report at a time:** reports A (29), B (22) and C
+  (35) are ruled (every recommendation taken; twenty-five scripted edits, all matched once); reports
+  D–G's 114 are not. On report C the author also ruled that no further review runs after it.
+- **Uncommitted:** this session's 25 edits to `ELEPHANT.md`, and this file. Everything before them is
+  committed at `8d6783a`, `HANDOFF-reports/` included. All eleven checks green; `test/visual.js`
+  cannot run here.
 
 ## What to do
 
-**Recommended unit of work: rule round H's 200 remaining findings**, one report at a time, in the order
-the `goldfish` skill sets out. They were raised against the text **before** the 31 edits, so check each
-against `ELEPHANT.md` as it now reads first: a finding the edits already answered is put to the author
-as such. The ids that were ruled are listed under *Rejected and immaterial* and *Accepted* below; every
-other id in the reports is unruled. Do not apply anything unasked.
+**Recommended unit of work: rule round H's reports D, E, F and G — 114 findings** — one report per
+round, in the order the `goldfish` skill sets out, starting with D. They were raised against the text
+**before** round H's 31 edits and this session's 25, so check each against `ELEPHANT.md` as it now reads
+first: a finding an edit already answered is put to the author as such, and one that re-raises an
+earlier ruling is shown with it. The report's line numbers are stale; find each passage by its text.
+The ids that were ruled are listed under *Rejected and immaterial* and *Accepted* below; every other id
+in D–G is unruled. Do not apply anything unasked.
+
+**How the last session put them, which the author took every time:** the findings recommended for
+action each as a question — what it is, an example, what breaks, the recommended wording first, then
+the alternatives; those recommended for rejection or immaterial one line each, with the reason and any
+earlier ruling quoted; then the list to accept in one message. After a ruling, apply by assertion-checked
+script, carry each change to every passage that depends on it, record the rulings here, run the eleven
+checks, then put the next report.
 
 The cut after that: a section review of every passage changed in rounds G and H that no review has read
-since (listed below); §9, raising open question 4 first; §10; the document review; close-out.
+since (listed below), **unless open question 4 cancels it**; §9, raising open question 3 first; §10;
+the document review; close-out.
 
 ---
 
@@ -87,7 +101,16 @@ since (listed below); §9, raising open question 4 first; §10; the document rev
    question): `ROADMAP.md`'s table says §9 is a section in the evidence document's format, §6 says a
    process design's evidence is not a section of it, and the body cites §9 throughout. Under Q1, if the
    evidence is a diff, the new build skill checks it against `SOURCES.md` before the first slice, which
-   needs the apply script. Raise before §9.
+   needs the apply script. Also accepted as this question, from report A: **A2** — the opening block says
+   the slices' plans *"add its evidence to `SOURCES.md`"* while §6 has the elephant write it as a diff;
+   and a `SOURCES.md` diff has no list of slices of its own, so nothing says which slice folds it in.
+   Raise before §9.
+4. **Does *"don't run another review"* cancel the planned section review?** On report C the author said
+   to take every recommendation *"and don't run another review"*. It is recorded as answering report C's
+   question 7 — no review of report C's edits on their own. Unconfirmed: whether it also cancels the
+   section review of every passage changed in rounds G and H, which now includes this session's 25
+   edits; if it does, those passages are first read at the document review. Raise when D–G are ruled,
+   before dispatching anything.
 
 ### Text no review has read since it changed
 
@@ -106,6 +129,23 @@ since (listed below); §9, raising open question 4 first; §10; the document rev
   elephant reads*; §3 the abandonment paragraph's rest, step 1, step 5's end, *What goes back*; §4 the
   ledger's sixth kind and the successor's path; `ROADMAP.md`'s slice 7.1 bullets listed in
   `git show 7c839e1:HANDOFF.md`.
+- **Report A's ten edits** (this session): the opening block (the slices' list; *"checked against this
+  file"*); §1 *When it is used* (*"never mentions the elephant at all"*); §1 *What the repository calls
+  it today* (the sentence after *"The name elephant is kept"*); §1 *What `METHOD.md` says of the
+  elephant* (the definition's second paragraph from *"the agent says whether"*, and item 2's *"the
+  conversation in which a design is settled"*); §2 *Where these end up*; §3's two-skills paragraph
+  (`PILOT.md`'s list); §6 *What it produces* (the pointer replacing only the drafted text) and the sort
+  table's matching row.
+- **Report B's seven edits** (this session): §3's two-skills paragraph (abandoning during step 8;
+  `PILOT.md` and the working files); *No ruling has a default* (other work in another conversation);
+  the *"you decide"* paragraph (four kinds, the clean-up added); the abandonment paragraph (moving back,
+  as last committed before the move); §5 *How every review is run* (which report items are findings);
+  §7 *From sign-off to deletion*, the abandonment paragraph (*"as last committed before the move"*).
+- **Report C's eight edits** (this session): §3 step 7 (*"changed or removed, every section of a
+  document it replaces counting"*); §5 *How every review is run* (how a finding is put; Sonnet and Fable
+  named); *The document review and the seam review* (the same widening); *What is kept of a review* (the
+  exception covering immaterial findings); §6 *What it produces* (the `SOURCES.md` diff agreed at step 4
+  and reviewed); *The review record* (the outside seam row, widened).
 - **Two one-sentence deletions** never reviewed: §5 *The interview review* (*"§8 lists building it"*),
   §7 *The retirement review* (*"(§8)"*).
 
@@ -125,6 +165,16 @@ D-B2, D-B3, D-C1, D-C3, D-C4, D-C5; E-B1, E-B3, E-C1, E-C2, E-C3, E-C4, E-C5; F-
 by file), F-B2; G-B1, G-B2, G-C1. Accepted with their change made later: A-B1 (open question 2); F-C1,
 D-C2, A-B2 (open question 3). C-B2 re-raised round D's A16, whose reason (*"§8's to specify"*) fell with
 §8.
+
+**Report A, ruled this session, applied:** A1, A3, A5, A6, A7, U1 (one rewrite of the `METHOD.md`
+wording's second paragraph), A12, A13, U2, A15, G4. A2 accepted as open question 3. A12's reach: the
+sort table's row for a process document drafted in a process design.
+
+**Report B, ruled this session, applied:** A2 (its reach: §7's abandonment paragraph), A5, A8, A10, G2,
+and G4's first half (the clean-up offer).
+
+**Report C, ruled this session, applied:** A3, A7, A9 (its reach: §3 step 7 and *The review record*'s
+outside seam row), A11's second half (immaterial findings), U1, U3.
 
 **Carried to further places, as the reach of an accepted finding:** G-C1 to §1 item 3 and §7's
 *"already settled what is carried"*; E-C5 to §4's recorded commit (*"updated only when the diff is
@@ -441,6 +491,96 @@ matched against.
   records a one-off for a file written before the elephant existed; §6 states the rule for designs made
   through one
 
+*Round H, report A* (17, ruled this session)
+
+- **A4** (the definition omits the search and reviews) — immaterial — §1's own definition has the same
+  two parts, with the steps between them
+- **A8** (the wording omits abandoning) — immaterial — the `elephant` skill runs abandonment (§3)
+- **A9** (the retirement review compares with the successor only) — reject — resolved by C5
+- **A10** (where the clause goes; it is a sentence) — reject on placement, re-raised (round D §1 A1);
+  immaterial on the word
+- **A11** (*superseded* against *replaced*) — immaterial — the successor is in force from the deleting
+  commit (§7)
+- **A14** (*"handed only that"*) — immaterial — `METHOD.md`'s *When each review fires* says what the
+  reviewer is handed
+- **A16** (do the structure rulings move to the skill) — immaterial — §3 states them as steps
+- **U3** (*working side*) — immaterial — the colon spells it out
+- **U4**, **V1** (close-out for this file; how the entry is confirmed) — reject — duplicates of A-B1,
+  open question 2
+- **V2** (the `ROADMAP.md` entry not given) — reject — checked: *"the author saying so"* is there
+- **V3** (the hook sends only bold openings) — reject — checked against the hook
+- **V4** (empirical claims) — reject — re-raised (round D §1, *"nothing downstream will catch"*), and
+  standing rejection 1
+- **G1** (§8–§10 absent) — reject — standing rejection 1
+- **G2** (this file has no status line) — reject — re-raised, F-C2
+- **G3** (what makes an agent propose before opening `METHOD.md`) — immaterial — the hook sends every
+  agent to `METHOD.md` before writing, and investigation before that is allowed
+- **G5** (*"contains no plan"* against cutting the entry) — reject — a rule about when the entry stops
+  winning; how it is done is open question 2
+
+*Round H, report B* (17, ruled this session)
+
+- **A1** (*"`METHOD.md`'s line naming the skills"*) — immaterial — one sentence there names them, and
+  the count follows
+- **A3** (does the one form cover every exchange) — immaterial — *"every question"* is every one; the two
+  exceptions drop only the recommendation
+- **A4** (a stated reason, stated by whom) — immaterial — the agent's recommendation carries one; a
+  missing reason only means a re-raised finding is ruled again
+- **A6** (who judges what a deferral holds up) — immaterial — the reviewer's readings are the only ones
+- **A7** (stops replying, against the session ending) — immaterial — an agent acts only in reply
+- **A9** (is the what-else question part of the point) — reject — the text says *"including"*
+- **A11** (how a question is put again) — immaterial — either way the agent waits; no ruling has a
+  default
+- **U1** (*points in the process*) — immaterial — the list of four is closed, and only *"you decide"*
+  turns on it
+- **U2** (*finished*) — reject — the opening block equates it with signing off; B-B2 removed the word
+  from the trigger
+- **U3** (*"runs the proposal"*) — reject — resolved by B-B1
+- **V1** (the §9 citation) — reject — standing rejection 1
+- **V2** (*"costs the author less"*) — reject — re-raised (round D §3 V1)
+- **V3** (*"enough background"*) — reject — standing rejection 5
+- **V4** (exactly two questions with no recommendation) — reject — checked: §7's question is an
+  interview question in the usual form, and a proposal to end is itself a recommendation
+- **G1** (an abandoned elephant and `CORRIDORS.md`'s exemption) — reject — resolved: §6 says a document
+  moved back keeps it
+- **G3** (a forgotten elephant blocks others) — immaterial — step 1 names it, and the author can abandon
+  it
+- **G4**, second half (*"you decide"* on omitting a checklist item) — immaterial — the reason is on the
+  line, and the checklist dies at close-out
+
+*Round H, report C* (29, ruled this session)
+
+- **A1** (*"no part of the conversation"*) — reject — resolved by C-C1
+- **A2** (which path a finding names) — immaterial — either lets the author find the text
+- **A4** (whom *"not run more than once"* binds) — immaterial — §3 says a review runs again only when the
+  author asks
+- **A5** (is a re-raised finding ruled again) — reject — re-raised (round D §5 A17)
+- **A6** (*found* headings against the prompt shape) — reject — resolved by B-A10
+- **A8** (outward citations not in the seam list) — immaterial — the section review is given every
+  section a section cites
+- **A10** (findings kept when abandoned) — immaterial — no later review raises them again
+- **A11**, first half (no exact `METHOD.md` wording for the exception) — immaterial — the content is
+  stated, and the plan renaming the outcomes in that sentence writes it
+- **U2** (*family of models*) — immaterial — plain meaning
+- **U4**, **V8** (*"the literature on this method"*) — reject — checked: the `bug` skill says it
+- **U5** (a seam with no citation) — immaterial — the seam prompt asks whether two documents disagree
+- **U6**, **N4** (the five states) — reject — checked: `REVIEWS.md`'s opening line
+- **U7** (when a finding is raised again) — reject — re-raised (round D §5 A17)
+- **U8**, **N3** (*"about a dollar"*) — reject — re-raised (round D N1), standing rejection 1
+- **V1**, **V9** (§9 citations) — reject — standing rejection 1
+- **V2** (*"rising steeply"*) — reject — re-raised (round D V2)
+- **V3** (the alias follows the newest Opus) — immaterial — the rule names the alias
+- **V4** (only Claude models) — reject — checked: the agent tool's model choices
+- **V5** (effort per dispatch) — reject — checked: the agent tool takes an effort setting
+- **V6** (*"most likely where neither cites the other"*) — immaterial — reasoning
+- **V7** (the seam prompt's category) — reject — checked: *DUPLICATED OWNERSHIP*
+- **N1** (*"nearly twice"*) — reject — re-raised (round D N2)
+- **N2** (*"costs the author minutes"*) — reject — re-raised (round D V1)
+- **G1** (later reviews re-raise dropped findings) — immaterial — the accepted cost of dropping them
+- **G2** (the writer's model) — immaterial — every model the harness offers is Claude
+- **G3** (a document review given only the document) — immaterial — seam and section reviews read each
+  citation's other side
+
 ### Sources for §9, none yet in `SOURCES.md`
 
 As listed in `git show e03e4af:HANDOFF.md`, and the tables it points to.
@@ -482,6 +622,11 @@ They stand unless the author uses the word.
   given the whole of `ELEPHANT.md` and `METHOD.md` as dependencies (*repack*); the two one-sentence
   deletions left unreviewed (*review*); the seven reports copied into `HANDOFF-reports/` so they
   outlive the scratch directory (*temp*).
+- This session: the 200 findings put one report per round (*all*); A2 treated as part of open question
+  3 (*separate*); §1's *"because nothing defined the conversation"*, after *"never mentions the elephant
+  at all"*, left unchanged (*reword*); report B's G4 split into two halves ruled apart (*join*);
+  report C's A11 split likewise (*join*); U1 and U3's model names taken from `fb25bc5`'s source table,
+  not yet in `SOURCES.md` (*defer*); A2's move-back rule placed in §3's abandonment paragraph (*move*).
 
 ---
 
@@ -509,6 +654,8 @@ They stand unless the author uses the word.
   design states what must be true once built; a finding that a process document *"does not say"*
   what the design says it says is that, not a contradiction.
 - **Do not spend design text on agent pushback against doing the work at all** (author, D11).
+- **Reports re-raise earlier rulings often** — in report C, seven of the 29 rejected or immaterial were round D rulings raised again.
+  Check the round D–H lists below before calling a finding new.
 
 ---
 
@@ -520,9 +667,10 @@ first — it is at the repository root and tells you what to read, in what order
 stand. Do NOT delete it when you start; it says when to delete it.
 
 You are continuing slice 7.1: process/designs/ELEPHANT.md, the design for the elephant. §1–§7 are
-written and §8 has been removed. Your unit of work this session: rule the 200 remaining findings of
-round H's seven section reviews, whose reports are in HANDOFF-reports/. Check each against the text as
-it now reads before putting it to me. Do not write §9 and do not write a plan.
+written and §8 has been removed. Your unit of work this session: rule the 114 unruled findings of
+round H's reports D, E, F and G, in HANDOFF-reports/, one report per round, starting with D. Reports A,
+B and C are ruled and applied. Check each finding against the text as it now reads before putting it
+to me. Do not write §9, do not write a plan, and dispatch no review.
 
 Raise anything HANDOFF.md lists as open that bears on what you are doing, rather than deciding it
 for me.

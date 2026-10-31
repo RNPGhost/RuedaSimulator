@@ -7,13 +7,13 @@
 >
 > **It is the specification of the elephant, and stays current once it is built.** Once the design is
 > signed off it is cut into slices, whose plans bring the process documents — `METHOD.md`, the skills,
-> the reviewer prompts, the hooks and `PILOT.md` — into line with it, as code is brought into line with
-> a specification, and add its evidence to `SOURCES.md`. Where it says what a process document says, or
+> the reviewer prompts, the hooks and `PILOT.md` — and the checks, scripts and records it requires into
+> line with it, as code is brought into line with a specification, and add its evidence to `SOURCES.md`. Where it says what a process document says, or
 > who reads one of its sections, it states what must be true once it is built; until then the process
 > documents as they stand are what is followed. Until the last slice is done, this file is
 > what each slice works from. After that it stays in force, and a later
 > change to the elephant either changes this file first, through an elephant of its own, or is made
-> directly in the process documents and brought back into this file by a seam review (§6).
+> directly in the process documents and checked against this file by a seam review (§6).
 >
 > **`ROADMAP.md`'s slice 7.1 entry records what was decided, and wins wherever the two disagree, until
 > this design is signed off.** At close-out, once everything the entry records has been confirmed to
@@ -93,8 +93,7 @@ would be making the judgement it is worst at, with nobody checking it.
 
 **It applies to documents about the work as well as to specifications**, and the one cost its absence has
 already caused here is on that side. `PILOT.md`, the guide to driving this process, was written without
-one, and the author's only finding on reading it was that it never mentions the design conversation at
-all. No check could have caught that, because nothing defined the conversation.
+one, and the author's only finding on reading it was that it never mentions the elephant at all. No check could have caught that, because nothing defined the conversation.
 
 Documents that already exist are not given one retroactively; a later change to one is proposed like any
 other. This document was written before the elephant existed, so the author ran the process by hand,
@@ -119,6 +118,7 @@ where it returns* has nowhere to look it up.
 
 **The name *elephant* is kept.** It already ships in a skill, and the pairing — the elephant remembers
 the whole conversation, the goldfish was never part of it — is the method's central idea in two words.
+Every process document calls it *the elephant*, and none uses *design conversation* as a name for it.
 What was considered instead is in §10.
 
 ### What `METHOD.md` says of the elephant
@@ -139,21 +139,22 @@ superseded documents point to it, as below.** Other sections of this design stat
 > It is optional, but proposing it is not. At the start of any change that would produce new or changed
 > intent, a new document about the work, or a change to what an existing one requires — never a typo, a
 > change to code alone, a plan, a map update or a check — the agent says whether it believes the change
-> needs one, and why, and the author rules. The author may also call for one the agent did not propose.
-> No work on the change begins until they have ruled. The interview ends when the agent
-> proposes that what remains unknown does not matter and the author agrees. The elephant ends at
-> close-out, once the author has signed the design off and its working files are gone. It never writes
-> the design into a live document: a change to a built specification waits beside it until the change
-> is built, and only then folds in, and a change to the process is a design of its own, which plans
-> carry into the process documents. When it replaces a document, the new one is that document's
-> successor, and before sign-off a retirement review lists everything the old one says that none of the
-> design's documents does.
+> needs one, and why, and, if it does, whether it changes the process or the system; the author rules.
+> The author may also call for one the agent did not propose. No work on the change begins until they
+> have ruled, beyond what the agent needs in order to propose; work inside an elephant already running
+> needs no fresh proposal. The interview ends when the agent proposes that what remains unknown does
+> not matter and the author agrees. The elephant ends once the author has signed the design off and its
+> working files are gone. It never writes the design into a document other agents may be reading: a
+> change to a built specification is kept in a file of its own beside it until the change is built, and
+> only then merged into it, and a change to the process is a design of its own, which plans carry into
+> the process documents. When it replaces a document, a reviewer lists, before sign-off, everything the
+> old one says that none of the design's documents does.
 >
 > Its counterpart is the goldfish: a reviewer that took no part in what it reviews, and is handed only
 > that. Both are named for what they remember.
 
 **2. A pointer from imperative Two.** Imperative Two tells the agent to argue with the author rather than
-agree — *"Argue. Agreement is the defect."* It is about the design conversation, and without a pointer
+agree — *"Argue. Agreement is the defect."* It is about the conversation in which a design is settled, and without a pointer
 nothing would tell a reader that this is where it matters most, so one clause follows its bold opening:
 
 > It binds hardest inside the elephant, where nothing downstream will catch an idea nobody challenged.
@@ -225,9 +226,9 @@ wrongly more often than they guess them right (§9).
 ### Where these end up
 
 **None of these moves into the process documents as a non-goal.** The first and third each have a
-working side that the skill running the elephant needs: which points stop for the author's ruling, and
+working side that the skills running the elephant need: which points stop for the author's ruling, and
 that nothing goes past one without the author. That side is stated positively, in §3, and the
-`elephant` skill states it too. The second only informs somebody changing the elephant later, so it
+`elephant` and `close-out` skills each state it for the points they run. The second only informs somebody changing the elephant later, so it
 stays here.
 
 ## 3. What happens, in what order, and where each part ends
@@ -245,13 +246,14 @@ carries the duty to propose an elephant (§1), because that duty falls at the st
 before anybody has named one. The `elephant` skill is loaded once the author opts in, and runs steps 1
 to 7 and abandoning an elephant. The `close-out` skill is loaded when the author asks to close the
 design out or to sign it off; it begins at the first item of step 8, and refuses while an earlier step
-is unfinished, naming that step. They are two, not one,
+is unfinished, naming that step. An abandonment asked for during step 8 is carried out as the
+`elephant` skill says, and the `close-out` skill says so. They are two, not one,
 because a skill is loaded when a request matches its description, and the start of a change and the
 end of a design, sessions later, are asked for in words that have nothing in common (§9). `PILOT.md`,
 the guide for a person driving this process, describes the elephant from the author's side: when the
-agent will propose one, the four points where it stops for the author's ruling, which questions
-*"you decide"* does not answer, and how to abandon one. It says nothing of the working files or of how
-the reviews are run.
+agent will propose one, and that they may call for one it did not, the four points where it stops for the author's ruling, which questions
+*"you decide"* does not answer, and how to abandon one. It mentions the working files only where
+abandoning asks which to keep, and says nothing of how the reviews are run.
 
 ### The four points in the process
 
@@ -287,14 +289,16 @@ reading the finished document (§6).
 **No ruling has a default or a time limit.** If the author stops replying, the elephant stays exactly
 where it is and nothing happens to it. A deferral the author volunteers holds up only the work that
 depends on the deferred answer, and the question waits: on the checklist when it is deferred in the
-interview (step 2), and otherwise in the handoff, as any unruled finding does. The agent need not handle a change of topic in that conversation:
-the author works elsewhere, and returns to the elephant in the same conversation or through a handoff
-when they are ready. The conversation, or the handoff that closed it, and the elephant's working files
+interview (step 2), and otherwise in the handoff, as any unruled finding does. Other work the author takes up in the meantime is done in another
+conversation, not the elephant's (imperative Seven), and the author returns to the elephant in its own
+conversation, or through a handoff, when they are ready. The conversation, or the handoff that closed it, and the elephant's working files
 (§4) hold its place in the meantime.
 
-***"You decide"* is a legal answer to any question except three kinds**, where the question is put
-again: a ruling at any of the four points, a ruling on a *nothing covers this* claim (step 1), and
-close-out's question about reading the finished document, whose answer only the author knows (§6). It is legal
+***"You decide"* is a legal answer to any question except four kinds**, where the question is put
+again: a ruling at any of the four points, a ruling on a *nothing covers this* claim (step 1),
+close-out's question about reading the finished document, whose answer only the author knows (§6), and
+the clean-up offered when an elephant is abandoned, which deletes files that may never have been
+committed. It is legal
 on how the documents are structured. Delegating the claim would let a search nobody made look like a
 search that found nothing, which is what the ruling exists to prevent. Where a delegated ruling goes
 into the ledger, the ledger records it as the agent's recommendation, adopted on delegation, so it stays
@@ -302,7 +306,9 @@ distinguishable from a decision the author made.
 
 **The author may abandon an elephant at any point before sign-off** by saying so — for instance when the interview
 concludes that the change should not be made. Nothing the design says has been written into a live
-document (§1), so the agent offers one clean-up: deleting the elephant's directory, drafts included, after first moving back to its old path any document the elephant moved into it (§7).
+document (§1). The agent first moves back to its old path any document the elephant moved into it, as
+last committed before the move, status included, whatever the author decides next (§6, §7); it then
+offers one clean-up: deleting the elephant's directory, drafts included.
 The author may accept it or keep any of its files; the elephant is abandoned either way. Nothing is
 signed off, and the abandonment is recorded nowhere outside the directory; entries the elephant added to
 the backlog stay, being separate work. If the author keeps any file, the ledger is kept with it, the agent adds a line to the ledger saying the elephant was abandoned, and each kept draft
@@ -459,7 +465,8 @@ not checked. **It ends when every finding has been ruled on, and every accepted 
 **7. The document reviews and seam reviews.** A reviewer reads each document the design was written
 into, as it will be once the design's changes are applied, and, in the same step, the seam between each
 pair of those documents, and each seam between one of them and another document that cites a section
-the design changed (§5). **It ends when every finding has been ruled on, and every accepted one acted
+the design changed or removed, every section of a document it replaces counting (§5). **It ends when
+every finding has been ruled on, and every accepted one acted
 on.**
 
 **8. Close-out.** It runs in this order. Item 1 may still edit a document, by acting on a finding of the
@@ -738,11 +745,16 @@ conversation, the files it may read named and every other file forbidden, the pr
 and the report written to a file in the session's scratch directory. The three new prompts take the shape
 of the existing ones: a heading for each category of finding, each finding quoting the text it
 concerns, *none* under a category with nothing in it, a category for concerns the reviewer could not
-ground in the text, and a closing account of what the reviewer understood it was reading.
+ground in the text, and a closing account of what the reviewer understood it was reading. Every item
+under the report's headings is a finding the author rules on, a concern the reviewer could not ground
+included, except the *found* entries of the ledger and retirement reviews and the reviewer's closing
+account.
 
 **Each finding the agent puts to the author can be understood without the report.** It quotes the text
 it concerns, names every document it concerns rather than saying *both documents*, and uses no term
-that only the report defines. The `goldfish` skill presents every review's findings this way, inside an
+that only the report defines. It carries the agent's recommended outcome and its reason; one the agent
+recommends acting on is put as a question in the form §3 gives, the ways of acting on it being its
+options. The `goldfish` skill presents every review's findings this way, inside an
 elephant or not.
 
 **Every review the `goldfish` skill dispatches, inside an elephant or not, uses the Opus tier at high
@@ -751,10 +763,10 @@ runs the agent, calls `opus`, with its reasoning-effort setting at `high`. No re
 model, a section review included, and none is given a more expensive one; the effort setting is fixed
 in the same way. A reviewer's job is to find
 faults, and finding faults is measured as rising steeply with model strength. In the closest study to
-this work, a check of written requirements, the tier below wrongly flagged nearly twice as many sound
+this work, a check of written requirements, the tier below, Sonnet, wrongly flagged nearly twice as many sound
 requirements, and every false finding costs the author minutes, against about a dollar for the whole
 review (§9). The rule names a tier rather than saying *the most capable model*, because the most
-expensive model scored below the Opus tier in the one code-review comparison that measured both (§9),
+expensive model, Fable, scored below the Opus tier in the one code-review comparison that measured both (§9),
 and a rule that left the choice to whoever read it would be no rule. The alias follows the newest Opus
 model, so moving to a newer one is not a change to this rule; moving off the tier is.
 
@@ -925,7 +937,8 @@ prompt, whether or not
 the two cite each other. A decision restated in two documents is most likely where neither cites the
 other, and the seam prompt's category for one rule stated in full in both documents is what catches it;
 no separate check is added. **So does each seam between one of the design's documents and another
-document that cites a section the design changed**, as `METHOD.md` requires of any change.
+document that cites a section the design changed or removed**, every section of a document it replaces
+counting, as `METHOD.md` requires of any change.
 
 ### Reading a document as it will be
 
@@ -1011,8 +1024,8 @@ reasons, and each later handoff carries them forward, so that when a later
 review in the same elephant raises one again, the agent shows it with its earlier ruling. At close-out
 they are dropped, and none is recorded in `REVIEWS.md`. A finding the author wants remembered beyond
 the elephant is added to the design as a non-goal or a rejected alternative, by a ruling of its own,
-entered in the ledger like any other. `METHOD.md`'s rule that rejections are recorded makes this
-exception for the reviews inside an elephant.
+entered in the ledger like any other. `METHOD.md`'s rules that rejections are recorded and that an
+immaterial finding's reason is written down make this exception for the reviews inside an elephant.
 
 **`REVIEWS.md` records each document's section, document and seam reviews, and nothing for the
 interview review, the retirement review or the ledger review.** The first and last review the
@@ -1086,16 +1099,18 @@ itself which of its non-goals become rules in the process documents, restated po
 *Where these end up* does; a non-goal that becomes a rule also stays in the design as reasoning. Its
 evidence is not a section of it: an elephant on the process writes the evidence for its rules as a diff
 of `SOURCES.md`, in that document's own entry format, since `SOURCES.md` takes diffs like any
-specification.
+specification. That diff is one of the documents agreed at step 4, and is reviewed like any other.
 
 **A process document is never put in place at close-out.** Where a process design calls for a new
 process document, or a change to an existing one, the slice that carries out that part makes it. Its
 text may be drafted in full inside the process design, in a fenced block or a block quote, so that its headings
 are not the design's, or left for that slice's plan to write; the author chooses at step 4, by how complex the
 document is and how closely they want to control it, and a document drafted in full is one of the
-process design's agreed sections. Once the slice has made the change, the same slice replaces that
-section with a one-line pointer to the process document, as the step that completes it: two copies of a
-live document's text would differ at its first edit.
+process design's agreed sections. Once the slice has made the change, the same slice replaces the
+drafted text — each fenced block or block quote holding it, whether it drafts a whole document or a
+change to one — with a one-line pointer to the process document, as the step that completes it, and
+leaves the reasoning around it in place: two copies of a live document's text would differ at its first
+edit, and the design keeps its own reasoning.
 
 **A process design is kept current in one of two ways.** Through an elephant, which changes the process
 design first, as a diff of it like any specification's, after which plans bring the process documents
@@ -1277,7 +1292,7 @@ sign-off, which approves the proposal as amended. What moves out of a process de
 | a process design | its final path, in `process/designs/`, marked `finalised` |
 | a successor to an `active` specification it replaces | beside it, named as a diff is, marked `finalised`; each gains its pointer line (§7) |
 | a diff of `SOURCES.md` holding a process design's evidence | beside `SOURCES.md`, marked `finalised`, like any diff; it folds in once the rules it backs are built, each source indexed back to the rules that use it and to any place the process departs from it |
-| a process document drafted in a process design | made by the slice that carries out that part, which replaces the drafted section with a one-line pointer to it |
+| a process document drafted in a process design | made by the slice that carries out that part, which replaces the drafted text with a one-line pointer to it |
 | a process design's non-goals and rejected alternatives | the process design, where a later elephant reads them (§7). A non-goal the design turns into a rule also reaches the process documents, through the slices |
 | entries the elephant added to the backlog | the backlog, unchanged |
 | the checklist, the ledger and the interview reports | deleted |
@@ -1317,7 +1332,8 @@ off, not when the content reaches its document at fold-in.
   otherwise, as `REVIEWS.md` already allows.
 - **A seam row** goes in the block of the document that cites the other. Where both cite each other, or
   neither does, it goes in the block of the one whose first section comes earlier in the agreed writing order. A seam with an
-  outside document that cites a section the design changed goes in that document's block, which is
+  outside document that cites a section the design changed or removed, or a section of a document it
+  replaces, goes in that document's block, which is
   created if it has none.
 
 **The row for a person reading the finished document** is set from the author's answer to one question
@@ -1485,8 +1501,8 @@ searches again before it deletes, and stops on any citation it finds other than 
 with the author.
 
 **If the elephant is abandoned, the replaced document is left as it was.** One replaced side by side is
-not touched before close-out. One reworked in place is moved back to its old path, as committed when it
-moved, before the agent offers the clean-up (§3). A successor abandoned after sign-off is abandoned as a
+not touched before close-out. One reworked in place is moved back to its old path, as last committed
+before the move, before the agent offers the clean-up (§3). A successor abandoned after sign-off is abandoned as a
 diff is (§6).
 
 ### What a later elephant reads
