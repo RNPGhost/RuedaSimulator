@@ -175,8 +175,7 @@ document.
 
 **Kind:** published
 **Evidence:** markers of unfinished work left in code by hand were removed in 40.5–90.6% of cases, and
-those that survived lasted a median of 82 to 613 days. Why each status is set at a fixed event is
-argued in `ELEPHANT.md`, under *The status of a specification*.
+those that survived lasted a median of 82 to 613 days.
 **Sources:** [Maldonado et al.](https://ieeexplore.ieee.org/document/8094425/metrics)
 **Departs:** no
 
@@ -220,8 +219,8 @@ solution, 7–8B models scored 5 to 33, GPT-4o 61.9 and o1-mini 87.9, and weak m
 or nothing. Larger critics missed fewer bugs, and critics nitpicked and invented bugs more than humans
 did. In a vendor's code-review benchmark, Opus 5.5 scored F1 56.8% above Fable 5.1's 53.5%, at a mean
 of $1.00 a review against Fable's $2.31. An analyzer whose effective false positives pass 10% is
-pulled, and triaging one warning takes about 5 to 8 minutes. Why the effort setting is fixed at high
-is argued in `ELEPHANT.md`, under *How every review is run*.
+pulled, and triaging one warning takes about 5 to 8 minutes. That the effort setting is high, rather
+than another, is not measured.
 **Sources:** [Shefa et al.](https://arxiv.org/pdf/2609.03230),
 [ProcessBench](https://arxiv.org/pdf/2412.06559),
 [CriticGPT](https://arxiv.org/html/2407.00215v1),
@@ -341,7 +340,7 @@ document*.
 **After:** "A document replaced side by side is deleted after its successor is built"
 
 **Kind:** reasoned
-**Evidence:** none; the argument is in `ELEPHANT.md`, under *The steps*.
+**Evidence:** none; the argument is in `ELEPHANT.md`, under *It makes none of the author's decisions*.
 **Departs:** no
 
 ### Findings inside an elephant are not recorded past close-out
@@ -350,7 +349,8 @@ document*.
 **After:** "The interview ends when the author agrees nothing that matters is unknown"
 
 **Kind:** reasoned
-**Evidence:** none; the argument is in `ELEPHANT.md`, under *What is kept of a review*.
+**Evidence:** none; the argument is in `ELEPHANT.md`, under *What is kept of a review* and *An archive
+of rejected alternatives*.
 **Departs:** no
 
 ## Where this method departs from its sources
@@ -378,7 +378,9 @@ The audit trail the source wants is exactly what the deleting commit is.
 iterates until what comes back is nit-picking. ClaudeFlows loops with a hard cap of five rounds. A third
 implementation runs three reviewers per round for up to three rounds.
 **This method does:** runs one, stops, and hands the findings over. Nothing re-runs without a person
-asking, and how many times to ask is the author's call — so the loop is available and never automatic.
+asking, but for two re-checks an elephant fixes in advance, each over what changed: the ledger review
+before close-out, and the retirement review over a successor's rewritten sections. How many times to
+ask is the author's call, so the loop is available and never automatic.
 **Why:** the cited loops all pair with something that applies findings. Nothing here does. Beyond that,
 an audit study across nine rounds found convergence that was not monotonic, consistent with fixes
 causing fresh defects; and this project's own five rounds went 20 → 11 → 8 → 8 findings on the category
@@ -403,10 +405,10 @@ This departure is the model the two before it follow.
 design and write the design document, which the goldfish then reads whole. Nothing reachable describes
 writing it section by section.
 **This method does:** writes a design section by section, putting each section's questions to the
-author as they surface.
+author with that section.
 **Why:** cited under *A design is written section by section*. Coherence is judged more reliably, and
 its breaks located, section by section; and the questions nobody asked surface while a section is
-being written, so each is put to the author at once rather than at the end. The argument is in
+being written, so each is put to the author with its section rather than at the end. The argument is in
 `ELEPHANT.md`, under *The definition*.
 **Sources:** [Rensin](https://research.google/pubs/elephants-goldfish-and-the-new-golden-age-of-software-engineering/),
 [i-programmer on Rensin](https://www.i-programmer.info/news/145-mapping-a-gis/18932-elephants-goldfish-and-the-new-golden-age-of-software-engineering.html)

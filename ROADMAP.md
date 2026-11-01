@@ -549,7 +549,7 @@ produces, which assumed the opposite
   raised with the author. A brand-new specification carries no labels; no diff header means a new one.
 - **At sign-off a diff specification sits beside its target**, named `<target>.<name>.md`, and a new
   specification goes to its final path. The target carries one fixed sentence naming the diff and
-  warning that the code may already follow parts of it; a check keeps the two in step.
+  warning that what is built may already follow parts of it; a check keeps the two in step.
 - **A diff folds in only once its implementation is complete**, as the last step of implementation: its
   sections are copied into the target, the diff is deleted, and the target stays active. **A diff is
   made only against an active specification**: a finalised one nothing has been built from is changed
@@ -1071,6 +1071,46 @@ blocks the pathing rework.
   reviewed by nothing, and `ELEPHANT.md` §6 relies on the sweep for exactly that case. Noticed by round
   H's section review of that passage.
 
+- **Rare paths `ELEPHANT.md` leaves open.** Found by its document review on 2026-10-31, and left for a
+  later elephant on it, since none arises in the design's first build. Abandoning restores a
+  `finalised` document whose slices were voided, and nothing cuts them again. The elephant that
+  reworks a collided diff has no step-1 ruling defined for it, and abandoning that elephant restores
+  neither the diff's pointer line nor its `REVIEWS.md` lines. A signed-off diff with no collision has
+  no route by which it is changed. Two process designs' `SOURCES.md` diffs can both be
+  `implementation ongoing`, since neither has a first slice of its own for the refusal to fire on. A
+  diff cannot change both of two headings its target repeats, since no draft may repeat a heading. A
+  process document that cites a section a process design's diff removes cannot join the design as a
+  draft. An abandoned successor's `REVIEWS.md` block is never removed. Nothing says who reviews again a
+  pending diff whose sign-off a fold-in voided, or what restores the sign-off; the successor's case of
+  it cannot arise. Abandoning between sign-off and the sort falls under neither abandonment rule. A diff
+  re-pointed at a successor may for a time have a target that is not yet `active`. The `execute` skill
+  does not refuse a diff whose target's retirement review has run. And a diff cannot change a
+  document's opening text, above its first section, without holding the whole document.
+
+- **`SOURCES.md` defects outside the elephant's evidence diff.** Found on 2026-10-31 by the document
+  review of `SOURCES.md` as the diff leaves it, in text the diff does not touch, so not fixed in it.
+  *Line endings* says one file was CRLF, then thirteen. *The lifetime rule* is reasoned with no
+  evidence, while *Durable knowledge and per-change knowledge are kept apart* gives published evidence
+  for the same prohibition. *Finish the design*, *A reviewer is a fresh subagent* and *Documents are
+  swept on a calendar* are `published` but report practice rather than a measurement, and *A vacuous
+  check is worse than none* is `measured here` with no incident. The departure *That audit's
+  convergence result is not adopted* says the audit does not describe this process while *A review is
+  not re-run on its own* uses it as a reason; no rule's *Departs* line reaches it; and its *"the model
+  the two before it follow"* fits only one of the two. *"This project's own five rounds"* gives four
+  figures. *Noticed-but-not-now* is not keyed by the rule's name in `METHOD.md`. *Corrections* names
+  Eisele as what to cite and the closing paragraph names Chroma; none of its corrected claims appears
+  in either document; and its imperatives sit against *"Nothing here is a rule"*. Row 18 says *See
+  Departures*, a heading that does not exist. Some entries say what evidence supports rather than what
+  was measured. Many of `METHOD.md`'s rules have no entry, and nothing says whether that means no
+  evidence. The *Departs* and *Note* fields are defined nowhere. Rows 3, 6, 11, 15 and 16, MARG in row
+  17 and row 52's second link are used by no entry, and row 11 may point against *What is not needed
+  every session is loaded when it is* without a departure saying so. *"This rework"* is used before it
+  is named; a long-horizon figure of 40–50% falling below 10% has no row carrying it; Rensin's three
+  passes are stated as fact while the original is unreachable; and *What is required in every session
+  is kept small* and *What is injected has a size ceiling* do not point at each other. Its opening says
+  no agent needs to read it to do any piece of work, while an elephant on the process writes diffs of
+  it in its entry format.
+
 - **Inputs to cutting `ELEPHANT.md`** — notes for whoever cuts it into slices, deleted once the second
   cut is made. `ELEPHANT.md` states what must be true, never what has to change, so they are not in it.
 
@@ -1093,8 +1133,11 @@ blocks the pathing rework.
     its heading and the pass condition, with the overriding rule's *"to rule on"* — the later warning
     that a rejection is eventually *"fixed"* by somebody keeps that word; the rule on recording
     rejections, excepted inside an elephant; the seam review after a direct edit to a process document,
-    in the table of when each review fires; the line naming the skills, which become nine; the five
+    in the table of when each review fires; the rule that a review runs once and stops, naming the
+    elephant's two re-checks as its exceptions; the line naming the skills, which become nine; the five
     statuses and the `implementation ongoing` sentence, which the inventory points to.
+  - Renaming the outcomes changes what *accepted* means: `METHOD.md`'s *Accepted with a reason* is not
+    acted on, and the design's *accepted* is. Every use of the word is found, not only the table's.
   - The session-start hook's closing line and `AGENTS.md` both say *dispositions*. The injected text
     changes with the overriding rule: measured at 1,674 characters against the 1,900 limit.
   - `goldfish/SKILL.md`: every review on the Opus tier at high effort, so *"Cheap for a section review"*
