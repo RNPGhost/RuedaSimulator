@@ -48,11 +48,14 @@ rest of `METHOD.md`** — open it now.
 
 ## What to do
 
-**Recommended unit of work: §8, *what else was considered?*** Gather its alternatives before drafting:
-the ruling waiting for it below; the alternatives `ROADMAP.md`'s slice 7.1 entry records as rejected,
-such as *A premortem before the document review*; the rejected sources, Klein's premortem and InvThink;
-and every ruling under *Not yet durable* that turned an option down. Put the list to the author before
-writing. Do not apply anything unasked. After a ruling, apply by assertion-checked script, carry each
+**The author wants `ELEPHANT.md` finished with as few questions as possible**, and improved later
+through a later elephant rather than now. Three instructions follow from that, and hold to sign-off.
+
+**Recommended unit of work: §8, *what else was considered?*** Write it from the record, with no
+interview: the ruling waiting for it below; the alternatives `ROADMAP.md`'s slice 7.1 entry records as
+rejected, such as *A premortem before the document review*; the rejected sources, Klein's premortem and
+InvThink; and every ruling under *Not yet durable* that turned an option down. Put the gathered list to
+the author once, as one list they answer in one message, before writing. Do not apply anything unasked. After a ruling, apply by assertion-checked script, carry each
 change to every passage that depends on it, record the rulings here, and run the eleven checks. If §8
 cites evidence, the entry goes in `SOURCES.elephant.md` and the table is regenerated.
 
@@ -64,8 +67,13 @@ bar is still shown, never dropped. **Whether another review runs** is §5's *Ano
 recommended for a reason, never run to find more*: recommend one only for a finding that would have been
 put in full, or a fix that changed a rule's meaning or rewrote a section; the author decides.
 
-The cut after §8: the document review of `ELEPHANT.md` and `SOURCES.elephant.md`, sorted the same way;
-then close-out, raising open question 2. `HANDOFF-reports/` is spent once this file is.
+The cut after §8: the document review of `ELEPHANT.md` and `SOURCES.elephant.md`; then close-out,
+raising open question 2, and sign-off. `HANDOFF-reports/` is spent once this file is.
+
+**In the document review, put a finding in full only if it would block building the design or
+contradicts a decision the author has made.** Everything else goes in the one-line list the author
+answers with "accept", or, where it is an improvement rather than a defect, to the backlog as later
+work. **Recommend no second round unless something material comes back.**
 
 ---
 
@@ -871,10 +879,16 @@ stand. Do NOT delete it when you start; it says when to delete it.
 
 You are continuing slice 7.1: process/designs/ELEPHANT.md, the design for the elephant. §1–§7 are
 written, and its evidence is process/designs/SOURCES.elephant.md, a diff of SOURCES.md, written,
-reviewed and ruled. Your unit of work this session: §8, "what else was considered?". Gather its
-alternatives as HANDOFF.md's "What to do" says and put me the list before writing. Sort every finding
-as HANDOFF.md's "How findings are put now" says. Do not start the document review, do not write a
-plan, and dispatch no review beyond §8's own section review.
+reviewed and ruled. Your unit of work this session: §8, "what else was considered?". Write it from
+the record, with no interview: gather its alternatives as HANDOFF.md's "What to do" says and put them
+to me once, as one list I answer in one message, before writing. Sort every finding as HANDOFF.md's
+"How findings are put now" says. Do not start the document review, do not write a plan, and dispatch
+no review beyond §8's own section review.
+
+I want ELEPHANT.md finished with as few questions as possible; it can be improved later. Put a finding
+to me in full only if it would block building the design or contradicts a decision I have made.
+Everything else goes in one list I answer with "accept", or to the backlog as later work. Recommend no
+second review round unless something material comes back.
 
 Raise anything HANDOFF.md lists as open that bears on what you are doing, rather than deciding it
 for me.
