@@ -1,5 +1,8 @@
 # Sources — the evidence behind the method
 
+> **Pending change:** `SOURCES.elephant.md`. While it is being implemented, parts of what is built may
+> already follow it instead of this text.
+
 > **This document explains; it does not instruct.** `METHOD.md` holds the rules and wins wherever the
 > two disagree. Nothing here is a rule, and no agent needs to read this to do any piece of work.
 >

@@ -1,5 +1,7 @@
 # The elephant — the conversation before a document, and the writing of it
 
+> **Status:** finalised
+
 > **This is a design document about how work is done here, not about the system this repository
 > builds.** It belongs to the *about the work* family, and is one of that family's Layer 1 documents:
 > the specification of the elephant, read by somebody changing the process rather than by somebody
@@ -15,12 +17,6 @@
 > what each slice works from. After that it stays in force, and a later
 > change to the elephant either changes this file first, through an elephant of its own, or is made
 > directly in the process documents and checked against this file by a seam review (§6).
->
-> **`ROADMAP.md`'s slice 7.1 entry records what was decided, and wins wherever the two disagree, until
-> this design is signed off.** At close-out, once everything the entry records has been confirmed to
-> be in this file, the entry is cut to one line pointing here. This file says how the thing works and
-> what stands behind it. Where that entry says a document is
-> *finished* when *"the author saying so"*, it means what this file calls signing off.
 >
 > **It contains no plan.** The design is signed off, then it is cut into slices, and one plan is written
 > per slice when that slice is reached. A plan written now would be planning against a design that has
@@ -98,8 +94,8 @@ already caused here is on that side. `PILOT.md`, the guide to driving this proce
 one, and the author's only finding on reading it was that it never mentions the elephant at all. No check could have caught that, because nothing defined the conversation.
 
 Documents that already exist are not given one retroactively; a later change to one is proposed like any
-other. This document was written before the elephant existed, so the author ran the process by hand,
-and `ROADMAP.md`'s slice 7.1 entry is the result.
+other. This document was written before the elephant existed, so the author ran the process by hand, and
+`ROADMAP.md` recorded what was decided until the design was signed off.
 
 ### What the repository calls it today
 

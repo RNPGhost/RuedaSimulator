@@ -1,4 +1,4 @@
-> **Status:** draft
+> **Status:** finalised
 > **Amends:** `SOURCES.md`, written against `a93fac3`
 
 ### The three dispositions
