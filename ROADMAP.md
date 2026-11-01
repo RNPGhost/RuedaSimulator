@@ -314,8 +314,7 @@ it works and the evidence behind it. **This entry wins where the two disagree un
 off**; at close-out, once everything here is confirmed to be in `ELEPHANT.md`, it is cut to one line
 pointing there. `ELEPHANT.md` is in `process/designs/`, which the folder entry under *Deferred* defines.
 
-**Ten numbered sections, of which §8 is empty, and each of the others answers a question somebody will
-ask.** *Open questions* was dropped as a
+**Eight numbered sections, each answering a question somebody will ask.** *Open questions* was dropped as a
 section: one that survives is a checklist item carrying a disposition, and the checklist dies at
 close-out while a section would not.
 
@@ -328,9 +327,13 @@ close-out while a section would not.
 | 5 | what reviews run? |
 | 6 | what comes out, and what never does? |
 | 7 | what happens when a document is replaced? |
-| 8 | *empty*, with no heading: a design states what must be true, never what has to change to make it true, and the backlog entry *Inputs to cutting `ELEPHANT.md`* holds the notes for the cut. The numbers are closed up once §9's form is settled |
-| 9 | why is it like this? — written in the evidence document’s own entry format from the start |
-| 10 | what else was considered? |
+| 8 | what else was considered? |
+
+**Two questions have no section.** *What has to change to build it?* has none, because a design states
+what must be true, never what has to change to make it true; the backlog entry *Inputs to cutting
+`ELEPHANT.md`* holds the notes for the cut. *Why is it like this?* is answered by its evidence, a diff
+of the evidence document, `SOURCES.elephant.md`, written in that document's own entry format, as any
+process design's evidence is.
 
 **The authoring is cut two sections to a session**, on the grounds that the only variable ever measured
 as affecting instruction-following is how long a session has run.
@@ -356,7 +359,7 @@ those are new since the first draft of this entry.
   rows; the working files are deleted; and the document is declared finished, which is what releases it
   to be cut into slices. It changes nothing about the design. The evidence
   is a diff of `SOURCES.md`, with a back-index from source to the rules that use it and the departures,
-  and folds in once the slices that add the rules it backs are built.
+  and folds in at the process design's last slice.
 - **What becomes of the document afterwards is not a phase.** Usually nothing: the output is a
   specification and specifications live. Only in the rare case below is there anything to decide.
 
@@ -855,6 +858,38 @@ blocks the pathing rework.
   skill's selection no longer describe the file. **Recorded so that nobody tidies it without knowing
   what the tidying costs.** Whoever changes it should re-run the trigger scenario afterwards.
 
+- **Integrate this repository's `handoff` skill with the global one, once `ELEPHANT.md` is signed off.**
+  The author now keeps a global `handoff` skill on their claude.ai account. Claude Code syncs it as
+  `anthropic-skills:handoff`, and its source, specification and evals live in a repository of their
+  own, `../handoff-skill`. **Nothing here changes until then.** `/handoff` still resolves to the project
+  skill, because a project skill outranks a synced one with the same name. The global skill also steps
+  aside whenever a project has its own handoff skill. It waits because `ELEPHANT.md` §4 says what
+  `handoff` must do for a running elephant, and that design is not settled.
+
+  The global skill already does most of what the project skill does. It finds every decision by going
+  back through the session rather than from memory, and routes each to a durable document or to the
+  handoff. It carries rejected findings with their reasons, puts a fenced opening prompt both in the
+  reply and in the file, and deletes the handoff once the next session has begun on it. It differs in
+  four places, and each is to be ruled on rather than assumed:
+
+  1. It carries **one "because" per decision**: the constraint that would have to change for the
+     decision to change, tagged with where it came from and given a reopen condition. The project skill
+     carries no reasoning at all.
+  2. It keeps an **append-only decision log** for decisions that have no other home. Here the documents
+     already are that home, and inside an elephant so is the ledger.
+  3. It ends with a **goldfish check of the handoff itself**: a fresh subagent reads only what the next
+     session will get, and the writing session rules on its findings.
+  4. Its opening prompt asks the next session for a **read-back** before it acts.
+
+  **What stays project-specific is the elephant sweep** that slice 7.1's entry and `ELEPHANT.md` §3–§4
+  describe: finding running elephants by their `elephant/<name>/` directories, carrying the step reached
+  and any unruled review findings, and dispatching the interview review before a handoff taken
+  mid-interview. The project skill should keep only what this repository needs, and take the rest from
+  the global skill. The work touches `.claude/skills/handoff/SKILL.md`. It may also touch
+  `.claude/hooks/pre-compact-handoff.js`, whose message tells the agent to write the handoff where the
+  global skill only offers one. Changing the skill's description also means re-running the trigger
+  scenario, as the entry above says.
+
 - **Take the author's personal name out of every document that carries it.** This system must not depend
   on which person is at the keyboard, so a document says *the author* or *the user* — whichever the
   sentence actually means. Slice 6 writes the rule into `METHOD.md`; this entry is the sweep that
@@ -951,12 +986,13 @@ blocks the pathing rework.
 - **`SOURCES.md` hand-writes the size of its own source table, and nothing derives it.** The table
   under *The sources themselves* is introduced as *"Forty-one, in the order they entered the method.
   The first twenty-nine came from `METHOD.md`’s own list"* — and holds **34** rows, measured at
-  `9723548`. Slice 7.1 adds eleven more sources, which takes the true count to **45** and neither
+  `9723548`. Slice 7.1's evidence diff, `SOURCES.elephant.md`, adds forty-one rows, which takes the
+  table to **75** and neither
   stated number to it. **The count is the defect and the arithmetic is the symptom:** `METHOD.md`
   says every number a document quotes is derived in a generator that runs with the checks, and
   `test/sources.js` derives the breakdown by kind for the rules and nothing at all for this table.
   Fix it where it is derived, never by editing the two words. Noticed while writing `ELEPHANT.md`,
-  whose §6 is what adds the eleven.
+  whose evidence diff is what adds them.
 
 - **`METHOD.md`'s list of the *about the work* family's members is short of what the family holds.**
   Its families table names *"this file, the inventory, direction, the backlog"*, and leaves out
@@ -1044,7 +1080,9 @@ blocks the pathing rework.
   is completed by the second, which finds only what is still untrue; what the first run added beyond
   the design stays, as in any second cut (`ELEPHANT.md` §6). Its status line is set by hand —
   `finalised` at sign-off, then `implementation ongoing` and `active` as the first build starts and
-  ends — until a slice has given the skills the status rules.
+  ends — until a slice has given the skills the status rules. Its evidence is drafted as
+  `process/designs/SOURCES.elephant.md`, beside it, since it has no elephant's directory, and at
+  sign-off moves beside `SOURCES.md`, which gains its pointer line, by hand.
 
   **Places the design reaches, gathered while writing it** — a starting point for the comparison with
   the process documents, not a substitute for it:
@@ -1062,7 +1100,8 @@ blocks the pathing rework.
   - `goldfish/SKILL.md`: every review on the Opus tier at high effort, so *"Cheap for a section review"*
     goes; its opening calls a goldfish the least-informed reviewer, which the interview reviewer is
     not; a finding raised again shown with its earlier ruling; findings that stand without the report,
-    sorted so that only those bearing on a decision are put in full;
+    sorted, inside an elephant or not, so that only those the author would reasonably care about are
+    put in full, and a builder's choice is recommended as immaterial;
     its table of review kinds gains the interview, retirement and ledger reviews and the seam review
     after a direct edit.
   - Prompts: three new ones, for the interview, ledger and retirement reviews; the document prompt's

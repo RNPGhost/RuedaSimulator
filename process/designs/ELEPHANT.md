@@ -8,7 +8,8 @@
 > **It is the specification of the elephant, and stays current once it is built.** Once the design is
 > signed off it is cut into slices, whose plans bring the process documents — `METHOD.md`, the skills,
 > the reviewer prompts, the hooks and `PILOT.md` — and the checks, scripts and records it requires into
-> line with it, as code is brought into line with a specification, and add its evidence to `SOURCES.md`. Where it says what a process document says, or
+> line with it, as code is brought into line with a specification; the last of them folds in its
+> evidence, which waits until then as a diff beside `SOURCES.md` (§6). Where it says what a process document says, or
 > who reads one of its sections, it states what must be true once it is built; until then the process
 > documents as they stand are what is followed. Until the last slice is done, this file is
 > what each slice works from. After that it stays in force, and a later
@@ -88,7 +89,8 @@ does not need one still owes whatever `METHOD.md`'s table of what a change owes 
 A change that has one owes both.
 
 **The agent must propose because it cannot be trusted to decide.** Models are measured as unable to
-reliably tell a well-specified request from an underspecified one (§9). An agent that decided silently
+reliably tell a well-specified request from an underspecified one (`SOURCES.md`, *An elephant is
+optional, and proposing one is not*). An agent that decided silently
 would be making the judgement it is worst at, with nobody checking it.
 
 **It applies to documents about the work as well as to specifications**, and the one cost its absence has
@@ -119,7 +121,7 @@ where it returns* has nowhere to look it up.
 **The name *elephant* is kept.** It already ships in a skill, and the pairing — the elephant remembers
 the whole conversation, the goldfish was never part of it — is the method's central idea in two words.
 Every process document calls it *the elephant*, and none uses *design conversation* as a name for it.
-What was considered instead is in §10.
+What was considered instead is in §8.
 
 ### What `METHOD.md` says of the elephant
 
@@ -213,13 +215,15 @@ elephant, as §1 allows.
 ### It is not a way to produce a specification unattended
 
 **What it could have been:** an agent turning a short request into a complete specification by itself.
-Spec-driven frameworks lean that way: BMAD, one of those surveyed (§9), offers a questioning step and
+Spec-driven frameworks lean that way: BMAD, one of those surveyed (`SOURCES.md`, *Nothing goes past a
+ruling point without the author*), offers a questioning step and
 lets the user skip straight past it.
 
 **What it does instead:** the agent writes, and the author answers at each point where a ruling is
 owed; between them the agent may draft and run reviews, but nothing goes past one without the author. The elephant exists because the author holds knowledge the request does
 not state, and an agent writing alone fills those gaps by guessing. Models guess unstated requirements
-wrongly more often than they guess them right (§9).
+wrongly more often than they guess them right (`SOURCES.md`, *Nothing goes past a ruling point without
+the author*).
 
 **The cost, accepted:** the work waits at each ruling point until the author is there.
 
@@ -249,7 +253,8 @@ design out or to sign it off; it begins at the first item of step 8, and refuses
 is unfinished, naming that step. An abandonment asked for during step 8 is carried out as the
 `elephant` skill says, and the `close-out` skill says so. They are two, not one,
 because a skill is loaded when a request matches its description, and the start of a change and the
-end of a design, sessions later, are asked for in words that have nothing in common (§9). `PILOT.md`,
+end of a design, sessions later, are asked for in words that have nothing in common (`SOURCES.md`,
+*Two skills carry the elephant*). `PILOT.md`,
 the guide for a person driving this process, describes the elephant from the author's side: when the
 agent will propose one, and that they may call for one it did not, the four points where it stops for the author's ruling, which questions
 *"you decide"* does not answer, and how to abandon one. It mentions the working files only where
@@ -263,8 +268,8 @@ abandoning asks which to keep, and says nothing of how the reviews are run.
   The agent proposes ending it, and the author agrees or refuses.
 - **Each review finding** — from the interview review, each section review, the retirement review, the
   ledger review, and the
-  document reviews and seam reviews. Each finding is ruled on separately, one in a list of one-line
-  findings answered in one message included (§5), and gets one of three outcomes, each the author's
+  document reviews and seam reviews. Each finding is ruled on separately, including one put as a line
+  in a list the author answers in one message (§5), and gets one of three outcomes, each the author's
   decision about it:
   - **accepted** — the finding is right, and it is acted on;
   - **immaterial** — the finding is right, but it is not acted on, for a stated reason;
@@ -497,7 +502,8 @@ the design; a document's unit is its subject.
 
 **Which documents, and which sections each holds, is agreed at step 4.** The design is never written as
 one document and split afterwards: once the original and the pieces both exist, a change to one does not
-reach the other (§9). A document found to be missing during writing is new ground, raised as step 5
+reach the other (`SOURCES.md`, *A design's documents are agreed before it is written, and never split
+afterwards*). A document found to be missing during writing is new ground, raised as step 5
 says. If the author re-cuts the documents, sections move to their new home and no copy is left behind,
 and the ledger lines that named the old documents are reassigned with them.
 
@@ -535,14 +541,16 @@ structure.
 
 **Acting on a finding does not make a review run again by itself.** When it changes sections already
 written, the agent lists each section it changed, and the author decides whether each is reviewed again and whether
-any review at a later step that has already run is run again.
+any review at a later step that has already run is run again, on the agent's recommendation, which
+§5 says how to make and what a review it recommends covers.
 
 ## 4. The files an elephant creates
 
 **An elephant keeps its rulings and its open items in working files on disk, not in the conversation.**
 Each session starts with no memory of the last, and a list held only in the conversation loses items: on
 the first elephant run here, the checklist was retyped into each exchange — one question and its answer —
-and silently lost an item within two exchanges (§9). Where the elephant has got to, and any review
+and silently lost an item within two exchanges (`SOURCES.md`, *An elephant's working lists are kept on
+disk*). Where the elephant has got to, and any review
 findings still unruled, are recorded in the handoff that closes each session, as for any piece of work.
 This section is read by the agent running an elephant, and by whatever later needs to find one and see
 where it stands — chiefly the `handoff` skill.
@@ -591,7 +599,8 @@ or `delegated` where the author answered *"you decide"*. A document is written a
 repository; one that does not exist yet is written as the path agreed for it at step 4.
 
 **`checklist.md` — what the design must cover.** It is created when the interview begins, holding three
-items that designs habitually leave out (§9), each starting `open`:
+items that designs habitually leave out (`SOURCES.md`, *The checklist starts with what designs
+habitually leave out*), each starting `open`:
 
 ```
 - What the design deliberately does not do — open
@@ -758,14 +767,16 @@ recommends acting on is put as a question in the form §3 gives, the ways of act
 options. The `goldfish` skill presents every review's findings this way, inside an
 elephant or not.
 
-**Findings are sorted before they reach the author, so that the author's attention goes to the few
-that bear on a decision.** The agent applies one test to each: would accepting it or rejecting it
-change something the author has decided — in the interview, in a ruling since, or in what the design
-promises? A finding that would is put in full, as above. One that would not is put as one line, with
-the agent's recommended outcome, in a list the author answers in one message; that answer rules every
-item on the list, and the author may take any item out and rule on it apart. A finding about a detail
-the builder must choose, where no choice would differ in a way the author would care about, is one
-line recommended for rejection as the builder's choice. Where a builder could differ in a way that
+**Findings are sorted before they reach the author, inside an elephant or not, so that the author's
+attention goes only to what they would reasonably care about.** The agent applies one test to each:
+would accepting it or rejecting it change the substance of the design, bear on something the author
+has already decided — in the interview, in a ruling since, or in what the documents promise — or
+change what the author, or a user of the system, sees and does? A finding that would is put in full,
+as above. One that would not, such as an inconsistency in machinery the author never sees, is put as
+one line, with the agent's recommended outcome, in a list the author answers in one message; that
+answer rules every item on the list, and the author may take any item out and rule on it apart. A
+finding about a detail the builder must choose, where no choice would differ in a way the author would
+care about, is one line recommended as immaterial, the builder's choice. Where a builder could differ in a way that
 matters — above all where they might add a rule the design does not state, which a later cut leaves in
 place (§6) — the finding is put in full.
 
@@ -777,19 +788,36 @@ in the same way. A reviewer's job is to find
 faults, and finding faults is measured as rising steeply with model strength. In the closest study to
 this work, a check of written requirements, the tier below, Sonnet, wrongly flagged nearly twice as many sound
 requirements, and every false finding costs the author minutes, against about a dollar for the whole
-review (§9). The rule names a tier rather than saying *the most capable model*, because the most
-expensive model, Fable, scored below the Opus tier in the one code-review comparison that measured both (§9),
+review (`SOURCES.md`, *Every review runs on the Opus tier at high effort*). The rule names a tier rather
+than saying *the most capable model*, because the most expensive model, Fable, scored below the Opus
+tier in the one code-review comparison that measured both (the same entry),
 and a rule that left the choice to whoever read it would be no rule. The alias follows the newest Opus
 model, so moving to a newer one is not a change to this rule; moving off the tier is.
 
 **A reviewer from a different family of models is not used, although it would be the better
 reviewer.** A reviewer of the same model as the writer shares more of the writer's blind spots than a
-reviewer of another family, even with a fresh context, and that independence is measured as worth more
-than added strength (§9). The harness dispatches only Claude models, so this gain is out of reach, and
+reviewer of another family, even with a fresh context, and a reviewer of another family is measured as
+gaining most, the more so as models grow stronger (`SOURCES.md`, *A reviewer from another family of
+models is not used*). The
+harness dispatches only Claude models, so this gain is out of reach, and
 the cost is accepted.
 
-**A review is not run more than once to find more.** Separate runs rarely find the same faults (§9), so a
-second run would find more, but every run adds findings the author must rule on.
+**Another review is recommended for a reason, never run to find more.** Inside an elephant or not,
+once the accepted findings of a review have been acted on, the agent recommends whether any section,
+document or seam is reviewed again, and the author decides (§3). It recommends another review only
+where a finding that came back would have been put in full, by the test above, or where acting on one
+changed what a rule means, or rewrote so much of a section that it has in effect not been read;
+otherwise it recommends none, however many findings came back. A goldfish never comes back empty, and a
+review run again over the same text finds mostly what the last found and adds its least stable
+findings, so a round that brings back nothing the author rules material is where reviewing stops
+(`SOURCES.md`, *Another review is recommended for a reason, never run to find more*).
+
+**A review the agent recommends reaches what the change could have broken.** It covers the changed
+sections; the unchanged sections that cite one of them, or restate a name, value or rule the change
+touched, found by searching for each; and the seam with each other document that uses one of those
+names. A fix breaks text it never touched, and a reviewer asked only whether a text is consistent
+finds far less than one told where to look, so the dispatch names what changed and asks the reviewer
+to check every statement about it (the same entry).
 
 ### The interview review
 
@@ -842,7 +870,8 @@ which held fifteen types between them; the field names are the harness's and und
 whoever builds the extractor confirms them against a live transcript first.
 
 - Two types carry the conversation: `user` and `assistant`. Most `user` records are tool results, not
-  the author (§9).
+  the author (`SOURCES.md`, *The interview extract is filtered, and stops on what it does not
+  recognise*).
 - What the author typed is a `user` record whose content is plain text — a bare string — which has no
   `isMeta` field, the mark the harness puts on text it injected, and whose `origin` gives its kind as
   `human`. A notice that a background agent has finished is also a bare string with no `isMeta`, but
@@ -863,7 +892,7 @@ six of the twenty transcripts.
 found, when the extract is empty or holds only one side, and when it meets, within the turns it was
 given, a record type or a kind of block on neither of its lists. It never drops what it does not
 recognise: a renamed type that carried the conversation would halve the extract while the path still
-resolved and everything else still passed (§9). One transcript
+resolved and everything else still passed (`SOURCES.md`, the same entry). One transcript
 held nine types when this design began; on 2026-10-18 the most any one transcript held was fourteen, and
 the twenty held fifteen between them. An unknown type will recur.
 
@@ -896,6 +925,14 @@ section it replaces whole beneath it, which the dispatch names as the old text, 
 not reviewed. An added section is given on its own. A removed section gets no section review; the
 document review reads the document without it.
 
+**A section is reviewed again only on a recommendation.** `METHOD.md`'s table of when each review fires
+has the section review run when a section is finished *"and again once it settles"*, a second review
+that fires whatever the first one found. That row's first cell reads instead:
+
+> | Runs on | What fires | Which skill runs it |
+> |---|---|---|
+> | a section is finished, and again when the agent recommends it and the author agrees | the section review | `goldfish` |
+
 ### The ledger review
 
 **It checks that each ruling reached the document that was to hold it.** The reviewer is given the
@@ -918,7 +955,8 @@ need a ruling, so the interview would never end.
 
 **It has a prompt of its own, not the seam prompt and not a script.** Measured against the seam prompt,
 five of its eight categories do not apply and one inverts: it would report every ruling that landed as
-the same decision stated in two places (§9). It is not a script because deciding whether a document
+the same decision stated in two places (`SOURCES.md`, *The ledger review has a prompt of its own*). It
+is not a script because deciding whether a document
 says a ruling is a judgement about meaning, and no script reads the ledger (§4).
 
 **It runs again before close-out** over every entry added or changed since it last ran, and every entry
@@ -1116,6 +1154,9 @@ itself which of its non-goals become rules in the process documents, restated po
 evidence is not a section of it: an elephant on the process writes the evidence for its rules as a diff
 of `SOURCES.md`, in that document's own entry format, since `SOURCES.md` takes diffs like any
 specification. That diff is one of the documents agreed at step 4, and is reviewed like any other.
+It is never cut into slices of its own: its status follows the process design's, it is checked against
+`SOURCES.md` when the process design's first slice is about to start, as any diff is before its own
+(below), and it folds in as the last step of the process design's last slice.
 
 **A process document is never put in place at close-out.** Where a process design calls for a new
 process document, or a change to an existing one, the slice that carries out that part makes it. Its
@@ -1165,6 +1206,13 @@ why?*** It also says where the process documents' reasoning lives, in this line:
 
 So only an elephant on the process owes evidence in `SOURCES.md`. A specification's reasoning
 is already in the specification.
+
+**Each rule a process design adds to `METHOD.md`, and each other rule it backs with evidence, has an
+entry in `SOURCES.md` declaring its kind.** Evidence that was published or measured is stated in that
+entry, and the design cites the entry by its rule's name rather than restating it. An entry of the kind
+*reasoned* names, by its heading, the section of the design that holds the argument, and does not
+restate it: the argument stays in the design, with its non-goals and rejected alternatives, so that it
+is written once.
 
 ### The status of a specification
 
@@ -1323,7 +1371,7 @@ sign-off, which approves the proposal as amended. What moves out of a process de
 | a diff specification | beside its target, marked `finalised`; the target gains its pointer |
 | a process design | its final path, in `process/designs/`, marked `finalised` |
 | a successor to an `active` specification it replaces | beside it, named as a diff is, marked `finalised`; each gains its pointer line (§7) |
-| a diff of `SOURCES.md` holding a process design's evidence | beside `SOURCES.md`, marked `finalised`, like any diff; it folds in once the rules it backs are built, each source indexed back to the rules that use it and to any place the process departs from it |
+| a diff of `SOURCES.md` holding a process design's evidence | beside `SOURCES.md`, marked `finalised`, like any diff; it folds in at the process design's last slice, each source indexed back to the rules that use it and to any place the process departs from it |
 | a process document drafted in a process design | made by the slice that carries out that part, which replaces the drafted text with a one-line pointer to it |
 | a process design's non-goals and rejected alternatives | the process design, where a later elephant reads them (§7). A non-goal the design turns into a rule also reaches the process documents, through the slices |
 | entries the elephant added to the backlog | the backlog, unchanged |
@@ -1340,8 +1388,8 @@ back (§3, *What goes back*). Close-out itself writes no design into any documen
 lines and the review record's rows.
 
 **A process design's evidence is a diff of `SOURCES.md`**, written in that document's own entry format,
-so that nothing is translated or moved later: translation is where content is lost. It folds in like
-any diff, once the slices that add the rules it backs are built.
+so that nothing is translated or moved later: translation is where content is lost. It folds in at
+the process design's last slice (*What it produces*).
 
 ### The review record
 
@@ -1545,7 +1593,7 @@ that document's rejected alternatives**, looking through its text for what it re
 section for them, and asks the author in the interview whether each one's reason still holds, recording
 each answer as a ledger line (§4). One whose reason no longer holds is an alternative to reconsider,
 which is why rejected alternatives are kept in the document at all. Nothing records where an alternative
-was first rejected; that would need an archive, and §10 says why there is none.
+was first rejected; that would need an archive, and §8 says why there is none.
 
 ### What `METHOD.md` says of a replaced document
 
