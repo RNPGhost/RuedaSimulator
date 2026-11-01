@@ -1608,3 +1608,221 @@ an exception, and reads in full:
 > The one exception is a document an elephant replaced side by side, kept in force beside its successor
 > until that was built: the retirement review settled long before what was carried and what was
 > dropped, so the deleting commit's message only names its successor.
+
+## 8. What else was considered
+
+**Each alternative here was considered while this design was settled and turned down; this section
+names every one, and says where the design settles it and why.** It is read by a later elephant that replaces,
+extends or changes this design, which asks the author whether each reason still holds (§7, *What a
+later elephant reads*), and by the retirement review if this design is ever replaced. Things the
+elephant could have done and deliberately does not are its non-goals, in §2, not here. An alternative,
+here, is a choice the design gives a reason against; a rule stated without one is not listed. One
+argued nowhere else in the design has an entry of its own below, saying what it would have been, what
+the design does instead, and why not. One already argued in the section that settles it is listed in
+the table at the end, with that section, so that this section names every alternative the design
+rejects.
+
+### A premortem before the document review
+
+Before the document review, the author and the agent would imagine that the design had failed, and
+list the reasons it might have.
+
+**Instead:** the document review asks whether the design, doing exactly what it says, would still fail
+the purpose its document states (§5, *The document review and the seam review*).
+
+**Why not:** the result the technique rests on, prospective hindsight, measures how many explanations
+people produce, not how many defects they find (Klein, *Project Premortem*). The technique is aimed at
+dissent that the members of a committed team hold back from one another, which does not arise with one
+author; the agent's own readiness to agree is what imperative Two attacks. The only premortem work for
+models is about avoiding harm, not reviewing a design (InvThink). And a critic told only to be
+adversarial scored below the baseline until it was made to give one of three discrete verdicts
+(`SOURCES.md`, *A reviewer argues, and grounds what it claims*).
+
+### A step passed to the `handoff` skill
+
+Whoever loads the `handoff` skill would tell it which step each elephant has reached.
+
+**Instead:** the skill finds each running elephant by its directory, once step 1 has created it and
+unless its ledger holds the abandoned entry. A session that opens reads the step reached from the
+handoff that closed the last session; a session that closes knows it from its own work (§4, *What they
+tell a later session*).
+
+**Why not:** a skill told the wrong step runs correctly and does the wrong thing, and nothing shows
+it. A directory is there or it is not, and the handoff was written by the session that did the work.
+
+### The interview review as inline instructions
+
+The interview review's instructions would be written into the `elephant` skill, rather than kept as a
+prompt file.
+
+**Instead:** it has a prompt file of its own, as every other review does (§5).
+
+**Why not:** a prompt is worded to draw a particular kind of report, and restating it in other words
+changes what it draws. A check confirms that every prompt file exists and is named where it is used;
+instructions written into a skill have no edge such a check can find.
+
+### Two loops in `PILOT.md`
+
+`PILOT.md` would describe the process as two loops, one that designs a document and one that builds
+from it.
+
+**Instead:** `PILOT.md` describes the elephant from the author's side (§3), as the part of the process
+that comes first when one runs.
+
+**Why not:** the design comes first and the build follows it, so the two are one sequence. Splitting
+it into two loops draws a distinction that changes nothing the author does.
+
+### An elephant only for new documents
+
+The elephant would be used only to write a new document, and a change to an existing one would be
+made some other way.
+
+**Instead:** at the start of any change that would produce new or changed intent, a new document about
+the work, or a change to what an existing one requires, the agent must raise whether it needs one
+(§1), and a change to an existing document goes through one as §6 and §7 say.
+
+**Why not:** a change to an existing document can need the conversation as much as a new one does,
+and the interview's stopping rule, not the size of the change, bounds how long it runs. A design bug,
+one of the uses §1 lists, is in a document that already exists.
+
+### A mandatory elephant
+
+An elephant would be required for every change to a listed set of documents, with a list of
+exemptions.
+
+**Instead:** the elephant is optional, and proposing it is not (§1). The record and the check that
+would have enforced it are §2's non-goal *Nothing checks that an elephant ran*.
+
+**Why not:** a heavy process required for a corrected edge case is one that gets skipped, and skipping
+any of it teaches that all of it is optional. Google's practice skips the design document where the
+problem is not ambiguous (`SOURCES.md`, *An elephant is optional, and proposing one
+is not*). `METHOD.md` already decides what a change owes by what it produces, and a trigger keyed to
+which documents were touched needed exemptions bolted onto it.
+
+### The name *design conversation*
+
+The elephant would be called the *design conversation*, the phrase `METHOD.md` and the `bug` skill
+already use.
+
+**Instead:** it is called the elephant (§1, *What the repository calls it today*).
+
+**Why not:** it has no counterpart: *elephant* pairs with *goldfish*, which is why §1 keeps it. And
+`FORMATIONS.md` already uses the phrase twice for one particular conversation.
+
+### Skills named `interview` and `sign-off`
+
+The two skills would be named for the words the author is likely to use when each is wanted.
+
+**Instead:** they are `elephant` and `close-out` (§3).
+
+**Why not:** `interview` names only step 2 of the steps its skill runs, and `sign-off` only the third
+item of close-out; the design's own names for that work are *the elephant* and *close-out*. A skill named `elephant` also gives the `bug` skill's
+*"The elephant is where it returns"* somewhere to be looked up.
+
+### The three outcomes for checklist items
+
+Each checklist item would be ruled accepted, immaterial or rejected, as a review finding is.
+
+**Instead:** an item is open, answered or omitted with a reason (§3, step 2).
+
+**Why not:** all the checklist must enforce is that a topic left out on purpose and one forgotten do
+not look alike, which answered and omitted already do. A near-copy of the three outcomes findings get
+would be harder to keep apart from them, and would add nothing.
+
+### A pointer from each ruling to its section
+
+Each ledger line would name the section that holds its ruling, and a check would confirm that the
+section exists.
+
+**Instead:** a reviewer reads the documents for each ruling (§5, *The ledger review*).
+
+**Why not:** each ruling's line would have to name the section that ends up holding it, which is known
+only once that section is written and changes whenever the writing moves a ruling, so the ledger would
+become a maintained document, not a record of rulings. An agreed section's entry names a title agreed
+at step 4, not where a ruling lands.
+
+### An open question about what else to discuss
+
+The question of what else the author wants to discuss would be asked open-ended.
+
+**Instead:** it offers a list of named areas, together with *nothing else* (§3, step 2).
+
+**Why not:** while this design was settled, the question was asked open-ended, in a form the author
+had already rejected, and went unanswered as the step closed. The one question the interview may not
+skip was skipped on its first use.
+
+### A section of open questions
+
+A design would carry a section of the questions still open when it was written.
+
+**Instead:** an open question is a checklist item, and none is open when writing begins (§3, step 4).
+
+**Why not:** a question left open would survive in a section, inside a document that states what must
+be true, after the checklist that could have closed it is gone at close-out.
+
+### A section of what has to change
+
+A design would list what must change in the process documents to build it, or, in a form that stays
+true once built, which process document carries each of its parts.
+
+**Instead:** the design states what must be true, and each slice's plan finds what to change by
+comparing it with the process documents as they are (§6, *What it produces*).
+
+**Why not:** a list of changes turns false part by part as the slices land, which puts something
+that expires inside a document that lasts (imperative Five). A section mapping every part to the document
+that carries it would be the map's job, since it says what lives where. Where a part's home is itself
+a requirement, as `METHOD.md` defining the elephant is, the design states it as one.
+
+### An archive of rejected alternatives
+
+A record would be kept of where each alternative was first rejected, surviving the documents that
+rejected it.
+
+**Instead:** a document keeps its own rejected alternatives, and a successor carries those the author
+rules carried on the retirement review's findings (§7).
+
+**Why not:** knowing where an alternative was first rejected is not worth a maintained record, and
+that one may be proposed again is a cost the author accepted. A later elephant asks whether each
+reason still holds (§7, *What a later elephant reads*), which is what keeping them is for. Spent plans
+have no archive either: the deleting commit, the review record's block, which outlives the plan with
+the state `spent`, and the change log, `CHANGELOG.md`, already record them, and the rule that a plan is deleted rests
+on the harm of keeping one (`SOURCES.md`, *Plans are deleted after execution*).
+
+### Alternatives argued in other sections
+
+| The alternative | Where the design settles it |
+|---|---|
+| one skill carrying the whole elephant | §3, the paragraph on its two skills |
+| writing the design as one document and splitting it afterwards | §3, *When the design spans several documents* |
+| the agent recommending one of the areas it offers when asking what else to discuss | §3, step 2 |
+| *"you decide"* as an answer to a *nothing covers this* claim | §3, *The four points in the process* |
+| the agent proposing to go back to an earlier step | §3, *What goes back* |
+| the working lists held in the conversation | §4, its opening |
+| one working file holding both the checklist and the ledger | §4, *Why the checklist and the ledger are separate* |
+| the working files kept under `plans/` | §4, *Where they live* |
+| a summary of the interview in place of an extract | §5, *The interview review* |
+| an extractor that drops what it does not recognise | §5, *The interview review* |
+| a cheaper model for some reviews, or the most expensive one | §5, *How every review is run* |
+| a reviewer from another family of models | §5, *How every review is run* |
+| a section review that runs again whatever the first found, or reviews run until one comes back empty | §5, *How every review is run* and *The section review* |
+| every finding put to the author in full | §5, *How every review is run* |
+| the seam prompt, or a script, for the ledger review, and a ledger review in both directions | §5, *The ledger review* |
+| a separate check for a decision restated in two documents, and seam reviews only between documents that cite each other | §5, *The document review and the seam review* |
+| a diff specification reviewed on its own | §5, *Reading a document as it will be* |
+| rows in `REVIEWS.md` for the interview, retirement and ledger reviews, and rejected findings kept past close-out | §5, *What is kept of a review* |
+| writing the design into a live document | §1, *The definition*, and §6, *What it produces* |
+| a change to the process drafted against a process document | §6, *What it produces* |
+| a process document put in place at close-out, or its drafted text kept once it is made | §6, *What it produces* |
+| one elephant designing both the process and the system | §6, *What it produces* |
+| the evidence as a section of the design, or written straight into `SOURCES.md` | §6, *What it produces* and *The sort at close-out* |
+| the seam review after a direct edit run by one of the elephant's two skills | §6, *What it produces* |
+| a specification's state kept anywhere but its status line | §6, *The status of a specification* |
+| a status that says which parts are built | §6, *The status of a specification* |
+| checks that each keep a list of files nothing else checks | §6, *The status of a specification* |
+| two diffs against one target built at once | §6, *A diff specification, from sign-off to fold-in* |
+| a diff against a specification that is not `active` | §6, *A diff specification, from sign-off to fold-in* |
+| `REVIEWS.md` rows written at fold-in rather than at sign-off | §6, *The review record* |
+| a copy of the conversation kept | §6, *What never comes out* |
+| the old and the new document run side by side behind a switch | §7, *What replacing means* |
+| a process document replaced through an elephant | §7, *What replacing means* |
+| the agent listing what a replaced document says, in place of a reviewer | §7, *The retirement review* |

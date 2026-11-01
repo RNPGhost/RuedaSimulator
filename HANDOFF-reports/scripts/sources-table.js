@@ -91,8 +91,8 @@ add('[Teaching requirements elicitation interviews](https://link.springer.com/ar
 add('[OntoAgent](https://arxiv.org/pdf/2605.05828)', 'structured question selection: +33% elicitation effectiveness');
 add('[Follow-Up Question Generation](https://arxiv.org/pdf/2507.02858)', 'model follow-ups better when guided by a taxonomy of interviewer mistakes');
 add('[LLMREI](https://arxiv.org/abs/2507.02564)', '33 simulated interviews: a model interviewer errs about as often as a human');
-add('[Klein, *Project Premortem*](http://homepages.se.edu/cvonbergen/files/2013/01/Performing-a-Project-Premortem.pdf)', 'prospective hindsight. Read, and rejected; `ROADMAP.md`\'s slice 7.1 entry says why');
-add('[InvThink](https://arxiv.org/abs/2510.01569)', 'premortem reasoning for models: harm avoidance only, nothing on design review. Read, and rejected; `ROADMAP.md`\'s slice 7.1 entry says why');
+add('[Klein, *Project Premortem*](http://homepages.se.edu/cvonbergen/files/2013/01/Performing-a-Project-Premortem.pdf)', 'prospective hindsight. Read, and rejected; `ELEPHANT.md` says why, under *A premortem before the document review*');
+add('[InvThink](https://arxiv.org/abs/2510.01569)', 'premortem reasoning for models: harm avoidance only, nothing on design review. Read, and rejected; `ELEPHANT.md` says why, under *A premortem before the document review*');
 add('[Shefa et al.](https://arxiv.org/pdf/2609.03230)', 'requirements checking, ten models: Opus 4.7 wrongly flagged 11% of sound requirements, Sonnet 4.6 20%');
 add('[ProcessBench](https://arxiv.org/pdf/2412.06559)', 'first-error finding rises steeply with model strength; weak models flag everything or nothing');
 add('[CriticGPT](https://arxiv.org/html/2407.00215v1)', 'larger critics miss fewer bugs; critics nitpick and invent bugs more than humans');

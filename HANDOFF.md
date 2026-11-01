@@ -1,4 +1,4 @@
-# Handoff — `ELEPHANT.md`: §9 is done as the evidence diff; next, §8
+# Handoff — `ELEPHANT.md`: all eight sections written; next, the document review
 
 > **Do not delete this file when you start.** Everything under *Not yet durable* exists nowhere else.
 > **Delete it, and `HANDOFF-reports/` with it, once each of those has a home** — at that point this
@@ -16,21 +16,22 @@ rest of `METHOD.md`** — open it now.
    never written in place*. It wins wherever `ELEPHANT.md` disagrees with it, until sign-off.
 3. **`ROADMAP.md`**, *Deferred*: the folder entry *"Separate the process documents from the content
    documents"*, and the new last entry, *Inputs to cutting `ELEPHANT.md`*.
-4. **`process/designs/ELEPHANT.md`**, all of it. §1–§7 are written; §8, *what else was considered?*, is
-   the next to write.
+4. **`process/designs/ELEPHANT.md`**, all of it. All eight sections are written; §8, *what else was
+   considered?*, is the newest.
 5. **`process/designs/SOURCES.elephant.md`**, the design's evidence, a diff of `SOURCES.md`; and
    **`SOURCES.md`** for its entry format.
 6. **`REVIEWS.md`**, and **`.claude/skills/goldfish/SKILL.md`** for the order findings are presented in.
 7. **`HANDOFF-reports/`** — every report in it is ruled. `I-sources-diff.md` is the diff's section
-   review; `J-review-rerun-research.md` is the research behind the re-review rules; `scripts/` holds the
+   review; `K-section8.md` is §8's; `J-review-rerun-research.md` is the research behind the re-review rules; `scripts/` holds the
    generator for the diff's sources table and the script that applies the diff to a copy. Read them only
    when you need them.
 
 ## Where things stand
 
-- **The design has eight sections, and seven are written.** The old §8 was removed and §9 became a
-  diff of the evidence document, `process/designs/SOURCES.elephant.md`, so the old §10 is now §8, *what
-  else was considered?*, not yet written. `ROADMAP.md`'s section table says why two questions have no
+- **The design has eight sections, all written.** §8, *what else was considered?*, was written from the
+  record, with no interview: an entry for each alternative argued nowhere else, and a table of those
+  argued elsewhere, with a stated test of what counts as one. Its section review ran once (report K),
+  and every finding is ruled and applied. `ROADMAP.md`'s section table says why two questions have no
   section. No "(§9)" citation is left: each names `SOURCES.md` and its entry.
 - **`SOURCES.elephant.md`** is `draft`, written against `a93fac3`: 23 added entries, *The three
   dispositions* removed for *The three outcomes*, the departures section held whole with five
@@ -42,22 +43,22 @@ rest of `METHOD.md`** — open it now.
 - **Its section review ran once and every finding is ruled and applied** (report I). The re-review
   rules were then researched and redrafted in `ELEPHANT.md` §3 and §5, and approved as written. What
   each session ruled is under *Not yet durable*.
-- **Uncommitted:** everything since `a93fac3` — this session's edits to `ELEPHANT.md`, `ROADMAP.md`
-  and this file, and the new `SOURCES.elephant.md`, `HANDOFF-reports/I-sources-diff.md`,
-  `J-review-rerun-research.md` and `scripts/`. `test/visual.js` cannot run here.
+- **Uncommitted:** everything since `4f91cac` — §8 of `ELEPHANT.md`, the generator's two lines in
+  `HANDOFF-reports/scripts/sources-table.js` and the table it regenerated in `SOURCES.elephant.md`,
+  this file, and the new `HANDOFF-reports/K-section8.md`. `test/visual.js` cannot run here.
 
 ## What to do
 
 **The author wants `ELEPHANT.md` finished with as few questions as possible**, and improved later
 through a later elephant rather than now. Three instructions follow from that, and hold to sign-off.
 
-**Recommended unit of work: §8, *what else was considered?*** Write it from the record, with no
-interview: the ruling waiting for it below; the alternatives `ROADMAP.md`'s slice 7.1 entry records as
-rejected, such as *A premortem before the document review*; the rejected sources, Klein's premortem and
-InvThink; and every ruling under *Not yet durable* that turned an option down. Put the gathered list to
-the author once, as one list they answer in one message, before writing. Do not apply anything unasked. After a ruling, apply by assertion-checked script, carry each
-change to every passage that depends on it, record the rulings here, and run the eleven checks. If §8
-cites evidence, the entry goes in `SOURCES.elephant.md` and the table is regenerated.
+**Recommended unit of work: the document review** of `ELEPHANT.md`, of `SOURCES.elephant.md` as
+applied to `SOURCES.md`, and of the seam between them, through the `goldfish` skill, on the Opus tier
+at high effort. Give each reviewer the whole of `METHOD.md` as a dependency. Bring to it the two items
+carried below under *§8's session*, as findings of your own. Do not apply anything unasked. After a
+ruling, apply by assertion-checked script, carry each change to every passage that depends on it,
+record the rulings here, regenerate the sources table after any entry changes, and run the eleven
+checks.
 
 **How findings are put now** is `ELEPHANT.md` §5's sorting paragraph: a finding is put in full only if
 the author would reasonably care — it changes the design's substance, bears on a decision already
@@ -67,8 +68,8 @@ bar is still shown, never dropped. **Whether another review runs** is §5's *Ano
 recommended for a reason, never run to find more*: recommend one only for a finding that would have been
 put in full, or a fix that changed a rule's meaning or rewrote a section; the author decides.
 
-The cut after §8: the document review of `ELEPHANT.md` and `SOURCES.elephant.md`; then close-out,
-raising open question 2, and sign-off. `HANDOFF-reports/` is spent once this file is.
+After the document review: close-out, raising open question 2, and sign-off. `HANDOFF-reports/` is
+spent once this file is.
 
 **In the document review, put a finding in full only if it would block building the design or
 contradicts a decision the author has made.** Everything else goes in the one-line list the author
@@ -107,7 +108,10 @@ work. **Recommend no second round unless something material comes back.**
 2. **What close-out means for `ELEPHANT.md` itself**, which was written by hand, with no ledger and no
    elephant directory: which items of §3 step 8 apply, what stands in for the ledger review, and how
    `ROADMAP.md`'s entry is confirmed to be in `ELEPHANT.md` before it is cut to a pointer (D10). Round H
-   A-B1 was accepted as this question. Raise at close-out.
+   A-B1 was accepted as this question. Raise at close-out. Two things bear on it from §8's session: §8
+   is where the entry's *"Rejected while designing it"* list now lives, and the entry's *"with the
+   stage inferred from the tree: their presence on disk is the stage"* disagrees with §4 and §8, which
+   read the step from the last handoff.
 3. **Answered (§9's session):** the evidence is a diff, `SOURCES.elephant.md`, drafted in
    `process/designs/` and moved beside `SOURCES.md` at sign-off; it has no slices of its own and folds
    in at the design's last slice; a reasoned entry names the design's section and does not restate it.
@@ -125,6 +129,37 @@ work. **Recommend no second round unless something material comes back.**
    design carry its own reasoning; and **G1**, a duplicate of report A's A2. Raise before §9.
 4. **Answered:** the planned section review of every passage changed in rounds G and H is cancelled.
    Those passages, and every edit since, are first read at the document review.
+
+### §8's session — rulings, all applied
+
+- **The stage entry** (put in full): §8 records the rejected alternative narrowly, as a stage passed to
+  the `handoff` skill by whoever loads it; §4, which reads the step from the last handoff, is unchanged.
+  `ROADMAP.md`'s *"their presence on disk is the stage"* still says otherwise, and is reconciled at
+  close-out, under open question 2.
+- **The list, accepted whole (*"Accept all"*):** A, §8's shape — an entry of its own, `###`, for each
+  alternative argued nowhere else, and a closing table of those argued elsewhere with their sections;
+  B, the fourteen entries; C, the table's rows; D, what is left out — round H Q1's build options (the
+  backlog holds them), deferring as an option (a rule in §3, no reason on record), the *interrogation*
+  rename (no reason on record), the transcripts not mined for every option turned down, and no
+  rejected or immaterial finding promoted into §8; E, rows 59–60 of `SOURCES.elephant.md` point at
+  `ELEPHANT.md`'s premortem entry, through the generator script, table regenerated; F, no new
+  `SOURCES.md` entries, since a rejected alternative is not a rule; G, the waiting ruling cleared.
+- **Two stale standing notes** naming the old §8 — *"where the `METHOD.md` wording is placed is §8's"*
+  and *"§8 orders before the check"* — ruled immaterial.
+- **Applied:** §8 written whole, by one assertion-checked block; the generator's two lines by two. The
+  applied copy of `SOURCES.md` passes `test/sources.js` (61 entries) and `test/dedupe.js`; the eleven
+  checks are green.
+- **Report K, §8's section review, accepted whole (*"Accept all"*), applied by 21 scripted edits:**
+  finding 1 in full — ten alternatives the body argues against added to the table in nine rows, the
+  test *"a choice the design gives a reason against; a rule stated without one is not listed"* stated,
+  the column renamed *"Where the design settles it"* (C8), and the opening reworded (A7); and every
+  one-line item — B2 (the opening session reads the step, the closing one knows it), A1, A2, A3, A4,
+  *stage* renamed *step* in the heading, `CHANGELOG.md` named, C1, C2, C3, C4, C7, C9, C10, *"the part
+  that comes first when one runs"*, and *"the author rules carried"*. No second round, as recommended.
+- **Carried to the document review, outside §8:** C5 — §5's *"That row's first cell reads instead:"* and
+  §6's *"gains this row:"* are worded as changes, against Q2; and `SOURCES.elephant.md`'s *Every review
+  runs on the Opus tier at high effort* says the high effort setting is argued in §5, where §5 says only
+  that it is *"fixed in the same way"*.
 
 ### §9's session — rulings, all applied by one script of thirteen edits
 
@@ -184,6 +219,8 @@ work. **Recommend no second round unless something material comes back.**
 
 ### Text no review has read since it changed
 
+- **§8's session, after its section review:** report K's 21 edits to §8, and rows 59–60 of
+  `SOURCES.elephant.md`.
 - **§9's session, after its section review:** `SOURCES.elephant.md`'s 23 ruled edits and its renamed
   re-review entry; the 13 rewritten "(§9)" citations; §5's two re-review paragraphs, §5 *The section
   review*'s `METHOD.md` row, and §3 *What goes back*'s recommendation clause; §5's trimmed
@@ -248,9 +285,7 @@ work. **Recommend no second round unless something material comes back.**
 
 ### Rulings waiting for the section that is their home
 
-| Ruling | Home |
-|---|---|
-| *"Not for new documents only"* is a rejected alternative | §8 |
+None. *"Not for new documents only"* is §8's *An elephant only for new documents*.
 
 ### Round H rulings on findings — accepted, all applied
 
@@ -303,6 +338,14 @@ target brought to that commit's numbers"*); G-B1 to §6 *The review record* (a s
 E-B3 to the reworked diff being *"renamed after"* its new elephant.
 
 ### Rejected and immaterial findings — carried until close-out (§5's rule)
+
+*Report K, §8's section review* (§8's session) — **immaterial:** A5 (a row naming two alternatives is
+two questions), A6 (the argument is against a copy of all three outcomes, not one shared word).
+**Reject:** `spent` (checked, `REVIEWS.md` defines it); C6 (the design states what is true once built,
+and §3 renames the outcomes); Klein and InvThink without entries (ruling F); the incident, *"skipping
+teaches"*, the two-loops reason (the author's own accounts and reasons); re-proposal *"a cost the
+author accepted"* (checked, `ROADMAP.md` says it); the incident not showing a fault in the open form
+(the author's reason for the ruling); the premortem's evidence restated (ruling F).
 
 *Report I, the diff's section review* (§9's session) — **reject:** A3 (a reasoned entry may carry
 adjacent sources, as `SOURCES.md` already does); the ClaudeFlows attribution concern (its page has the
@@ -838,6 +881,12 @@ They stand unless the author uses the word.
   *"reviewed as it settles"* left (*settles*); the re-review rules applying outside an elephant too
   (*elephant-only*); the two scripts and the research report copied into `HANDOFF-reports/` (*temp*).
 
+- §8's session: the transcripts not mined for every option turned down (*mine*); §8's section review
+  run on the Opus tier at high effort, against the `goldfish` skill's *"Cheap"* (*cheap*); its report
+  copied into `HANDOFF-reports/K-section8.md` (*temp*); §8's entries labelled **Instead:** and **Why
+  not:** (*prose*); the reviewer given `ELEPHANT.md`, `METHOD.md` and the applied `SOURCES.md` whole
+  (*trim*); the reviewer's ten alternatives put in nine table rows, two of §5's in one (*split*).
+
 ---
 
 ## What has gone wrong repeatedly
@@ -877,13 +926,11 @@ Continue the Rueda Simulator methodology rework on branch engine/pathing_rework.
 first — it is at the repository root and tells you what to read, in what order, and where things
 stand. Do NOT delete it when you start; it says when to delete it.
 
-You are continuing slice 7.1: process/designs/ELEPHANT.md, the design for the elephant. §1–§7 are
-written, and its evidence is process/designs/SOURCES.elephant.md, a diff of SOURCES.md, written,
-reviewed and ruled. Your unit of work this session: §8, "what else was considered?". Write it from
-the record, with no interview: gather its alternatives as HANDOFF.md's "What to do" says and put them
-to me once, as one list I answer in one message, before writing. Sort every finding as HANDOFF.md's
-"How findings are put now" says. Do not start the document review, do not write a plan, and dispatch
-no review beyond §8's own section review.
+You are continuing slice 7.1: process/designs/ELEPHANT.md, the design for the elephant. All eight
+sections are written and section-reviewed, and its evidence is process/designs/SOURCES.elephant.md, a
+diff of SOURCES.md, written, reviewed and ruled. Your unit of work this session: the document review,
+as HANDOFF.md's "What to do" says. Sort every finding as HANDOFF.md's "How findings are put now" says.
+Do not start close-out, do not write a plan, and dispatch no review beyond the document review's own.
 
 I want ELEPHANT.md finished with as few questions as possible; it can be improved later. Put a finding
 to me in full only if it would block building the design or contradicts a decision I have made.
