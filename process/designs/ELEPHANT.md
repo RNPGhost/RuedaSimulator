@@ -845,16 +845,19 @@ directory that holds the session's scratch directory, which is itself named `scr
 2026-10-25. Other sessions' transcripts sit in the same directory, so the newest file
 there is not necessarily this session's; the file named after the session id is. Measured on
 2026-10-18: exactly one file under `~/.claude/projects/` carried the measuring session's id, and each of the
-twenty transcripts in this project's directory carried exactly one session id, its own name. None of
-this is documented by the harness, and it may move.
+twenty transcripts in this project's directory carried exactly one session id, its own name. A resumed
+conversation is written to a new file under a new session id, holding copies of the earlier records with
+their ids unchanged: measured on 2026-10-31, five transcripts in this project's directory, from
+2026-08-29 and 2026-08-30, began with exact copies of the records of earlier ones. None of this is
+documented by the harness, and it may move.
 
 **Where the extract begins and ends.** The dispatching agent chooses both turns and passes them to the
 extractor. The extract begins at the first of these that applies:
 
 - the author turn that reopened the interview, when it was reopened in this session, so that the
   questions asked while writing are left out (§3, step 3);
-- the first author turn after the last one the previous interview review covered, when that turn is in
-  the same transcript;
+- the first author turn after the last one the previous interview review covered, when the record of the
+  last turn it covered is in this session's transcript, as a copied record is after a resume;
 - this session's first turn of the interview, so that whatever the session did before it is left out.
 
 It ends at the author's agreement to end the interview or, for a review run as the session is handed
