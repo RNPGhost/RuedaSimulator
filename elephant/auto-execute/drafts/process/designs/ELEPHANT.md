@@ -1,6 +1,6 @@
 # The elephant — the conversation before a document, and the writing of it
 
-> **Status:** finalised
+> **Status:** draft
 
 > **This is a design document about how work is done here, not about the system this repository
 > builds.** It belongs to the *about the work* family, and is one of that family's Layer 1 documents:
@@ -8,19 +8,21 @@
 > following it (§6).
 >
 > **It is the specification of the elephant, and stays current once it is built.** Once the design is
-> signed off it is cut into slices, whose plans bring the process documents — `METHOD.md`, the skills,
-> the reviewer prompts, the hooks and `PILOT.md` — and the checks, scripts and records it requires into
-> line with it, as code is brought into line with a specification; the last of them folds in its
-> evidence, which waits until then as a diff beside `SOURCES.md` (§6). Where it says what a process document says, or
-> who reads one of its sections, it states what must be true once it is built; until then the process
-> documents as they stand are what is followed. Until the last slice is done, this file is
-> what each slice works from. After that it stays in force, and a later
-> change to the elephant either changes this file first, through an elephant of its own, or is made
-> directly in the process documents and checked against this file by a seam review (§6).
+> signed off and the author gives the word, the beaver cuts it into slices and writes their plans
+> (`BEAVER.md`), and the plans bring the process documents — `METHOD.md`, the skills, the reviewer
+> prompts, the hooks and `PILOT.md` — and the checks, scripts and records it requires into line with
+> it, as code is brought into line with a specification. Its evidence waits as one diff beside
+> `SOURCES.md`, which it shares with `BEAVER.md`, and folds in as the last step of whichever of the two
+> designs' last slices closes later (§6). Where it says what a process document says, or who reads one
+> of its sections, it states what must be true once it is built; until then the process documents as
+> they stand are what is followed. Until the last slice closes, this file is what each slice works
+> from. After that it stays in force, and a later change to the elephant either changes this file
+> first, through an elephant of its own, or is made directly in the process documents and checked
+> against this file by a seam review (§6).
 >
-> **It contains no plan.** The design is signed off, then it is cut into slices, and one plan is written
-> per slice when that slice is reached. A plan written now would be planning against a design that has
-> not stopped moving. Nor does it list what has to change to build it: it states what must be true, and
+> **It contains no plan.** The beaver writes every slice's plan as soon as it cuts the design
+> (`BEAVER.md` §2); a plan written into the design would be planning against a design that has not
+> stopped moving. Nor does it list what has to change to build it: it states what must be true, and
 > each slice's plan finds what to change by comparing it with the process documents as they are (§6).
 
 ---
@@ -274,10 +276,17 @@ abandoning asks which to keep, and says nothing of how the reviews are run.
   These are the three outcomes `METHOD.md` gives every finding, under these names and in this order,
   and its overriding rule names none of them: *"A finding is a claim for the **author** to rule on —
   never an instruction to whoever ran the review."* The agent recommends an outcome for each, and acts
-  on a finding
-  only once the author has accepted it. Interview-review findings are put in words of their own (step
-  4). §5 says where rejections are recorded.
+  on a finding only once the author has accepted it. Interview-review findings are put in words of
+  their own (step 4). §5 says where rejections are recorded.
+
+  The findings of the reviews that run again when a specification is amended in place after sign-off
+  are the design's own, and the author rules on them in the same way (`BEAVER.md` §5). Findings on a
+  cut into slices, on a plan, or on a built slice of a process design are not among these points: the
+  beaver gives each of them one of the same three outcomes itself, and brings the author only what the
+  specification leaves open and what is left at its loop's cap (`BEAVER.md` §1, §3). The overriding rule's section ends with that exception (`BEAVER.md` §1).
 - **Signing off.** The author declares the design finished, which allows it to be cut into slices.
+  Close-out then offers to start the beaver (step 8), and from sign-off on, `BEAVER.md` §4 and §5 say
+  where the work stops for the author.
 
 **Every question put to the author, at any step, has one form.** It says in one sentence what the issue
 is and why it matters, carries enough background to be understood by somebody who has not seen the
@@ -486,9 +495,15 @@ ledger review it runs again; from item 2 on, nothing about the design changes:
 4. The sort is carried out: each draft leaves the elephant's directory, marked finalised, for its final
    path or for its place beside the document it amends, each target gains its pointer line, `REVIEWS.md`
    gains its rows (§6), and the working files are deleted.
+5. The agent offers, as its default, to start the beaver in a fresh session for the design just signed
+   off (`BEAVER.md` §1). The beaver starts on the author's word, and nothing starts until the author
+   gives it.
 
-**It ends when every draft has left the elephant's directory, the author has signed off, and the working
-files are deleted.**
+Once the author has signed off at item 3, the elephant can no longer be abandoned (§3), and a later
+change to the design is made as `BEAVER.md` §5 says.
+
+**It ends when every draft has left the elephant's directory, the author has signed off, the working
+files are deleted, and the beaver has been offered.**
 
 ### When the design spans several documents
 
@@ -596,13 +611,22 @@ repository; one that does not exist yet is written as the path agreed for it at 
 
 **`checklist.md` — what the design must cover.** It is created when the interview begins, holding three
 items that designs habitually leave out (`SOURCES.md`, *The checklist starts with what designs
-habitually leave out*), each starting `open`:
+habitually leave out*), each starting `open`, and a fourth when the elephant designs the system rather
+than the process (§6):
 
 ```
 - What the design deliberately does not do — open
 - The alternatives considered and rejected — open
 - The concerns that cut across its sections — open
+- Whether the first slice tests that the approach holds, and against which example outputs — open
 ```
+
+The fourth is asked of every specification of the system, so that the question is never forgotten,
+and nothing about it is asked at sign-off. It is settled for every specification the design writes
+into, a diff included. It is answered by rulings that write the declaration into the
+specification itself, with the example outputs written out, since that is where the beaver reads it
+(`BEAVER.md` §2); a specification whose first slice is to be the usual walking skeleton omits it, with
+that as its reason.
 
 It grows while the interview runs (§3, step 2). An entry's fields are the topic, its state — `open`,
 `answered` or `omitted` — and, for an omitted item, the reason:
@@ -750,23 +774,23 @@ a diff specification to its target.
 
 **Each review is dispatched through the `goldfish` skill**: one fresh reviewer that took no part in the
 conversation, the files it may read named and every other file forbidden, the prompt followed exactly,
-and the report written to a file in the session's scratch directory. The three new prompts take the shape
+and the report saved to a file in the session's scratch directory. The three new prompts take the shape
 of the existing ones: a heading for each category of finding, each finding quoting the text it
 concerns, *none* under a category with nothing in it, a category for concerns the reviewer could not
 ground in the text, and a closing account of what the reviewer understood it was reading. Every item
 under the report's headings is a finding the author rules on, a concern the reviewer could not ground
 included, except the *found* entries of the ledger and retirement reviews and the reviewer's closing
-account.
+account, and except in the beaver's loops (below).
 
 **Each finding the agent puts to the author can be understood without the report.** It quotes the text
 it concerns, names every document it concerns rather than saying *both documents*, and uses no term
 that only the report defines. It carries the agent's recommended outcome and its reason; one put in
 full (below) that the agent recommends acting on is put as a question in the form §3 gives, the ways of acting on it being its
 options. The `goldfish` skill presents every review's findings this way, inside an
-elephant or not.
+elephant or not, except in the beaver's loops (below).
 
-**Findings are sorted before they reach the author, inside an elephant or not, so that the author's
-attention goes only to what they would reasonably care about.** The agent applies one test to each:
+**Findings are sorted before they reach the author, inside an elephant or not, except in the beaver's
+loops (below), so that the author's attention goes only to what they would reasonably care about.** The agent applies one test to each:
 would accepting it or rejecting it change the substance of the design, bear on something the author
 has already decided — in the interview, in a ruling since, or in what the documents promise — or
 change what the author, or a user of the system, sees and does? A finding that would is put in full,
@@ -801,7 +825,7 @@ harness dispatches only Claude models, so this gain is out of reach, and
 the cost is accepted.
 
 **Another review is recommended for a reason, never run to find more.** Inside an elephant or not,
-once the accepted findings of a review have been acted on, the agent recommends whether any section,
+except in the beaver's loops (below), once the accepted findings of a review have been acted on, the agent recommends whether any section,
 document or seam is reviewed again, and the author decides (§3). It recommends another review only
 where a finding that came back would have been put in full, by the test above, or where acting on one
 changed what a rule means, or rewrote so much of a section that it has in effect not been read;
@@ -817,6 +841,15 @@ names. A fix breaks text it never touched, and a reviewer asked only whether a t
 finds far less than one told where to look, so the dispatch names what changed and asks the reviewer
 to check every statement about it (the same entry).
 
+**The beaver's loops are the exception.** The review of a cut into slices, the review of a plan, and the
+seam review that follows a slice of a process design are dispatched in the same way and on the same
+tier, but their findings do not go to the author as this section says. The beaver rules on each finding
+itself, and whether another round runs is decided by its loop's stopping rule, not by a recommendation
+to the author (`BEAVER.md` §3). What the beaver does bring the author, a gap in the specification or
+what is left at a loop's cap, is put as `BEAVER.md` §4 says. The reviews that run again when a
+specification is amended in place are not among these: they are the design's own, and this section
+applies to them in full (`BEAVER.md` §5).
+
 ### The interview review
 
 **It reads one session's part of the interview, extracted mechanically from that session's
@@ -826,14 +859,21 @@ exactly what the elephant failed to notice. The reviewer is given the extract an
 the ledger and not the checklist. The extract is written to a file in the session's scratch directory
 — the temporary directory the harness gives each session — and is not kept.
 
-**The extractor is a script in the repository.** It takes a transcript, the turn to begin at and the
-turn to end at, both included, and writes the extract. It holds two lists of record types, those it
-reads and those it ignores; the same two lists for the kinds of block a record's content is made of;
-and a third list, of tool calls kept as conversation, which starts with the question tool (below). It
-starts by reading the types and kinds that carry the conversation, and by ignoring the agent's
-reasoning, its tool calls and their results. Every other type and kind found when it is built starts on
-neither list, and is settled by the measurement for an unknown one. The extract alternates `Author:`
-and `Agent:` turns, in order, each with its record's id.
+**The extractor is a script in the repository.** It takes a transcript and the records to begin and end at, both
+included, reads every record between them, and writes the extract. It holds two lists of record types, those it
+reads and those it ignores; the same two lists for the kinds of attachment record (below), for the
+kinds of block a record's content is made of, and for the origin kinds a bare-string `user` record gives;
+and one
+more list, of tool calls kept as conversation, which starts with the question tool (below). It starts
+by reading the types and kinds that carry the conversation, and by ignoring the agent's reasoning, its
+tool calls and their results. Every other type, kind and origin found when it is built starts on
+neither list, and is settled by the measurement for an unknown one. The extract holds `Author:` and
+`Agent:` turns in the order they sit in the transcript, each with the id of the first record in it
+that the extractor keeps. An agent reply with nothing to keep makes no turn, so two author turns can be
+next to each other, when the author wrote again before the agent's reply held anything to keep: measured on
+2026-11-01,
+34 of the 660 author turns in the thirty-two transcripts in this project's directory followed another
+author turn.
 
 **Finding the transcript.** The harness writes each session's transcript as a file named
 `<session-id>.jsonl`, in a directory under `~/.claude/projects/`. The session id is the name of the
@@ -848,41 +888,57 @@ their ids unchanged: measured on 2026-10-31, five transcripts in this project's 
 documented by the harness, and it may move.
 
 **Where the extract begins and ends.** The dispatching agent chooses both turns and passes them to the
-extractor. The extract begins at the first of these that applies:
+extractor as records: the record that names the first turn, and the last record of the last turn. The
+extract begins at the first of these that applies:
 
-- the author turn that reopened the interview, when it was reopened in this session, so that the
-  questions asked while writing are left out (§3, step 3);
+- when the interview was reopened in this session, its latest reopening: where the author's answer to
+  a finding, or to an item still open at step 4, reopened it, the first agent turn that put the
+  findings or the open items whose answer reopened it, so that the reviewer sees the questions the author was answering; where
+  the author reopened it unprompted, the author turn that did so, so that the questions asked while
+  writing are left out (§3, step 3);
 - the first author turn after the last one the previous interview review covered, when the record of the
   last turn it covered is in this session's transcript, as a copied record is after a resume;
 - this session's first turn of the interview, so that whatever the session did before it is left out.
+  A session that opens by putting the findings of a review run at a handoff begins at the agent turn
+  that puts them, for the same reason as the first case.
 
 It ends at the author's agreement to end the interview or, for a review run as the session is handed
-off during the interview, at the agent's reply to the last author turn before the author asked for the
-handoff. A session
-handed off with no interview turns of its own dispatches no interview review. Each turn is named by its
-record's id, which the harness gives every record; measured on 2026-10-18, in the measuring session,
-all 105 `user` and `assistant` records carried an id, and no two the same. The report's header records
-the transcript's file name and the id of the last author turn covered (§4).
+off during the interview, at the last record of the agent's reply to the last author turn before the author asked
+for the handoff. A session
+handed off with no interview turns of its own dispatches no interview review. Each turn is named by the
+id of the first record in it that the extractor keeps; the harness gives records an id. Measured
+on 2026-10-18, in the measuring session, all 105 `user` and `assistant` records carried an id, and no
+two the same; on 2026-11-01 every one of the 5,176 `attachment` records in the thirty-two transcripts
+did, and among the 20,747 `user`, `assistant` and `attachment` records in those transcripts no id
+appeared twice in one file. The report's header
+records the transcript's file name and the id of the last author turn covered (§4).
 
 **What the extractor keeps.** A transcript is a series of records, and each record names its type. A
 turn is one message: an author turn is one record, and an agent's reply is every record from one author turn to the next. What follows
 was measured on 2026-10-18 by reading the records of the twenty transcripts in this project's directory,
-which held fifteen types between them; the field names are the harness's and undocumented, and
-whoever builds the extractor confirms them against a live transcript first.
+which held fifteen types between them, except where a later date is given; the field names are the
+harness's and undocumented, and whoever builds the extractor confirms them against a live transcript
+first.
 
-- Two types carry the conversation: `user` and `assistant`. Most `user` records are tool results, not
-  the author (`SOURCES.md`, *The interview extract is filtered, and stops on what it does not
-  recognise*).
+- Three types carry the conversation: `user`, `assistant` and `attachment`, the last only in one kind.
+  Most `user` records are tool results, not the author (`SOURCES.md`, *The interview extract is
+  filtered, and stops on what it does not recognise*).
 - What the author typed is a `user` record whose content is plain text — a bare string — which has no
   `isMeta` field, the mark the harness puts on text it injected, and whose `origin` gives its kind as
   `human`. A notice that a background agent has finished is also a bare string with no `isMeta`, but
   its `origin` kind is `task-notification`: measured on 2026-10-25, such notices sat in one of the
   twenty transcripts, and every other bare-string record without `isMeta` gave `human`. A tool result is a `user` record
   whose content is a list of `tool_result` blocks.
+- What the author types while the agent is working is not a `user` record. It is an `attachment`
+  record whose attachment kind is `queued_command`, holding the text as typed. Measured on 2026-11-01:
+  76 such messages in nineteen of the thirty-two transcripts, and the text of none of them in any
+  `user` record, so an extractor reading only `user` records drops every message the author sends
+  mid-turn. Of the twenty-seven kinds of attachment found by 2026-11-01, the other twenty-six are
+  each settled as ignored, by the measurement for an unknown one.
 - An `assistant` record's content is a list of blocks of three kinds: `text`, which is what the agent
   wrote, and `thinking` and `tool_use`, its reasoning and its tool calls.
 
-The extractor keeps what the author typed and the agent's `text` blocks. One tool call is the
+The extractor keeps what the author typed, in either form, and the agent's `text` blocks. One tool call is the
 exception: a question put to the author through the harness's question tool, `AskUserQuestion`, and
 the author's answer to it, are conversation — a question asked this way is no different from one asked
 in a message — and the extractor keeps both, the question as an `Agent:` turn and the answer, paired
@@ -890,20 +946,29 @@ with it, as the `Author:` turn after it. The tool's name appeared in
 six of the twenty transcripts.
 
 **When extraction fails, the review does not run.** The extractor stops when the transcript cannot be
-found, when the extract is empty or holds only one side, and when it meets, within the turns it was
-given, a record type or a kind of block on neither of its lists. It never drops what it does not
-recognise: a renamed type that carried the conversation would halve the extract while the path still
-resolved and everything else still passed (`SOURCES.md`, the same entry). One transcript
-held nine types when this design began; on 2026-10-18 the most any one transcript held was fourteen, and
-the twenty held fifteen between them. An unknown type will recur.
+found, when the extract is empty or holds only one side, and when it meets, between the records it was
+given, a record type, a kind of attachment, a kind of block or an origin on neither of its lists. It
+never drops what it does not recognise: a renamed type that carried the conversation would halve the
+extract while the path still resolved and everything else still passed (`SOURCES.md`, the same entry).
+One transcript held nine types when this design began; on 2026-10-18 the most any one transcript held
+was fourteen, and the twenty held fifteen between them; on 2026-11-01 the most was eighteen, and the
+thirty-two held nineteen. An unknown type will recur.
 
-- **An unknown type or kind of block** is settled by measurement. The agent checks whether any record
-  of that type, or block of that kind, holds the text of an author turn or an agent reply. If none
-  does, the agent adds it to those the extractor ignores, runs the extractor again, and tells the
-  author, as a decision the author did not ask for, with a one-word way to reverse it. Reversing it
-  means it is treated as carrying conversation: the extractor is changed to read it, and the review
-  runs again; its report replaces the first under the same number, and a finding it repeats is shown
-  with the author's earlier ruling. If some do hold such text, the extractor is changed to read it before the review runs.
+- **An unknown type, kind or origin** is settled by measurement. The agent checks whether any record
+  of that type, attachment of that kind, block of that kind or record with that origin holds conversation text — the text of an
+  author turn or an agent reply — that the extractor keeps nowhere in the transcript: in no turn of the extract it makes of the
+  whole transcript with every unknown type, kind and origin set aside. It is compared
+  with what the extractor keeps, not with every record of a type it reads: a record with an unknown
+  origin is still a `user` record, and would otherwise always match itself. One that only repeats
+  conversation the extractor keeps elsewhere is a copy. Where in the transcript the copy sits
+  does not matter: `queue-operation` records copy what the author queued, and measured on 2026-11-01,
+  479 of the 483 that copy an author's message sat before the `queued_command` record holding it. If none holds such
+  text, the agent adds the type, kind or origin to those the extractor ignores, runs the
+  extractor again, and tells the author, as a decision the author did not ask for, with a one-word way
+  to reverse it. Reversing it means it is treated as carrying conversation: the extractor is changed
+  to read it, and the review runs again; its report replaces the first under the same number, and a
+  finding it repeats is shown with the author's earlier ruling. If one does hold such text, the
+  extractor is changed to read it before the review runs.
 - **Any other failure** the agent reports to the author, with what it found, and the review does not
   run until it is settled. At step 3 the elephant waits there, and does not go on without the review.
   When the failure comes in a review run as the session is handed off, the handoff records it, and the
@@ -967,11 +1032,14 @@ naming a document edited since it last ran (§3, step 8); the reviewer is given 
 holding only those entries. A finding accepted at step 7 edits a document after
 this review has passed, and could remove a ruling's text. This run, and the retirement review's over a
 successor's rewritten sections (§7), are the two exceptions to the rule that a review reads again what
-it has already read only when the author asks (§3, *What goes back*), and `METHOD.md`'s rule that a
-review runs once and stops names them as its exceptions. An interview review run after the interview
+it has already read only when the author asks (§3, *What goes back*). `METHOD.md`'s rule that a review
+runs once and stops names both as its exceptions, beside a third outside any elephant: the beaver's
+loops, which review a cut, a plan, or the seam after a slice of a process design again until their
+stopping rule ends them (`BEAVER.md` §1, §3).
+An interview review run after the interview
 is reopened reads new turns, not old ones, and one run again after an unknown type is reversed reads
-conversation its first run never saw. The agent knows which entries those
-are from the conversation, or from the handoff, which lists them when the session that ran the review
+conversation its first run never saw. The agent knows which entries the close-out run reads
+from the conversation, or from the handoff, which lists them when the session that ran the review
 has ended.
 
 ### The document review and the seam review
@@ -1163,9 +1231,25 @@ itself which of its non-goals become rules in the process documents, restated po
 evidence is not a section of it: an elephant on the process writes the evidence for its rules as a diff
 of `SOURCES.md`, in that document's own entry format, since `SOURCES.md` takes diffs like any
 specification. That diff is one of the documents agreed at step 4, and is reviewed like any other.
-It is never cut into slices of its own: its status follows the process design's, it is checked against
-`SOURCES.md` when the process design's first slice is about to start, as any diff is before its own
-(below), and it folds in as the last step of the process design's last slice.
+An elephant on the process writes one such diff, however many process designs it produces or
+changes; they share it, and each names it, and the others that share it, in the note under its title.
+It is never cut into slices of its own, so it is the one diff that does not fold in when a list of its
+own closes (below). It is `finalised` until the first slice of any of those designs starts, and
+`implementation ongoing` from then until it folds in, as the last step of whichever design finishes
+last. A diff of a process design counts as one of those designs. A design is finished once it is
+`active`, or, for a diff, once it has folded in, since a diff never becomes `active`.
+
+**Which first slice and which last slice those are is not known when the plans are written, so the
+steps test the status lines rather than the order.** The plan of each design's first slice carries,
+before its first task, a step that, if the evidence diff is still `finalised`, checks it against
+`SOURCES.md`, as any diff is checked before its own first slice (below), and sets it
+`implementation ongoing`. A collision found there holds back every design's first slice until it is
+settled. The plan of each design's last slice carries two steps after its last task, the same in every design's
+plan, from its first writing (`BEAVER.md` §2): finish the design — set it `active`, or fold it in if it is a diff —
+and then fold the evidence diff in if it still exists and every other design that shares it is
+finished. Whichever design finishes last finds every other finished and folds the evidence diff in; if
+two finish at the same moment, the second finds it already gone. A design cut again is
+`implementation ongoing` once more from its new first slice's start, and the fold-in waits for it.
 
 **A process document is never put in place at close-out.** Where a process design calls for a new
 process document, or a change to an existing one, the slice that carries out that part makes it. Its
@@ -1250,10 +1334,23 @@ fixed sentence, so that an agent that opens it and reads nothing else knows what
 `METHOD.md` states the five statuses, as this table does, and the fixed sentence; the inventory, which
 an agent reads first, points there rather than restating them.
 
-**Each status is set at a fixed event, by the skill that runs that event.** Close-out sets `finalised`.
-The `execute` skill sets `implementation ongoing` when it begins carrying out the first slice's plan, and `active` when
-the last slice closes. The clean-up of an abandoned elephant sets `abandoned` on a draft the author
-keeps.
+**Each status is set at a fixed event, by whatever runs that event.** Close-out sets `finalised`. The
+plans set the next two, in steps the `execute` skill carries out (`BEAVER.md` §2): the first slice's
+plan sets `implementation ongoing` before its first task, and the last slice's plan sets `active`
+after its last, or folds the diff in, since a diff never becomes `active` (below). The evidence diff
+that process designs share has no slices of its own; the plan of each sharing design's first slice
+carries a step that sets it `implementation ongoing`, and whichever runs first does so (*What it
+produces*). A correction that starts while its specification is already `active`, because what the
+last slice built was found wrong after it closed, counts as the first slice of a new cut: the
+specification is `implementation ongoing` again from its start, and `active` again once the last
+slice closes; where the change was a diff that has already folded in, this is its target. It goes
+first over a change pending against the specification that has not started, which does not start
+until the correction is built, since it would otherwise be built on what was found wrong; a change
+already `implementation ongoing` is built first, and the correction waits for it to fold in. When a
+test slice shows the approach wholly wrong, the beaver, on the author's word, reverts it and sets the
+specification back to `finalised` with no slice started (`BEAVER.md` §5), so that an elephant may
+move it in and rework it (below). The clean-up of an abandoned elephant sets `abandoned` on a draft
+the author keeps.
 
 **A check keeps the status lines true.** It covers every file in `content/specs/`, where close-out puts
 every new specification and which it creates the first time; every file in `process/designs/`, where
@@ -1270,8 +1367,9 @@ the check tests only that each draft's status is one of the five. Everywhere els
 specification, process design or diff with no status line, on a value outside the five, on an
 `implementation ongoing` sentence, a `Pending change:` line or either of §7's two lines whose text,
 names aside, differs from its fixed text, on `draft`, on
-a diff whose target does not exist or is not `active`, on a target that names a diff that does not
-exist, on a diff its target does not name, and on two changes against one target that are both
+a diff whose target does not exist, or is not `active` unless the diff is still `finalised` and the
+target `implementation ongoing`, as it is while a correction goes first (above), on a target that
+names a diff that does not exist, on a diff its target does not name, and on two changes against one target that are both
 `implementation ongoing`, a successor's `Replaces:` line counting as one. Whether every slice of a specification has finished is something the
 check cannot see; marking it `active` stays a step in the close-down of the last slice. `CORRIDORS.md`
 and `FORMATIONS.md` are `draft` at the root, because their design began before the elephant existed.
@@ -1303,16 +1401,21 @@ Several pointer lines sit one after another, in any order, except that §7's `Be
 comes after any `Pending change:` line.
 
 **A diff is written only against an `active` specification**, one whose design is all built, so its
-target stays `active` throughout: a change folded into a document still being built would collide with
+target stays `active` throughout, except while a correction goes first (*The status of a
+specification*): a change folded into a document still being built would collide with
 the slices building it. The diff carries the status of the change — `finalised`, then `implementation
 ongoing` once its first slice starts. A specification that is not `active` takes no diff. One that is
 `finalised` with no slice started, or `draft` at the root, moves into the new elephant's directory as a
 `draft` when the author rules to extend or change it (§3, step 1), and is changed there directly; any
 slices already cut from it are void — deleted from the list of slices, with any plan written for them —
-and are cut again once it is signed off. One that is `implementation ongoing` cannot be changed until it
+and are cut again once it is signed off. A diff moved in this way is renamed after the new elephant; the
+target's pointer line naming it is removed until that elephant's close-out puts one back; the lines
+naming it in the target's `REVIEWS.md` block follow it to the draft's path (*The review record*); and
+its recorded commit becomes the target as it is then, with its own citations of the
+target brought to that commit's numbers. One that is `implementation ongoing` cannot be changed until it
 is `active`: step 1 reports its status and offers no option for it, and the elephant waits until it is
-`active`, unless the author abandons it. These rules are about a whole specification; a diff that is
-itself being built is changed as below.
+`active`, unless the author abandons it. These rules are about a change the author starts; a gap that a
+plan or a slice shows in a signed-off specification is settled by amending it in place (below).
 
 **More than one diff may be pending against one target, each named on its own line, and a successor
 that replaces the target counts as one (§7), but it is discouraged, and only one is built at a time.**
@@ -1321,24 +1424,32 @@ different document from the one its reviewers read, and a large first change may
 one. The agent warns at three points: at step 1, when its search finds a diff already pending (§3);
 when a diff's first slice is about to start, where the `execute` skill names every other diff pending
 against the target, and refuses without exception to start while one of them is `implementation
-ongoing`; and when a diff folds in, where the agent lists every other diff still pending against that
-target and says that their reviews read a document that has now changed, so that the sign-off of each
-no longer stands until it is reviewed again against that document, a successor by its retirement
-review (§5, §7).
+ongoing`; and when a diff folds in or the target is amended in place, where the agent lists every
+other diff still pending against that target and says that their reviews read a document that has now
+changed, so that the sign-off of each no longer stands until it is reviewed again against that
+document, a successor by its retirement review (§5, §7).
 
 **A diff is checked against its target before it is built.** When its first slice is about to start,
 the `execute` skill runs the script's stops (§5) against the target as it is then. A collision there,
-such as a section another diff has since folded into, means the diff does not start: it is still
-`finalised`, so the agent proposes an elephant to rework it (§1). If the author agrees, the diff moves
-into that elephant's directory as a draft, renamed after it; the target's pointer line naming it is
-removed until that elephant's close-out puts one back, and so are the lines naming it in the target's
-`REVIEWS.md` block, until that close-out writes them again; and its recorded commit becomes the target as it
-is then, with its own citations of the target brought to that commit's numbers. **A diff being built
-may be amended in place**, on the author's ruling, to settle a collision found at fold-in or to undo
-part of it. It is made outside any elephant, since parts of what is built already follow it, and owes what
-`METHOD.md`'s table of what a change owes lists for any change to intent, the section reviews of the
-sections it changes among them; the diff's remaining slices are cut again. An amendment that settles a collision also moves the recorded commit to the
-target as it is then, in the same way, so that the script's comparison starts again from there.
+such as a section another diff has since folded into, means the diff does not start: it stays
+`finalised` until the collision is settled by amending it in place (below).
+
+**From sign-off on, a specification is amended in place, on the author's ruling, whenever a plan or a
+slice shows it wrong**: a gap a plan finds, a test slice whose approach is partly wrong, something a
+slice built that is not what the author wants, or a test the build stops on that the author rules the
+specification's fault (`BEAVER.md` §5). It covers a change of any size, whether or not any slice has
+been built, and whatever the specification's status: `finalised`, `implementation ongoing`, or
+`active` where what the last slice built is found wrong after it closed, which for a diff already
+folded in means its target (*The status of a specification*). A diff is amended in place in the
+same way to settle a collision found before its first slice or at fold-in, or, once it is being built,
+to undo part of it. An elephant is the route
+only for a change the author starts. An amendment is made outside any elephant, with the author ruling
+item by item, and owes what `METHOD.md`'s table of what a change owes lists for any change to intent:
+the section review of each section it changes, and the document review and the seam reviews again,
+whose findings the author rules on in the same way. The beaver then cuts again and reviews again
+whatever the amendment reaches (`BEAVER.md` §5). An amendment that settles a collision also moves the
+diff's recorded commit to the target as it is then, with the diff's own citations of the target
+brought to that commit's numbers, so that the script's comparison starts again from there.
 
 **A diff may be abandoned after sign-off while it is still `finalised`.** The author says so; the diff
 is deleted, the pointer line naming it is removed, its lines in the target's `REVIEWS.md` block are
@@ -1347,7 +1458,10 @@ successor the author was holding back until it was settled may start. One that i
 ongoing` cannot simply be deleted, because parts of what is built already follow it; it is undone by
 amending it, as above.
 
-**A diff folds in only once the last slice of its list closes**, as that slice's last step. The script
+**A diff folds in once the last slice of its list closes**, as that slice's last step. The evidence diff
+that process designs share is the one diff with no list of its own: it folds in as the last step of
+whichever design finishes last, after that design has itself been set `active` or folded in (*What it
+produces*). The script
 that applies a diff (§5) writes its sections into the target, the diff is deleted, the target's pointer
 line naming it is removed, and the target stays `active`. The script stops on any of the conditions §5
 lists, and the collision goes to the author, who settles it by amending the diff, or, where the target
@@ -1367,7 +1481,11 @@ and `active` again when the last one closes. What an earlier build added that th
 mention is not untrue, so a second cut leaves it in place. A document with a diff or a successor
 pending against it, or drafted against it in an elephant's directory, is not cut again until none is,
 and the first slice of a new cut does not start while one is, since a pending change is written only
-against an `active` target.
+against an `active` target. A correction of an `active` document after an amendment in place (above)
+is cut without the author asking, and neither the rule that an `active` document is cut again only
+when the author asks nor the rule that a pending change holds a new cut back applies to it: it goes
+first over a pending change that has not started, which waits for it, and waits itself for one already
+`implementation ongoing` to fold in (*The status of a specification*).
 
 ### The sort at close-out
 
@@ -1382,7 +1500,7 @@ sign-off, which approves the proposal as amended. What moves out of a process de
 | a process design | its final path, in `process/designs/`, marked `finalised` |
 | a successor to an `active` specification it replaces | beside it, named as a diff is, marked `finalised`; each gains its pointer line (§7) |
 | a document reworked or changed in place | the path it came from, or the path agreed for it at step 4, marked `finalised` |
-| a diff of `SOURCES.md` holding a process design's evidence | beside `SOURCES.md`, marked `finalised`, like any diff; it folds in at the process design's last slice, each source indexed back to the rules that use it and to any place the process departs from it |
+| the one diff of `SOURCES.md` holding the evidence of every process design the elephant produced or changed | beside `SOURCES.md`, marked `finalised`, like any diff; it folds in as the last step of whichever of those designs finishes last, each source indexed back to the rules that use it and to any place the process departs from it |
 | a process document drafted in a process design | made by the slice that carries out that part, which replaces the drafted text with a one-line pointer to it |
 | a process design's non-goals and rejected alternatives | the process design, where a later elephant reads them (§7). A non-goal the design turns into a rule also reaches the process documents, through the slices |
 | entries the elephant added to the backlog | the backlog, unchanged |
@@ -1398,15 +1516,23 @@ agent, while proposing the sort, finds anything that has not reached a draft, it
 back (§3, *What goes back*). Close-out itself writes no design into any document; what it writes is the statuses, the pointer
 lines and the review record's rows.
 
-**A process design's evidence is a diff of `SOURCES.md`**, written in that document's own entry format,
-so that nothing is translated or moved later: translation is where content is lost. It folds in at
-the process design's last slice (*What it produces*).
+**The evidence of the process designs an elephant produces or changes is one diff of `SOURCES.md`**,
+which they share, written in that document's own entry format, so that nothing is translated or moved
+later: translation is where content is lost. It folds in as the last step of whichever of them finishes
+last (*What it produces*).
 
 ### The review record
 
 **`REVIEWS.md` gains its rows at close-out, in one pass, in its own format.** A row records that the
 author has confirmed the content correct and ready to build, so it is written when the design is signed
-off, not when the content reaches its document at fold-in.
+off, not when the content reaches its document at fold-in. After close-out the rows change only at a
+fold-in, at an amendment in place, when the author has read a document (below), when a document or a
+diff moves into a later elephant, when that elephant is abandoned and moves it back, the heading or
+lines that followed it going back with it (§3), when a diff is abandoned, when a pending diff is
+reviewed again after its target has changed (*A diff specification, from sign-off to fold-in*), when a
+successor replaces the document (§7), when the beaver records the loops of the design's cut in its
+block, and when the beaver deletes them, after reverting a test slice or once the slices they cut are
+made void (`BEAVER.md` §3, §5).
 
 - **A new specification** gets its own block, with one row for each kind of review that ran — section,
   document, and each seam. A section row's state names every section reviewed, for example
@@ -1418,7 +1544,21 @@ off, not when the content reaches its document at fold-in.
   does not yet hold them. When the diff folds in, the sections its section line lists are added to the
   target's section row; its document and seam lines replace the target's rows, since they read the
   document the target has just become; the recorded commit becomes `—` wherever the two differed; and
-  the diff's name is removed.
+  the diff's name is removed. A diff moved into an elephant keeps these lines while it is there, each
+  naming it by the draft's path, so that the record of which of its sections were reviewed is not lost
+  (*A diff specification, from sign-off to fold-in*). That elephant's close-out names it by its final
+  name, the one it carries beside its target, replaces its section line's entries for the sections that
+  changed, and replaces its document and seam lines.
+- **A whole document moved into the elephant** at step 1 keeps its block while it is there, so that the
+  record of which of its sections were reviewed is not lost; the block's heading follows it to the
+  draft's path. Close-out renames the heading back to the document's final path, replaces the section
+  row's entries for the sections that changed, so that its state names every section now reviewed, and
+  replaces its document and seam rows, since they read the document as it now is.
+- **An amendment in place** (*A diff specification, from sign-off to fold-in*) updates the rows of the
+  document it amends, or a diff's lines in its target's block, once the author has ruled on the
+  findings of the amendment's reviews: the section row's state names every section now reviewed, the
+  changed ones by the amendment's section reviews, and the document and seam rows are replaced, since
+  they read the document as amended.
 - **A row records a commit** only when every review it covers read text exactly as committed at that
   one commit — for an applied diff, the commit holding both the diff and its target as read — and `—`
   otherwise, as `REVIEWS.md` already allows.
@@ -1801,6 +1941,83 @@ have no archive either: the deleting commit, the review record's block, which ou
 the state `spent`, and the change log, `CHANGELOG.md`, already record them, and the rule that a plan is deleted rests
 on the harm of keeping one (`SOURCES.md`, *Plans are deleted after execution*).
 
+### A moved document's review record removed, or left failing
+
+When a whole document or a pending diff moved into an elephant, its block in `REVIEWS.md`, or its
+lines in its target's block, would be removed until close-out wrote them again; or they would stay
+under the old path, and the check that every recorded review resolves would fail until close-out.
+
+**Instead:** the block's heading, or the diff's lines, follow it to the draft's path, and close-out
+moves them back and brings them up to date (§6, *The review record*).
+
+**Why not:** removed, the record of which of its sections were reviewed is lost, and close-out could
+write back only what the elephant's own reviews covered. Left failing, nothing could be committed while
+the elephant runs, since the commit gate refuses a tree on which a check fails.
+
+### One evidence diff for each process design
+
+An elephant that produces or changes two process designs would write the evidence of each as a diff of
+`SOURCES.md` of its own.
+
+**Instead:** one diff, which every process design the elephant produces or changes shares, and which
+folds in when the last of them finishes (§6, *What it produces*).
+
+**Why not:** only one diff against a target is built at a time (§6, *A diff specification, from
+sign-off to fold-in*), so the second design's first slice could not start until the first design was
+wholly built and its evidence had folded in; and the reviews of each diff would read `SOURCES.md`
+without the other.
+
+### The evidence diff folded in by a step that tests the order of last slices
+
+The plan of each design's last slice would carry, at its last pass (`BEAVER.md` §2), a step folding the evidence diff in
+only if the last slices of the other designs sharing it had already closed.
+
+**Instead:** every design's last plan carries, from its first writing, a step that tests the status
+lines: it folds the evidence diff in if the diff still exists and every other design sharing it is
+finished (§6, *What it produces*).
+
+**Why not:** two last slices built at the same time could each find the other not yet closed, and each
+skip the step, so that the evidence never folded in.
+
+### `active` left standing during a late correction, or set only after the look
+
+When the author finds what the last slice built wrong after it has closed, the specification would stay
+`active` while the correction is built; or the step that sets `active` would move to after the
+author's look at what the last slice built (`BEAVER.md` §4).
+
+**Instead:** the correction counts as the first slice of a new cut, and the specification is
+`implementation ongoing` until it is built (§6, *The status of a specification*).
+
+**Why not:** `active` says that everything designed is built, and an agent that trusts it would
+assume what is not yet there. A process design has no look after its slices (`BEAVER.md` §4), so its last
+slice would still set `active` at its end, and a correction that the seam review after that slice
+finds would meet the same problem.
+
+### A change already being built paused for a late correction
+
+When a late correction comes up while another change to the same document is already being built, that
+change would stop after its current slice, the correction would be built, and the change would then go
+on.
+
+**Instead:** the correction goes first only over a change that has not started; over one already
+`implementation ongoing`, it waits until that change has folded in (§6, *The status of a
+specification*).
+
+**Why not:** a diff would be being built beside a target that is itself being built, which is the
+collision that keeping a diff's target `active` exists to prevent, and which the status check refuses.
+
+### A collision before a diff's first slice settled by an elephant
+
+When a diff collides with its target just before its first slice starts, the agent would propose an
+elephant to rework it, and the diff would move into that elephant's directory.
+
+**Instead:** the diff is amended in place, as a collision found at fold-in is (§6, *A diff
+specification, from sign-off to fold-in*).
+
+**Why not:** moving the diff into an elephant voids its slices and every plan already written for them,
+and an elephant is the route only for a change the author starts; a collision is found by the build, as
+a gap in a specification is, and is settled the same way.
+
 ### Alternatives argued in other sections
 
 | The alternative | Where the design settles it |
@@ -1816,6 +2033,8 @@ on the harm of keeping one (`SOURCES.md`, *Plans are deleted after execution*).
 | the working files kept under `plans/` | §4, *Where they live* |
 | a summary of the interview in place of an extract | §5, *The interview review* |
 | an extractor that drops what it does not recognise | §5, *The interview review* |
+| an extractor that reads only `user` records | §5, *The interview review* |
+| an unknown record compared with every record of a type the extractor reads, or a copy judged by where in the transcript it sits | §5, *The interview review* |
 | a cheaper model for some reviews, or the most expensive one | §5, *How every review is run* |
 | a reviewer from another family of models | §5, *How every review is run* |
 | a section review that runs again whatever the first found, or reviews run until one comes back empty | §5, *How every review is run* and *The section review* |
@@ -1833,10 +2052,12 @@ on the harm of keeping one (`SOURCES.md`, *Plans are deleted after execution*).
 | a specification's state kept anywhere but its status line | §6, *The status of a specification* |
 | a status that says which parts are built | §6, *The status of a specification* |
 | checks that each keep a list of files nothing else checks | §6, *The status of a specification* |
+| a late correction waiting behind a change pending against its document that has not started | §6, *The status of a specification* |
 | two diffs against one target built at once | §6, *A diff specification, from sign-off to fold-in* |
 | a diff against a specification that is not `active` | §6, *A diff specification, from sign-off to fold-in* |
 | `REVIEWS.md` rows written at fold-in rather than at sign-off | §6, *The review record* |
 | a recommendation on close-out's question about reading the finished document | §6, *The review record* |
+| an amendment's reviews recorded in rows of their own, beside the rows they replace | §6, *The review record* |
 | a copy of the conversation kept | §6, *What never comes out* |
 | the old and the new document run side by side behind a switch | §7, *What replacing means* |
 | a process document replaced through an elephant | §7, *What replacing means* |

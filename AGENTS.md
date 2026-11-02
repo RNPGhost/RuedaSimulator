@@ -85,6 +85,7 @@ useful. And it is where an agent starts, so it stays short enough to read in ful
 | `test/corpus-size.js`, `test/formation-lines.js`, `test/formation-perpendicular.js` | generators — the numbers and diagrams the documents quote are computed here |
 | `test/harness.js` | loads the engine into a Node sandbox. **This is what "measure, don't assert" measures through** |
 | `test/visual.js` | Chromium screenshots. Needs `playwright`; its browser path is hard-coded to Linux, so it does not run on this checkout |
+| `test/extract-interview.js` | **not a check**: the interview review's extractor, cutting one part of a session's transcript down to what the author and the agent said. `--self-test` shows each of its stops firing |
 
 ### Skills
 
@@ -131,6 +132,8 @@ Run by the `goldfish` skill, not read directly.
 | `prompts/goldfish-method.md` | could you *follow* this process without inventing anything? — **not part of the standing loop**; a bespoke reviewer used while settling `METHOD.md` itself |
 | `prompts/goldfish-plan.md` | could you execute this plan without reading anything it did not give you? |
 | `prompts/goldfish-seam.md` | do these two documents disagree? |
+| `prompts/goldfish-interview.md` | where did this questioning fail to find out what the author wants? — written to `process/designs/ELEPHANT.md` §5 ahead of its slices, and dispatched by hand; the `goldfish` skill does not yet name it |
+| `prompts/goldfish-ledger.md` | can each ruling be found in the document it names? — the same: written ahead of the slices, dispatched by hand |
 
 Three documents in this repository carry a legacy `HISTORICAL — not current guidance` header:
 `ARCHITECTURE_REVIEW.md`, `REFACTOR_PLAN.md` and `SMOOTH_PATHS_PLAN.md`. Do not follow them. The

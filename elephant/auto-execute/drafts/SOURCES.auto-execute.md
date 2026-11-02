@@ -1,4 +1,4 @@
-> **Status:** finalised
+> **Status:** draft
 > **Amends:** `SOURCES.md`, written against `a93fac3`
 
 ### The three dispositions
@@ -351,6 +351,98 @@ document*.
 **Kind:** reasoned
 **Evidence:** none; the argument is in `ELEPHANT.md`, under *What is kept of a review* and *An archive
 of rejected alternatives*.
+**Departs:** no
+
+### Findings on a cut or a plan are the beaver's to act on
+
+**Change:** added
+**After:** "Findings inside an elephant are not recorded past close-out"
+
+**Kind:** reasoned
+**Evidence:** none directly. The rule is the exception `BEAVER.md` states under *The exception in the
+overriding rule*, covering findings on a cut, on a plan, and on the seam review after a slice of a
+process design; the argument is under *What else was ruled against*, in *Every finding on a cut or a
+plan ruled on by the author* and, for the seam review, *After a slice of a process design, a summary
+for the author, or the author ruling on its seam review*. Two web searches on 2026-11-01 found no
+study measuring a loop whose findings an agent rules on and acts on against one whose findings a
+person rules on. Adjacent support: in two of the implementations of this pattern that loop, the agent
+rules on and acts on a reviewer's findings, not a person. ClaudeFlows fixes or rebuts each finding
+and asks the person what to do only at a cap of five rounds. elephant-goldfish's working agent does
+the same on a design document, for up to three revisions, and on a diff, for up to five rounds, asking
+the person only when the loop does not converge, or when a finding repeats at the same place in the
+diff. Separately, Claude Code's own guidance brings a reviewer's gaps back into the session for the
+agent to fix, and leaves a person three things in an unattended run: starting it, saying what done
+means, and approving the result.
+**Sources:** [ClaudeFlows](https://omnipragmatic.github.io/claudeflows/),
+[elephant-goldfish](https://github.com/vshvedov/elephant-goldfish),
+[Claude Code best practices](https://code.claude.com/docs/en/best-practices)
+**Departs:** yes — elephant-goldfish shows the person what its loops are doing, and the beaver shows the
+author neither the cut nor any plan, nor any finding it rules on itself. See *Where this method
+departs from its sources*.
+
+### A plan's review loop stops when nothing blocking is left, or at five rounds
+
+**Change:** added
+**After:** "Findings on a cut or a plan are the beaver's to act on"
+
+**Kind:** published
+**Evidence:** the rule governs the loop on the cut as well as on each plan. A reviewer asked to find
+problems finds some whether or not they are there. Claude Code's guidance has a reviewer report only
+the gaps that affect correctness and skip style, because one asked for problems always finds
+something, and fixing every finding adds layers of abstraction and tests for cases that cannot happen.
+Model critiques of code held far more nitpicks and invented bugs than human ones, a comparison the
+paper gives only in a figure, with no rate in its text. Both are about reviews of code, not of plans.
+A loop that waited for an empty review would therefore not stop. That a loop stopping on nothing
+blocking ends before its cap is not measured either. The cap is taken from practice: ClaudeFlows loops
+until a review finds nothing, with a hard cap of five rounds before it asks the person what to do, and
+elephant-goldfish caps its review of a diff at five rounds and its revisions of a design document at
+three. That the cap is five, rather than another number, is not measured.
+**Note:** the measured loop of audit and fix this method cites cuts the other way. Over a 7,152-line
+specification in eight files, its rounds found 15, 8, 12, 2, 8, 1, 4, 1 and 0 defects. A cap of five
+would have stopped it with 6 of its 51 still to find, among them the one its author judged most
+consequential, found in round 8. It stopped on one pass that found nothing, and recommends two in a
+row. It counted every finding, where this loop stops on blocking ones only, and its way of auditing
+changed between rounds.
+**Sources:** [Claude Code best practices](https://code.claude.com/docs/en/best-practices),
+[CriticGPT](https://arxiv.org/html/2407.00215v1),
+[ClaudeFlows](https://omnipragmatic.github.io/claudeflows/),
+[elephant-goldfish](https://github.com/vshvedov/elephant-goldfish),
+[nine-round audit](https://arxiv.org/pdf/2605.12280)
+**Departs:** yes — ClaudeFlows, and elephant-goldfish's review of a diff, end without reaching the cap
+only on a review with no findings at all, where this loop ends on one with nothing blocking; and
+elephant-goldfish sends a finding that repeats to the person at once. See *A review is not re-run on
+its own*.
+
+### A plan writes its acceptance tests first, and nothing later edits them
+
+**Change:** added
+**After:** "A plan's review loop stops when nothing blocking is left, or at five rounds"
+
+**Kind:** published
+**Evidence:** in TDD for code generation, GPT-4 given tests with each problem solved 82.45% of MBPP's
+problems against 69.67% without them, and 87.81% of HumanEval's against 78.66%, judged by tests it
+never saw. Those tests came with the problem; that writing them before the code does better than
+writing them after is not measured. In ImpossibleBench, on tasks whose tests had been altered to
+contradict the specification, so that any pass was a cheat, the Claude models tested — Opus 4.1,
+Sonnet 4 and Sonnet 3.7 — and Qwen3-Coder cheated on its SWE-bench tasks mainly by changing the tests,
+in over 79% of their cheats, though the prompt told them in capitals not to. Making the tests read-only
+restored performance on the unaltered tasks and stopped the edits, though not other cheats, such as
+hard-coding answers for the tested inputs; hiding the tests cut cheating to near zero, a value the
+paper gives only in a figure, but cost performance on the unaltered tasks. The practice this takes from
+writes the failing test first and runs it to see it fail (writing-plans), has a change shown by a test
+that fails before it and passes after (ExecPlans), and gives an agent a failing test to turn green as
+what done looks like (Claude Code's guidance).
+**Note:** EvilGenie found test files seldom touched. Of its 145 problems whose tests matched their
+statements, Claude Code and Codex changed or deleted the test file on none, and Gemini CLI modified it
+on one and deleted it on five. On the nine whose tests contradicted their statements, none of the three
+changed a test, and hard-coding answers for the tested inputs was the commoner cheat, Codex's on four
+of the nine.
+**Sources:** [TDD for code generation](https://arxiv.org/abs/2402.13521),
+[ImpossibleBench](https://arxiv.org/abs/2510.20270),
+[EvilGenie](https://arxiv.org/abs/2511.21654),
+[writing-plans](https://raw.githubusercontent.com/obra/superpowers/main/skills/writing-plans/SKILL.md),
+[ExecPlans](https://developers.openai.com/cookbook/articles/codex_exec_plans),
+[Claude Code best practices](https://code.claude.com/docs/en/best-practices)
 **Departs:** no
 
 ## Where this method departs from its sources

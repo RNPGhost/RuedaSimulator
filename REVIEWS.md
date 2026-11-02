@@ -70,9 +70,9 @@ declared `none` and a missing line are different states, so every block carries 
 | Review | State | At | Prompt |
 |---|---|---|---|
 | document | not run | — | `prompts/goldfish-document.md` |
-| section, `SOURCES.elephant.md` | reviewed | — | `prompts/goldfish-section.md` |
-| document, `SOURCES.elephant.md` | reviewed | — | `prompts/goldfish-document.md` |
-| read by the author, `SOURCES.elephant.md` | not run | — | — |
+| section, `elephant/auto-execute/drafts/SOURCES.auto-execute.md` | reviewed | — | `prompts/goldfish-section.md` |
+| document, `elephant/auto-execute/drafts/SOURCES.auto-execute.md` | reviewed | — | `prompts/goldfish-document.md` |
+| read by the author, `elephant/auto-execute/drafts/SOURCES.auto-execute.md` | not run | — | — |
 
 #### Rejected findings
 
@@ -90,7 +90,7 @@ declared `none` and a missing line are different states, so every block carries 
 
 *(none)*
 
-### `process/designs/ELEPHANT.md`
+### `elephant/auto-execute/drafts/process/designs/ELEPHANT.md`
 
 **Normative dependencies:** `METHOD.md`
 
